@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "compiler-state.asmi"
-            .include "native-state.asmi"
+            .include "z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -11,9 +11,9 @@ CompilerCodeStart:
             .include "semantic-sink.asm"
             .include "parser.asm"
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-            .include "native-sink.asm"
-NativeSinkCodeEnd:
+SinkCodeStart:
+            .include "z80-sink.asm"
+SinkCodeEnd:
 CompilerCodeEnd:
 
 CompilerImmutableStart:
@@ -31,41 +31,41 @@ NameMain:
             .db  "main"
 NameWriteOutputByte:
             .db  "writeOutputByte"
-NativeProgramTemplate:
+ProgramTemplate:
             .db  $3E,$00
             .db  $CD
-            .dw  NativeWriteOutputByte
+            .dw  WriteOutputByte
             .db  $38,$06
-            .db  $3E,NativeRunSucceeded,$32
-            .dw  NativeRunState
+            .db  $3E,RunSucceeded,$32
+            .dw  RunState
             .db  $C9
             .db  $32
-            .dw  NativeTrapError
+            .dw  TrapError
             .db  $AF,$32
-            .dw  NativeTrapRoutine
+            .dw  TrapRoutine
             .db  $21
-            .dw  NativeFailureOffset
+            .dw  FailureOffset
             .db  $22
-            .dw  NativeTrapOffset
+            .dw  TrapOffset
             .db  $3E,$06,$32
-            .dw  NativeTrapNumber
-            .db  $3E,NativeRunTrapped,$32
-            .dw  NativeRunState
+            .dw  TrapNumber
+            .db  $3E,RunTrapped,$32
+            .dw  RunState
             .db  $C9
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
             .org SourceBase
-NativeProofSource:
+ProofSource:
             .db  "sub main() fails",10
             .db  "    writeOutputByte('A') or fail",10
             .db  "end",10
-NativeProofSourceEnd:
+ProofSourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -77,24 +77,24 @@ ProofStart:
             LD   (ServiceForceFailure),A
 
             LD   A,7
-            LD   HL,NativeProofSource
-            LD   DE,NativeProofSourceEnd
+            LD   HL,ProofSource
+            LD   DE,ProofSourceEnd
             CALL CompileVerticalSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeSemanticProgram
+            CALL EncodeSemanticProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
-            LD   DE,NativeProgramSize
+            LD   DE,ProgramSize
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
 
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceForceFailure),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailRunSuccess
             LD   A,(ServiceOutputLength)
             CP   1
@@ -104,28 +104,28 @@ ProofStart:
             JP   NZ,ProofFailOutputByte
             LD   (ProofSuccessOutput),A
 
-            CALL NativeReset
+            CALL Reset
             LD   A,1
             LD   (ServiceForceFailure),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailTrapState
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailAtomicOutput
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailTrapNumber
-            LD   A,(NativeTrapRoutine)
+            LD   A,(TrapRoutine)
             OR   A
             JP   NZ,ProofFailTrapRoutine
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeFailureOffset
+            LD   HL,(TrapOffset)
+            LD   DE,FailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTrapOffset
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   3
             JP   NZ,ProofFailTrapError
 

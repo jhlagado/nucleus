@@ -3,7 +3,7 @@
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
             .include "aggregate-call-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -25,14 +25,14 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 0
-            .include "loop-native-sink.asm"
-TypedNativeSinkCodeStart:
-            .include "typed-expression-native.asm"
-            .include "aggregate-native.asm"
-TypedNativeSinkCodeEnd:
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 0
+            .include "loop-z80-sink.asm"
+TypedSinkCodeStart:
+            .include "typed-expression-z80.asm"
+            .include "aggregate-z80.asm"
+TypedSinkCodeEnd:
+SinkCodeEnd:
 CompilerCodeEnd:
 CompilerImmutableStart:
             .include "loop-keywords.asmi"
@@ -174,9 +174,9 @@ Stage7CallDepthSource:
             .db "end",10
 Stage7CallDepthSourceEnd:
 
-            ; Additional adversarial source fixtures live after the native
+            ; Additional adversarial source fixtures live after the Z80
             ; transaction backup rather than consuming the 2 KiB source bank.
-            .org NativeBackupLimit
+            .org BackupLimit
 
 Stage7ParameterRoutineCollisionSource:
             .db "sub choose(choose as u8)",10
@@ -377,9 +377,9 @@ Stage7AggregateResultScalarSource:
 Stage7AggregateResultScalarSourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -393,15 +393,15 @@ ProofStart:
             LD   DE,Stage7CopySourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
             LD   (ProofCopyGeneratedSize),HL
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -420,15 +420,15 @@ ProofStart:
             LD   DE,Stage7ForwardSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailForwardCompile
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JP   C,ProofFailForwardEncode
             LD   HL,(GeneratedSize)
             LD   (ProofForwardGeneratedSize),HL
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailForwardFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailForwardRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -447,15 +447,15 @@ ProofStart:
             LD   DE,Stage7StringSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailStringCompile
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JP   C,ProofFailStringEncode
             LD   HL,(GeneratedSize)
             LD   (ProofStringGeneratedSize),HL
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailStringRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -480,20 +480,20 @@ ProofStart:
             LD   DE,Stage7BoundsSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailBoundsCompile
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JP   C,ProofFailBoundsEncode
             LD   HL,(GeneratedSize)
             LD   (ProofBoundsGeneratedSize),HL
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailBoundsRun
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   1
             JP   NZ,ProofFailBoundsRun
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,134
             OR   A
             SBC  HL,DE
@@ -713,13 +713,13 @@ ProofCompileAndRunSuccess:
             LD   A,160
             CALL CompileAggregateCallSlice
             RET  C
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             RET  C
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             RET  C
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             RET  Z
             SCF
             RET
@@ -733,23 +733,23 @@ ProofRunRecursiveCapacity:
             LD   DE,Stage7RecursiveCapacitySourceEnd
             CALL CompileAggregateCallSlice
             RET  C
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             RET  C
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             RET  C
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   5
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,71
             OR   A
             SBC  HL,DE
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             OR   A
             JR   NZ,ProofRecursiveCapacityFailure
             LD   A,(GeneratedBase+3)
@@ -895,7 +895,7 @@ ProofSuffixFailure:
             SCF
             RET
 
-; Build one structurally valid native stream with an intentionally invalid
+; Build one structurally valid Z80 stream with an intentionally invalid
 ; opaque carrier. B is the destination offset and C the source offset. The
 ; complete data bytes must survive either region-check trap unchanged.
 .routine in B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -928,18 +928,18 @@ ProofRunInvalidCopy:
             LD   (HL),$12
             INC  HL
             LD   (HL),SemanticEndMain
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JR   C,ProofInvalidCopyFailure
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JR   C,ProofInvalidCopyFailure
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JR   NZ,ProofInvalidCopyFailure
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   1
             JR   NZ,ProofInvalidCopyFailure
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,$1234
             OR   A
             SBC  HL,DE
@@ -973,7 +973,7 @@ ProofCheckEncodeRollback:
             INC  HL
             LD   (HL),SemanticEndMain
             LD   HL,GeneratedBase+4
-            CALL NativeEncodeAggregateProgramWithinLimit
+            CALL EncodeAggregateProgramWithinLimit
             JR   NC,ProofEncodeRollbackFailure
             LD   HL,(GeneratedSize)
             LD   DE,(ProofExpectedOffset)
@@ -982,7 +982,7 @@ ProofCheckEncodeRollback:
             JR   NZ,ProofEncodeRollbackFailure
             LD   BC,(GeneratedSize)
             LD   HL,GeneratedBase
-            LD   DE,NativeBackupBase
+            LD   DE,BackupBase
 ProofEncodeRollbackCompare:
             LD   A,B
             OR   C

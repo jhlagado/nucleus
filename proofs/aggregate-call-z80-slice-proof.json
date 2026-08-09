@@ -1,8 +1,8 @@
 {
-  "name": "aggregate-call-result-copy-native-z80",
-  "source": "../asm/vertical-slice/aggregate-call-native-slice-proof.asm",
+  "name": "aggregate-call-result-copy-z80",
+  "source": "../asm/vertical-slice/aggregate-call-z80-slice-proof.asm",
   "memoryProfile": "vertical-slice-memory.json",
-  "interfaces": ["../asm/vertical-slice/expression-generated-native.asmi"],
+  "interfaces": ["../asm/vertical-slice/expression-generated-z80.asmi"],
   "execution": {
     "entry": "ProofStart",
     "maxInstructions": 1500000,
@@ -20,13 +20,13 @@
   "extents": [
     { "name": "common-front-end", "from": "CompilerCodeStart", "to": "CompilerCommonCodeEnd", "maxBytes": 16384 },
     { "name": "parser", "from": "ParserCodeStart", "to": "ParserCodeEnd", "maxBytes": 14336 },
-    { "name": "typed-aggregate-native-sink", "from": "TypedNativeSinkCodeStart", "to": "TypedNativeSinkCodeEnd", "maxBytes": 8192 },
+    { "name": "typed-aggregate-z80-sink", "from": "TypedSinkCodeStart", "to": "TypedSinkCodeEnd", "maxBytes": 8192 },
     { "name": "compiler-code", "from": "CompilerCodeStart", "to": "CompilerCodeEnd", "maxBytes": 16384 },
     { "name": "compiler-immutable", "from": "CompilerImmutableStart", "to": "CompilerImmutableEnd", "maxBytes": 4096 },
     { "name": "compiler-core", "from": "CompilerCodeStart", "to": "CompilerCoreEnd", "maxBytes": 16384 },
     { "name": "compiler-workspace", "from": "CompilerStateBase", "to": "Stage7CompilerWorkspaceEnd", "maxBytes": 4096 },
     { "name": "static-image", "from": "StaticImageBase", "to": "StaticImageLimit", "maxBytes": 255 },
-    { "name": "native-runtime", "from": "NativeRuntimeCodeStart", "to": "NativeRuntimeCodeEnd", "maxBytes": 4096 },
+    { "name": "z80-runtime", "from": "RuntimeCodeStart", "to": "RuntimeCodeEnd", "maxBytes": 4096 },
     { "name": "proof-code-and-data", "from": "ProofStart", "to": "ProofEnd", "maxBytes": 4096 }
   ]
 }

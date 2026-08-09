@@ -11,13 +11,13 @@ EmitControlExitLabel    .equ EmitFailureFixup+1
 
 ; C is a label ordinal and DE is the address of a generated word operand.
 .routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeRecordFixup:
+StructuredRecordFixup:
             LD   A,C
             CP   EmitControlLabelCapacity
-            JR   NC,StructuredNativeLabelFailure
+            JR   NC,StructuredLabelFailure
             LD   A,(EmitControlFixupCount)
             CP   EmitControlFixupCapacity
-            JR   NC,StructuredNativeFixupFailure
+            JR   NC,StructuredFixupFailure
             PUSH BC
             LD   L,A
             LD   H,0
@@ -37,44 +37,44 @@ StructuredNativeRecordFixup:
             INC  (HL)
             XOR  A
             RET
-StructuredNativeLabelFailure:
+StructuredLabelFailure:
             JP   ControlLabelFailure
-StructuredNativeFixupFailure:
+StructuredFixupFailure:
             LD   A,DiagnosticControlFixupCapacity
             JP   CompilerSetDiagnostic
 
 ; Emit opcode A with a zero word operand and retain that operand for label C.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeEmitFixup:
+StructuredEmitFixup:
             PUSH BC
-            CALL NativeEmitByte
+            CALL EmitByte
             POP  BC
             RET  C
             LD   DE,(EmitCursor)
             PUSH BC
             PUSH DE
             LD   HL,0
-            CALL NativeEmitWord
+            CALL EmitWord
             POP  DE
             POP  BC
             RET  C
-            JP   StructuredNativeRecordFixup
+            JP   StructuredRecordFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeLabel:
-            CALL NativeNextSemanticByte
+StructuredLabel:
+            CALL NextSemanticByte
             LD   C,A
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeDefineLabel:
+StructuredDefineLabel:
             LD   A,C
             CP   EmitControlLabelCapacity
-            JR   NC,StructuredNativeLabelFailure
+            JR   NC,StructuredLabelFailure
             LD   B,0
             LD   HL,EmitControlLabelValidBase
             ADD  HL,BC
             LD   A,(HL)
             OR   A
-            JP   NZ,TypedNativeInternalOperation
+            JP   NZ,TypedInternalOperation
             LD   (HL),1
             LD   L,C
             LD   H,0
@@ -89,40 +89,39 @@ StructuredNativeDefineLabel:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeBranchFalse:
-            CALL NativeNextSemanticByte
+StructuredBranchFalse:
+            CALL NextSemanticByte
             LD   C,A
             PUSH BC
-            LD   HL,StructuredNativeBranchFalseBytes
-            LD   B,3
-            CALL NativeEmitBytes
+            LD   HL,StructuredBranchFalseBytes
+            CALL   EmitThree
             POP  BC
             RET  C
             LD   A,$CA                    ; JP Z,nn
-            JP   StructuredNativeEmitFixup
+            JP   StructuredEmitFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeJump:
-            CALL NativeNextSemanticByte
+StructuredJump:
+            CALL NextSemanticByte
             LD   C,A
             LD   A,$C3                    ; JP nn
-            JP   StructuredNativeEmitFixup
+            JP   StructuredEmitFixup
 
 ; Resolve every retained absolute operand after all label locations are known.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredNativeResolveFixups:
+StructuredResolveFixups:
             LD   A,(EmitControlFixupCount)
             OR   A
             RET  Z
             LD   B,A
             LD   IX,EmitControlFixupBase
-StructuredNativeResolveNext:
+StructuredResolveNext:
             LD   C,(IX+0)
             LD   E,(IX+1)
             LD   D,(IX+2)
             LD   A,C
             CP   EmitControlLabelCapacity
-            JR   NC,StructuredNativeResolveFailure
+            JR   NC,StructuredResolveFailure
             PUSH BC
             PUSH DE
             LD   B,0
@@ -130,7 +129,7 @@ StructuredNativeResolveNext:
             ADD  HL,BC
             LD   A,(HL)
             OR   A
-            JR   Z,StructuredNativeResolveUnwind
+            JR   Z,StructuredResolveUnwind
             LD   H,0
             LD   L,C
             ADD  HL,HL
@@ -141,77 +140,73 @@ StructuredNativeResolveNext:
             LD   H,(HL)
             LD   L,C
             POP  DE
-            CALL NativePatchWord
+            CALL PatchWord
             POP  BC
             RET  C
             INC  IX
             INC  IX
             INC  IX
-            DJNZ StructuredNativeResolveNext
+            DJNZ StructuredResolveNext
             XOR  A
             RET
-StructuredNativeResolveUnwind:
+StructuredResolveUnwind:
             POP  DE
             POP  BC
-StructuredNativeResolveFailure:
-            JP   TypedNativeInternalOperation
+StructuredResolveFailure:
+            JP   TypedInternalOperation
 
 ; Emit a local load into HL without pushing a new expression carrier.
 ; C is the byte offset, A bit 2 selects u16.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeLoadCounter:
+StructuredLoadCounter:
             LD   D,A
             LD   A,C
             CPL
             LD   C,A
             PUSH BC
             PUSH DE
-            LD   HL,TypedNativeLoadLocalLow
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,TypedLoadLocalLow
+            CALL   EmitPair
             POP  DE
             POP  BC
             RET  C
             LD   A,C
             PUSH DE
-            CALL NativeEmitByte
+            CALL EmitByte
             POP  DE
             RET  C
             BIT  2,D
-            JR   NZ,StructuredNativeLoadCounterHigh
-            LD   HL,TypedNativeZeroHigh
-            LD   B,2
-            JP   NativeEmitBytes
-StructuredNativeLoadCounterHigh:
+            JR   NZ,StructuredLoadCounterHigh
+            LD   HL,TypedZeroHigh
+            JP   EmitPair
+StructuredLoadCounterHigh:
             DEC  C
             PUSH BC
-            LD   HL,TypedNativeLoadLocalHigh
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,TypedLoadLocalHigh
+            CALL   EmitPair
             POP  BC
             RET  C
             LD   A,C
-            JP   NativeEmitByte
+            JP   EmitByte
 
 ; Store HL to counter byte offset C; A bit 2 selects u16.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeStoreCounter:
+StructuredStoreCounter:
             LD   D,A
             LD   A,C
             CPL
             LD   C,A
             PUSH BC
             PUSH DE
-            LD   HL,TypedNativeStoreLocalLow
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,TypedStoreLocalLow
+            CALL   EmitPair
             POP  DE
             POP  BC
             RET  C
             LD   A,C
             PUSH BC
             PUSH DE
-            CALL NativeEmitByte
+            CALL EmitByte
             POP  DE
             POP  BC
             RET  C
@@ -219,235 +214,226 @@ StructuredNativeStoreCounter:
             RET  Z
             DEC  C
             PUSH BC
-            LD   HL,TypedNativeStoreLocalHigh
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,TypedStoreLocalHigh
+            CALL   EmitPair
             POP  BC
             RET  C
             LD   A,C
-            JP   NativeEmitByte
+            JP   EmitByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeForSetup:
-            CALL NativeNextSemanticByte
+StructuredForSetup:
+            CALL NextSemanticByte
             LD   C,A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   B,A
             PUSH BC
-            LD   HL,StructuredNativePopBoundStart
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,StructuredPopBoundStart
+            CALL   EmitPair
             POP  BC
             RET  C
             LD   A,B
-            CALL StructuredNativeStoreCounter
+            CALL StructuredStoreCounter
             RET  C
             LD   A,$D5                    ; PUSH DE, retained bound
-            JP   NativeEmitByte
+            JP   EmitByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredNativeForTest:
-            CALL NativeNextSemanticByte
+StructuredForTest:
+            CALL NextSemanticByte
             LD   C,A                      ; counter
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   B,A                      ; mode
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   D,A                      ; exit label
             LD   (EmitControlExitLabel),A
             PUSH BC
             PUSH DE
-            LD   HL,StructuredNativeBoundPeek
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,StructuredBoundPeek
+            CALL   EmitPair
             POP  DE
             POP  BC
             RET  C
             PUSH BC
             PUSH DE
             LD   A,B
-            CALL StructuredNativeLoadCounter
+            CALL StructuredLoadCounter
             POP  DE
             POP  BC
             RET  C
             BIT  1,B
-            JR   NZ,StructuredNativeForTestNegative
+            JR   NZ,StructuredForTestNegative
             BIT  0,B
             LD   A,ComparisonLess
-            JR   Z,StructuredNativeForTestCompare
+            JR   Z,StructuredForTestCompare
             LD   A,ComparisonLessEqual
-            JR   StructuredNativeForTestCompare
-StructuredNativeForTestNegative:
+            JR   StructuredForTestCompare
+StructuredForTestNegative:
             BIT  0,B
             LD   A,ComparisonGreater
-            JR   Z,StructuredNativeForTestCompare
+            JR   Z,StructuredForTestCompare
             LD   A,ComparisonGreaterEqual
-StructuredNativeForTestCompare:
-            CALL NativeEmitLoadAImmediate
+StructuredForTestCompare:
+            CALL EmitLoadAImmediate
             RET  C
-            LD   HL,NativeCompareU16
-            CALL NativeEmitCall
+            LD   HL,CompareU16
+            CALL EmitCall
             RET  C
             LD   A,(EmitControlExitLabel)
             LD   C,A
-            LD   HL,StructuredNativeTestHL
-            LD   B,2
-            CALL NativeEmitBytes
+            LD   HL,StructuredTestHL
+            CALL   EmitPair
             RET  C
             LD   A,$CA
-            JP   StructuredNativeEmitFixup
+            JP   StructuredEmitFixup
 
 ; Read and retain the fixed-width ForNext operands in emitter scratch.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredNativeReadForNext:
-            CALL NativeNextSemanticByte
+StructuredReadForNext:
+            CALL NextSemanticByte
             LD   (EmitControlTestLabel),A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   (EmitControlExitLabel),A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   (EmitControlCounter),A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   (EmitControlMode),A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   E,A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   D,A
             LD   (EmitControlStep),DE
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   E,A
-            CALL NativeNextSemanticByte
+            CALL NextSemanticByte
             LD   D,A
             LD   (EmitControlTrapOffset),DE
             XOR  A
             RET
 
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-NativeEmitLoadDeImmediate:
+EmitLoadDeImmediate:
             LD   A,$11                    ; LD DE,nn
             PUSH DE
-            CALL NativeEmitByte
+            CALL EmitByte
             POP  DE
             RET  C
             LD   H,D
             LD   L,E
-            JP   NativeEmitWord
+            JP   EmitWord
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredNativeForNext:
-            CALL StructuredNativeReadForNext
-            LD   HL,StructuredNativeBoundPeek
-            LD   B,2
-            CALL NativeEmitBytes
+StructuredForNext:
+            CALL StructuredReadForNext
+            LD   HL,StructuredBoundPeek
+            CALL   EmitPair
             RET  C
             LD   A,(EmitControlCounter)
             LD   C,A
             LD   A,(EmitControlMode)
-            CALL StructuredNativeLoadCounter
+            CALL StructuredLoadCounter
             RET  C
             LD   A,$E5                    ; preserve current counter
-            CALL NativeEmitByte
+            CALL EmitByte
             RET  C
             LD   A,(EmitControlMode)
             BIT  1,A
-            JR   NZ,StructuredNativeNegativeDistance
+            JR   NZ,StructuredNegativeDistance
             LD   A,$EB                    ; EX DE,HL => bound-current
-            CALL NativeEmitByte
+            CALL EmitByte
             RET  C
-StructuredNativeNegativeDistance:
-            LD   HL,StructuredNativeSubtractDE
-            LD   B,3
-            CALL NativeEmitBytes
+StructuredNegativeDistance:
+            LD   HL,StructuredSubtractDE
+            CALL   EmitThree
             RET  C
             LD   DE,(EmitControlStep)
-            CALL NativeEmitLoadDeImmediate
+            CALL EmitLoadDeImmediate
             RET  C
             LD   A,(EmitControlMode)
             AND  1
             LD   A,ComparisonLess
-            JR   NZ,StructuredNativeDistanceCompare
+            JR   NZ,StructuredDistanceCompare
             ; until exits when distance <= step; to exits when distance < step.
             LD   A,(EmitControlMode)
             BIT  0,A
             LD   A,ComparisonLess
-            JR   NZ,StructuredNativeDistanceCompare
+            JR   NZ,StructuredDistanceCompare
             LD   A,ComparisonLessEqual
-StructuredNativeDistanceCompare:
-            CALL NativeEmitLoadAImmediate
+StructuredDistanceCompare:
+            CALL EmitLoadAImmediate
             RET  C
-            LD   HL,NativeCompareU16
-            CALL NativeEmitCall
+            LD   HL,CompareU16
+            CALL EmitCall
             RET  C
-            LD   HL,StructuredNativeTestThenPopCurrent
-            LD   B,3
-            CALL NativeEmitBytes
+            LD   HL,StructuredTestThenPopCurrent
+            CALL   EmitThree
             RET  C
             LD   A,(EmitControlExitLabel)
             LD   C,A
             LD   A,$C2                    ; JP NZ,exit cleanup
-            CALL StructuredNativeEmitFixup
+            CALL StructuredEmitFixup
             RET  C
             LD   DE,(EmitControlStep)
-            CALL NativeEmitLoadDeImmediate
+            CALL EmitLoadDeImmediate
             RET  C
             LD   A,(EmitControlMode)
             BIT  1,A
-            JR   NZ,StructuredNativeSubtractStep
+            JR   NZ,StructuredSubtractStep
             LD   A,$19                    ; ADD HL,DE
-            CALL NativeEmitByte
-            JR   StructuredNativeForNextFit
-StructuredNativeSubtractStep:
-            LD   HL,StructuredNativeSubtractDE
-            LD   B,3
-            CALL NativeEmitBytes
-StructuredNativeForNextFit:
+            CALL EmitByte
+            JR   StructuredForNextFit
+StructuredSubtractStep:
+            LD   HL,StructuredSubtractDE
+            CALL   EmitThree
+StructuredForNextFit:
             RET  C
             LD   A,(EmitControlMode)
             BIT  2,A
-            JR   NZ,StructuredNativeForNextStore
+            JR   NZ,StructuredForNextStore
             BIT  1,A
-            JR   NZ,StructuredNativeForNextStore
-            LD   HL,StructuredNativeTestHigh
-            LD   B,2
-            CALL NativeEmitBytes
+            JR   NZ,StructuredForNextStore
+            LD   HL,StructuredTestHigh
+            CALL   EmitPair
             RET  C
             LD   A,$CA                    ; JP Z,fit
-            CALL NativeEmitByte
+            CALL EmitByte
             RET  C
             LD   HL,(EmitCursor)
             LD   (EmitUpdateExitFixup),HL
             LD   HL,0
-            CALL NativeEmitWord
+            CALL EmitWord
             RET  C
             LD   HL,(EmitControlTrapOffset)
-            CALL NativeEmitLoadHl
+            CALL EmitLoadHl
             RET  C
             LD   A,4
-            CALL NativeEmitLoadAImmediate
+            CALL EmitLoadAImmediate
             RET  C
-            CALL TypedNativeEmitTrapEnding
+            CALL TypedEmitTrapEnding
             RET  C
             LD   DE,(EmitUpdateExitFixup)
             LD   HL,(EmitCursor)
-            CALL NativePatchWord
-StructuredNativeForNextStore:
+            CALL PatchWord
+StructuredForNextStore:
             LD   A,(EmitControlCounter)
             LD   C,A
             LD   A,(EmitControlMode)
-            CALL StructuredNativeStoreCounter
+            CALL StructuredStoreCounter
             RET  C
             LD   A,(EmitControlTestLabel)
             LD   C,A
             LD   A,$C3
-            JP   StructuredNativeEmitFixup
+            JP   StructuredEmitFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-StructuredNativeForCleanup:
+StructuredForCleanup:
             LD   A,$D1                    ; POP DE, discard retained bound
-            JP   NativeEmitByte
+            JP   EmitByte
 
-StructuredNativeBranchFalseBytes .equ TypedNativeBeginAndBytes
-StructuredNativePopBoundStart    .equ TypedNativePopOperandsBytes
-StructuredNativeBoundPeek:         .db $D1,$D5
-StructuredNativeTestHL           .equ TypedNativeBeginAndBytes+1
-StructuredNativeSubtractDE:        .db $B7,$ED,$52
-StructuredNativeTestThenPopCurrent: .db $7D,$B7,$E1
-StructuredNativeTestHigh         .equ TypedNativeTestHigh
+StructuredBranchFalseBytes .equ TypedBeginAndBytes
+StructuredPopBoundStart    .equ TypedPopOperandsBytes
+StructuredBoundPeek:         .db $D1,$D5
+StructuredTestHL           .equ TypedBeginAndBytes+1
+StructuredSubtractDE:        .db $B7,$ED,$52
+StructuredTestThenPopCurrent: .db $7D,$B7,$E1
+StructuredTestHigh         .equ TypedTestHigh

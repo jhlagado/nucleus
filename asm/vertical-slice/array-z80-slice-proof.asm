@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,10 +24,10 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 1
-            .include "loop-native-sink.asm"
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 1
+            .include "loop-z80-sink.asm"
+SinkCodeEnd:
 CompilerCodeEnd:
 
 CompilerImmutableStart:
@@ -56,9 +56,9 @@ BadArrayValue:
 BadArraySourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -80,10 +80,10 @@ ProofStart:
             LD   B,14
             CALL ProofCompareBytes
             JP   C,ProofFailOperations
-            CALL NativeEncodeArrayProgram
+            CALL EncodeArrayProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
-            LD   DE,NativeArrayProgramSize
+            LD   DE,ArrayProgramSize
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
@@ -95,8 +95,8 @@ ProofStart:
 
             CALL ProofConfigureSuccessInput
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailSuccessState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -110,14 +110,14 @@ ProofStart:
 
             CALL ProofConfigureBoundsInput
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailBoundsState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   1
             JP   NZ,ProofFailBoundsTrap
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeArrayBoundsOffset
+            LD   HL,(TrapOffset)
+            LD   DE,ArrayBoundsOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBoundsOffset
@@ -130,17 +130,17 @@ ProofStart:
 
             CALL ProofConfigureNoInput
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailInputState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailInputTrap
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   1
             JP   NZ,ProofFailInputError
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeArrayInputFailureOffset
+            LD   HL,(TrapOffset)
+            LD   DE,ArrayInputFailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailInputOffset
@@ -153,17 +153,17 @@ ProofStart:
 
             CALL ProofConfigureOutputFailure
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailOutputState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailOutputTrap
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   3
             JP   NZ,ProofFailOutputError
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeArrayOutputFailureOffset
+            LD   HL,(TrapOffset)
+            LD   DE,ArrayOutputFailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOutputOffset
@@ -196,39 +196,39 @@ ProofStart:
             JP   NZ,ProofFailBadPosition
 
             LD   A,$5A
-            LD   (NativeRunState),A
+            LD   (RunState),A
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCompile
             LD   HL,GeneratedBase+10
-            CALL NativeEncodeArrayProgramWithinLimit
+            CALL EncodeArrayProgramWithinLimit
             JP   NC,ProofFailCapacityAccepted
             LD   A,(DiagnosticCode)
             CP   DiagnosticSinkCapacity
             JP   NZ,ProofFailCapacityCode
             LD   HL,(GeneratedSize)
-            LD   DE,NativeArrayProgramSize
+            LD   DE,ArrayProgramSize
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailCapacityPublished
             LD   HL,GeneratedBase
-            LD   DE,NativeBackupBase
-            LD   B,NativeArrayProgramSize
+            LD   DE,BackupBase
+            LD   B,ArrayProgramSize
             CALL ProofCompareBytes
             JP   C,ProofFailCapacityPublished
-            LD   A,(NativeRunState)
+            LD   A,(RunState)
             CP   $5A
             JP   NZ,ProofFailCapacityState
 
-            ; Leave the complete native program available for host inspection.
+            ; Leave the complete Z80 program available for host inspection.
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeArrayProgram
+            CALL EncodeArrayProgram
             JP   C,ProofFailEncode
 
             LD   A,$A5
@@ -237,7 +237,7 @@ ProofStart:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureSuccessInput:
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceInputFailure),A
             LD   (ServiceFailureCall),A
@@ -248,7 +248,7 @@ ProofConfigureSuccessInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureBoundsInput:
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceInputFailure),A
             LD   (ServiceFailureCall),A
@@ -260,7 +260,7 @@ ProofConfigureBoundsInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureNoInput:
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceInputFailure),A
             LD   (ServiceFailureCall),A
@@ -269,7 +269,7 @@ ProofConfigureNoInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureOutputFailure:
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceInputFailure),A
             INC  A

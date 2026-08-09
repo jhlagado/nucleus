@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,11 +24,11 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 1
-            .include "loop-native-sink.asm"
-            .include "typed-expression-native.asm"
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 1
+            .include "loop-z80-sink.asm"
+            .include "typed-expression-z80.asm"
+SinkCodeEnd:
 CompilerCodeEnd:
 
 CompilerImmutableStart:
@@ -90,9 +90,9 @@ FullScalarName:
 FullScalarSourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -108,16 +108,16 @@ ProofStart:
             LD   DE,ExpressionProofSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailEncode
 
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceFailureCall),A
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailSuccessState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -129,21 +129,21 @@ ProofStart:
             CP   14
             JP   NZ,ProofFailAssignment
 
-            CALL NativeReset
+            CALL Reset
             LD   A,1
             LD   (ServiceFailureCall),A
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailOutputState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailOutputTrap
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   3
             JP   NZ,ProofFailOutputError
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,ExpressionOutputCall-ExpressionProofSource
             OR   A
             SBC  HL,DE
@@ -214,7 +214,7 @@ ProofStart:
             LD   DE,ExpressionProofSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailEncode
 
             LD   A,$A5
@@ -335,7 +335,7 @@ ProofCase:                   .db 0
 ProofExpectedSP:             .dw 0
 ProofEnd:
 
-NativeExpressionProgramSize .equ 116
-GeneratedExpressionEnd      .equ GeneratedBase+NativeExpressionProgramSize
+ExpressionProgramSize .equ 116
+GeneratedExpressionEnd      .equ GeneratedBase+ExpressionProgramSize
 
             .end

@@ -1,8 +1,8 @@
 {
-  "name": "forward-recursive-scalar-call-native-z80",
-  "source": "../asm/vertical-slice/call-native-slice-proof.asm",
+  "name": "general-scalar-expression-z80",
+  "source": "../asm/vertical-slice/expression-z80-slice-proof.asm",
   "memoryProfile": "vertical-slice-memory.json",
-  "interfaces": ["../asm/vertical-slice/call-generated-native.asmi"],
+  "interfaces": ["../asm/vertical-slice/expression-generated-z80.asmi"],
   "execution": {
     "entry": "ProofStart",
     "maxInstructions": 250000,
@@ -39,27 +39,27 @@
       "maxBytes": 4096
     },
     {
+      "name": "symbol-table",
+      "from": "SymbolCodeStart",
+      "to": "SymbolCodeEnd",
+      "maxBytes": 4096
+    },
+    {
       "name": "parser",
       "from": "ParserCodeStart",
       "to": "ParserCodeEnd",
       "maxBytes": 8192
     },
     {
-      "name": "call-parser-path",
-      "from": "ParserParseCallProgramAfterForward",
-      "to": "ParserParseProgram",
-      "maxBytes": 4096
-    },
-    {
-      "name": "native-output-sink",
-      "from": "NativeSinkCodeStart",
-      "to": "NativeSinkCodeEnd",
+      "name": "z80-output-sink",
+      "from": "SinkCodeStart",
+      "to": "SinkCodeEnd",
       "maxBytes": 8192
     },
     {
-      "name": "native-call-backend",
-      "from": "NativeCallBackendStart",
-      "to": "NativeCallBackendEnd",
+      "name": "z80-expression-backend",
+      "from": "ExpressionBackendStart",
+      "to": "ExpressionBackendEnd",
       "maxBytes": 4096
     },
     {
@@ -87,21 +87,21 @@
       "maxBytes": 4096
     },
     {
-      "name": "generated-native",
+      "name": "generated-z80",
       "from": "GeneratedBase",
-      "to": "GeneratedCallEnd",
+      "to": "GeneratedExpressionEnd",
       "maxBytes": 4096
     },
     {
-      "name": "native-runtime",
-      "from": "NativeRuntimeCodeStart",
-      "to": "NativeRuntimeCodeEnd",
+      "name": "z80-runtime",
+      "from": "RuntimeCodeStart",
+      "to": "RuntimeCodeEnd",
       "maxBytes": 4096
     },
     {
-      "name": "native-state",
-      "from": "NativeStateBase",
-      "to": "NativeStateEnd",
+      "name": "z80-state",
+      "from": "StateBase",
+      "to": "StateEnd",
       "maxBytes": 4096
     },
     {

@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,13 +24,13 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 0
-            .include "loop-native-sink.asm"
-TypedNativeSinkCodeStart:
-            .include "typed-expression-native.asm"
-TypedNativeSinkCodeEnd:
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 0
+            .include "loop-z80-sink.asm"
+TypedSinkCodeStart:
+            .include "typed-expression-z80.asm"
+TypedSinkCodeEnd:
+SinkCodeEnd:
 CompilerCodeEnd:
 CompilerImmutableStart:
             .include "loop-keywords.asmi"
@@ -168,9 +168,9 @@ TypedExpressionCapacitySource:
 TypedExpressionCapacitySourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -186,13 +186,13 @@ ProofStart:
             LD   DE,TypedAcceptedSourceEnd
             CALL CompileSlice
             JP   C,ProofFailAcceptedCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailAcceptedEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailAcceptedState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -218,13 +218,13 @@ ProofStart:
             LD   DE,TypedDefaultSourceEnd
             CALL CompileSlice
             JP   C,ProofFailDefaultCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailDefaultEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailDefaultState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -245,18 +245,18 @@ ProofStart:
             LD   DE,TypedNarrowTrapSourceEnd
             CALL CompileSlice
             JP   C,ProofFailNarrowCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailNarrowEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailNarrowState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   2
             JP   NZ,ProofFailNarrowNumber
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,TypedNarrowTrapPoint-TypedNarrowTrapSource
             OR   A
             SBC  HL,DE
@@ -270,18 +270,18 @@ ProofStart:
             LD   DE,TypedDivideTrapSourceEnd
             CALL CompileSlice
             JP   C,ProofFailDivideCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailDivideEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailDivideState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   3
             JP   NZ,ProofFailDivideNumber
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,TypedDivideTrapPoint-TypedDivideTrapSource
             OR   A
             SBC  HL,DE
@@ -431,13 +431,13 @@ ProofStart:
             LD   DE,TypedCoverageSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCoverageCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailCoverageEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailCoverageState
             LD   A,(ServiceOutputBase)
             CP   255
@@ -453,13 +453,13 @@ ProofStart:
             LD   DE,TypedConversionContextSourceEnd
             CALL CompileSlice
             JP   C,ProofFailConversionCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailConversionEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailConversionState
             LD   HL,(GeneratedBase+4)
             LD   A,H
@@ -476,15 +476,15 @@ ProofStart:
             LD   DE,TypedNestedDivideTrapSourceEnd
             CALL CompileSlice
             JP   C,ProofFailNestedDivideCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailNestedDivideEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailNestedDivideState
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,TypedNestedDivideOuter-TypedNestedDivideTrapSource
             OR   A
             SBC  HL,DE
@@ -502,15 +502,15 @@ ProofStart:
             LD   DE,TypedNestedNarrowTrapSourceEnd
             CALL CompileSlice
             JP   C,ProofFailNestedNarrowCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailNestedNarrowEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailNestedNarrowState
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,TypedNestedNarrowOuter-TypedNestedNarrowTrapSource
             OR   A
             SBC  HL,DE
@@ -534,7 +534,7 @@ ProofStart:
             LD   A,EmitBooleanFixupCapacity
             LD   (EmitBooleanFixupDepth),A
             LD   DE,0
-            CALL TypedNativePushBooleanFixup
+            CALL TypedPushBooleanFixup
             JP   NC,ProofFailBooleanCapacity
             LD   A,(DiagnosticCode)
             CP   DiagnosticBooleanFixupCapacity
@@ -542,7 +542,7 @@ ProofStart:
 
             XOR  A
             LD   (EmitBooleanFixupDepth),A
-            CALL TypedNativePopBooleanFixup
+            CALL TypedPopBooleanFixup
             JP   NC,ProofFailBooleanUnderflow
             LD   A,(DiagnosticCode)
             CP   DiagnosticInternalOperation
@@ -552,7 +552,7 @@ ProofStart:
             LD   (SemanticBufferBase),A
             LD   A,SemanticLiteralU8
             LD   (SemanticBufferBase+1),A
-            CALL TypedNativeDispatch
+            CALL TypedDispatch
             JP   NC,ProofFailRetiredOperation
             LD   A,(DiagnosticCode)
             CP   DiagnosticInternalOperation
@@ -560,7 +560,7 @@ ProofStart:
 
             LD   A,1
             LD   (EmitBooleanFixupDepth),A
-            CALL TypedNativeEndMain
+            CALL TypedEndMain
             JP   NC,ProofFailUnbalancedBoolean
             LD   A,(DiagnosticCode)
             CP   DiagnosticInternalOperation
@@ -572,7 +572,7 @@ ProofStart:
             LD   DE,TypedAcceptedSourceEnd
             CALL CompileSlice
             JP   C,ProofFailAcceptedCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailAcceptedEncode
             LD   A,$A5
             LD   (ProofStatus),A

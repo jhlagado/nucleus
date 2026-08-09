@@ -1,12 +1,12 @@
 {
-  "name": "aggregate-layout-static-image-native-z80",
-  "source": "../asm/vertical-slice/aggregate-native-slice-proof.asm",
+  "name": "initialized-array-z80",
+  "source": "../asm/vertical-slice/array-z80-slice-proof.asm",
   "memoryProfile": "vertical-slice-memory.json",
-  "interfaces": ["../asm/vertical-slice/expression-generated-native.asmi"],
+  "interfaces": ["../asm/vertical-slice/array-generated-z80.asmi"],
   "execution": {
     "entry": "ProofStart",
-    "maxInstructions": 1500000,
-    "maxCycles": 15000000,
+    "maxInstructions": 150000,
+    "maxCycles": 1500000,
     "halted": true
   },
   "observations": [
@@ -21,16 +21,34 @@
       "maxBytes": 16384
     },
     {
+      "name": "source-adapter",
+      "from": "SourceAdapterCodeStart",
+      "to": "SourceAdapterCodeEnd",
+      "maxBytes": 4096
+    },
+    {
+      "name": "tokenizer",
+      "from": "TokenizerCodeStart",
+      "to": "TokenizerCodeEnd",
+      "maxBytes": 4096
+    },
+    {
+      "name": "semantic-sink",
+      "from": "SemanticSinkCodeStart",
+      "to": "SemanticSinkCodeEnd",
+      "maxBytes": 4096
+    },
+    {
       "name": "parser",
       "from": "ParserCodeStart",
       "to": "ParserCodeEnd",
-      "maxBytes": 12288
+      "maxBytes": 8192
     },
     {
-      "name": "typed-native-sink",
-      "from": "TypedNativeSinkCodeStart",
-      "to": "TypedNativeSinkCodeEnd",
-      "maxBytes": 8192
+      "name": "z80-output-sink",
+      "from": "SinkCodeStart",
+      "to": "SinkCodeEnd",
+      "maxBytes": 4096
     },
     {
       "name": "compiler-code",
@@ -57,16 +75,28 @@
       "maxBytes": 4096
     },
     {
-      "name": "static-image",
-      "from": "StaticImageBase",
-      "to": "StaticImageLimit",
-      "maxBytes": 255
+      "name": "generated-z80",
+      "from": "GeneratedBase",
+      "to": "GeneratedArrayEnd",
+      "maxBytes": 4096
     },
     {
-      "name": "native-runtime",
-      "from": "NativeRuntimeCodeStart",
-      "to": "NativeRuntimeCodeEnd",
+      "name": "z80-runtime",
+      "from": "RuntimeCodeStart",
+      "to": "RuntimeCodeEnd",
       "maxBytes": 4096
+    },
+    {
+      "name": "z80-state",
+      "from": "StateBase",
+      "to": "StateEnd",
+      "maxBytes": 4096
+    },
+    {
+      "name": "service-state",
+      "from": "ServiceBase",
+      "to": "ServiceStateEnd",
+      "maxBytes": 2048
     },
     {
       "name": "proof-code-and-data",

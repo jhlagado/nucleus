@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,10 +24,10 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 1
-            .include "loop-native-sink.asm"
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 1
+            .include "loop-z80-sink.asm"
+SinkCodeEnd:
 CompilerCodeEnd:
 
 CompilerImmutableStart:
@@ -72,9 +72,9 @@ BadCompletionName:
 BadCompletionSourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -91,10 +91,10 @@ ProofStart:
             LD   A,(SemanticBufferBase)
             CP   9
             JP   NZ,ProofFailOperations
-            CALL NativeEncodeCallProgram
+            CALL EncodeCallProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
-            LD   DE,NativeCallProgramSize
+            LD   DE,CallProgramSize
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
@@ -104,10 +104,10 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailTranscriptEnd
 
-            CALL NativeReset
+            CALL Reset
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailSuccessState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -115,65 +115,65 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             OR   A
             JP   NZ,ProofFailSuccessByte
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             OR   A
             JP   NZ,ProofFailSuccessActivation
-            LD   A,(NativeActivationArena+3)
+            LD   A,(ActivationArena+3)
             CP   1
             JP   NZ,ProofFailSuccessPeak
 
-            CALL NativeReset
+            CALL Reset
             LD   A,$A5
-            LD   (NativeActivationArena+3),A
+            LD   (ActivationArena+3),A
             LD   A,3
-            LD   (NativeActivationLimit),A
+            LD   (ActivationLimit),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailCapacityState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   5
             JP   NZ,ProofFailCapacityTrap
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailCapacityOutput
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             OR   A
             JP   NZ,ProofFailCapacityActivation
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeCallCapacityOffset
+            LD   HL,(TrapOffset)
+            LD   DE,CallCapacityOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailCapacityOffset
-            LD   A,(NativeActivationArena+2)
+            LD   A,(ActivationArena+2)
             CP   2
             JP   NZ,ProofFailCapacityPeak
-            LD   A,(NativeActivationArena+3)
+            LD   A,(ActivationArena+3)
             CP   $A5
             JP   NZ,ProofFailCapacityAtomic
 
-            CALL NativeReset
+            CALL Reset
             LD   A,1
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailOutputState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailOutputTrap
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   3
             JP   NZ,ProofFailOutputError
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeCallFailureOffset
+            LD   HL,(TrapOffset)
+            LD   DE,CallFailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOutputOffset
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailOutputBytes
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             OR   A
             JP   NZ,ProofFailOutputActivation
 
@@ -197,7 +197,7 @@ ProofStart:
             LD   DE,CallProofSourceEnd
             CALL CompileCallSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeCallProgram
+            CALL EncodeCallProgram
             JP   C,ProofFailEncode
 
             LD   A,$A5

@@ -1,64 +1,64 @@
 ; Direct-Z80 runtime and bounded output adapter for the counted-loop slice.
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
-NativeReset:
+Reset:
             XOR  A
-            LD   (NativeTrapNumber),A
-            LD   (NativeTrapRoutine),A
-            LD   (NativeTrapError),A
+            LD   (TrapNumber),A
+            LD   (TrapRoutine),A
+            LD   (TrapError),A
             LD   (ServiceCallCount),A
             LD   (ServiceOutputLength),A
             LD   (ServiceInputCursor),A
-            LD   (NativeActivationDepth),A
-            LD   (NativeScalarSlot),A
-            LD   A,NativeActivationCapacity
-            LD   (NativeActivationLimit),A
+            LD   (ActivationDepth),A
+            LD   (ScalarSlot),A
+            LD   A,ActivationCapacity
+            LD   (ActivationLimit),A
             LD   HL,0
-            LD   (NativeTrapOffset),HL
+            LD   (TrapOffset),HL
             LD   HL,ServiceOutputBase
             LD   B,ServiceOutputCapacity
-NativeResetOutput:
+ResetOutput:
             LD   (HL),A
             INC  HL
-            DJNZ NativeResetOutput
-            LD   A,NativeRunReady
-            LD   (NativeRunState),A
+            DJNZ ResetOutput
+            LD   A,RunReady
+            LD   (RunState),A
             OR   A
             RET
 
 ; Begin one scalar activation atomically. A is the copied u8 argument. The
 ; packed arena stores exactly the overwritten byte; Z80 CALL/RET carries the
-; native return address separately. Carry reports activation-capacity with
+; Z80 return address separately. Carry reports activation-capacity with
 ; trap number 5 and leaves depth, arena, and the active scalar unchanged.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
-NativeActivationPush:
+ActivationPush:
             LD   B,A
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             LD   C,A
             ; Reset/configuration fixes the limit before execution and every
             ; accepted push increments depth by one, so depth cannot pass the
             ; limit. Equality is the complete configured-limit test here.
-            LD   A,(NativeActivationLimit)
+            LD   A,(ActivationLimit)
             CP   C
-            JR   Z,NativeActivationFull
+            JR   Z,ActivationFull
             LD   A,C
-            CP   NativeActivationCapacity
-            JR   NC,NativeActivationFull
-            LD   A,(NativeScalarSlot)
+            CP   ActivationCapacity
+            JR   NC,ActivationFull
+            LD   A,(ScalarSlot)
             PUSH BC
             LD   B,0
-            LD   HL,NativeActivationArena
+            LD   HL,ActivationArena
             ADD  HL,BC
             POP  BC
             LD   (HL),A
             INC  C
             LD   A,C
-            LD   (NativeActivationDepth),A
+            LD   (ActivationDepth),A
             LD   A,B
-            LD   (NativeScalarSlot),A
+            LD   (ScalarSlot),A
             XOR  A
             RET
-NativeActivationFull:
+ActivationFull:
             LD   A,5
             SCF
             RET
@@ -66,46 +66,46 @@ NativeActivationFull:
 ; Pop one successful scalar activation. The result is preserved by the
 ; generated caller while this helper restores its previous scalar byte.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
-NativeActivationPop:
-            LD   A,(NativeActivationDepth)
+ActivationPop:
+            LD   A,(ActivationDepth)
             DEC  A
-            LD   (NativeActivationDepth),A
+            LD   (ActivationDepth),A
             LD   C,A
             LD   B,0
-            LD   HL,NativeActivationArena
+            LD   HL,ActivationArena
             ADD  HL,BC
             LD   A,(HL)
-            LD   (NativeScalarSlot),A
+            LD   (ScalarSlot),A
             XOR  A
             RET
 
-; The integrated typed-call path keeps parameters and locals in each native
+; The integrated typed-call path keeps parameters and locals in each Z80
 ; stack frame. These helpers therefore account only for bounded active depth;
 ; they preserve HL so a checked argument or returned carrier can cross them.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,C
-NativeActivationClaim:
-            LD   A,(NativeActivationDepth)
+ActivationClaim:
+            LD   A,(ActivationDepth)
             LD   C,A
-            LD   A,(NativeActivationLimit)
+            LD   A,(ActivationLimit)
             CP   C
-            JR   Z,NativeActivationClaimFull
+            JR   Z,ActivationClaimFull
             LD   A,C
-            CP   NativeActivationCapacity
-            JR   NC,NativeActivationClaimFull
+            CP   ActivationCapacity
+            JR   NC,ActivationClaimFull
             INC  A
-            LD   (NativeActivationDepth),A
+            LD   (ActivationDepth),A
             XOR  A
             RET
-NativeActivationClaimFull:
+ActivationClaimFull:
             LD   A,5
             SCF
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeActivationRelease:
-            LD   A,(NativeActivationDepth)
+ActivationRelease:
+            LD   A,(ActivationDepth)
             DEC  A
-            LD   (NativeActivationDepth),A
+            LD   (ActivationDepth),A
             XOR  A
             RET
 
@@ -113,28 +113,28 @@ NativeActivationRelease:
 ; Carry reports an out-of-domain u16 index. A is the one-byte retained length
 ; and DE is the canonical index carrier.
 .routine in A,DE out A,carry,zero clobbers sign,parity,halfCarry,C
-NativeCheckArrayIndex:
+CheckArrayIndex:
             LD   C,A
             LD   A,D
             OR   A
-            JR   NZ,NativeAggregateBoundsFailure
+            JR   NZ,AggregateBoundsFailure
             LD   A,E
             CP   C
-            JR   NC,NativeAggregateBoundsFailure
+            JR   NC,AggregateBoundsFailure
             OR   A
             RET
 
 ; HL is a bounded-string carrier and DE the canonical index. On success HL is
 ; the addressed payload byte; no byte is read before the logical-length test.
 .routine in DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
-NativeCheckStringIndex:
+CheckStringIndex:
             LD   A,D
             OR   A
-            JR   NZ,NativeAggregateBoundsFailure
+            JR   NZ,AggregateBoundsFailure
             LD   A,(HL)
             CP   E
-            JR   C,NativeAggregateBoundsFailure
-            JR   Z,NativeAggregateBoundsFailure
+            JR   C,AggregateBoundsFailure
+            JR   Z,AggregateBoundsFailure
             INC  HL
             ADD  HL,DE
             OR   A
@@ -144,7 +144,7 @@ NativeCheckStringIndex:
 ; The helper rejects wrapped arithmetic and any region outside GeneratedBase+3
 ; through the supplied end. It is used twice before aggregate copying begins.
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IY
-NativeCheckAggregateRegion:
+CheckAggregateRegion:
             PUSH DE
             POP  IY
             LD   C,A
@@ -153,24 +153,24 @@ NativeCheckAggregateRegion:
             LD   DE,GeneratedBase+3
             OR   A
             SBC  HL,DE
-            JR   C,NativeAggregateRegionLow
+            JR   C,AggregateRegionLow
             POP  HL
             ADD  HL,BC
-            JR   C,NativeAggregateBoundsFailure
+            JR   C,AggregateBoundsFailure
             PUSH IY
             POP  DE
             OR   A
             SBC  HL,DE
-            JR   C,NativeAggregateRegionSuccess
-            JR   Z,NativeAggregateRegionSuccess
-NativeAggregateBoundsFailure:
+            JR   C,AggregateRegionSuccess
+            JR   Z,AggregateRegionSuccess
+AggregateBoundsFailure:
             SCF
             RET
-NativeAggregateRegionLow:
+AggregateRegionLow:
             POP  HL
             SCF
             RET
-NativeAggregateRegionSuccess:
+AggregateRegionSuccess:
             OR   A
             RET
 .endif
@@ -178,35 +178,35 @@ NativeAggregateRegionSuccess:
 ; Unsigned low-byte multiplication for generated expression code. A and B are
 ; the operands; the result wraps modulo 256 exactly as MUL8 requires.
 .routine in A,B out A,carry,zero clobbers sign,parity,halfCarry,B,C
-NativeMultiplyU8:
+MultiplyU8:
             LD   C,A
             XOR  A
             INC  B
-NativeMultiplyU8Loop:
+MultiplyU8Loop:
             DEC  B
             RET  Z
             ADD  A,C
-            JR   NativeMultiplyU8Loop
+            JR   MultiplyU8Loop
 
 ; Full-width multiplication for typed generated expressions. The sixteen
 ; shift/add rounds return the low sixteen bits, matching u16 wraparound.
 .routine in DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE
-NativeMultiplyU16:
+MultiplyU16:
             LD   BC,0
             LD   A,16
-NativeMultiplyU16Loop:
+MultiplyU16Loop:
             SRL  D
             RR   E
-            JR   NC,NativeMultiplyU16Skip
+            JR   NC,MultiplyU16Skip
             PUSH HL
             ADD  HL,BC
             LD   B,H
             LD   C,L
             POP  HL
-NativeMultiplyU16Skip:
+MultiplyU16Skip:
             ADD  HL,HL
             DEC  A
-            JR   NZ,NativeMultiplyU16Loop
+            JR   NZ,MultiplyU16Loop
             LD   H,B
             LD   L,C
             OR   A
@@ -214,30 +214,30 @@ NativeMultiplyU16Skip:
 
 ; Unsigned quotient. Carry reports a zero divisor without producing a value.
 .routine in DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE
-NativeDivideU16:
+DivideU16:
             LD   A,D
             OR   E
-            JR   Z,NativeDivideU16Zero
+            JR   Z,DivideU16Zero
             LD   BC,0
-NativeDivideU16Loop:
+DivideU16Loop:
             OR   A
             SBC  HL,DE
-            JR   C,NativeDivideU16Done
+            JR   C,DivideU16Done
             INC  BC
-            JR   NativeDivideU16Loop
-NativeDivideU16Done:
+            JR   DivideU16Loop
+DivideU16Done:
             LD   H,B
             LD   L,C
             OR   A
             RET
-NativeDivideU16Zero:
+DivideU16Zero:
             SCF
             RET
 
 ; A selects Comparison*. Both integer widths and booleans use canonical u16
 ; carriers here; the parser has already restricted Boolean relations to =/<>.
 .routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE
-NativeCompareU16:
+CompareU16:
             LD   B,A
             OR   A
             SBC  HL,DE
@@ -245,66 +245,66 @@ NativeCompareU16:
             POP  DE
             LD   A,B
             CP   ComparisonEqual
-            JR   Z,NativeCompareEqual
+            JR   Z,CompareEqual
             CP   ComparisonNotEqual
-            JR   Z,NativeCompareNotEqual
+            JR   Z,CompareNotEqual
             CP   ComparisonLess
-            JR   Z,NativeCompareLess
+            JR   Z,CompareLess
             CP   ComparisonLessEqual
-            JR   Z,NativeCompareLessEqual
+            JR   Z,CompareLessEqual
             CP   ComparisonGreater
-            JR   Z,NativeCompareGreater
-NativeCompareGreaterEqual:
+            JR   Z,CompareGreater
+CompareGreaterEqual:
             PUSH DE
             POP  AF
-            JR   NC,NativeCompareTrue
-            JR   NativeCompareFalse
-NativeCompareEqual:
+            JR   NC,CompareTrue
+            JR   CompareFalse
+CompareEqual:
             PUSH DE
             POP  AF
-            JR   Z,NativeCompareTrue
-            JR   NativeCompareFalse
-NativeCompareNotEqual:
+            JR   Z,CompareTrue
+            JR   CompareFalse
+CompareNotEqual:
             PUSH DE
             POP  AF
-            JR   NZ,NativeCompareTrue
-            JR   NativeCompareFalse
-NativeCompareLess:
+            JR   NZ,CompareTrue
+            JR   CompareFalse
+CompareLess:
             PUSH DE
             POP  AF
-            JR   C,NativeCompareTrue
-            JR   NativeCompareFalse
-NativeCompareLessEqual:
+            JR   C,CompareTrue
+            JR   CompareFalse
+CompareLessEqual:
             PUSH DE
             POP  AF
-            JR   C,NativeCompareTrue
-            JR   Z,NativeCompareTrue
-            JR   NativeCompareFalse
-NativeCompareGreater:
+            JR   C,CompareTrue
+            JR   Z,CompareTrue
+            JR   CompareFalse
+CompareGreater:
             PUSH DE
             POP  AF
-            JR   C,NativeCompareFalse
-            JR   Z,NativeCompareFalse
-NativeCompareTrue:
+            JR   C,CompareFalse
+            JR   Z,CompareFalse
+CompareTrue:
             LD   HL,1
             OR   A
             RET
-NativeCompareFalse:
+CompareFalse:
             LD   HL,0
             OR   A
             RET
 
 ; Carry returns endOfInput, a configured input failure, or success in A.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
-NativeReadInputByte:
+ReadInputByte:
             LD   A,(ServiceInputFailure)
             OR   A
-            JR   NZ,NativeReadInputByteFailure
+            JR   NZ,ReadInputByteFailure
             LD   A,(ServiceInputCursor)
             LD   C,A
             LD   A,(ServiceInputLength)
             CP   C
-            JR   Z,NativeReadInputByteEnd
+            JR   Z,ReadInputByteEnd
             LD   B,0
             LD   HL,ServiceInputBase
             ADD  HL,BC
@@ -314,16 +314,16 @@ NativeReadInputByte:
             LD   A,(HL)
             OR   A
             RET
-NativeReadInputByteEnd:
+ReadInputByteEnd:
             LD   A,1
-NativeReadInputByteFailure:
+ReadInputByteFailure:
             SCF
             RET
 
 ; Input A is the byte. Carry returns a recoverable outputFailure code.
 ; D is preserved because this slice allocates its scalar counter there.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL
-NativeWriteOutputByte:
+WriteOutputByte:
             LD   E,A
             LD   A,(ServiceCallCount)
             INC  A
@@ -331,13 +331,13 @@ NativeWriteOutputByte:
             LD   C,A
             LD   A,(ServiceFailureCall)
             OR   A
-            JR   Z,NativeWriteOutputByteStore
+            JR   Z,WriteOutputByteStore
             CP   C
-            JR   Z,NativeWriteOutputByteFailure
-NativeWriteOutputByteStore:
+            JR   Z,WriteOutputByteFailure
+WriteOutputByteStore:
             LD   A,(ServiceOutputLength)
             CP   ServiceOutputCapacity
-            JR   NC,NativeWriteOutputByteFailure
+            JR   NC,WriteOutputByteFailure
             LD   C,A
             LD   B,0
             LD   HL,ServiceOutputBase
@@ -349,7 +349,7 @@ NativeWriteOutputByteStore:
             LD   (ServiceOutputLength),A
             XOR  A
             RET
-NativeWriteOutputByteFailure:
+WriteOutputByteFailure:
             LD   A,3
             SCF
             RET

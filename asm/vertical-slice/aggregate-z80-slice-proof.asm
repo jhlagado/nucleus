@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,14 +24,14 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 0
-            .include "loop-native-sink.asm"
-TypedNativeSinkCodeStart:
-            .include "typed-expression-native.asm"
-            .include "aggregate-native.asm"
-TypedNativeSinkCodeEnd:
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 0
+            .include "loop-z80-sink.asm"
+TypedSinkCodeStart:
+            .include "typed-expression-z80.asm"
+            .include "aggregate-z80.asm"
+TypedSinkCodeEnd:
+SinkCodeEnd:
 CompilerCodeEnd:
 CompilerImmutableStart:
             .include "loop-keywords.asmi"
@@ -216,9 +216,9 @@ AggregateTypeExtentCapacitySource:
 AggregateTypeExtentCapacitySourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -297,18 +297,18 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailLayout
-            CALL NativeEncodeAggregateProgram
+            CALL EncodeAggregateProgram
             JP   C,ProofFailAcceptedEncode
             LD   HL,GeneratedBase+3
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
             CALL ProofCompareBytes
             JP   C,ProofFailPublishedBytes
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailRunState
 
             ; Force a failure during the static-image copy. The transactional
@@ -320,7 +320,7 @@ ProofStart:
             LD   A,$5A
             LD   (StaticImageBase),A
             LD   HL,GeneratedBase+12
-            CALL NativeEncodeAggregateProgramWithinLimit
+            CALL EncodeAggregateProgramWithinLimit
             JR   C,AggregateAtomicFailedAsExpected
             XOR  A
             LD   (StaticImageBase),A
@@ -339,7 +339,7 @@ AggregateAtomicFailedAsExpected:
             JP   NZ,ProofFailAtomicSize
             LD   B,L
             LD   HL,GeneratedBase
-            LD   DE,NativeBackupBase
+            LD   DE,BackupBase
             CALL ProofCompareBytes
             JP   C,ProofFailAtomicBytes
 

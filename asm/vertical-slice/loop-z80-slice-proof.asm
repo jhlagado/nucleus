@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -14,10 +14,10 @@ AggregateCallSlices  .equ 0
             .include "loop-symbols.asm"
             .include "loop-parser.asm"
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 1
-            .include "loop-native-sink.asm"
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 1
+            .include "loop-z80-sink.asm"
+SinkCodeEnd:
 CompilerCodeEnd:
 
 CompilerImmutableStart:
@@ -45,9 +45,9 @@ ZeroLoopProofSource:
 ZeroLoopProofSourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -63,23 +63,23 @@ ProofStart:
             LD   DE,LoopProofSourceEnd
             CALL CompileLoopSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeLoopProgram
+            CALL EncodeLoopProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
-            LD   DE,NativeProgramSize
+            LD   DE,ProgramSize
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
 
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
             LD   A,D
             CP   2
             JP   NZ,ProofFailFinalCounter
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailRunSuccess
             LD   A,(ServiceOutputLength)
             CP   3
@@ -93,12 +93,12 @@ ProofCheckSuccessOutput:
             INC  HL
             DJNZ ProofCheckSuccessOutput
 
-            CALL NativeReset
+            CALL Reset
             LD   A,2
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailTrapState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -106,15 +106,15 @@ ProofCheckSuccessOutput:
             LD   A,(ServiceOutputBase)
             CP   "A"
             JP   NZ,ProofFailFailureOutput
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   6
             JP   NZ,ProofFailTrapNumber
-            LD   HL,(NativeTrapOffset)
-            LD   DE,NativeLoopFailureOffset
+            LD   HL,(TrapOffset)
+            LD   DE,LoopFailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTrapOffset
-            LD   A,(NativeTrapError)
+            LD   A,(TrapError)
             CP   3
             JP   NZ,ProofFailTrapError
 
@@ -123,14 +123,14 @@ ProofCheckSuccessOutput:
             LD   DE,ZeroLoopProofSourceEnd
             CALL CompileLoopSlice
             JP   C,ProofFailZeroCompile
-            CALL NativeEncodeLoopProgram
+            CALL EncodeLoopProgram
             JP   C,ProofFailZeroEncode
-            CALL NativeReset
+            CALL Reset
             XOR  A
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailZeroRun
             LD   A,(ServiceOutputLength)
             OR   A
@@ -142,7 +142,7 @@ ProofCheckSuccessOutput:
             LD   DE,LoopProofSourceEnd
             CALL CompileLoopSlice
             JP   C,ProofFailCompile
-            CALL NativeEncodeLoopProgram
+            CALL EncodeLoopProgram
             JP   C,ProofFailEncode
 
             LD   A,$A5

@@ -2,7 +2,7 @@
 
             .include "memory-map.asmi"
             .include "loop-compiler-state.asmi"
-            .include "loop-native-state.asmi"
+            .include "loop-z80-state.asmi"
 
             .org CompilerCoreBase
 CompilerCodeStart:
@@ -24,13 +24,13 @@ ParserCodeStart:
             .include "loop-parser.asm"
 ParserCodeEnd:
 CompilerCommonCodeEnd:
-NativeSinkCodeStart:
-NativeLegacyEncoders .equ 0
-            .include "loop-native-sink.asm"
-StructuredNativeSinkStart:
-            .include "typed-expression-native.asm"
-StructuredNativeSinkEnd:
-NativeSinkCodeEnd:
+SinkCodeStart:
+LegacyEncoders .equ 0
+            .include "loop-z80-sink.asm"
+StructuredSinkStart:
+            .include "typed-expression-z80.asm"
+StructuredSinkEnd:
+SinkCodeEnd:
 CompilerCodeEnd:
 CompilerImmutableStart:
             .include "loop-keywords.asmi"
@@ -228,9 +228,9 @@ StructuredLabelCapacityPoint:
 StructuredLabelCapacitySourceEnd:
 
             .org TargetRuntimeBase
-NativeRuntimeCodeStart:
-            .include "loop-native-runtime.asm"
-NativeRuntimeCodeEnd:
+RuntimeCodeStart:
+            .include "loop-z80-runtime.asm"
+RuntimeCodeEnd:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -246,13 +246,13 @@ ProofStart:
             LD   DE,StructuredAcceptedSourceEnd
             CALL CompileSlice
             JP   C,ProofFailAcceptedCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailAcceptedEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailAcceptedFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailAcceptedState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -270,18 +270,18 @@ ProofStart:
             LD   HL,(GeneratedSize)
             LD   (StructuredGeneratedSize),HL
 
-            ; A failed native-emission transaction must leave the published
+            ; A failed Z80-emission transaction must leave the published
             ; program byte-for-byte runnable.
             LD   A,(GeneratedBase)
             LD   (AtomicObservedByte),A
             LD   HL,GeneratedBase+1
-            CALL NativeBeginProgram
+            CALL BeginProgram
             XOR  A
-            CALL NativeEmitByte
+            CALL EmitByte
             JP   C,ProofFailAtomicSetup
-            CALL NativeEmitByte
+            CALL EmitByte
             JP   NC,ProofFailAtomicAccepted
-            CALL NativeAbortProgram
+            CALL AbortProgram
             LD   A,(GeneratedBase)
             LD   B,A
             LD   A,(AtomicObservedByte)
@@ -295,21 +295,21 @@ ProofStart:
 
             ; The same program must unwind a capacity trap from recursive
             ; routine depth back to the outer machine frame.
-            CALL NativeReset
+            CALL Reset
             LD   A,3
-            LD   (NativeActivationLimit),A
+            LD   (ActivationLimit),A
             CALL ProofCallGenerated
             JP   C,ProofFailCapacityFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailCapacityState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   5
             JP   NZ,ProofFailCapacityNumber
-            LD   A,(NativeActivationDepth)
+            LD   A,(ActivationDepth)
             OR   A
             JP   NZ,ProofFailCapacityDepth
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,StructuredAcceptedRecursiveCall-StructuredAcceptedSource
             OR   A
             SBC  HL,DE
@@ -320,18 +320,18 @@ ProofStart:
             LD   DE,StructuredRangeSourceEnd
             CALL CompileSlice
             JP   C,ProofFailRangeCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailRangeEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailRangeFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunTrapped
+            LD   A,(RunState)
+            CP   RunTrapped
             JP   NZ,ProofFailRangeState
-            LD   A,(NativeTrapNumber)
+            LD   A,(TrapNumber)
             CP   4
             JP   NZ,ProofFailRangeNumber
-            LD   HL,(NativeTrapOffset)
+            LD   HL,(TrapOffset)
             LD   DE,StructuredRangeCounter-StructuredRangeSource
             OR   A
             SBC  HL,DE
@@ -379,13 +379,13 @@ ProofStart:
             LD   DE,StructuredBooleanFlowSourceEnd
             CALL CompileSlice
             JP   C,ProofFailBooleanFlowCompile
-            CALL NativeEncodeTypedExpressionProgram
+            CALL EncodeTypedExpressionProgram
             JP   C,ProofFailBooleanFlowEncode
-            CALL NativeReset
+            CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBooleanFlowFrame
-            LD   A,(NativeRunState)
-            CP   NativeRunSucceeded
+            LD   A,(RunState)
+            CP   RunSucceeded
             JP   NZ,ProofFailBooleanFlowState
             LD   A,(GeneratedBase+3)
             CP   1
