@@ -16,6 +16,7 @@ export interface NucleusSourcePart {
 export interface NucleusFlatTarget {
     readonly imageBase?: number;
     readonly imageCapacity?: number;
+    readonly imageFill?: number;
     readonly writableBase?: number;
     readonly writableCapacity?: number;
     readonly establishStack?: boolean;

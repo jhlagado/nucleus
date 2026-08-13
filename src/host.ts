@@ -13,6 +13,7 @@ import {
   validateNucleusTarget,
   type NucleusConfigurationIssue,
 } from "./configuration.js";
+import { nucleusD8SourceName } from "./d8-internal.js";
 import { nucleusDiagnosticMessage } from "./diagnostics.js";
 import { sourcePartBytes } from "./d8.js";
 
@@ -117,6 +118,7 @@ export class NucleusCompiler {
       });
     }
     let sourceWindowUse = request.sources.length * 5;
+    const d8SourceNames = new Map<string, number>();
     request.sources.forEach((part, index) => {
       if (typeof part.name !== "string" || part.name.length === 0) {
         issues.push({
@@ -133,6 +135,22 @@ export class NucleusCompiler {
         });
       } else {
         sourceWindowUse += sourcePartBytes(part).length;
+      }
+      if (
+        request.artifacts?.d8 === true &&
+        typeof part.name === "string" &&
+        part.name.length > 0
+      ) {
+        const d8Name = nucleusD8SourceName(part.name);
+        const previous = d8SourceNames.get(d8Name);
+        if (previous === undefined) {
+          d8SourceNames.set(d8Name, index);
+        } else {
+          issues.push({
+            path: `$.sources[${index}].name`,
+            message: `duplicates the portable D8 source identity of $.sources[${previous}].name`,
+          });
+        }
       }
     });
     if (sourceWindowUse > nucleusCompilerCapacities.sourceWindowBytes) {
@@ -158,6 +176,24 @@ export class NucleusCompiler {
         debugMap: request.artifacts?.d8 === true,
       });
       if (!compiled.success) {
+        if (
+          compiled.diagnostic.code === 95 ||
+          compiled.diagnostic.code === 96
+        ) {
+          return configurationFailure([
+            {
+              path: "$.target",
+              message: nucleusDiagnosticMessage(compiled.diagnostic.code),
+            },
+          ]);
+        }
+        if (compiled.diagnostic.code === 97) {
+          return {
+            success: false,
+            kind: "execution",
+            message: nucleusDiagnosticMessage(compiled.diagnostic.code),
+          };
+        }
         return {
           success: false,
           kind: "source",

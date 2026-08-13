@@ -75,6 +75,7 @@ export interface NucleusSourcePart {
 export interface NucleusFlatTarget {
   readonly imageBase?: number;
   readonly imageCapacity?: number;
+  readonly imageFill?: number;
   readonly writableBase?: number;
   readonly writableCapacity?: number;
   readonly establishStack?: boolean;
@@ -299,7 +300,15 @@ const prepareSource = (
 };
 
 const isBankedTarget = (target: NucleusTarget): target is NucleusBankedTarget =>
-  "bankCount" in target;
+  Object.prototype.hasOwnProperty.call(target, "bankCount");
+
+const flatTargetUsesRomMode = (target: NucleusFlatTarget): boolean => {
+  const imageBase = target.imageBase ?? 0x8000;
+  const imageEnd = imageBase + (target.imageCapacity ?? 0x1000);
+  const writableBase = target.writableBase ?? 0x4000;
+  const writableEnd = writableBase + (target.writableCapacity ?? 0x1000);
+  return !(writableBase >= imageBase && writableEnd <= imageEnd);
+};
 
 const prepareTarget = (
   memory: Uint8Array,
@@ -318,6 +327,10 @@ const prepareTarget = (
   ] as const) {
     requireWord(name, value);
   }
+  const imageFill = target.imageFill ?? 0xff;
+  if (!Number.isInteger(imageFill) || imageFill < 0 || imageFill > 0xff) {
+    throw new RangeError("Nucleus target image fill is outside 0..255");
+  }
   memory.fill(0, TARGET_DESCRIPTOR, TARGET_DESCRIPTOR + TARGET_DESCRIPTOR_SIZE);
   writeWord(memory, TARGET_DESCRIPTOR, RUNTIME_IDENTITY);
   writeWord(memory, TARGET_DESCRIPTOR + 2, imageBase);
@@ -327,8 +340,14 @@ const prepareTarget = (
   memory[TARGET_DESCRIPTOR + 10] = target.establishStack === false ? 0 : 1;
   const bankCount = isBankedTarget(target) ? target.bankCount : 1;
   const entryBank = isBankedTarget(target) ? target.entryBank : 0;
-  if (!Number.isInteger(bankCount) || bankCount < 1 || bankCount > 4) {
-    throw new RangeError("Nucleus target bankCount is outside 1..4");
+  if (
+    !Number.isInteger(bankCount) ||
+    bankCount < (isBankedTarget(target) ? 2 : 1) ||
+    bankCount > 4
+  ) {
+    throw new RangeError(
+      "Nucleus target bankCount is outside its supported range",
+    );
   }
   if (!Number.isInteger(entryBank) || entryBank < 0 || entryBank >= bankCount) {
     throw new RangeError("Nucleus target entryBank is outside the bank count");
@@ -348,7 +367,7 @@ const prepareTarget = (
     banked: bankCount > 1,
     runtimeIdentity: RUNTIME_IDENTITY,
     bankCount,
-    imageFill: 0xff,
+    imageFill,
     imageBase,
     imageCapacity,
   };
@@ -357,10 +376,11 @@ const prepareTarget = (
 const capturedMap = (
   memory: Uint8Array,
   base: number,
+  romMode: boolean,
   establishStack: boolean,
   partBanks: readonly number[],
 ): NobjMap => ({
-  romMode: true,
+  romMode,
   establishedStack: establishStack,
   entryBank: memory[base] ?? 0,
   entryAddress: readWord(memory, base + 1),
@@ -593,6 +613,7 @@ export const compileNucleus = async (
     : capturedMap(
         memory,
         symbol(image.symbols, "AdapterCapturedMap"),
+        flatTargetUsesRomMode(target),
         target.establishStack !== false,
         partBanks,
       );

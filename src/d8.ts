@@ -1,6 +1,10 @@
 import type { createZ80Runtime } from "@jhlagado/debug80-runtime";
 
 import type { NucleusSourcePart } from "./compiler.js";
+import {
+  assertNucleusSemanticOperationKeys,
+  nucleusD8SourceName,
+} from "./d8-internal.js";
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
 import type { NobjAdapterImageByte } from "./proof.js";
 
@@ -223,8 +227,6 @@ const positionAtOffset = (
   return { line, column };
 };
 
-const portableName = (name: string): string => name.split("\\").join("/");
-
 export class NucleusDebugCollector {
   readonly #memory: Uint8Array;
   readonly #parts: readonly NucleusLoadedSourcePart[];
@@ -241,6 +243,7 @@ export class NucleusDebugCollector {
   #activeSemanticKey: number | undefined;
   #generationStarted = false;
   #semanticEndCount = 0;
+  #semanticEndKey: number | undefined;
 
   public constructor(
     memory: Uint8Array,
@@ -310,6 +313,20 @@ export class NucleusDebugCollector {
       this.#errors.push(
         `semantic operation count ${operationCount} differs from ${this.#semanticKeys.length} trace events`,
       );
+    }
+    try {
+      const transcriptLength = this.#semanticEndKey ?? 0;
+      const payload = this.#memory.subarray(
+        this.#symbols.semanticPayloadBase,
+        this.#symbols.semanticPayloadBase + transcriptLength,
+      );
+      assertNucleusSemanticOperationKeys(
+        payload,
+        operationCount,
+        this.#semanticKeys,
+      );
+    } catch (error) {
+      this.#errors.push(error instanceof Error ? error.message : String(error));
     }
     this.#validateImages(parsed, expectedImages);
     if (this.#errors.length > 0) {
@@ -489,6 +506,11 @@ export class NucleusDebugCollector {
   #recordSemanticEnd(): void {
     this.#beginGeneration();
     this.#semanticEndCount += 1;
+    if (this.#semanticEndKey === undefined) {
+      this.#semanticEndKey = this.#semanticKey(
+        this.#symbols.semanticReadCursor,
+      );
+    }
     this.#activeSemanticKey = undefined;
     this.#activeSource = undefined;
   }
@@ -588,7 +610,7 @@ export class NucleusDebugCollector {
       end: number;
     }> = [];
     for (const event of mapped) {
-      const file = portableName(event.source.part.name);
+      const file = nucleusD8SourceName(event.source.part.name);
       const previous = segments.at(-1);
       if (
         previous !== undefined &&
@@ -610,16 +632,16 @@ export class NucleusDebugCollector {
 
     const texts: string[] = [];
     const textIds = new Map<string, number>();
-    const files: Record<
+    const files = Object.create(null) as Record<
       string,
       {
         meta: { lineCount: number };
         segments?: NucleusD8Segment[];
         symbols?: NucleusD8Symbol[];
       }
-    > = {};
+    >;
     for (const part of this.#parts) {
-      files[portableName(part.name)] = {
+      files[nucleusD8SourceName(part.name)] = {
         meta: { lineCount: lineCount(part.bytes) },
       };
     }
@@ -647,7 +669,7 @@ export class NucleusDebugCollector {
     }
     for (const routine of this.#routines) {
       if (routine.address === undefined || routine.bank !== bank) continue;
-      const file = portableName(routine.context.part.name);
+      const file = nucleusD8SourceName(routine.context.part.name);
       const entry = files[file];
       if (entry === undefined) continue;
       entry.symbols ??= [];

@@ -9,14 +9,14 @@ package does not govern Nucleus.
 
 ## Layout
 
-|            |                                                                      |
-| ---------- | -------------------------------------------------------------------- |
-| `docs/`    | language and runtime authorities, implementation plan, and charter   |
-| `grammar/` | machine-readable Stage 7 grammar, generator, and packed LL(1) tables |
-| `asm/`     | direct-Z80 compiler, runtime, and executable AZM proof fixtures      |
-| `proofs/`  | bounded memory profiles and proof-harness manifests                  |
-| `src/`     | host-side grammar, manifest, runtime, and metadata support           |
-| `test/`    | grammar, contract, measurement, and direct-Z80 proof gates           |
+|            |                                                                         |
+| ---------- | ----------------------------------------------------------------------- |
+| `docs/`    | language and runtime authorities, implementation plan, and charter      |
+| `grammar/` | machine-readable production grammar, generator, and packed LL(1) tables |
+| `asm/`     | direct-Z80 compiler, runtime, and executable AZM proof fixtures         |
+| `proofs/`  | bounded memory profiles and proof-harness manifests                     |
+| `src/`     | Node compiler, CLI, target validation, NOBJ, D8, and publication        |
+| `test/`    | grammar, contract, measurement, and direct-Z80 proof gates              |
 
 ## Host compiler
 
@@ -76,7 +76,7 @@ The host accepts flat and bounded banked target descriptors. Optional D8 output
 is derived from a conditionally instrumented build of the same Z80 compiler;
 the instrumentation changes neither the shipping compiler nor any target
 artifact. [Nucleus D8 source maps](docs/d8-source-maps.md) defines the trace
-ABI, validation, atomic publication, and per-bank output rules.
+ABI, validation, recoverable publication, and per-bank output rules.
 
 The current authorities are:
 
@@ -85,6 +85,8 @@ The current authorities are:
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
 - [Nucleus Host API 1](docs/host-api.md)
+- [Nucleus D8 Source Maps](docs/d8-source-maps.md)
+- [Nucleus host and Debug80 integration](docs/host-integration.md)
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
 - [Nucleus reviewer's charter](docs/reviewers-charter.md)
 

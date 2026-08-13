@@ -1,3 +1,4 @@
+import { assertNucleusSemanticOperationKeys, nucleusD8SourceName, } from "./d8-internal.js";
 export const nucleusDebugPorts = {
     source: 0xd8,
     declaration: 0xd9,
@@ -75,7 +76,6 @@ const positionAtOffset = (part, offset) => {
     }
     return { line, column };
 };
-const portableName = (name) => name.split("\\").join("/");
 export class NucleusDebugCollector {
     #memory;
     #parts;
@@ -92,6 +92,7 @@ export class NucleusDebugCollector {
     #activeSemanticKey;
     #generationStarted = false;
     #semanticEndCount = 0;
+    #semanticEndKey;
     constructor(memory, parts, symbols) {
         this.#memory = memory;
         this.#parts = parts;
@@ -142,6 +143,14 @@ export class NucleusDebugCollector {
         const operationCount = this.#memory[this.#symbols.semanticPayloadBase - 1] ?? 0;
         if (operationCount !== this.#semanticKeys.length) {
             this.#errors.push(`semantic operation count ${operationCount} differs from ${this.#semanticKeys.length} trace events`);
+        }
+        try {
+            const transcriptLength = this.#semanticEndKey ?? 0;
+            const payload = this.#memory.subarray(this.#symbols.semanticPayloadBase, this.#symbols.semanticPayloadBase + transcriptLength);
+            assertNucleusSemanticOperationKeys(payload, operationCount, this.#semanticKeys);
+        }
+        catch (error) {
+            this.#errors.push(error instanceof Error ? error.message : String(error));
         }
         this.#validateImages(parsed, expectedImages);
         if (this.#errors.length > 0) {
@@ -288,6 +297,9 @@ export class NucleusDebugCollector {
     #recordSemanticEnd() {
         this.#beginGeneration();
         this.#semanticEndCount += 1;
+        if (this.#semanticEndKey === undefined) {
+            this.#semanticEndKey = this.#semanticKey(this.#symbols.semanticReadCursor);
+        }
         this.#activeSemanticKey = undefined;
         this.#activeSource = undefined;
     }
@@ -356,7 +368,7 @@ export class NucleusDebugCollector {
         const mapped = this.#images.filter((event) => event.bank === bank && event.source !== undefined);
         const segments = [];
         for (const event of mapped) {
-            const file = portableName(event.source.part.name);
+            const file = nucleusD8SourceName(event.source.part.name);
             const previous = segments.at(-1);
             if (previous !== undefined &&
                 previous.end === event.address &&
@@ -376,9 +388,9 @@ export class NucleusDebugCollector {
         }
         const texts = [];
         const textIds = new Map();
-        const files = {};
+        const files = Object.create(null);
         for (const part of this.#parts) {
-            files[portableName(part.name)] = {
+            files[nucleusD8SourceName(part.name)] = {
                 meta: { lineCount: lineCount(part.bytes) },
             };
         }
@@ -408,7 +420,7 @@ export class NucleusDebugCollector {
         for (const routine of this.#routines) {
             if (routine.address === undefined || routine.bank !== bank)
                 continue;
-            const file = portableName(routine.context.part.name);
+            const file = nucleusD8SourceName(routine.context.part.name);
             const entry = files[file];
             if (entry === undefined)
                 continue;

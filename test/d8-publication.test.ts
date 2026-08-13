@@ -4,7 +4,11 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { publishNucleusD8Outputs } from "../src/d8-publication.js";
+import {
+  existingNucleusD8OutputPaths,
+  publishNucleusD8Outputs,
+} from "../src/d8-publication.js";
+import { publishNucleusD8OutputsInternal } from "../src/d8-publication-internal.js";
 import type { NucleusD8DebugMap, NucleusDebugMapping } from "../src/d8.js";
 
 const directories: string[] = [];
@@ -85,5 +89,37 @@ describe("D8 sidecar group publication", () => {
     await expect(publishNucleusD8Outputs(requested, invalid)).rejects.toThrow();
     expect(await readFile(requested, "utf8")).toBe("previous\n");
     expect(await readdir(root)).toEqual(["main.d8.json"]);
+  });
+
+  it("restores the previous group after a failed promotion", async () => {
+    const { root, requested } = await workspace();
+    await publishNucleusD8Outputs(requested, mapping(0, 1));
+    const previousPaths = await existingNucleusD8OutputPaths(requested);
+    await expect(
+      publishNucleusD8OutputsInternal(
+        requested,
+        mapping(0, 1, 2),
+        previousPaths,
+        {
+          beforePromote: (_path, index) => {
+            if (index === 1) throw new Error("injected promotion failure");
+          },
+        },
+      ),
+    ).rejects.toThrow("injected promotion failure");
+    expect((await readdir(root)).sort()).toEqual([
+      "main.bank-0.d8.json",
+      "main.bank-1.d8.json",
+    ]);
+    expect(
+      JSON.parse(
+        await readFile(path.join(root, "main.bank-0.d8.json"), "utf8"),
+      ),
+    ).toMatchObject({ memory: { segments: [{ bank: 0 }] } });
+    expect(
+      JSON.parse(
+        await readFile(path.join(root, "main.bank-1.d8.json"), "utf8"),
+      ),
+    ).toMatchObject({ memory: { segments: [{ bank: 1 }] } });
   });
 });

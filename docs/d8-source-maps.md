@@ -89,13 +89,14 @@ Trace state is tentative until the compiler emits a valid NOBJ commit. The
 collector checks that:
 
 - source keys are nondecreasing;
-- operation keys are strictly increasing and match the published operation
-  count;
+- operation keys are strictly increasing, match the published operation count,
+  and equal the operation boundaries obtained by independently decoding the
+  finalized variable-width transcript; the decoded final operation must end
+  exactly at the semantic read cursor observed with the single end event;
 - successful dispatch has exactly one end event;
 - routine and declaration names point into a loaded source part;
 - the construct stack is balanced on successful parsing; and
 - the ordered `$DF` stream exactly matches every compiler-adapter `IMAGE` byte;
-  and
 - every observed bank, address, and byte belongs to an original committed
   NOBJ `IMAGE` record.
 
@@ -110,7 +111,9 @@ association recorded when the corresponding `IMAGE` byte was emitted.
 
 A diagnostic, output failure, invalid event sequence, missing commit, or D8
 write failure cannot publish a partial map. The CLI writes tentative sidecars
-and replaces the complete previous sidecar group atomically. Switching between
+and replaces the previous group as a recoverable best-effort transaction. A
+failed promotion restores that previous group; a concurrent reader or process
+crash can still observe an in-progress filesystem update. Switching between
 flat and banked output, or reducing the bank count, removes obsolete members of
 the old group in the same publication transaction. NOBJ remains the canonical
 non-relocatable target object; D8 remains a separate host artifact.

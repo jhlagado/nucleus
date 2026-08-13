@@ -36,9 +36,10 @@ The 16 KiB compiler-core gate is the acceptance limit for the first
 implementation, not a language-conformance rule. Construction proceeds from
 measured components rather than from an unmeasured top-down estimate. Every
 module reports its code and immutable-data contribution when it first runs, and
-the running total is updated before work broadens. A projected total in the
-12–13 KiB range triggers an immediate representation and control-flow review
-because the remaining integration margin is small.
+the running total is updated before work broadens. During early construction, a
+projected total in the 12–13 KiB range triggered a representation and
+control-flow review because the remaining integration margin was small. The
+final current census appears below.
 
 Compact handwritten assembly may use shared tails, jump tables, overlays,
 specialized entry points, and other byte-saving control flow that would be
@@ -184,15 +185,17 @@ accounts. Each completed increment has a correctness baseline and a measured
 compression pass. The resident Stage 9 size is the current implementation
 plateau.
 
-| Area           | Current evidence                                                                                                        | Work ahead                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Specifications | The language specification, direct-Z80 contract, reviewer charter, and implementation plan define the active system.    | Review normative changes before implementation depends on them.                                     |
-| Grammar        | The collected grammar is analyzed mechanically and its three predictive conflicts are locked by tests.                  | Preserve the result while adding the source compiler; no new grammar work is planned.               |
-| Type metadata  | Compact structural metadata and alias-category separation have executable tests.                                        | Measure inline metadata against interned ordinals in Z80 before selecting the first representation. |
-| Source corpus  | Every Chapter 21 program is byte-locked to the specification and has a direct output, state, diagnostic, or trap proof. | Extend the corpus only when a language or implementation change requires another discriminator.     |
-| Z80 evidence   | The complete Chapter 21 corpus runs through the direct compiler with final measured accounts.                           | Preserve the final gate while preparing hardware and adapter evidence.                              |
+| Area             | Current evidence                                                                                                                                         | Continuing duty                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Specifications   | The language, target, NOBJ, runtime, Host API, and D8 authorities describe the implemented system.                                                       | Review each affected authority before changing an implemented contract.        |
+| Grammar          | The production grammar and packed LL(1) tables regenerate exactly; external expression and name-statement islands have focused tests.                    | Preserve the grammar and diagnostics unless a normative language change lands. |
+| Type metadata    | Interned ordinals name four-byte structural descriptors; alias-category separation and exhaustion have executable tests.                                 | Remeasure any alternative against the complete compiler.                       |
+| Source corpus    | Every Chapter 21 program is byte-locked and has a direct output, state, diagnostic, or trap proof; broader focused tests cover the remaining constructs. | Add a discriminator whenever a language or implementation change needs one.    |
+| Z80 evidence     | The complete corpus runs through the direct compiler with the final measured accounts below.                                                             | Preserve the byte, layout, register, stack, size, and timing gates.            |
+| Host integration | Host API 1, CLI, flat and banked NOBJ, HEX, D8, and Debug80's flat launch path have end-to-end tests.                                                    | Keep source identity, target layout, and publication failure behavior exact.   |
 
-`vitest run test/proof-harness.test.ts` from `packages/nucleus` is the focused
+`npx vitest run test/proof-harness.test.ts --reporter=verbose` from the
+standalone Nucleus repository is the focused
 assembly-proof gate. The broader Nucleus package suite runs only after that
 gate passes. AZM and Debug80 dependencies are rebuilt only when their outputs
 are absent or stale; an ordinary Nucleus change does not trigger a monorepo-wide
@@ -1141,6 +1144,10 @@ not change.
 
 ## Target-system implementation increment
 
+This section is the historical construction record for the implemented target
+system. All seven recorded stages and the final review are complete; future
+tense below describes the plan used at the time, not pending work.
+
 The [target-system specification](target-system-specification.md) defines the
 approved shape for target profiles, startup, runtime vectors, and one-program
 banking. The [object-stream format](nucleus-object-format.md) defines the exact
@@ -1233,7 +1240,7 @@ Every bank also reserves a three-byte entry slot. Only the entry bank emits
 the three-byte capacity cost in every bank and the emitted-byte cost in the
 entry bank separately.
 
-Implementation proceeds in measured increments:
+Implementation was organized in these measured increments:
 
 1. add the compact target descriptor, complete runtime link context,
    runtime-provider lookup, and identity, length, and helper-layout rejection;
@@ -1259,13 +1266,10 @@ Implementation proceeds in measured increments:
 10. obtain a read-only correctness review, perform measured compression, and
     obtain a final correctness-and-size review before commit.
 
-The target-system and NOBJ authorities are approved for staged implementation.
-The object-sink increment must be measured before later banked work depends on
-it. A 600-byte cumulative target-system increase is a hard checkpoint: freeze
-the increment before further staged work, reproduce the target-enabled account,
-run correctness and compression review, and obtain explicit approval before
-continuing. A completed later-stage review does not retrospectively satisfy
-that checkpoint.
+The target-system and NOBJ authorities were implemented in these stages. The
+600-byte cumulative target-system checkpoint governed that work and is retained
+here as part of the decision record; the later final review did not replace its
+contemporaneous evidence.
 
 ### Target-system Stage 1: strict host NOBJ boundary
 
@@ -1610,7 +1614,7 @@ linked runtime image.
 
 ### Host D8 source-map instrumentation
 
-The standalone Node host can assemble a second compiler layout with
+The standalone Node package contains a second generated compiler layout with
 `DebugHooks = 1`. Conditional two-byte `OUT (n),A` instructions report source,
 declaration, structured-context, routine, semantic-dispatch, and target-adapter
 IMAGE events. The host records and validates those events, then publishes D8
@@ -1653,39 +1657,40 @@ generation and validates the D8 document through its normal importer before
 publication. Byte columns remain in the sidecar; the initial debugger path is
 line-oriented.
 
-A post-integration acceptance pass tightened two host-only boundaries without
+A post-integration acceptance pass tightened host-only boundaries without
 changing either compiler layout. D8 publication now replaces the complete
 flat-or-banked sidecar group, including removal of obsolete bank files, and the
 collector compares the ordered `$DF` stream with every compiler-adapter
 `IMAGE` byte before publication. Provider-owned runtime and initialization
 images remain intentionally outside that comparison and unattributed. These
 events dominate host trace volume: the representative CRLF two-routine compile
-reports 187 `$DF` callbacks for 13 semantic operations. These
+reports 187 `$DF` callbacks for 13 semantic operations. The collector also
+decodes the finalized variable-width semantic transcript independently and
+requires every `$DD` key to name an actual operation boundary and the decoded
+end to equal the semantic read cursor captured at `$DE`. These
 checks add zero compiler, adapter, workspace, transcript, generated-program,
 runtime, NOBJ, or HEX bytes.
 
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
-used. Each row remains open until a Z80 representation and a minimum corpus
-requirement are both known.
+used. Each row records the selected Z80 or host representation and its evidence.
 
 | Resource                                |      Limit | Representation                                                                        | Excess diagnostic or trap                                                        | Evidence                                                                          |
 | --------------------------------------- | ---------: | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | source part count                       |          8 | external five-byte descriptors plus three compiler-workspace bytes                    | capacity diagnostic                                                              | accepted 1- and 8-part units; rejected ninth part                                 |
+| host source window bytes                |      2,048 | complete retained source plus five descriptor bytes for each part                     | packaging diagnostic                                                             | exact published Host API capacity and first-overflow test                         |
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                            |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                |
-| ordinary scalar symbols                 |         16 | six-byte source-backed entries                                                        | capacity diagnostic                                                              | duplicate, unknown, and seventeenth-name proof                                    |
-| direct routine declarations             |          4 | eight-byte source-backed entries                                                      | capacity diagnostic                                                              | rejected fifth routine                                                            |
-| retained direct parameters              |         16 | four-byte source-backed entries                                                       | capacity diagnostic                                                              | accepted sixteen-position call and rejected seventeenth parameter                 |
+| ordinary binding symbols                |         16 | one shared table of six-byte source-backed scalar and aggregate entries               | capacity diagnostic                                                              | accepted sixteen aggregate variables; rejected seventeenth binding                |
+| non-main routine entries                |          4 | one shared table of eight-byte direct or forward entries                              | capacity diagnostic                                                              | direct, forward, mutual-recursion, and rejected fifth-entry proofs                |
+| retained parameter entries              |         16 | one global table of four-byte scalar or aggregate parameter entries                   | capacity diagnostic                                                              | accepted sixteen total entries; rejected seventeenth across routines              |
 | nested compiler call frames             |          4 | eight-byte parser frames                                                              | capacity diagnostic                                                              | rejected fifth nested call                                                        |
 | LL(1) grammar symbols                   |         64 | byte stack; thirteen bytes of action scratch overlay inactive initializer state       | parser-capacity diagnostic                                                       | exact-fill and atomic internal-overflow engine proof                              |
 | dynamic types, records, and fields      | 8 / 5 / 12 | four-byte type, two-byte record, and six-byte field entries                           | capacity diagnostic                                                              | accepted nested layout and metadata exhaustion proofs                             |
 | fixed-array element count               |     65,535 | retained word; allocation is bounded separately by complete extent                    | program-data capacity diagnostic when the object cannot fit                      | accepted and indexed `u8[1024]`; rejected allocated `u8[1025]`                    |
 | bounded-string capacity                 |        253 | descriptor byte; object extent is capacity plus two                                   | `bounded-string-capacity`; use `u8[N]` plus a scalar length for constructed text | accepted 253 and rejected 254/255; zero payload and sealed-byte proof             |
 | complete aggregate type extent          |     65,535 | retained word shared by records, arrays, and bounded strings                          | program-data capacity diagnostic when an allocated object cannot fit             | 501-byte nested record; exact 1,024-byte object; rejected 1,025-byte object       |
-| retained forward signatures and names   |          4 | shared eight-byte routine entries plus one main-forward flag                          | capacity diagnostic                                                              | mutual recursion, incomplete forward, and forward-main proofs                     |
-| scalar parameters                       |         16 | shared four-byte retained-parameter entries                                           | capacity diagnostic                                                              | accepted sixteen-position call and rejected seventeenth parameter                 |
 | expression nesting                      |         16 | thirteen-byte metadata entries retaining operand value, type, and position            | capacity diagnostic                                                              | seventeen-deep pending-expression proof                                           |
 | semantic transcript payload bytes       |        511 | counted variable-width stream                                                         | capacity diagnostic                                                              | widened assignment-exhaustion proof                                               |
 | semantic transcript operations          |        255 | one-byte published operation count                                                    | capacity diagnostic                                                              | pre-append operation-count guard                                                  |
@@ -1703,6 +1708,7 @@ requirement are both known.
 | total generated read-only-data bytes    |      1,024 | initialized-data prefix followed by aggregate-constant suffix                         | diagnostic for the declaration class that first exceeds the combined region      | mixed data/constant shifting and exact separate boundary proofs                   |
 | zero-initialized program-data bytes     |      1,024 | retained word length; no stored image bytes                                           | capacity diagnostic                                                              | exact four-string-plus-tail BSS and rejected following byte                       |
 | emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 556 bytes; banked 813/589 bytes; per-bank and entry-bank overflow proofs     |
+| physical target banks                   |          4 | target descriptor and four per-bank cursor/remaining entries                          | target-configuration diagnostic                                                  | accepted four-bank profiles; rejected fifth bank                                  |
 | activation bytes                        |      3,840 | reserved machine-stack region; frame size is bounded by retained declarations         | `activation-capacity` or fixed memory-map rejection                              | memory-map proof, sixteen-position call, and depth boundary                       |
 | activation depth                        |          8 | counter plus generated hardware-stack frames                                          | `activation-capacity`                                                            | recursive handler-bypass and root-frame trap proof                                |
 | service stream and bulk-storage extents |          4 | proof adapter byte arrays with independent cursors                                    | stable service error                                                             | success, end, configured failure, overwrite, append, rewind, and seek proofs      |

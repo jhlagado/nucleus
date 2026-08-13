@@ -219,9 +219,9 @@ A candidate's admission record reports its incremental compiler-core code, requi
 
 Nucleus 0.1 admits the explicit recoverable-error mechanism in Chapter 14. The implementation ledger still records its compiler-core, immutable-data, workspace, emitted-code, and runtime costs. General exceptions, stack unwinding, destructors, `finally`, and `defer` remain excluded.
 
-Nucleus 0.1 admits recursive routine calls. The first implementation may stage their construction while it measures activation storage, re-entry state, depth limits, and failure behaviour, but staging does not create a non-recursive language profile. Chapter 13 defines the source semantics, and Chapter 15 defines activation-capacity failure.
+Nucleus 0.1 admits recursive routine calls. The current compiler implements direct, main, and mutual recursion with a published activation-depth bound. Chapter 13 defines the source semantics, and Chapter 15 defines activation-capacity failure.
 
-Several source-preserving economies belong in the first implementation rather than in language variants. The first compiler uses one precedence-driven loop for binary expressions and classifies a completed call expression before admitting `else fail`; it does not duplicate the precedence ladder or branch on a routine signature before parsing the call. Interned type ordinals versus compact structural metadata stored directly in symbols remains a measured representation choice. The direct backend measures shared tails, table dispatch, helper calls, fall-through layout, and width-specific target sequences. None of these choices may change accepted source, arithmetic width, required diagnostics, array aliases, or observable behavior.
+Several source-preserving economies belong in the implementation rather than in language variants. The compiler uses one precedence-driven loop for binary expressions and classifies a completed call expression before admitting `else fail`; it does not duplicate the precedence ladder or branch on a routine signature before parsing the call. It uses interned type ordinals naming compact structural metadata. The direct backend may continue to measure shared tails, table dispatch, helper calls, fall-through layout, and width-specific target sequences. None of these choices may change accepted source, arithmetic width, required diagnostics, array aliases, or observable behavior.
 
 ### 2.9 Decision boundary and failure conditions
 
@@ -2439,11 +2439,11 @@ The conservative loop rule is part of Nucleus 0.1 validity. A value routine whos
 
 A forward declaration contains the routine's complete and sole signature, including its parameter names. Its later body begins with `sub NAME` and a logical newline. That name must resolve to exactly one incomplete forward under Chapters 4, 5, and 8. The stored parameter names bind the body; no parameter, result, or `fails` clause is repeated. The forward declaration and body definition denote one routine.
 
-The body does not repeat the signature, so the compiler performs no body-signature comparison. A streaming compiler must retain the forward's parameter names as well as its type and effect metadata until it compiles the body. The net compiler-core and workspace effects remain unmeasured.
+The body does not repeat the signature, so the compiler performs no body-signature comparison. A streaming compiler must retain the forward's parameter names as well as its type and effect metadata until it compiles the body. The current compiler uses the measured retained routine and parameter tables published in the implementation plan.
 
 After its complete signature has been checked, a routine may call itself directly. Mutually recursive routines require an earlier forward signature for every routine called before its definition. Recursive calls use the ordinary argument, activation, result, and lifetime rules; Nucleus has no separate recursive syntax.
 
-Recursion is admitted in Nucleus 0.1. Implementation staging may postpone its construction in the first compiler, but standard language mode must not reinterpret or permanently reject recursive source within the implementation's documented compile-time capacities.
+Recursion is admitted in Nucleus 0.1 and implemented by the current compiler. Standard language mode must not reinterpret or reject recursive source within the implementation's documented compile-time capacities.
 
 ### 13.9 Activation capacity
 

@@ -58,6 +58,78 @@ describe("Nucleus target profiles", () => {
     });
   });
 
+  it("reserves bank fields for targets with at least two banks", () => {
+    expect(
+      validateNucleusTarget({ bankCount: 1, entryBank: 0, partBanks: [0] }),
+    ).toContainEqual({
+      path: "$.bankCount",
+      message: "must be an integer in the range 2..4",
+    });
+    expect(validateNucleusTarget({ bankCount: undefined })).toContainEqual({
+      path: "$.bankCount",
+      message: "must be an integer in the range 2..4",
+    });
+    expect(validateNucleusTarget({ entryBank: undefined })).toContainEqual({
+      path: "$.entryBank",
+      message: "requires bankCount",
+    });
+  });
+
+  it("accepts loaded flat layouts and a configured image fill", () => {
+    expect(
+      validateNucleusTarget({
+        imageBase: 0x4000,
+        imageCapacity: 0x3000,
+        imageFill: 0xa5,
+        writableBase: 0x6000,
+        writableCapacity: 0x1000,
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects partial image overlap and banked writable overlap", () => {
+    const partial = validateNucleusTarget({
+      imageBase: 0x4000,
+      imageCapacity: 0x3000,
+      writableBase: 0x6000,
+      writableCapacity: 0x2000,
+    });
+    expect(partial.map(({ path }) => path)).toContain("$.writableBase");
+
+    const banked = validateNucleusTarget({
+      imageBase: 0x4000,
+      imageCapacity: 0x3000,
+      writableBase: 0x6000,
+      writableCapacity: 0x1000,
+      bankCount: 2,
+      entryBank: 0,
+      partBanks: [0],
+    });
+    expect(banked).toContainEqual({
+      path: "$.writableBase",
+      message:
+        "must place banked writable storage wholly outside the bank window",
+    });
+  });
+
+  it("rejects image fills outside one byte", () => {
+    expect(validateNucleusTarget({ imageFill: 0x100 })).toContainEqual({
+      path: "$.imageFill",
+      message: "must be an integer in the range 0..255",
+    });
+  });
+
+  it("rejects zero-length target regions before execution", () => {
+    expect(validateNucleusTarget({ imageCapacity: 0 })).toContainEqual({
+      path: "$.imageCapacity",
+      message: "must be nonzero",
+    });
+    expect(validateNucleusTarget({ writableCapacity: 0 })).toContainEqual({
+      path: "$.writableCapacity",
+      message: "must be nonzero",
+    });
+  });
+
   it("classifies malformed JSON as configuration failure", () => {
     expect(() => parseNucleusTargetProfile("{")).toThrowError(
       NucleusConfigurationError,

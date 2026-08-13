@@ -3,9 +3,9 @@
 ## Purpose
 
 This charter defines the terms for reviewing Nucleus 0.1. It records the
-project directions that a reviewer must preserve, the implementation choices
-that remain open to measurement, and the evidence required for a proposed
-change.
+project directions that a reviewer must preserve, the selected implementation
+baseline, the choices still open to measurement, and the evidence required for
+a proposed change.
 
 Nucleus is a small, statically typed language compiled directly to Z80 machine
 code for practical programs on constrained systems. The first compiler is a
@@ -14,10 +14,10 @@ fit in one 16 KiB bank. That constraint governs implementation work. It does
 not authorise a reviewer to remove settled language facilities or create an
 unnamed smaller dialect.
 
-This charter does not replace either specification. It provides instructions
-for review work within them. When the charter and a specification appear to
-conflict, the reviewer must report the discrepancy and leave the rule
-unchanged until the project owner resolves the authority conflict.
+This charter does not replace the interface authorities. It provides
+instructions for review work within them. When the charter and an authority
+appear to conflict, the reviewer must report the discrepancy and leave the
+rule unchanged until the project owner resolves the conflict.
 
 ## Authority
 
@@ -34,11 +34,15 @@ Apply the following authority order:
 4. The [Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md)
    governs packed representation, direct-code integrity, runtime services,
    trap records, and direct Z80 execution.
-5. Explicit project-owner decisions govern work that the specifications still
+5. [Nucleus Host API 1](host-api.md) governs the public Node API, project and
+   target configuration, result classification, and artifact publication.
+6. [Nucleus D8 Source Maps](d8-source-maps.md) governs the conditional trace
+   ABI, host validation, physical-bank identity, and tentative D8 publication.
+7. Explicit project-owner decisions govern work that the authorities still
    mark as open.
-6. Executable tests, analyzers, and measurements provide evidence. They do not
-   amend a specification when they disagree with it.
-7. Design notes, old reports, implementation sketches, and repository history
+8. Executable tests, analyzers, and measurements provide evidence. They do not
+   amend an authority when they disagree with it.
+9. Design notes, old reports, implementation sketches, and repository history
    are non-normative.
 
 Review the current revisions of all authorities. Do not reconstruct the
@@ -326,12 +330,11 @@ scalar values, aggregate paths, aggregate results, and failable calls. At an
 eligible boundary, the reserved pair `else fail` terminates the expression, and
 the checker requires the complete expression to be one direct failable call.
 
-Compact inline type descriptors and interned type ordinals are both permitted
-implementation candidates. One demonstrated structural descriptor fits every
-admitted type in four bytes, including arrays of records and bounded strings.
-Repeated types can make one-byte interned ordinals cheaper. The selection must
-count retained bytes, construction, lookup, equality, interning, capacity
-checks, and exhaustion diagnostics.
+The current compiler uses interned type ordinals naming four-byte structural
+descriptors, including arrays of records and bounded strings. A review checks
+retained bytes, construction, lookup, equality, interning, capacity checks, and
+exhaustion diagnostics. Inline descriptors remain a possible future
+experiment, not an unresolved fact about the current baseline.
 
 Required source diagnostics remain part of the compiler contract. Replacing a
 typed delimiter stack with a depth counter, for example, is not a
@@ -353,16 +356,17 @@ aliases. Registers and compiler-managed locations have no runtime source type.
 The compiler retains every type and extent needed to select code and checks.
 
 Calls preserve distinct active scalar values and aggregate carriers through
-ordinary and recursive invocations. The physical arrangement may use the
-hardware stack, a bounded arena, saved static locations, or a measured
-combination. An activation-capacity excess occurs after source arguments have
-been evaluated and before a callee or caller state changes.
+ordinary and recursive invocations. The current arrangement uses the reserved
+machine-stack region, a depth-eight guard, generated hardware-stack frames,
+and the banked far-return arena. An activation-capacity excess occurs after
+source arguments have been evaluated and before a callee or caller state
+changes. Another arrangement would require a complete replacement measurement
+and proof.
 
 Exact-type aggregate assignment first checks the complete source and
-destination extents. The backend may then use straight-line loads and stores,
-a counted loop, `LDIR`, or a shared helper. It measures complete compiler,
-generated-program, runtime, workspace, and timing effects before selecting the
-policy. The source-visible copy and failure ordering do not change.
+destination extents. The current backend then uses `LDIR`. Any alternative
+must measure complete compiler, generated-program, runtime, workspace, and
+timing effects. The source-visible copy and failure ordering do not change.
 
 The implementation may share arithmetic tails or helpers when complete
 width-specific behavior remains identical. Byte addition, subtraction,
@@ -370,34 +374,28 @@ multiplication, negation, and complement retain modulo-256 behavior; word forms
 retain modulo-65,536 behavior. An economy is measured against the complete
 direct compiler and runtime path, not against an isolated instruction sketch.
 
-## Open implementation questions
+## Selected baseline and future experiments
 
-The following choices remain open because they can preserve the complete
-language and direct-Z80 runtime contracts:
+The current compiler has selected interned type ordinals, `LDIR` aggregate
+copying, fixed published capacities, bounded activation placement, compact
+compiler fixup and sink-call records, and the measured size and timing account
+in the implementation plan. Reviewers treat these as facts to verify, not open
+questions.
 
-- inline type descriptors versus interned ordinals;
-- the exact shared-helper organization for scalar operations;
-- inline sequences versus helper calls for width-specific operations;
-- final symbol, signature, fixup, expression, and source-map capacities;
-- aggregate-copy lowering in the direct backend;
-- helper calls versus inlined hot paths;
-- physical Z80 register allocation;
-- activation-state placement;
-- the compact compiler fixup table and logical sink-call ABI within the settled
-  NOBJ wire format; and
-- the complete measured size and timing of the compiler and target runtime.
-
-An experiment may change one of these choices only after preserving conformance
-and reporting the relevant resource accounts. Introducing a portable bytecode
-or interpreter requires an explicit project-owner redesign decision.
+Source-preserving experiments may still compare shared helpers with inline
+sequences, reorganize hot and cold paths, or alter physical register allocation.
+An experiment may replace a selected representation only after preserving
+conformance and reporting the complete resource accounts. Introducing a
+portable bytecode or interpreter requires an explicit project-owner redesign
+decision.
 
 ## Review duties
 
 A substantive review must examine every current authority relevant to its
 scope in reader order. A target-publication or banking review therefore reads
-the language specification, target-system specification, NOBJ format, and Z80
-runtime contract. Search results and old summaries are insufficient substitutes
-for that read.
+the language specification, target-system specification, NOBJ format, Z80
+runtime contract, Host API, and D8 contract where source maps are requested.
+Search results and old summaries are insufficient substitutes for that read.
 
 Reviewers should test the following boundaries aggressively:
 
@@ -419,7 +417,11 @@ Reviewers should test the following boundaries aggressively:
    length, execution at distinct runtime/writable layouts, deferred used-length
    validation, wire-loader backing, and storage-generation atomicity.
 10. Evidence behind every Z80 byte and timing claim.
-11. Prose quality under the project's human-writing standard: exact agency,
+11. Exact matching between each embedded compiler image and its symbol map,
+    trace interception only during compiler execution, rejected or incomplete
+    traces remaining unpublished, and physical-bank identity surviving D8
+    validation, breakpoint binding, and PC lookup.
+12. Prose quality under the project's human-writing standard: exact agency,
     direct wording, stable terms, verified examples, no stale history or
     provenance, and no mechanical filler.
 

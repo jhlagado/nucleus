@@ -285,8 +285,7 @@ const target = async (args: string[]): Promise<number> => {
   return 0;
 };
 
-const main = async (): Promise<number> => {
-  const args = process.argv.slice(2);
+const main = async (args: string[]): Promise<number> => {
   if (args.length === 0 || args[0] === "-h" || args[0] === "--help") {
     console.log(help);
     return 0;
@@ -309,10 +308,53 @@ const main = async (): Promise<number> => {
   throw new CliUsageError(`unknown command ${command ?? ""}`);
 };
 
+const requestedDiagnosticFormat = (
+  args: readonly string[],
+): "text" | "json" => {
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === "--json") return "json";
+    if (args[index] === "--diagnostic-format" && args[index + 1] === "json") {
+      return "json";
+    }
+  }
+  return "text";
+};
+
+const commandLine = process.argv.slice(2);
+const topLevelFormat = requestedDiagnosticFormat(commandLine);
+
 try {
-  process.exitCode = await main();
+  process.exitCode = await main(commandLine);
 } catch (error) {
-  if (error instanceof CliUsageError) {
+  if (topLevelFormat === "json") {
+    if (error instanceof CliUsageError) {
+      console.error(
+        JSON.stringify({
+          success: false,
+          kind: "usage",
+          message: error.message,
+        }),
+      );
+    } else if (error instanceof NucleusConfigurationError) {
+      console.error(
+        JSON.stringify({
+          success: false,
+          kind: "configuration",
+          message: error.message,
+          issues: error.issues,
+        }),
+      );
+    } else {
+      console.error(
+        JSON.stringify({
+          success: false,
+          kind: "execution",
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+    process.exitCode = 2;
+  } else if (error instanceof CliUsageError) {
     console.error(error.message);
     console.error("Run nucleus --help for usage.");
     process.exitCode = 2;

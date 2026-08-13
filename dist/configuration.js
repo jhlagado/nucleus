@@ -12,6 +12,7 @@ const targetKeys = new Set([
     "schema",
     "imageBase",
     "imageCapacity",
+    "imageFill",
     "writableBase",
     "writableCapacity",
     "establishStack",
@@ -57,6 +58,8 @@ export const validateNucleusTarget = (value, options = {}) => {
     if (!isObject(value)) {
         return [{ path: "$", message: "must be a JSON object" }];
     }
+    const hasField = (field) => Object.prototype.hasOwnProperty.call(value, field);
+    const banked = hasField("bankCount");
     for (const key of Object.keys(value)) {
         if (!targetKeys.has(key))
             issue(issues, `$.${key}`, "is not a recognised target field");
@@ -68,6 +71,16 @@ export const validateNucleusTarget = (value, options = {}) => {
     for (const field of wordFields) {
         if (value[field] !== undefined)
             validateWord(issues, `$.${field}`, value[field]);
+    }
+    for (const field of ["imageCapacity", "writableCapacity"]) {
+        if (value[field] === 0)
+            issue(issues, `$.${field}`, "must be nonzero");
+    }
+    if (value.imageFill !== undefined &&
+        (!Number.isInteger(value.imageFill) ||
+            value.imageFill < 0 ||
+            value.imageFill > 0xff)) {
+        issue(issues, "$.imageFill", "must be an integer in the range 0..255");
     }
     if (value.establishStack !== undefined &&
         typeof value.establishStack !== "boolean") {
@@ -88,6 +101,23 @@ export const validateNucleusTarget = (value, options = {}) => {
         Number.isInteger(writableCapacity) &&
         writableBase + writableCapacity > 0x10000) {
         issue(issues, "$.writableCapacity", "extends the writable region beyond address 65535");
+    }
+    const imageEnd = imageBase + imageCapacity;
+    const writableEnd = writableBase + writableCapacity;
+    if (imageBase >= 0 &&
+        imageCapacity >= 0 &&
+        imageEnd <= 0x10000 &&
+        writableBase >= 0 &&
+        writableCapacity >= 0 &&
+        writableEnd <= 0x10000) {
+        const regionsOverlap = imageBase < writableEnd && writableBase < imageEnd;
+        const writableInsideImage = writableBase >= imageBase && writableEnd <= imageEnd;
+        if (regionsOverlap && !writableInsideImage) {
+            issue(issues, "$.writableBase", "must place the writable region wholly inside or wholly outside the image region");
+        }
+        if (banked && regionsOverlap) {
+            issue(issues, "$.writableBase", "must place banked writable storage wholly outside the bank window");
+        }
     }
     if (value.services === undefined) {
         if (options.requireServices === true) {
@@ -114,21 +144,20 @@ export const validateNucleusTarget = (value, options = {}) => {
             }
         }
     }
-    const banked = value.bankCount !== undefined;
     if (!banked) {
-        if (value.entryBank !== undefined) {
+        if (hasField("entryBank")) {
             issue(issues, "$.entryBank", "requires bankCount");
         }
-        if (value.partBanks !== undefined) {
+        if (hasField("partBanks")) {
             issue(issues, "$.partBanks", "requires bankCount");
         }
     }
     else {
         const bankCount = value.bankCount;
         if (!Number.isInteger(bankCount) ||
-            bankCount < 1 ||
+            bankCount < 2 ||
             bankCount > 4) {
-            issue(issues, "$.bankCount", "must be an integer in the range 1..4");
+            issue(issues, "$.bankCount", "must be an integer in the range 2..4");
         }
         if (!Number.isInteger(value.entryBank) ||
             value.entryBank < 0 ||

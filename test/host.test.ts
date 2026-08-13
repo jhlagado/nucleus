@@ -40,6 +40,81 @@ describe("the stable in-process Nucleus host API", () => {
     expect(result).toMatchObject({ success: false, kind: "configuration" });
   });
 
+  it("publishes NOBJ, HEX and D8 for a loaded flat target", async () => {
+    const result = await createNucleusCompiler().build({
+      sources: [
+        {
+          name: "src/main.nu",
+          source: "var result as u8\nsub main()\nresult = 7\nend\n",
+        },
+      ],
+      target: {
+        imageBase: 0x4000,
+        imageCapacity: 0x3000,
+        imageFill: 0xa5,
+        writableBase: 0x6000,
+        writableCapacity: 0x1000,
+        services,
+      },
+      artifacts: { hex: true, d8: true },
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.materialized.parsed.map.romMode).toBe(false);
+    expect(result.materialized.parsed.begin.imageFill).toBe(0xa5);
+    expect(result.materialized.parsed.map.dataLoadAddress).toBe(0x6000);
+    expect(result.materialized.flatImage?.at(-1)).toBe(0xa5);
+    expect(result.artifacts.hex).toMatch(/^:/);
+    expect(result.artifacts.d8).toHaveLength(1);
+    expect(result.artifacts.d8?.[0]?.map.files["src/main.nu"]).toBeDefined();
+  }, 30_000);
+
+  it("rejects colliding portable D8 source identities", async () => {
+    for (const names of [
+      ["same.nu", "same.nu"],
+      ["source\\library.nu", "source/library.nu"],
+    ]) {
+      const result = await createNucleusCompiler().build({
+        sources: names.map((name) => ({ name, source: "\n" })),
+        artifacts: { d8: true },
+      });
+      expect(result).toMatchObject({
+        success: false,
+        kind: "configuration",
+      });
+      if (result.success || result.kind !== "configuration") continue;
+      expect(result.issues).toContainEqual({
+        path: "$.sources[1].name",
+        message:
+          "duplicates the portable D8 source identity of $.sources[0].name",
+      });
+    }
+  });
+
+  it("preserves source names that are JavaScript object properties", async () => {
+    for (const name of ["__proto__", "constructor"]) {
+      const result = await createNucleusCompiler().build({
+        sources: [{ name, source: "sub main()\nend\n" }],
+        artifacts: { d8: true },
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) continue;
+      const map = result.artifacts.d8?.[0]?.map;
+      expect(Object.prototype.hasOwnProperty.call(map?.files, name)).toBe(true);
+      expect(map?.files[name]?.symbols?.map(({ name }) => name)).toEqual([
+        "main",
+      ]);
+    }
+  }, 30_000);
+
+  it("classifies target-capacity diagnostics as configuration failures", async () => {
+    const result = await createNucleusCompiler().build({
+      sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
+      target: { imageCapacity: 1 },
+    });
+    expect(result).toMatchObject({ success: false, kind: "configuration" });
+  }, 30_000);
+
   it("classifies host source-capacity failures as configuration failures", async () => {
     const tooMany = await createNucleusCompiler().build({
       sources: Array.from({ length: 9 }, (_, index) => ({

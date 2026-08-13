@@ -32,9 +32,11 @@ const result = await compiler.build({
 });
 ```
 
-`sources` is an ordered array. `name` is the exact diagnostic and D8 source
-name. `source` accepts a string or `Uint8Array`. The host preserves source bytes,
-CRLF handling and synthesized final-newline behaviour defined by Nucleus 0.1.
+`sources` is an ordered array. `name` is the exact diagnostic source identity;
+D8 renders its path separators as `/`. When D8 is requested, these portable
+names must be unique, so `a\\b.nu` and `a/b.nu` conflict. `source` accepts a
+string or `Uint8Array`. The host preserves source bytes, CRLF handling and
+synthesized final-newline behaviour defined by Nucleus 0.1.
 
 `artifacts.hex` requests a flat Intel HEX launch image. `artifacts.d8` requests
 one D8 artifact for a flat target or one artifact for every physical bank. NOBJ
@@ -58,7 +60,7 @@ A failed result has one of these `kind` values:
 | Kind            | Meaning                                                                       |
 | --------------- | ----------------------------------------------------------------------------- |
 | `source`        | The Z80 compiler rejected source and returned an exact positioned diagnostic. |
-| `configuration` | The host rejected a target, source set or artifact request before execution.  |
+| `configuration` | The target, source set, artifact request, or target capacity is invalid.      |
 | `execution`     | The emulator, compiler image or output adapter failed to complete normally.   |
 
 The stable API returns these failures rather than mixing source-result objects
@@ -81,6 +83,7 @@ declare this schema identity:
   "schema": "nucleus-target/v1",
   "imageBase": 32768,
   "imageCapacity": 4096,
+  "imageFill": 255,
   "writableBase": 16384,
   "writableCapacity": 4096,
   "establishStack": true,
@@ -100,7 +103,14 @@ declare this schema identity:
 }
 ```
 
-Validation rejects unknown fields, non-word addresses, invalid bank ordinals,
+`imageFill` is an optional byte and defaults to 255. A banked profile uses two
+to four banks; a flat profile omits `bankCount`, `entryBank`, and `partBanks`.
+A flat writable region
+wholly inside the image selects loaded mode; a wholly separate region selects
+ROM mode. Partial overlap is invalid, and banked writable storage must remain
+outside the bank window.
+
+Validation rejects unknown fields, non-word addresses, zero-length regions, invalid bank ordinals,
 source-bank count mismatches and regions that extend beyond the Z80 address
 space. A launch build requires all eleven service addresses. The library's
 omitted-target defaults remain available to conformance tests, but they are
@@ -137,8 +147,8 @@ CLI and Debug80 read sources in the declared order.
 
 - host API and language versions;
 - runtime identity;
-- SHA-256 identities for the normal and D8 compiler images with their exact
-  symbol maps;
+- one SHA-256 fingerprint for each normal or D8 compiler image together with
+  the exact symbol map paired with it;
 - host source, execution and target limits;
 - flat and banked target capabilities.
 
@@ -162,9 +172,11 @@ workspace package, and any other host must supply the same compatible package.
 
 The compiler API returns bytes and text without writing files.
 `publishNucleusBuildOutputs()` optionally publishes NOBJ, HEX and the complete
-flat-or-banked D8 group as one recoverable transaction. It writes temporary
-files beside their destinations, backs up the previous generation, promotes
-the complete new set and restores the previous set after a failed promotion.
+flat-or-banked D8 group as one recoverable best-effort transaction. It writes
+temporary files beside their destinations, backs up the previous generation,
+promotes the new set and restores the previous set after a caught promotion
+failure. Sequential filesystem renames are not atomic to concurrent readers or
+across a process or machine failure.
 
 Debug80 validates every in-memory D8 artifact through its normal D8 validator
 before calling this publication function.
@@ -180,8 +192,9 @@ nucleus capabilities --json
 
 The existing `-o`, `--hex-output`, `--d8-output` and `--target-profile`
 switches remain compatible. Host integrations can select
-`--diagnostic-format json`. Human-readable diagnostics include a descriptive
-message and stable numeric code.
+`--diagnostic-format json` or `--json`. JSON mode also covers usage,
+configuration, filesystem and compiler-execution failures. Human-readable
+diagnostics include a descriptive message and stable numeric code.
 
 Exit status zero means success. Status one means the requested build failed.
 Status two means command use, configuration, filesystem or compiler execution

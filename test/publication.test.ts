@@ -8,6 +8,7 @@ import {
   publishNucleusArtifactSet,
   publishNucleusBuildOutputs,
 } from "../src/publication.js";
+import { publishNucleusArtifactSetInternal } from "../src/publication-internal.js";
 
 const directories: string[] = [];
 
@@ -59,5 +60,36 @@ describe("Nucleus artifact-set publication", () => {
     ).rejects.toThrow("distinct paths");
     expect(await readFile(output, "utf8")).toBe("previous");
     expect(await readdir(root)).toEqual(["program.nobj"]);
+  });
+
+  it("restores the previous artifact set after a failed promotion", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "nucleus-publication-"));
+    directories.push(root);
+    const nobj = path.join(root, "program.nobj");
+    const hex = path.join(root, "program.hex");
+    await writeFile(nobj, "previous object");
+    await writeFile(hex, "previous hex");
+
+    await expect(
+      publishNucleusArtifactSetInternal(
+        [
+          { path: nobj, contents: "next object" },
+          { path: hex, contents: "next hex" },
+        ],
+        [],
+        {
+          beforePromote: (_path, index) => {
+            if (index === 1) throw new Error("injected promotion failure");
+          },
+        },
+      ),
+    ).rejects.toThrow("injected promotion failure");
+
+    expect(await readFile(nobj, "utf8")).toBe("previous object");
+    expect(await readFile(hex, "utf8")).toBe("previous hex");
+    expect((await readdir(root)).sort()).toEqual([
+      "program.hex",
+      "program.nobj",
+    ]);
   });
 });

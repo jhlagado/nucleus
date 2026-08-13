@@ -2,73 +2,77 @@
 
 ## Repository boundary
 
-The Nucleus repository owns the language specification, grammar, Z80 compiler,
-runtime contract, NOBJ implementation, conformance programs, and the Node
-compiler package. Debug80 consumes released Nucleus artifacts; it does not
-govern the language or carry a second compiler implementation.
+The standalone Nucleus repository owns the language specification, grammar,
+Z80 compiler, runtime contract, NOBJ implementation, conformance programs, and
+Node compiler package. Debug80 consumes a versioned or commit-pinned Nucleus
+package; it does not govern the language or contain another compiler.
 
-Debug80 owns editor registration, project configuration, build orchestration,
-artifact loading, debugging, and publication of a versioned documentation
-snapshot. The published documentation records the Nucleus revision from which
-it was copied.
+Debug80 owns editor registration, project discovery, build orchestration,
+artifact loading, source breakpoints, and PC-to-source lookup. The separate
+Debug80 documentation project publishes generated reading editions pinned to
+identified standalone Nucleus revisions.
 
-## First host compiler
+## Implemented host path
 
-The first Node compiler executes the Z80 compiler through Debug80 Runtime. It
-uses the same multipart source ABI and target descriptor as a native invocation
-and accepts only a terminally committed NOBJ generation. The host reports the
-compiler's diagnostic code, source-part identity, byte offset, line, and column.
-The CLI always writes canonical NOBJ and can additionally materialize the flat
-target as Intel HEX with `--hex-output`. The HEX file is a launch adapter; NOBJ
-remains the stored compiler result and source of target metadata.
-With `--d8-output`, the host runs a conditionally instrumented image of the same
-Z80 compiler and derives a native D8 sidecar without changing NOBJ or target
-bytes. Flat builds write the requested map; banked builds write one map per
-physical bank. The trace protocol and publication rules are defined in
+The Node compiler executes the Z80 compiler through Debug80 Runtime. It uses
+the same ordered multipart source ABI and target descriptor as a native
+invocation and accepts only a terminally committed NOBJ generation. Host API 1
+classifies configuration, source, and execution failures. Exact compiler
+diagnostics retain source-part identity, byte offset, line, and byte column.
+
+The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
+launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the
+compiler result and source of target-layout metadata.
+
+With `--d8-output`, the host runs a conditionally instrumented image of the
+same Z80 compiler and derives a D8 sidecar without changing NOBJ or target
+bytes. Flat builds write the requested map. Banked builds write one map for
+each physical bank. The trace protocol and publication rules are defined in
 [Nucleus D8 source maps](d8-source-maps.md).
-A launch adapter must supply a target profile with real implementations of all
+
+A launch adapter supplies a target profile with real implementations of all
 eleven vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
-The current Debug80 backend compiles its selected `.nu` file as a one-part
-manifest. A project-level ordered multipart manifest remains a separate
-integration step; the Nucleus CLI and compiler API already accept several
-ordered source files.
-Debug80's application loader currently accepts one flat Intel HEX image, so
-the Nucleus launch backend rejects profiles with `bankCount > 1` before
-invoking the compiler. Standalone banked NOBJ and per-bank D8 production remain
-available; Debug80 does not flatten those objects or invent a selected-bank
-policy.
+
+Debug80 loads either an explicit Nucleus project or its conventional project
+layout, reads every source part in manifest order, and calls the standalone
+compiler in process. It translates structured failures into editor
+diagnostics, validates returned D8 through its ordinary importer, stores the
+map beside the launch artifact, and uses that same map for line-level source
+breakpoints and PC lookup. The sidecar retains byte columns even though the
+current debugger behavior is line-oriented.
+
+Debug80's application loader accepts one flat Intel HEX image. Its launch
+backend therefore rejects profiles with `bankCount > 1` before compilation.
+Standalone banked NOBJ and per-bank D8 production remain available; Debug80
+does not flatten those objects or invent a selected-bank policy.
 
 The package contains generated shipping and D8-instrumented compiler images.
-Each image is paired with the symbols from that exact assembly. The reproducible
-image gate assembles both layouts from checked AZM source and rejects stale
-embedded bytes or symbols. Node and Debug80 execute those Z80 images directly.
+Each image is paired with the symbols from that exact assembly. The
+reproducible image gate assembles both layouts from checked AZM source and
+rejects stale embedded bytes or symbol maps. Node and Debug80 execute those
+Z80 images directly.
 
-`@jhlagado/debug80-runtime` is a required peer and is not yet published.
-Standalone CI therefore builds it from a pinned Debug80 revision. Publishing
-the runtime package removes this bootstrap without changing the compiler API.
-The package metadata marks the peer optional only to prevent npm's isolated Git
-dependency preparation from requesting the unpublished registry package. A
-compiler host must still provide the matching runtime before importing
-Nucleus.
+`@jhlagado/debug80-runtime` is an operationally required peer. During local
+development it is supplied by the linked Debug80 package; the optional npm
+peer metadata only prevents isolated Git preparation from requesting an
+unpublished registry package.
 
-## Debug80 stages
+## Implemented Debug80 components
 
-1. Register `.nu` as a Nucleus source language with syntax highlighting and
-   comment/bracket configuration.
-2. Add a Nucleus build backend beside the AZM and Glimmer backends. It calls the
-   standalone package in process, writes NOBJ and launchable target artifacts,
-   and translates structured diagnostics into Debug80 diagnostics.
-3. Add Nucleus targets to project discovery and configuration without treating
-   `.nu` as assembly.
-4. Publish a checked-in documentation snapshot from a pinned Nucleus revision.
-5. Produce a validated D8 sidecar from Z80 trace events and enable line-level
-   Nucleus source breakpoints and PC lookup through Debug80's normal map path.
+- `.nu` language registration, syntax highlighting, comments, and brackets;
+- Nucleus project discovery and configuration without treating source as
+  assembly;
+- an in-process build backend beside the AZM and Glimmer backends;
+- ordered multipart source loading;
+- NOBJ and flat launch-artifact publication;
+- D8 validation, storage, source breakpoints, and PC lookup; and
+- generated documentation reading editions pinned to standalone revisions.
 
-## Reference compiler
+## Compiler authority
 
-A TypeScript compiler may be developed later. The emulated Z80 compiler remains
-the executable oracle until differential tests establish identical accepted and
-rejected programs, diagnostics and positions, materialized program bytes,
-target layout, and selected runtime. NOBJ record segmentation need not match
-unless a later format revision makes segmentation canonical.
+The handwritten Z80 compiler is the sole executable compiler. A TypeScript
+port is not part of the current architecture. Any future proposal for another
+compiler would require differential evidence for accepted and rejected source,
+diagnostics and positions, materialized program bytes, target layout, and
+selected runtime before it could claim compatibility.
