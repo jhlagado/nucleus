@@ -38,8 +38,17 @@ canonical result:
 
 ```bash
 nucleus build -o program.nobj src/main.nu
-nucleus build -o program.nobj --hex-output program.hex src/main.nu
+nucleus build -o program.nobj --hex-output program.hex \
+  --target-profile nucleus-target.json src/main.nu
 ```
+
+A launch target profile supplies image and writable layout plus every external
+service destination. The compiler library retains its synthetic default target
+for conformance and tooling, but a host must not mistake those proof addresses
+for a machine integration.
+[`test/fixtures/host-target.json`](test/fixtures/host-target.json) shows the
+JSON shape with synthetic addresses. A machine profile must replace every
+service destination with a callable implementation for that target.
 
 The first host release accepts the compiler's existing flat target descriptor.
 Banked target configuration and Debug80 source mapping are tracked separately

@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm ci
         working-directory: .debug80
       - run: npm run build -w @jhlagado/debug80-runtime

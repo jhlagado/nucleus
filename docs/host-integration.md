@@ -21,15 +21,22 @@ compiler's diagnostic code, source-part identity, byte offset, line, and column.
 The CLI always writes canonical NOBJ and can additionally materialize the flat
 target as Intel HEX with `--hex-output`. The HEX file is a launch adapter; NOBJ
 remains the stored compiler result and source of target metadata.
+A launch adapter must supply a target profile with real implementations of all
+eleven vector destinations. The library's default addresses describe the
+synthetic conformance target; they are not Debug80 or monitor entry points.
+The current Debug80 backend compiles its selected `.nu` file as a one-part
+manifest. A project-level ordered multipart manifest remains a separate
+integration step; the Nucleus CLI and compiler API already accept several
+ordered source files.
 
 The initial implementation assembles the compiler from its checked AZM source
 once per Node process and caches that image. A release build may replace this
 step with an embedded compiler image after a reproducible-image gate compares
 the embedded bytes and symbols with fresh AZM output.
 
-`@jhlagado/debug80-runtime` is currently an unpublished peer package. Standalone
-CI therefore builds that peer from a pinned Debug80 revision. Publishing the
-runtime package removes this bootstrap without changing the compiler API.
+`@jhlagado/debug80-runtime` is a required peer and is not yet published.
+Standalone CI therefore builds it from a pinned Debug80 revision. Publishing
+the runtime package removes this bootstrap without changing the compiler API.
 
 ## Debug80 stages
 

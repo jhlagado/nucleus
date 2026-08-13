@@ -41,11 +41,6 @@
   "peerDependencies": {
     "@jhlagado/debug80-runtime": "^0.1.0"
   },
-  "peerDependenciesMeta": {
-    "@jhlagado/debug80-runtime": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "typescript": "5.3.3",
