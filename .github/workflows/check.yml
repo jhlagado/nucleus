@@ -1,0 +1,34 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: jhlagado/debug80
+          ref: 4b396036afeeadaff8ae5028f3e9b7674ee425ef
+          path: .debug80
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: .debug80
+      - run: npm run build -w @jhlagado/debug80-runtime
+        working-directory: .debug80
+      - name: Install the unpublished runtime peer
+        run: |
+          mkdir -p node_modules/@jhlagado/debug80-runtime
+          cp .debug80/packages/debug80-runtime/package.json node_modules/@jhlagado/debug80-runtime/
+          cp .debug80/packages/debug80-runtime/LICENSE node_modules/@jhlagado/debug80-runtime/
+          cp -R .debug80/packages/debug80-runtime/dist node_modules/@jhlagado/debug80-runtime/
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test

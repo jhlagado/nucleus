@@ -18,6 +18,30 @@ package does not govern Nucleus.
 | `src/`     | host-side grammar, manifest, runtime, and metadata support           |
 | `test/`    | grammar, contract, measurement, and direct-Z80 proof gates           |
 
+## Host compiler
+
+The Node interface runs the same Z80 compiler used on a small machine. It
+loads source parts into an emulated compiler address space, executes the public
+target entry, then validates and materializes the committed NOBJ stream.
+
+```ts
+import { compileNucleus } from "@jhlagado/nucleus";
+
+const result = await compileNucleus([
+  { name: "main.nu", source: "sub main()\nend\n" },
+]);
+```
+
+The command-line interface writes the committed object directly:
+
+```bash
+nucleus build -o program.nobj src/main.nu
+```
+
+The first host release accepts the compiler's existing flat target descriptor.
+Banked target configuration and Debug80 source mapping are tracked separately
+in [the host integration plan](docs/host-integration.md).
+
 The current authorities are:
 
 - [Nucleus 0.1 Language Specification](docs/specification.md)
@@ -67,7 +91,7 @@ success only. These forms lower to ordinary Z80 conditional control flow, not
 exceptions or stack unwinding.
 
 ```bash
-npm run proof -w nucleus
-npm run measure -w nucleus
-npm test -w nucleus
+npm run proof
+npm run measure
+npm test
 ```
