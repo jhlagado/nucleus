@@ -111,6 +111,13 @@ export interface NobjAdapterGeneration {
   readonly map: NobjMap;
   readonly runtimeLinkContext?: RuntimeLinkContext;
   readonly store?: NobjGenerationStore;
+  readonly onImageByte?: (image: NobjAdapterImageByte) => void;
+}
+
+export interface NobjAdapterImageByte {
+  readonly bank: number;
+  readonly address: number;
+  readonly value: number;
 }
 
 export interface ProofRegion {
@@ -426,6 +433,7 @@ export const commitNobjAdapterGeneration = async ({
   map,
   runtimeLinkContext = defaultRuntimeLinkContext,
   store = new NobjGenerationStore(),
+  onImageByte,
 }: NobjAdapterGeneration): Promise<Uint8Array> => {
   if (length > maxBytes) {
     throw new ProofFailure(
@@ -515,8 +523,18 @@ export const commitNobjAdapterGeneration = async ({
     }
     const bytes = producerMemory.slice(cursor, cursor + count);
     cursor += count;
-    if (kind === 1) sink.image(bank, address, bytes);
-    else sink.patch(bank, address, bytes);
+    if (kind === 1) {
+      for (let offset = 0; offset < bytes.length; offset += 1) {
+        onImageByte?.({
+          bank,
+          address: address + offset,
+          value: bytes[offset] ?? 0,
+        });
+      }
+      sink.image(bank, address, bytes);
+    } else {
+      sink.patch(bank, address, bytes);
+    }
   }
   sink.map(map);
   return sink.commit();

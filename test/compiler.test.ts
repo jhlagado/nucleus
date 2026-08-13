@@ -27,11 +27,9 @@ describe("emulator-backed compiler host", () => {
     const memory = new Uint8Array(0x10000);
     memory.set([0xd3, 0xd8, 0x76], 0x100);
     const writes: Array<{ port: number; value: number }> = [];
-    const runtime = createZ80Runtime(
-      { memory, startAddress: 0x100 },
-      0x100,
-      { write: (port, value) => writes.push({ port, value }) },
-    );
+    const runtime = createZ80Runtime({ memory, startAddress: 0x100 }, 0x100, {
+      write: (port, value) => writes.push({ port, value }),
+    });
     runtime.cpu.a = 0x5a;
     runtime.cpu.b = 0x12;
     runtime.cpu.c = 0x34;
@@ -54,12 +52,49 @@ describe("emulator-backed compiler host", () => {
 
     const after = runtime.captureCpuState();
     expect(writes).toEqual([{ port: 0x5ad8, value: 0x5a }]);
-    for (const register of ["a", "b", "c", "d", "e", "h", "l", "ix", "iy", "sp"] as const) {
+    for (const register of [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "h",
+      "l",
+      "ix",
+      "iy",
+      "sp",
+    ] as const) {
       expect(after[register]).toBe(before[register]);
     }
     expect(after.flags).toEqual(before.flags);
     expect(after.pc).toBe(0x102);
   });
+
+  it("leaves generated-program use of every trace port as ordinary target I/O", async () => {
+    const compile = await compileNucleus(
+      [{ name: "main.nu", source: "sub main()\nend\n" }],
+      {},
+      { debugMap: true },
+    );
+    expect(compile.success).toBe(true);
+
+    const memory = new Uint8Array(0x10000);
+    memory.set(
+      Array.from({ length: 8 }, (_, index) => [0xd3, 0xd8 + index]).flat(),
+      0x100,
+    );
+    memory[0x110] = 0x76;
+    const writes: Array<{ port: number; value: number }> = [];
+    const runtime = createZ80Runtime({ memory, startAddress: 0x100 }, 0x100, {
+      write: (port, value) => writes.push({ port, value }),
+    });
+    runtime.cpu.a = 0x5a;
+    while (!runtime.isHalted()) runtime.step();
+
+    expect(writes.map(({ port }) => port & 0xff)).toEqual([
+      0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
+    ]);
+  }, 30_000);
 
   it("matches the established flat-target NOBJ byte for byte", async () => {
     const baseline = await runProofManifest(
@@ -209,18 +244,28 @@ describe("emulator-backed compiler host", () => {
   }, 30_000);
 
   it("returns the exact source-part diagnostic position", async () => {
-    const result = await compileNucleus([
+    const parts = [
       { name: "model.nu", source: "var value as u8\n" },
       { name: "main.nu", source: "sub main()\nvalue = 300\nend\n" },
-    ]);
+    ] as const;
+    const result = await compileNucleus(parts);
+    const traced = await compileNucleus(parts, {}, { debugMap: true });
     expect(result).toMatchObject({
       success: false,
       diagnostic: {
+        code: 61,
         sourcePart: 2,
         sourceName: "main.nu",
+        offset: 19,
         line: 2,
         column: 9,
       },
+    });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(traced).toMatchObject({
+      success: false,
+      diagnostic: result.diagnostic,
     });
   }, 30_000);
 
@@ -272,7 +317,16 @@ describe("emulator-backed compiler host", () => {
       },
     ] as const;
     const ordinary = await compileNucleus(parts);
-    const traced = await compileNucleus(parts, {}, { debugMap: true });
+    const ordinaryCompilerWrites: Array<{ port: number; value: number }> = [];
+    const traced = await compileNucleus(
+      parts,
+      {},
+      {
+        debugMap: true,
+        compilerIoWrite: (port, value) =>
+          ordinaryCompilerWrites.push({ port, value }),
+      },
+    );
     expect(ordinary.success).toBe(true);
     expect(traced.success).toBe(true);
     if (!ordinary.success || !traced.success) return;
@@ -283,6 +337,8 @@ describe("emulator-backed compiler host", () => {
     expect(mapping).toBeDefined();
     expect(mapping?.semanticOperations).toBeGreaterThan(1);
     expect(mapping?.declarationMarks).toBeGreaterThanOrEqual(2);
+    expect(mapping?.imageBytes).toBe(187);
+    expect(ordinaryCompilerWrites).toEqual([]);
     const file = mapping?.maps[0]?.map.files["src/main.nu"];
     expect(
       file?.segments?.every((segment) => segment.start < segment.end),
@@ -564,9 +620,10 @@ describe("emulator-backed compiler host", () => {
       segments.some(({ start, end }) => address >= start && address < end);
     expect(
       result.materialized.parsed.patches.some(({ address, bytes }) =>
-        Array.from({ length: bytes.length }, (_, offset) => address + offset).some(
-          mapped,
-        ),
+        Array.from(
+          { length: bytes.length },
+          (_, offset) => address + offset,
+        ).some(mapped),
       ),
     ).toBe(true);
     expect(segments.some(({ line }) => line === 3)).toBe(true);

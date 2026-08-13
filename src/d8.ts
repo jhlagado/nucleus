@@ -2,6 +2,7 @@ import type { createZ80Runtime } from "@jhlagado/debug80-runtime";
 
 import type { NucleusSourcePart } from "./compiler.js";
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
+import type { NobjAdapterImageByte } from "./proof.js";
 
 type CompilerCpu = ReturnType<typeof createZ80Runtime>["cpu"];
 
@@ -288,7 +289,11 @@ export class NucleusDebugCollector {
     }
   }
 
-  public finish(parsed: ParsedNobj, begin: NobjBegin): NucleusDebugMapping {
+  public finish(
+    parsed: ParsedNobj,
+    begin: NobjBegin,
+    expectedImages: readonly NobjAdapterImageByte[],
+  ): NucleusDebugMapping {
     if (this.#contexts.length !== 0) {
       this.#errors.push(
         `successful parse left ${this.#contexts.length} source contexts active`,
@@ -306,7 +311,7 @@ export class NucleusDebugCollector {
         `semantic operation count ${operationCount} differs from ${this.#semanticKeys.length} trace events`,
       );
     }
-    this.#validateImages(parsed);
+    this.#validateImages(parsed, expectedImages);
     if (this.#errors.length > 0) {
       throw new Error(
         `invalid Nucleus debug trace\n${this.#errors.join("\n")}`,
@@ -461,8 +466,14 @@ export class NucleusDebugCollector {
 
   #recordSemanticStart(): void {
     this.#beginGeneration();
+    if (this.#semanticEndCount !== 0) {
+      this.#errors.push("semantic operation started after semantic end");
+    }
     const key = this.#semanticKey(this.#symbols.semanticReadCursor);
     const previous = this.#semanticKeys.at(-1);
+    if (previous === undefined && key !== 0) {
+      this.#errors.push(`first semantic key is ${key}, expected 0`);
+    }
     if (previous !== undefined && key <= previous) {
       this.#errors.push(
         `semantic key ${key} does not strictly follow ${previous}`,
@@ -493,6 +504,9 @@ export class NucleusDebugCollector {
   }
 
   #recordImageByte(cpu: CompilerCpu): void {
+    if (this.#semanticEndCount !== 0) {
+      this.#errors.push("IMAGE byte was emitted after semantic end");
+    }
     const observation: ImageObservation = {
       bank: cpu.c & 0xff,
       address: ((cpu.h << 8) | cpu.l) & 0xffff,
@@ -520,7 +534,31 @@ export class NucleusDebugCollector {
     }
   }
 
-  #validateImages(parsed: ParsedNobj): void {
+  #validateImages(
+    parsed: ParsedNobj,
+    expectedImages: readonly NobjAdapterImageByte[],
+  ): void {
+    if (this.#images.length !== expectedImages.length) {
+      this.#errors.push(
+        `IMAGE trace count ${this.#images.length} differs from ${expectedImages.length} compiler-adapter IMAGE bytes`,
+      );
+    }
+    const comparedLength = Math.min(this.#images.length, expectedImages.length);
+    for (let index = 0; index < comparedLength; index += 1) {
+      const event = this.#images[index];
+      const expected = expectedImages[index];
+      if (
+        event !== undefined &&
+        expected !== undefined &&
+        (event.bank !== expected.bank ||
+          event.address !== expected.address ||
+          event.value !== expected.value)
+      ) {
+        this.#errors.push(
+          `IMAGE trace ${index} is ${event.bank}:${event.address.toString(16)}=${event.value}, expected compiler-adapter byte ${expected.bank}:${expected.address.toString(16)}=${expected.value}`,
+        );
+      }
+    }
     for (const event of this.#images) {
       const record = parsed.images.find(
         (candidate) =>

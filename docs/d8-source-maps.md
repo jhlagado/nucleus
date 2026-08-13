@@ -94,16 +94,26 @@ collector checks that:
 - successful dispatch has exactly one end event;
 - routine and declaration names point into a loaded source part;
 - the construct stack is balanced on successful parsing; and
+- the ordered `$DF` stream exactly matches every compiler-adapter `IMAGE` byte;
+  and
 - every observed bank, address, and byte belongs to an original committed
   NOBJ `IMAGE` record.
+
+The compiler-adapter comparison deliberately excludes provider-owned runtime
+and initialization images. Those records are added by the host after the Z80
+compiler has finished and therefore have no `$DF` event or source attribution.
+The `$DF` stream is the dominant trace volume: it contributes exactly one host
+callback for every compiler-adapter `IMAGE` byte.
 
 `PATCH` does not create new attribution. A patched byte keeps the source
 association recorded when the corresponding `IMAGE` byte was emitted.
 
 A diagnostic, output failure, invalid event sequence, missing commit, or D8
 write failure cannot publish a partial map. The CLI writes tentative sidecars
-and replaces the complete previous sidecar group atomically. NOBJ remains the
-canonical non-relocatable target object; D8 remains a separate host artifact.
+and replaces the complete previous sidecar group atomically. Switching between
+flat and banked output, or reducing the bank count, removes obsolete members of
+the old group in the same publication transaction. NOBJ remains the canonical
+non-relocatable target object; D8 remains a separate host artifact.
 
 ## D8 output
 

@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
-import { access, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
   compileNucleus,
   type NucleusTarget,
-  type NucleusCompileSuccess,
   writeNucleusIntelHex,
 } from "./compiler.js";
-import { nucleusD8OutputPaths } from "./d8.js";
+import { publishNucleusD8Outputs } from "./d8-publication.js";
 
 const usage = (): never => {
   console.error(
@@ -121,68 +120,14 @@ if (!result.success) {
     console.log(`Wrote ${path.resolve(hexOutput)}`);
   }
   if (d8Output !== undefined) {
-    await writeD8Outputs(result, d8Output);
-  }
-}
-
-async function writeD8Outputs(
-  result: NucleusCompileSuccess,
-  requestedPath: string,
-): Promise<void> {
-  if (result.debugMapping === undefined) {
-    throw new Error("Nucleus compiler omitted requested D8 mapping data");
-  }
-  const generation = `${process.pid}-${Date.now()}`;
-  const outputs = nucleusD8OutputPaths(requestedPath, result.debugMapping).map(
-    (output) => ({
-      ...output,
-      temporaryPath: `${output.path}.nucleus-${generation}`,
-      backupPath: `${output.path}.nucleus-backup-${generation}`,
-    }),
-  );
-  const promoted: string[] = [];
-  const backups: Array<{ path: string; backupPath: string }> = [];
-  try {
-    for (const output of outputs) {
-      await writeFile(
-        output.temporaryPath,
-        `${JSON.stringify(output.map, null, 2)}\n`,
-        "utf8",
-      );
+    if (result.debugMapping === undefined) {
+      throw new Error("Nucleus compiler omitted requested D8 mapping data");
     }
-    for (const output of outputs) {
-      if (await exists(output.path)) {
-        await rename(output.path, output.backupPath);
-        backups.push({ path: output.path, backupPath: output.backupPath });
-      }
+    for (const outputPath of await publishNucleusD8Outputs(
+      d8Output,
+      result.debugMapping,
+    )) {
+      console.log(`Wrote ${path.resolve(outputPath)}`);
     }
-    for (const output of outputs) {
-      await rename(output.temporaryPath, output.path);
-      promoted.push(output.path);
-    }
-  } catch (error) {
-    for (const path of promoted) await rm(path, { force: true });
-    for (const backup of backups) {
-      if (await exists(backup.backupPath)) {
-        await rename(backup.backupPath, backup.path);
-      }
-    }
-    throw error;
-  } finally {
-    for (const output of outputs)
-      await rm(output.temporaryPath, { force: true });
-  }
-  for (const backup of backups) await rm(backup.backupPath, { force: true });
-  for (const output of outputs) {
-    console.log(`Wrote ${path.resolve(output.path)}`);
-  }
-}
-
-async function exists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
   }
 }

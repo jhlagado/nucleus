@@ -1653,6 +1653,17 @@ generation and validates the D8 document through its normal importer before
 publication. Byte columns remain in the sidecar; the initial debugger path is
 line-oriented.
 
+A post-integration acceptance pass tightened two host-only boundaries without
+changing either compiler layout. D8 publication now replaces the complete
+flat-or-banked sidecar group, including removal of obsolete bank files, and the
+collector compares the ordered `$DF` stream with every compiler-adapter
+`IMAGE` byte before publication. Provider-owned runtime and initialization
+images remain intentionally outside that comparison and unattributed. These
+events dominate host trace volume: the representative CRLF two-routine compile
+reports 187 `$DF` callbacks for 13 semantic operations. These
+checks add zero compiler, adapter, workspace, transcript, generated-program,
+runtime, NOBJ, or HEX bytes.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

@@ -33,6 +33,11 @@ The current Debug80 backend compiles its selected `.nu` file as a one-part
 manifest. A project-level ordered multipart manifest remains a separate
 integration step; the Nucleus CLI and compiler API already accept several
 ordered source files.
+Debug80's application loader currently accepts one flat Intel HEX image, so
+the Nucleus launch backend rejects profiles with `bankCount > 1` before
+invoking the compiler. Standalone banked NOBJ and per-bank D8 production remain
+available; Debug80 does not flatten those objects or invent a selected-bank
+policy.
 
 The implementation assembles the compiler from its checked AZM source and
 caches the shipping and D8-instrumented images separately. Each image is paired
@@ -49,8 +54,8 @@ the runtime package removes this bootstrap without changing the compiler API.
 1. Register `.nu` as a Nucleus source language with syntax highlighting and
    comment/bracket configuration.
 2. Add a Nucleus build backend beside the AZM and Glimmer backends. It invokes
-   `compileNucleus`, writes NOBJ and launchable target artifacts, and translates
-   structured diagnostics into Debug80 diagnostics.
+   the standalone `nucleus build` CLI, writes NOBJ and launchable target
+   artifacts, and translates structured diagnostics into Debug80 diagnostics.
 3. Add Nucleus targets to project discovery and configuration without treating
    `.nu` as assembly.
 4. Publish a checked-in documentation snapshot from a pinned Nucleus revision.

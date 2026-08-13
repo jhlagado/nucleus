@@ -13,7 +13,10 @@ import {
   type RuntimeLinkContext,
   type RuntimeServiceAddresses,
 } from "./nobj.js";
-import { commitNobjAdapterGeneration } from "./proof.js";
+import {
+  commitNobjAdapterGeneration,
+  type NobjAdapterImageByte,
+} from "./proof.js";
 import {
   isNucleusDebugPort,
   NucleusDebugCollector,
@@ -589,6 +592,8 @@ export const compileNucleus = async (
     symbol(image.symbols, "AdapterCapturedContext"),
     target.services ?? defaultNucleusServices,
   );
+  const adapterImages: NobjAdapterImageByte[] | undefined =
+    collector === undefined ? undefined : [];
   const nobj = await commitNobjAdapterGeneration({
     name: "nucleus-host-compile",
     producerMemory: memory,
@@ -598,9 +603,15 @@ export const compileNucleus = async (
     begin,
     map,
     runtimeLinkContext,
+    ...(adapterImages === undefined
+      ? {}
+      : {
+          onImageByte: (imageByte: NobjAdapterImageByte) =>
+            adapterImages.push(imageByte),
+        }),
   });
   const parsed = parseNobj(nobj);
-  const debugMapping = collector?.finish(parsed, begin);
+  const debugMapping = collector?.finish(parsed, begin, adapterImages ?? []);
   return {
     success: true,
     nobj,
