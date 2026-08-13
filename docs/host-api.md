@@ -147,6 +147,11 @@ Release builds contain compiler images generated from the checked AZM source.
 embedded bytes or symbol maps. AZM remains the build-time authority; the Node
 package and Debug80 execute the generated Z80 images directly.
 
+The repository retains `dist` so a commit-pinned Git dependency can run without
+assembling the compiler during npm's isolated Git preparation. `prepack` still
+rebuilds those files for a registry package, and CI verifies that the embedded
+compiler images match the AZM sources.
+
 ## Filesystem publication
 
 The compiler API returns bytes and text without writing files.
