@@ -18,8 +18,11 @@
   "exports": {
     ".": "./dist/index.js",
     "./compiler": "./dist/compiler.js",
+    "./configuration": "./dist/configuration.js",
     "./d8": "./dist/d8.js",
-    "./nobj": "./dist/nobj.js"
+    "./host": "./dist/host.js",
+    "./nobj": "./dist/nobj.js",
+    "./publication": "./dist/publication.js"
   },
   "files": [
     "asm/",
@@ -29,22 +32,31 @@
     "README.md"
   ],
   "scripts": {
+    "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
+    "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
+    "prebuild": "npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --dir test",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "prepare": "npm run build"
   },
-  "dependencies": {
-    "@jhlagado/azm": "^0.3.9"
-  },
+  "dependencies": {},
   "peerDependencies": {
     "@jhlagado/debug80-runtime": "^0.1.0"
   },
   "devDependencies": {
+    "@jhlagado/azm": "^0.3.9",
     "@types/node": "^20.10.0",
     "typescript": "5.3.3",
     "vitest": "^4.1.7"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -3,6 +3,7 @@
 Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and other constrained systems.
 
 - [`specification.md`](specification.md) is the working Nucleus 0.1 Language Specification and governs source-language conformance at its current revision.
+- [`host-api.md`](host-api.md) defines the supported Node, project-file and command-line interfaces.
 - [`target-system-specification.md`](target-system-specification.md) governs
   target profiles, program images, startup, entry, and banked-program
   composition.

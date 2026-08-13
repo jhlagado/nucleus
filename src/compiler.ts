@@ -1,8 +1,13 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
-import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+
+import {
+  debugCompilerHex,
+  debugCompilerSymbols,
+  normalCompilerHex,
+  normalCompilerSymbols,
+} from "./generated-compiler-images.js";
 
 import {
   materializeNobj,
@@ -38,6 +43,15 @@ const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
 const DEFAULT_INSTRUCTION_LIMIT = 5_000_000;
 const DEFAULT_CYCLE_LIMIT = 50_000_000;
+
+export const nucleusCompilerCapacities = {
+  sourceParts: MAX_SOURCE_PARTS,
+  sourceWindowBytes: SOURCE_LIMIT - SOURCE_BASE,
+  sourceDescriptorBytesPerPart: 5,
+  targetBanks: 4,
+  instructionLimit: DEFAULT_INSTRUCTION_LIMIT,
+  cycleLimit: DEFAULT_CYCLE_LIMIT,
+} as const;
 
 export const defaultNucleusServices: RuntimeServiceAddresses = {
   readInputByte: 0x7000,
@@ -156,11 +170,6 @@ interface CompilerImage {
 
 const compilerImages = new Map<boolean, Promise<CompilerImage>>();
 
-const compilerSourceDirectory = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../asm/vertical-slice",
-);
-
 const symbol = (
   symbols: Readonly<Record<string, number>>,
   name: string,
@@ -178,54 +187,54 @@ const loadCompilerImage = async (
   let pending = compilerImages.get(debugHooks);
   if (pending === undefined) {
     pending = (async () => {
-      const source = path.join(
-        compilerSourceDirectory,
-        debugHooks
-          ? "flat-target-debug-z80-slice-proof.asm"
-          : "flat-target-z80-slice-proof.asm",
-      );
-      const assembled = await compile(source, {
-        emitBin: false,
-        emitHex: true,
-        emitD8m: true,
-        registerContracts: "strict",
-        registerContractsInterfaces: [
-          path.join(compilerSourceDirectory, "expression-generated-z80.asmi"),
-        ],
-      });
-      const errors = assembled.diagnostics.filter(
-        ({ severity }) => severity === "error",
-      );
-      if (errors.length > 0) {
-        throw new Error(
-          `Nucleus compiler assembly failed\n${errors
-            .map(
-              ({ sourceName, line, column, message }) =>
-                `${sourceName ?? source}:${line ?? "?"}:${column ?? "?"} ${message}`,
-            )
-            .join("\n")}`,
-        );
-      }
-      const hex = assembled.artifacts.find(
-        (artifact) => artifact.kind === "hex",
-      );
-      const debugMap = assembled.artifacts.find(
-        (artifact) => artifact.kind === "d8m",
-      );
-      if (hex?.kind !== "hex" || debugMap?.kind !== "d8m") {
-        throw new Error("AZM omitted the Nucleus compiler HEX or symbol map");
-      }
-      const symbols = Object.fromEntries(
-        debugMap.json.symbols.flatMap((entry) => {
-          const value = entry.address ?? entry.value;
-          return value === undefined ? [] : [[entry.name, value] as const];
-        }),
-      );
-      return { program: parseIntelHex(hex.text), symbols };
+      const hex = debugHooks ? debugCompilerHex : normalCompilerHex;
+      const symbols = debugHooks ? debugCompilerSymbols : normalCompilerSymbols;
+      return { program: parseIntelHex(hex), symbols };
     })();
     compilerImages.set(debugHooks, pending);
   }
   return pending;
+};
+
+const compilerImageFingerprint = (image: CompilerImage): string => {
+  const hash = createHash("sha256");
+  hash.update(image.program.memory);
+  hash.update(
+    JSON.stringify(
+      Object.entries(image.symbols).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ),
+  );
+  return hash.digest("hex");
+};
+
+export const nucleusCompilerInfo = async (): Promise<{
+  readonly hostApiVersion: 1;
+  readonly languageVersion: "0.1";
+  readonly runtimeIdentity: 4;
+  readonly normalImageSha256: string;
+  readonly debugImageSha256: string;
+  readonly capacities: typeof nucleusCompilerCapacities;
+  readonly targets: {
+    readonly flat: true;
+    readonly banked: true;
+    readonly maxBanks: 4;
+  };
+}> => {
+  const [normal, debug] = await Promise.all([
+    loadCompilerImage(false),
+    loadCompilerImage(true),
+  ]);
+  return {
+    hostApiVersion: 1,
+    languageVersion: "0.1",
+    runtimeIdentity: RUNTIME_IDENTITY,
+    normalImageSha256: compilerImageFingerprint(normal),
+    debugImageSha256: compilerImageFingerprint(debug),
+    capacities: nucleusCompilerCapacities,
+    targets: { flat: true, banked: true, maxBanks: 4 },
+  };
 };
 
 const requireWord = (name: string, value: number): void => {

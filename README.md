@@ -32,6 +32,22 @@ const result = await compileNucleus([
 ]);
 ```
 
+Tool integrations should use the classified Host API 1 result:
+
+```ts
+import { createNucleusCompiler } from "@jhlagado/nucleus";
+
+const compiler = createNucleusCompiler();
+const result = await compiler.build({
+  sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
+  target,
+  artifacts: { hex: true, d8: true },
+});
+```
+
+[Nucleus Host API 1](docs/host-api.md) defines target and project schemas,
+classified failures, compiler identity, capabilities and artifact publication.
+
 The command-line interface writes the committed object directly. It can also
 materialize a flat Intel HEX launch artifact while retaining NOBJ as the
 canonical result:
@@ -43,6 +59,9 @@ nucleus build -o program.nobj --hex-output program.hex \
 nucleus build -o program.nobj --hex-output program.hex \
   --d8-output program.d8.json \
   --target-profile nucleus-target.json src/main.nu
+nucleus build --project nucleus-project.json
+nucleus target validate nucleus-target.json
+nucleus capabilities --json
 ```
 
 A launch target profile supplies image and writable layout plus every external
@@ -65,6 +84,7 @@ The current authorities are:
 - [Nucleus Target System Specification](docs/target-system-specification.md)
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
+- [Nucleus Host API 1](docs/host-api.md)
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
 - [Nucleus reviewer's charter](docs/reviewers-charter.md)
 

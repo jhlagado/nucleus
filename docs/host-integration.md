@@ -39,11 +39,10 @@ invoking the compiler. Standalone banked NOBJ and per-bank D8 production remain
 available; Debug80 does not flatten those objects or invent a selected-bank
 policy.
 
-The implementation assembles the compiler from its checked AZM source and
-caches the shipping and D8-instrumented images separately. Each image is paired
-with the symbols from that exact assembly. A release build may replace this
-step with embedded compiler images after a reproducible-image gate compares the
-embedded bytes and symbols with fresh AZM output.
+The package contains generated shipping and D8-instrumented compiler images.
+Each image is paired with the symbols from that exact assembly. The reproducible
+image gate assembles both layouts from checked AZM source and rejects stale
+embedded bytes or symbols. Node and Debug80 execute those Z80 images directly.
 
 `@jhlagado/debug80-runtime` is a required peer and is not yet published.
 Standalone CI therefore builds it from a pinned Debug80 revision. Publishing
@@ -53,9 +52,9 @@ the runtime package removes this bootstrap without changing the compiler API.
 
 1. Register `.nu` as a Nucleus source language with syntax highlighting and
    comment/bracket configuration.
-2. Add a Nucleus build backend beside the AZM and Glimmer backends. It invokes
-   the standalone `nucleus build` CLI, writes NOBJ and launchable target
-   artifacts, and translates structured diagnostics into Debug80 diagnostics.
+2. Add a Nucleus build backend beside the AZM and Glimmer backends. It calls the
+   standalone package in process, writes NOBJ and launchable target artifacts,
+   and translates structured diagnostics into Debug80 diagnostics.
 3. Add Nucleus targets to project discovery and configuration without treating
    `.nu` as assembly.
 4. Publish a checked-in documentation snapshot from a pinned Nucleus revision.

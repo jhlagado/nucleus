@@ -17,7 +17,9 @@ const exists = async (filePath: string): Promise<boolean> => {
 const escaped = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const existingD8Group = async (requestedPath: string): Promise<string[]> => {
+export const existingNucleusD8OutputPaths = async (
+  requestedPath: string,
+): Promise<string[]> => {
   const directory = path.dirname(requestedPath);
   const requestedName = path.basename(requestedPath);
   const suffix = ".d8.json";
@@ -51,7 +53,7 @@ export const publishNucleusD8Outputs = async (
       temporaryPath: `${output.path}.nucleus-${generation}`,
     }),
   );
-  const previousPaths = await existingD8Group(requestedPath);
+  const previousPaths = await existingNucleusD8OutputPaths(requestedPath);
   const backups = previousPaths.map((previousPath) => ({
     path: previousPath,
     backupPath: `${previousPath}.nucleus-backup-${generation}`,
