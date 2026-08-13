@@ -18,6 +18,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./compiler": "./dist/compiler.js",
+    "./d8": "./dist/d8.js",
     "./nobj": "./dist/nobj.js"
   },
   "files": [

@@ -10,7 +10,7 @@ EmitTypedWidth        .equ EmitCodeStart
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDispatch:
-            LD   HL,SemanticBufferBase+1
+            LD   HL,SemanticPayloadBase
             LD   (SemanticReadCursor),HL
             XOR  A
             LD   (EmitBooleanFixupDepth),A
@@ -23,10 +23,23 @@ TypedResetControlLabels:
             DJNZ TypedResetControlLabels
             LD   A,(SemanticBufferBase)
             OR   A
+.if TargetStreamingOutput
+.if DebugHooks
+            JR   Z,TypedDispatchComplete
+.else
             RET  Z
+.endif
+.else
+            RET  Z
+.endif
             LD   B,A
 TypedDispatchNext:
             PUSH BC
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSemanticStartPort),A
+.endif
+.endif
             CALL NextSemanticByte
             SUB  SemanticDefineProgramU8
             CP   TypedOperationCount
@@ -47,7 +60,19 @@ TypedDispatchReturn:
             POP  BC
             RET  C
             DJNZ TypedDispatchNext
+.if TargetStreamingOutput
+.if DebugHooks
+            CALL StructuredResolveFixups
+            RET  C
+TypedDispatchComplete:
+            OUT  (DebugTraceSemanticEndPort),A
+            RET
+.else
             JP   StructuredResolveFixups
+.endif
+.else
+            JP   StructuredResolveFixups
+.endif
 TypedInvalidPopped:
             POP  BC
 TypedInternalOperation:

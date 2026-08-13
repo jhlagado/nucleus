@@ -703,7 +703,7 @@ ReadSemanticWord:
 .if LegacyEncoders
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 DispatchCallOperations:
-            LD   HL,SemanticBufferBase+1
+            LD   HL,SemanticPayloadBase
             LD   (SemanticReadCursor),HL
             LD   A,(SemanticBufferBase)
             OR   A
@@ -896,7 +896,7 @@ CallBackendEnd:
 ExpressionBackendStart:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 DispatchExpressionOperations:
-            LD   HL,SemanticBufferBase+1
+            LD   HL,SemanticPayloadBase
             LD   (SemanticReadCursor),HL
             LD   A,(SemanticBufferBase)
             OR   A

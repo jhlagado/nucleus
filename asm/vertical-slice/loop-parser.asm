@@ -1099,7 +1099,7 @@ CompileSliceResetState:
             LD   (DiagnosticCode),A
             LD   (DiagnosticPartId),A
 .if AggregateCallSlices
-            LD   HL,SemanticBufferBase+1
+            LD   HL,SemanticPayloadBase
             LD   (SinkCursor),HL
             LD   (SinkOperationCount),A
             LD   (SemanticBufferBase),A

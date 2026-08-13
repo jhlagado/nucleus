@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from "node:fs/promises";
+import { access, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
   compileNucleus,
-  type NucleusFlatTarget,
+  type NucleusTarget,
+  type NucleusCompileSuccess,
   writeNucleusIntelHex,
 } from "./compiler.js";
+import { nucleusD8OutputPaths } from "./d8.js";
 
 const usage = (): never => {
   console.error(
-    "usage: nucleus build [-o program.nobj] [--hex-output program.hex] [--target-profile target.json] <source.nu> [more.nu ...]",
+    "usage: nucleus build [-o program.nobj] [--hex-output program.hex] [--d8-output program.d8.json] [--target-profile target.json] <source.nu> [more.nu ...]",
   );
   process.exit(2);
 };
@@ -30,7 +32,7 @@ const targetServiceNames = [
   "farJump",
 ] as const;
 
-const parseTargetProfile = (text: string): NucleusFlatTarget => {
+const parseTargetProfile = (text: string): NucleusTarget => {
   const value: unknown = JSON.parse(text);
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Nucleus target profile must be a JSON object");
@@ -55,13 +57,14 @@ const parseTargetProfile = (text: string): NucleusFlatTarget => {
       throw new Error(`Nucleus target profile is missing service ${name}`);
     }
   }
-  return value as NucleusFlatTarget;
+  return value as NucleusTarget;
 };
 
 const args = process.argv.slice(2);
 if (args.shift() !== "build") usage();
 let output: string | undefined;
 let hexOutput: string | undefined;
+let d8Output: string | undefined;
 let targetProfile: string | undefined;
 const sources: string[] = [];
 while (args.length > 0) {
@@ -70,6 +73,8 @@ while (args.length > 0) {
     output = args.shift() ?? usage();
   } else if (argument === "--hex-output") {
     hexOutput = args.shift() ?? usage();
+  } else if (argument === "--d8-output") {
+    d8Output = args.shift() ?? usage();
   } else if (argument === "--target-profile") {
     targetProfile = args.shift() ?? usage();
   } else if (argument?.startsWith("-") === true) {
@@ -91,9 +96,16 @@ const target =
 
 const result = await compileNucleus(
   await Promise.all(
-    sources.map(async (name) => ({ name, source: await readFile(name) })),
+    sources.map(async (name) => ({
+      name: path
+        .relative(process.cwd(), path.resolve(name))
+        .split(path.sep)
+        .join("/"),
+      source: await readFile(name),
+    })),
   ),
   target ?? {},
+  { debugMap: d8Output !== undefined },
 );
 if (!result.success) {
   const diagnostic = result.diagnostic;
@@ -107,5 +119,70 @@ if (!result.success) {
   if (hexOutput !== undefined) {
     await writeFile(hexOutput, writeNucleusIntelHex(result), "utf8");
     console.log(`Wrote ${path.resolve(hexOutput)}`);
+  }
+  if (d8Output !== undefined) {
+    await writeD8Outputs(result, d8Output);
+  }
+}
+
+async function writeD8Outputs(
+  result: NucleusCompileSuccess,
+  requestedPath: string,
+): Promise<void> {
+  if (result.debugMapping === undefined) {
+    throw new Error("Nucleus compiler omitted requested D8 mapping data");
+  }
+  const generation = `${process.pid}-${Date.now()}`;
+  const outputs = nucleusD8OutputPaths(requestedPath, result.debugMapping).map(
+    (output) => ({
+      ...output,
+      temporaryPath: `${output.path}.nucleus-${generation}`,
+      backupPath: `${output.path}.nucleus-backup-${generation}`,
+    }),
+  );
+  const promoted: string[] = [];
+  const backups: Array<{ path: string; backupPath: string }> = [];
+  try {
+    for (const output of outputs) {
+      await writeFile(
+        output.temporaryPath,
+        `${JSON.stringify(output.map, null, 2)}\n`,
+        "utf8",
+      );
+    }
+    for (const output of outputs) {
+      if (await exists(output.path)) {
+        await rename(output.path, output.backupPath);
+        backups.push({ path: output.path, backupPath: output.backupPath });
+      }
+    }
+    for (const output of outputs) {
+      await rename(output.temporaryPath, output.path);
+      promoted.push(output.path);
+    }
+  } catch (error) {
+    for (const path of promoted) await rm(path, { force: true });
+    for (const backup of backups) {
+      if (await exists(backup.backupPath)) {
+        await rename(backup.backupPath, backup.path);
+      }
+    }
+    throw error;
+  } finally {
+    for (const output of outputs)
+      await rm(output.temporaryPath, { force: true });
+  }
+  for (const backup of backups) await rm(backup.backupPath, { force: true });
+  for (const output of outputs) {
+    console.log(`Wrote ${path.resolve(output.path)}`);
+  }
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }

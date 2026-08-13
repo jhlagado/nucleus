@@ -4,7 +4,7 @@
 .else
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 SemanticSinkReset:
-            LD   HL,SemanticBufferBase+1
+            LD   HL,SemanticPayloadBase
             LD   (SinkCursor),HL
             XOR  A
             LD   (SinkOperationCount),A

@@ -594,7 +594,7 @@ ProofFillOperationCount:
             LD   A,1
             LD   (SemanticBufferBase),A
             LD   A,SemanticLiteralU8
-            LD   (SemanticBufferBase+1),A
+            LD   (SemanticPayloadBase),A
             CALL TypedDispatch
             JP   NC,ProofFailRetiredOperation
             LD   A,(DiagnosticCode)

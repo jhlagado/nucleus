@@ -707,6 +707,11 @@ HybridLL1RetainParameter:
             RET  C
             LD   HL,DeclarationNamePointer
             CALL TokenRetainNameAtHL
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceDeclarationPort),A
+.endif
+.endif
             OR   A
             RET
 HybridLL1MainParameterFailure:
@@ -861,6 +866,11 @@ HybridLL1RoutineKindReady:
             LD   (ControlResultType),A
             LD   A,1
             LD   (ControlSequenceFallsThrough),A
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceRoutinePort),A
+.endif
+.endif
             LD   A,SemanticBeginGeneralRoutine
             CALL SemanticSinkOperation
             RET  C
@@ -905,6 +915,11 @@ HybridLL1InstallParameterLoop:
 HybridLL1BeginMainBody:
             LD   A,(Stage7CurrentFlags)
             LD   (Stage8ForwardMainFlags),A
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceRoutinePort),A
+.endif
+.endif
             LD   A,SemanticBeginCallableMain
             CALL SemanticSinkOperation
             RET  C
@@ -940,6 +955,11 @@ HybridLL1EndSub:
             OR   A
             JP   NZ,TypedRoutineFlowFailure
 HybridLL1EndRoutineEmit:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             CALL HybridLL1EmitRoutineEnd
             RET  C
             LD   A,(Stage7CurrentResultType)
@@ -961,6 +981,11 @@ HybridLL1EmitRoutineEnd:
 HybridLL1EmitRoutineEndSelected:
             JP   SemanticSinkOperation
 HybridLL1EndMainBody:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             CALL HybridLL1EmitRoutineEnd
             RET  C
             XOR  A
@@ -970,6 +995,11 @@ HybridLL1EndMainBody:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 HybridLL1BeginFail:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             LD   A,(Stage7CurrentFlags)
             AND  Stage7RoutineFails
             JR   Z,HybridLL1FailureContext
@@ -1105,6 +1135,12 @@ HybridLL1LookupDeclaration:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginHandle:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+            OUT  (DebugTraceContextPushPort),A
+.endif
+.endif
             CALL HybridLL1LookupDeclaration
             RET  C
             CALL TypedRequireScalarSymbolClass
@@ -1155,6 +1191,11 @@ Stage8EmitOperationLabel:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndHandle:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             LD   B,ControlFrameExit
             CALL ControlTopFrameField
             LD   C,(HL)
@@ -1175,6 +1216,11 @@ Stage8RequireNoPendingFailure:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1SaveLocalType:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             LD   A,(AggregateCurrentTypeId)
             OR   SymbolClassLocal
             LD   (DeclarationInfo),A
@@ -1264,6 +1310,11 @@ HybridLL1CommitLocal:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1NameStatement:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             CALL ParserTake
             RET  C
             LD   HL,(TokenStartOffset)
@@ -1318,6 +1369,11 @@ HybridLL1StatementCounterChecked:
             LD   D,A
             JP   TypedEmitStoreByInfo
 HybridLL1BeginReturnValue:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             LD   A,(Stage7CurrentResultType)
             OR   A
             RET  Z
@@ -1391,6 +1447,11 @@ HybridLL1CommitBareReturn:
 
 ; A is the logical action ordinal. The two ordinals and tokens are contiguous.
 HybridLL1EmitTransferAction:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             DEC  A
 HybridLL1EmitTransfer:
             LD   (DeclarationInfo),A
@@ -1462,6 +1523,12 @@ HybridLL1CheckTypedResult:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginIf:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+            OUT  (DebugTraceContextPushPort),A
+.endif
+.endif
             LD   B,ControlKindIf
             CALL HybridLL1PushFlowFrame
             RET  C
@@ -1509,6 +1576,11 @@ HybridLL1BeginBranchClause:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginElseIf:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             CALL HybridLL1BeginBranchClause
             RET  C
             CALL ControlAllocateLabelA
@@ -1517,6 +1589,11 @@ HybridLL1BeginElseIf:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginElse:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
             CALL HybridLL1BeginBranchClause
             JR   HybridLL1CheckedSetFallsThrough
 
@@ -1549,6 +1626,11 @@ HybridLL1EmitFrameLabel:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndIf:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             LD   B,ControlFrameExit
             CALL HybridLL1EmitFrameLabel
             RET  C
@@ -1566,6 +1648,12 @@ HybridLL1EndIf:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginWhile:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+            OUT  (DebugTraceContextPushPort),A
+.endif
+.endif
             LD   B,ControlKindWhile
             CALL HybridLL1PushFlowFrame
             RET  C
@@ -1592,6 +1680,11 @@ HybridLL1BeginWhileBody:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndWhile:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             LD   B,ControlFrameContinue
             CALL ControlTopFrameField
             LD   C,(HL)
@@ -1609,6 +1702,12 @@ HybridLL1PopAndRestoreFlow:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginFor:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+            OUT  (DebugTraceContextPushPort),A
+.endif
+.endif
             LD   HL,(TokenStartOffset)
             LD   (HybridLL1ForOffset),HL
             CALL HybridLL1LookupDeclaration
@@ -1700,6 +1799,11 @@ HybridLL1ForModeReady:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndFor:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
             LD   B,ControlFrameContinue
             CALL HybridLL1EmitFrameLabel
             RET  C

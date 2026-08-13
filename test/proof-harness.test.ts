@@ -90,6 +90,24 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     }
   }, 30_000);
 
+  it("fits and executes the complete host-instrumented compiler layout", async () => {
+    const outcome = await runProofManifest(
+      proof("flat-target-debug-z80-slice-proof"),
+    );
+    expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
+    expect(outcome.instructions).toBe(1_047_813);
+    expect(outcome.cycles).toBe(10_245_645);
+    expect(outcome.extents).toEqual([
+      { name: "compiler-code", bytes: 15_539 },
+      { name: "compiler-immutable", bytes: 393 },
+      { name: "compiler-core", bytes: 15_932 },
+      { name: "compiler-workspace", bytes: 3_606 },
+      { name: "selected-proof-runtime", bytes: 574 },
+      { name: "proof-code-and-data", bytes: 2_347 },
+    ]);
+  }, 30_000);
+
   it("runs the Stage 7 aggregate-call production path through committed banked NOBJ", async () => {
     const outcome = await runProofManifest(
       proof("banked-target-z80-slice-proof"),

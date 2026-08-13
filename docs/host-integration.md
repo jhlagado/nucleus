@@ -21,6 +21,11 @@ compiler's diagnostic code, source-part identity, byte offset, line, and column.
 The CLI always writes canonical NOBJ and can additionally materialize the flat
 target as Intel HEX with `--hex-output`. The HEX file is a launch adapter; NOBJ
 remains the stored compiler result and source of target metadata.
+With `--d8-output`, the host runs a conditionally instrumented image of the same
+Z80 compiler and derives a native D8 sidecar without changing NOBJ or target
+bytes. Flat builds write the requested map; banked builds write one map per
+physical bank. The trace protocol and publication rules are defined in
+[Nucleus D8 source maps](d8-source-maps.md).
 A launch adapter must supply a target profile with real implementations of all
 eleven vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
@@ -29,10 +34,11 @@ manifest. A project-level ordered multipart manifest remains a separate
 integration step; the Nucleus CLI and compiler API already accept several
 ordered source files.
 
-The initial implementation assembles the compiler from its checked AZM source
-once per Node process and caches that image. A release build may replace this
-step with an embedded compiler image after a reproducible-image gate compares
-the embedded bytes and symbols with fresh AZM output.
+The implementation assembles the compiler from its checked AZM source and
+caches the shipping and D8-instrumented images separately. Each image is paired
+with the symbols from that exact assembly. A release build may replace this
+step with embedded compiler images after a reproducible-image gate compares the
+embedded bytes and symbols with fresh AZM output.
 
 `@jhlagado/debug80-runtime` is a required peer and is not yet published.
 Standalone CI therefore builds it from a pinned Debug80 revision. Publishing
@@ -48,8 +54,8 @@ the runtime package removes this bootstrap without changing the compiler API.
 3. Add Nucleus targets to project discovery and configuration without treating
    `.nu` as assembly.
 4. Publish a checked-in documentation snapshot from a pinned Nucleus revision.
-5. Define a D8-compatible source-map sidecar before enabling Nucleus source
-   breakpoints and stepping.
+5. Produce a validated D8 sidecar from Z80 trace events and enable line-level
+   Nucleus source breakpoints and PC lookup through Debug80's normal map path.
 
 ## Reference compiler
 

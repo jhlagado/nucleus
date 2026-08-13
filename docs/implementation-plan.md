@@ -1608,6 +1608,51 @@ remains 1,040 bytes. The producer proof remains 2,345 bytes and executes
 fixtures remain byte-identical to `f0c6643c`, including generated code and each
 linked runtime image.
 
+### Host D8 source-map instrumentation
+
+The standalone Node host can assemble a second compiler layout with
+`DebugHooks = 1`. Conditional two-byte `OUT (n),A` instructions report source,
+declaration, structured-context, routine, semantic-dispatch, and target-adapter
+IMAGE events. The host records and validates those events, then publishes D8
+only after a valid NOBJ commit. The semantic transcript, NOBJ format, target
+records, generated program, selected runtime, and language are unchanged.
+
+The shipping `DebugHooks = 0` layout remains the current 15,482-byte compiler
+code plus 393 immutable bytes, for a 15,875-byte compiler core and 509 bytes of
+headroom. Workspace remains 3,606 bytes, parser extent remains 9,216 bytes,
+the largest generated program remains 1,040 bytes, and the selected proof
+runtime remains 574 bytes. Its 2,345-byte producer proof executes 1,043,353
+instructions in 10,196,561 T-states. A baseline/current binary comparison and
+flat and banked host compiles keep the shipping compiler, semantic transcript,
+generated publications, runtime, NOBJ, and Intel HEX bytes identical.
+
+The instrumented layout measures 15,539 code bytes plus the same 393 immutable
+bytes, for a 15,932-byte core. It adds no workspace or transcript storage. The
+parser grows by 50 bytes to 9,266: 48 action bytes for eleven source marks, one
+declaration mark, four pushes, six pops, and two routine marks, plus a two-byte
+declaration mark in the retained parser. The semantic dispatcher adds seven
+bytes: two trace instructions and the conditional success bridges required to
+emit exactly one end event. Total instrumented compiler-core cost is therefore
+57 bytes. The proof-owned target adapter adds one two-byte IMAGE event outside
+the compiler-core account, increasing proof code/data from 2,345 to 2,347
+bytes.
+
+The complete instrumented producer proof executes 1,047,813 instructions in
+10,245,645 T-states. Its compiler image fits the host proof map. Flat and
+three-bank Node evidence validates original source pointers, CRLF and
+synthesized part boundaries, balanced nested contexts, one source operation
+followed immediately by another, exact normal/debug diagnostics, successful
+compilation after failure, routine anchors, repeated visible addresses in
+different physical banks, and byte-identical target artifacts.
+
+The Node collector and D8 writer are host resources and add zero compiler code,
+immutable compiler data, workspace, transcript, generated-program, and runtime
+bytes. The CLI emits one sidecar for a flat target or one existing-schema D8
+map per physical bank. Debug80 publishes flat NOBJ, HEX, and D8 as one
+generation and validates the D8 document through its normal importer before
+publication. Byte columns remain in the sidecar; the initial debugger path is
+line-oriented.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

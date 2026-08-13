@@ -14,6 +14,14 @@ import {
   type RuntimeServiceAddresses,
 } from "./nobj.js";
 import { commitNobjAdapterGeneration } from "./proof.js";
+import {
+  isNucleusDebugPort,
+  NucleusDebugCollector,
+  sourcePartBytes,
+  type NucleusDebugMapping,
+  type NucleusDebugTraceSymbols,
+  type NucleusLoadedSourcePart,
+} from "./d8.js";
 
 const SOURCE_BASE = 0x5000;
 const SOURCE_LIMIT = 0x5800;
@@ -56,6 +64,19 @@ export interface NucleusFlatTarget {
   readonly services?: RuntimeServiceAddresses;
 }
 
+export interface NucleusBankedTarget extends NucleusFlatTarget {
+  readonly bankCount: number;
+  readonly entryBank: number;
+  readonly partBanks: readonly number[];
+}
+
+export type NucleusTarget = NucleusFlatTarget | NucleusBankedTarget;
+
+export interface NucleusCompileOptions {
+  readonly debugMap?: boolean;
+  readonly compilerIoWrite?: (port: number, value: number) => void;
+}
+
 export interface NucleusDiagnostic {
   readonly code: number;
   readonly sourcePart: number;
@@ -74,6 +95,7 @@ export interface NucleusCompileSuccess extends CompileMetrics {
   readonly success: true;
   readonly nobj: Uint8Array;
   readonly materialized: MaterializedNobj;
+  readonly debugMapping?: NucleusDebugMapping;
 }
 
 export interface NucleusCompileFailure extends CompileMetrics {
@@ -129,7 +151,7 @@ interface CompilerImage {
   readonly symbols: Readonly<Record<string, number>>;
 }
 
-let compilerImage: Promise<CompilerImage> | undefined;
+const compilerImages = new Map<boolean, Promise<CompilerImage>>();
 
 const compilerSourceDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -147,50 +169,60 @@ const symbol = (
   throw new Error(`Nucleus compiler image is missing symbol ${name}`);
 };
 
-const loadCompilerImage = async (): Promise<CompilerImage> => {
-  compilerImage ??= (async () => {
-    const source = path.join(
-      compilerSourceDirectory,
-      "flat-target-z80-slice-proof.asm",
-    );
-    const assembled = await compile(source, {
-      emitBin: false,
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(compilerSourceDirectory, "expression-generated-z80.asmi"),
-      ],
-    });
-    const errors = assembled.diagnostics.filter(
-      ({ severity }) => severity === "error",
-    );
-    if (errors.length > 0) {
-      throw new Error(
-        `Nucleus compiler assembly failed\n${errors
-          .map(
-            ({ sourceName, line, column, message }) =>
-              `${sourceName ?? source}:${line ?? "?"}:${column ?? "?"} ${message}`,
-          )
-          .join("\n")}`,
+const loadCompilerImage = async (
+  debugHooks: boolean,
+): Promise<CompilerImage> => {
+  let pending = compilerImages.get(debugHooks);
+  if (pending === undefined) {
+    pending = (async () => {
+      const source = path.join(
+        compilerSourceDirectory,
+        debugHooks
+          ? "flat-target-debug-z80-slice-proof.asm"
+          : "flat-target-z80-slice-proof.asm",
       );
-    }
-    const hex = assembled.artifacts.find((artifact) => artifact.kind === "hex");
-    const debugMap = assembled.artifacts.find(
-      (artifact) => artifact.kind === "d8m",
-    );
-    if (hex?.kind !== "hex" || debugMap?.kind !== "d8m") {
-      throw new Error("AZM omitted the Nucleus compiler HEX or symbol map");
-    }
-    const symbols = Object.fromEntries(
-      debugMap.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value] as const];
-      }),
-    );
-    return { program: parseIntelHex(hex.text), symbols };
-  })();
-  return compilerImage;
+      const assembled = await compile(source, {
+        emitBin: false,
+        emitHex: true,
+        emitD8m: true,
+        registerContracts: "strict",
+        registerContractsInterfaces: [
+          path.join(compilerSourceDirectory, "expression-generated-z80.asmi"),
+        ],
+      });
+      const errors = assembled.diagnostics.filter(
+        ({ severity }) => severity === "error",
+      );
+      if (errors.length > 0) {
+        throw new Error(
+          `Nucleus compiler assembly failed\n${errors
+            .map(
+              ({ sourceName, line, column, message }) =>
+                `${sourceName ?? source}:${line ?? "?"}:${column ?? "?"} ${message}`,
+            )
+            .join("\n")}`,
+        );
+      }
+      const hex = assembled.artifacts.find(
+        (artifact) => artifact.kind === "hex",
+      );
+      const debugMap = assembled.artifacts.find(
+        (artifact) => artifact.kind === "d8m",
+      );
+      if (hex?.kind !== "hex" || debugMap?.kind !== "d8m") {
+        throw new Error("AZM omitted the Nucleus compiler HEX or symbol map");
+      }
+      const symbols = Object.fromEntries(
+        debugMap.json.symbols.flatMap((entry) => {
+          const value = entry.address ?? entry.value;
+          return value === undefined ? [] : [[entry.name, value] as const];
+        }),
+      );
+      return { program: parseIntelHex(hex.text), symbols };
+    })();
+    compilerImages.set(debugHooks, pending);
+  }
+  return pending;
 };
 
 const requireWord = (name: string, value: number): void => {
@@ -215,15 +247,15 @@ const readWord = (memory: Uint8Array, address: number): number =>
 const prepareSource = (
   memory: Uint8Array,
   parts: readonly NucleusSourcePart[],
-): number[] => {
+  requestedBanks?: readonly number[],
+): { partBanks: number[]; loaded: NucleusLoadedSourcePart[] } => {
   if (parts.length < 1 || parts.length > MAX_SOURCE_PARTS) {
     throw new RangeError(
       `Nucleus source requires 1..${MAX_SOURCE_PARTS} parts`,
     );
   }
-  const encoded = parts.map(({ source }) =>
-    typeof source === "string" ? new TextEncoder().encode(source) : source,
-  );
+  const encoded = parts.map(sourcePartBytes);
+  const loaded: NucleusLoadedSourcePart[] = [];
   let sourceCursor = SOURCE_BASE + parts.length * 5;
   for (let index = 0; index < encoded.length; index += 1) {
     const bytes = encoded[index] ?? new Uint8Array();
@@ -238,15 +270,29 @@ const prepareSource = (
     writeWord(memory, descriptor + 1, sourceCursor);
     writeWord(memory, descriptor + 3, end);
     memory.set(bytes, sourceCursor);
+    loaded.push({
+      id: index + 1,
+      name: parts[index]?.name ?? `part-${index + 1}.nu`,
+      start: sourceCursor,
+      end,
+      bytes,
+    });
     sourceCursor = end;
   }
-  return encoded.map(() => 0);
+  const partBanks = requestedBanks?.slice() ?? encoded.map(() => 0);
+  if (partBanks.length !== encoded.length) {
+    throw new RangeError("Nucleus target partBanks must match source parts");
+  }
+  return { partBanks, loaded };
 };
+
+const isBankedTarget = (target: NucleusTarget): target is NucleusBankedTarget =>
+  "bankCount" in target;
 
 const prepareTarget = (
   memory: Uint8Array,
   partBanks: readonly number[],
-  target: NucleusFlatTarget,
+  target: NucleusTarget,
 ): NobjBegin => {
   const imageBase = target.imageBase ?? 0x8000;
   const imageCapacity = target.imageCapacity ?? 0x1000;
@@ -267,14 +313,29 @@ const prepareTarget = (
   writeWord(memory, TARGET_DESCRIPTOR + 6, writableBase);
   writeWord(memory, TARGET_DESCRIPTOR + 8, writableCapacity);
   memory[TARGET_DESCRIPTOR + 10] = target.establishStack === false ? 0 : 1;
-  memory[TARGET_DESCRIPTOR + 11] = 1;
-  memory[TARGET_DESCRIPTOR + 12] = 0;
+  const bankCount = isBankedTarget(target) ? target.bankCount : 1;
+  const entryBank = isBankedTarget(target) ? target.entryBank : 0;
+  if (!Number.isInteger(bankCount) || bankCount < 1 || bankCount > 4) {
+    throw new RangeError("Nucleus target bankCount is outside 1..4");
+  }
+  if (!Number.isInteger(entryBank) || entryBank < 0 || entryBank >= bankCount) {
+    throw new RangeError("Nucleus target entryBank is outside the bank count");
+  }
+  for (const bank of partBanks) {
+    if (!Number.isInteger(bank) || bank < 0 || bank >= bankCount) {
+      throw new RangeError(
+        "Nucleus source part bank is outside the bank count",
+      );
+    }
+  }
+  memory[TARGET_DESCRIPTOR + 11] = bankCount;
+  memory[TARGET_DESCRIPTOR + 12] = entryBank;
   writeWord(memory, TARGET_DESCRIPTOR + 13, PART_BANKS);
   memory.set(partBanks, PART_BANKS);
   return {
-    banked: false,
+    banked: bankCount > 1,
     runtimeIdentity: RUNTIME_IDENTITY,
-    bankCount: 1,
+    bankCount,
     imageFill: 0xff,
     imageBase,
     imageCapacity,
@@ -332,18 +393,127 @@ const capturedContext = (
   services,
 });
 
+const capturedBankedMap = (
+  memory: Uint8Array,
+  symbols: Readonly<Record<string, number>>,
+  begin: NobjBegin,
+  target: NucleusBankedTarget,
+  partBanks: readonly number[],
+): NobjMap => {
+  const address = (name: string): number => symbol(symbols, name);
+  const startupLength = readWord(memory, address("TargetStartupLength"));
+  const staticLength = readWord(memory, address("StaticImageLength"));
+  const vectorLength = address("NucleusRuntimeVectorLength");
+  const stateLength = address("NucleusRuntimeStateLength");
+  const runtimeLength = address("NucleusRuntimeExpectedLength");
+  const initializedLength = vectorLength + stateLength + staticLength;
+  const cursors = address("AdapterCapturedBankCursors");
+  const remaining = address("AdapterCapturedBankRemaining");
+  const roLengths = address("AdapterCapturedBankRoLengths");
+  const banks = Array.from({ length: target.bankCount }, (_, bank) => {
+    const cursor = readWord(memory, cursors + bank * 2);
+    const bankRemaining = readWord(memory, remaining + bank * 2);
+    if (cursor - begin.imageBase + bankRemaining !== begin.imageCapacity) {
+      throw new Error(
+        `Nucleus bank ${bank} cursor/capacity state is inconsistent`,
+      );
+    }
+    const aggregateLength = readWord(memory, roLengths + bank * 2);
+    let aggregateConstantBase = begin.imageBase + 3 + runtimeLength;
+    if (bank === target.entryBank) {
+      aggregateConstantBase += startupLength + initializedLength;
+    }
+    const entryReadOnlyBase =
+      bank === target.entryBank
+        ? begin.imageBase + 3 + runtimeLength + startupLength
+        : 0;
+    return {
+      usedLength: cursor - begin.imageBase,
+      readOnlyBase:
+        bank === target.entryBank
+          ? entryReadOnlyBase
+          : aggregateLength === 0
+            ? 0
+            : aggregateConstantBase,
+      readOnlyLength:
+        (bank === target.entryBank ? initializedLength : 0) + aggregateLength,
+      aggregateConstantBase: aggregateLength === 0 ? 0 : aggregateConstantBase,
+      aggregateConstantLength: aggregateLength,
+    };
+  });
+  return {
+    romMode: true,
+    establishedStack: target.establishStack !== false,
+    entryBank: target.entryBank,
+    entryAddress: begin.imageBase,
+    writableBase: target.writableBase ?? 0x4000,
+    writableCapacity: target.writableCapacity ?? 0x1000,
+    vectorBase: target.writableBase ?? 0x4000,
+    vectorLength,
+    initializedRunBase: target.writableBase ?? 0x4000,
+    initializedRunLength: initializedLength,
+    bssBase: readWord(memory, address("TargetBssBase")),
+    bssLength: readWord(memory, address("ProgramBssLength")),
+    stackRequirement: address("TargetStackRequirement"),
+    dataLoadBank: target.entryBank,
+    dataLoadAddress: banks[target.entryBank]?.readOnlyBase ?? 0,
+    dataLoadLength: initializedLength,
+    partBanks,
+    banks,
+  };
+};
+
 export const compileNucleus = async (
   parts: readonly NucleusSourcePart[],
-  target: NucleusFlatTarget = {},
+  target: NucleusTarget = {},
+  options: NucleusCompileOptions = {},
 ): Promise<NucleusCompileResult> => {
-  const image = await loadCompilerImage();
+  const debugHooks = options.debugMap === true;
+  const image = await loadCompilerImage(debugHooks);
+  let debugCollectionActive = debugHooks;
+  let collector: NucleusDebugCollector | undefined;
   const runtime = createZ80Runtime(
     { ...image.program, memory: image.program.memory.slice() },
     symbol(image.symbols, "CompileTargetAggregateCallParts"),
+    {
+      write: (port, value) => {
+        if (debugCollectionActive && isNucleusDebugPort(port & 0xff)) {
+          collector?.collect(port & 0xff, runtime.cpu);
+          return;
+        }
+        options.compilerIoWrite?.(port, value);
+      },
+    },
   );
   const memory = runtime.hardware.memory;
-  const partBanks = prepareSource(memory, parts);
+  const prepared = prepareSource(
+    memory,
+    parts,
+    isBankedTarget(target) ? target.partBanks : undefined,
+  );
+  const partBanks = prepared.partBanks;
   const begin = prepareTarget(memory, partBanks, target);
+  if (debugHooks) {
+    const traceSymbols: NucleusDebugTraceSymbols = {
+      sourcePartId: symbol(image.symbols, "SourcePartId"),
+      tokenStartOffset: symbol(image.symbols, "TokenStartOffset"),
+      tokenStartLine: symbol(image.symbols, "TokenStartLine"),
+      tokenStartColumn: symbol(image.symbols, "TokenStartColumn"),
+      sinkCursor: symbol(image.symbols, "SinkCursor"),
+      semanticPayloadBase: symbol(image.symbols, "SemanticPayloadBase"),
+      semanticReadCursor: symbol(image.symbols, "SemanticReadCursor"),
+      declarationNamePointer: symbol(image.symbols, "DeclarationNamePointer"),
+      declarationNameLength: symbol(image.symbols, "DeclarationNameLength"),
+      stage7CurrentRoutine: symbol(image.symbols, "Stage7CurrentRoutine"),
+      stage7RoutineTableBase: symbol(image.symbols, "Stage7RoutineTableBase"),
+      stage7RoutineEntrySize: symbol(image.symbols, "Stage7RoutineEntrySize"),
+    };
+    collector = new NucleusDebugCollector(
+      memory,
+      prepared.loaded,
+      traceSymbols,
+    );
+  }
   const adapterBase = symbol(image.symbols, "AdapterLogBase");
   writeWord(memory, symbol(image.symbols, "AdapterCursor"), adapterBase);
   for (const name of [
@@ -368,16 +538,20 @@ export const compileNucleus = async (
 
   let instructions = 0;
   let cycles = 0;
-  while (!runtime.isHalted()) {
-    if (
-      instructions >= DEFAULT_INSTRUCTION_LIMIT ||
-      cycles >= DEFAULT_CYCLE_LIMIT
-    ) {
-      throw new Error("Nucleus compiler exceeded its host execution limit");
+  try {
+    while (!runtime.isHalted()) {
+      if (
+        instructions >= DEFAULT_INSTRUCTION_LIMIT ||
+        cycles >= DEFAULT_CYCLE_LIMIT
+      ) {
+        throw new Error("Nucleus compiler exceeded its host execution limit");
+      }
+      const step = runtime.step();
+      instructions += 1;
+      cycles += step.cycles ?? 0;
     }
-    const step = runtime.step();
-    instructions += 1;
-    cycles += step.cycles ?? 0;
+  } finally {
+    debugCollectionActive = false;
   }
 
   if (runtime.cpu.flags.C !== 0) {
@@ -402,12 +576,14 @@ export const compileNucleus = async (
     );
   }
   const cursor = readWord(memory, symbol(image.symbols, "AdapterCursor"));
-  const map = capturedMap(
-    memory,
-    symbol(image.symbols, "AdapterCapturedMap"),
-    target.establishStack !== false,
-    partBanks,
-  );
+  const map = isBankedTarget(target)
+    ? capturedBankedMap(memory, image.symbols, begin, target, partBanks)
+    : capturedMap(
+        memory,
+        symbol(image.symbols, "AdapterCapturedMap"),
+        target.establishStack !== false,
+        partBanks,
+      );
   const runtimeLinkContext = capturedContext(
     memory,
     symbol(image.symbols, "AdapterCapturedContext"),
@@ -423,10 +599,13 @@ export const compileNucleus = async (
     map,
     runtimeLinkContext,
   });
+  const parsed = parseNobj(nobj);
+  const debugMapping = collector?.finish(parsed, begin);
   return {
     success: true,
     nobj,
-    materialized: materializeNobj(parseNobj(nobj)),
+    materialized: materializeNobj(parsed),
+    ...(debugMapping === undefined ? {} : { debugMapping }),
     instructions,
     cycles,
   };

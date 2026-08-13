@@ -66,6 +66,13 @@ TypedPrepareCurrentWord:
             LD   DE,TokenStartOffset
             CALL CompilerCopyPosition
 .if AggregateCallSlices
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceDeclarationPort),A
+.endif
+.endif
+.endif
+.if AggregateCallSlices
             CALL Stage7RejectCurrentDeclarationName
             JR   NC,TypedPrepareCurrentRoutineClear
             POP  DE

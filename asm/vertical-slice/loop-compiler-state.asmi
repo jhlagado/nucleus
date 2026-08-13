@@ -47,10 +47,23 @@ EmitDataFixup           .equ CompilerStateBase+$17
 
 CompilerStateEnd        .equ CompilerStateBase+$1B
 SemanticBufferBase      .equ CompilerStateEnd
+SemanticPayloadBase     .equ SemanticBufferBase+1
 ; The leading byte is an operation count and the remaining 511 bytes are a
 ; bounded variable-width transcript. Word aggregate operands must not make the
 ; complete Chapter 21 program depend on the retired byte-extent encoding.
 SemanticBufferLimit     .equ SemanticBufferBase+$200
+
+; Host-only source-map trace ports. Every instruction that uses these equates
+; is conditionally absent unless the target compiler sets DebugHooks to one.
+; OUT (n),A exposes the full port as (A << 8) | n; hosts classify the low byte.
+DebugTraceSourcePort       .equ $D8
+DebugTraceDeclarationPort  .equ $D9
+DebugTraceContextPushPort  .equ $DA
+DebugTraceContextPopPort   .equ $DB
+DebugTraceRoutinePort      .equ $DC
+DebugTraceSemanticStartPort .equ $DD
+DebugTraceSemanticEndPort  .equ $DE
+DebugTraceImageBytePort    .equ $DF
 
 ; One retained forward signature is enough for the first routine-call slice.
 ; The source bytes remain stable, so exact names are retained as pointer/length

@@ -40,6 +40,9 @@ canonical result:
 nucleus build -o program.nobj src/main.nu
 nucleus build -o program.nobj --hex-output program.hex \
   --target-profile nucleus-target.json src/main.nu
+nucleus build -o program.nobj --hex-output program.hex \
+  --d8-output program.d8.json \
+  --target-profile nucleus-target.json src/main.nu
 ```
 
 A launch target profile supplies image and writable layout plus every external
@@ -50,9 +53,11 @@ for a machine integration.
 JSON shape with synthetic addresses. A machine profile must replace every
 service destination with a callable implementation for that target.
 
-The first host release accepts the compiler's existing flat target descriptor.
-Banked target configuration and Debug80 source mapping are tracked separately
-in [the host integration plan](docs/host-integration.md).
+The host accepts flat and bounded banked target descriptors. Optional D8 output
+is derived from a conditionally instrumented build of the same Z80 compiler;
+the instrumentation changes neither the shipping compiler nor any target
+artifact. [Nucleus D8 source maps](docs/d8-source-maps.md) defines the trace
+ABI, validation, atomic publication, and per-bank output rules.
 
 The current authorities are:
 
