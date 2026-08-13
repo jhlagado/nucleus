@@ -30,7 +30,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run test",
+    "test": "vitest run --dir test",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "prepack": "npm run build"
