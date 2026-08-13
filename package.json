@@ -46,6 +46,11 @@
   "peerDependencies": {
     "@jhlagado/debug80-runtime": "^0.1.0"
   },
+  "peerDependenciesMeta": {
+    "@jhlagado/debug80-runtime": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@jhlagado/azm": "^0.3.9",
     "@types/node": "^20.10.0",

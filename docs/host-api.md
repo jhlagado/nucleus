@@ -153,6 +153,11 @@ assembling the compiler during npm's isolated Git preparation. The
 publication, and CI verifies that the embedded compiler images match the AZM
 sources.
 
+Until `@jhlagado/debug80-runtime` is published, its peer entry is marked
+optional to npm so Git dependency preparation does not try to download it from
+the registry. The runtime remains operationally required: Debug80 supplies its
+workspace package, and any other host must supply the same compatible package.
+
 ## Filesystem publication
 
 The compiler API returns bytes and text without writing files.

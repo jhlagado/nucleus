@@ -47,6 +47,10 @@ embedded bytes or symbols. Node and Debug80 execute those Z80 images directly.
 `@jhlagado/debug80-runtime` is a required peer and is not yet published.
 Standalone CI therefore builds it from a pinned Debug80 revision. Publishing
 the runtime package removes this bootstrap without changing the compiler API.
+The package metadata marks the peer optional only to prevent npm's isolated Git
+dependency preparation from requesting the unpublished registry package. A
+compiler host must still provide the matching runtime before importing
+Nucleus.
 
 ## Debug80 stages
 
