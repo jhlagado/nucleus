@@ -18,6 +18,9 @@ The first Node compiler executes the Z80 compiler through Debug80 Runtime. It
 uses the same multipart source ABI and target descriptor as a native invocation
 and accepts only a terminally committed NOBJ generation. The host reports the
 compiler's diagnostic code, source-part identity, byte offset, line, and column.
+The CLI always writes canonical NOBJ and can additionally materialize the flat
+target as Intel HEX with `--hex-output`. The HEX file is a launch adapter; NOBJ
+remains the stored compiler result and source of target metadata.
 
 The initial implementation assembles the compiler from its checked AZM source
 once per Node process and caches that image. A release build may replace this

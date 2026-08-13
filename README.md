@@ -32,10 +32,13 @@ const result = await compileNucleus([
 ]);
 ```
 
-The command-line interface writes the committed object directly:
+The command-line interface writes the committed object directly. It can also
+materialize a flat Intel HEX launch artifact while retaining NOBJ as the
+canonical result:
 
 ```bash
 nucleus build -o program.nobj src/main.nu
+nucleus build -o program.nobj --hex-output program.hex src/main.nu
 ```
 
 The first host release accepts the compiler's existing flat target descriptor.

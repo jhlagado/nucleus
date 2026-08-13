@@ -1,8 +1,9 @@
 import path from "node:path";
 
+import { parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
-import { compileNucleus } from "../src/compiler.js";
+import { compileNucleus, writeNucleusIntelHex } from "../src/compiler.js";
 import { runProofManifest } from "../src/proof.js";
 
 const proof = (name: string): string =>
@@ -29,6 +30,13 @@ describe("emulator-backed compiler host", () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.nobj).toEqual(baseline.nobj?.serialized);
+    const loaded = parseIntelHex(writeNucleusIntelHex(result));
+    const imageBase = result.materialized.parsed.begin.imageBase;
+    const usedLength = result.materialized.parsed.map.banks[0]?.usedLength ?? 0;
+    expect(loaded.startAddress).toBe(imageBase);
+    expect(loaded.memory.slice(imageBase, imageBase + usedLength)).toEqual(
+      result.materialized.flatImage?.slice(0, usedLength),
+    );
   }, 30_000);
 
   it("returns the exact source-part diagnostic position", async () => {

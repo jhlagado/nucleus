@@ -3,11 +3,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { compileNucleus } from "./compiler.js";
+import { compileNucleus, writeNucleusIntelHex } from "./compiler.js";
 
 const usage = (): never => {
   console.error(
-    "usage: nucleus build [-o program.nobj] <source.nu> [more.nu ...]",
+    "usage: nucleus build [-o program.nobj] [--hex-output program.hex] <source.nu> [more.nu ...]",
   );
   process.exit(2);
 };
@@ -15,11 +15,14 @@ const usage = (): never => {
 const args = process.argv.slice(2);
 if (args.shift() !== "build") usage();
 let output: string | undefined;
+let hexOutput: string | undefined;
 const sources: string[] = [];
 while (args.length > 0) {
   const argument = args.shift();
   if (argument === "-o" || argument === "--output") {
     output = args.shift() ?? usage();
+  } else if (argument === "--hex-output") {
+    hexOutput = args.shift() ?? usage();
   } else if (argument?.startsWith("-") === true) {
     usage();
   } else if (argument !== undefined) {
@@ -43,4 +46,8 @@ if (!result.success) {
 } else {
   await writeFile(output, result.nobj);
   console.log(`Wrote ${path.resolve(output)}`);
+  if (hexOutput !== undefined) {
+    await writeFile(hexOutput, writeNucleusIntelHex(result), "utf8");
+    console.log(`Wrote ${path.resolve(hexOutput)}`);
+  }
 }

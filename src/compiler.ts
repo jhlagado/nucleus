@@ -84,6 +84,46 @@ export interface NucleusCompileFailure extends CompileMetrics {
 export type NucleusCompileResult =
   NucleusCompileSuccess | NucleusCompileFailure;
 
+const hexByte = (value: number): string =>
+  (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
+
+const intelHexRecord = (
+  address: number,
+  recordType: number,
+  bytes: Uint8Array,
+): string => {
+  const header = [bytes.length, address >>> 8, address, recordType];
+  let sum = 0;
+  let body = "";
+  for (const value of [...header, ...bytes]) {
+    sum = (sum + value) & 0xff;
+    body += hexByte(value);
+  }
+  return `:${body}${hexByte(-sum)}`;
+};
+
+/** Convert a successful flat-target compile into a Debug80-loadable Intel HEX image. */
+export const writeNucleusIntelHex = (result: NucleusCompileSuccess): string => {
+  const image = result.materialized.flatImage;
+  if (image === undefined) {
+    throw new Error("Intel HEX output requires a flat Nucleus target");
+  }
+  const { imageBase } = result.materialized.parsed.begin;
+  const usedLength = result.materialized.parsed.map.banks[0]?.usedLength ?? 0;
+  const lines: string[] = [];
+  for (let offset = 0; offset < usedLength; offset += 16) {
+    lines.push(
+      intelHexRecord(
+        imageBase + offset,
+        0,
+        image.slice(offset, Math.min(offset + 16, usedLength)),
+      ),
+    );
+  }
+  lines.push(intelHexRecord(0, 1, new Uint8Array()));
+  return `${lines.join("\n")}\n`;
+};
+
 interface CompilerImage {
   readonly program: ReturnType<typeof parseIntelHex>;
   readonly symbols: Readonly<Record<string, number>>;
