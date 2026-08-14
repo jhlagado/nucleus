@@ -5,15 +5,24 @@
 ; for the recovered Z80 address space explicitly.
 
 CompilerCoreBase    .equ $0000
-CompilerCoreLimit   .equ $4000
 
+.if DebugHooks
+; The debug compiler is a host-only instrumented image and has its own symbol
+; map. Its trace instructions may extend beyond the shipping 16 KiB boundary.
+CompilerCoreLimit   .equ $4400
+CompilerWorkBase    .equ $4400
+CompilerWorkLimit   .equ $5400
+SourceBase          .equ $5400
+SourceLimit         .equ $5C00
+ReleasedGeneratedStagingBase  .equ $5C00
+.else
+CompilerCoreLimit   .equ $4000
 CompilerWorkBase    .equ $4000
 CompilerWorkLimit   .equ $5000
-
 SourceBase          .equ $5000
 SourceLimit         .equ $5800
-
 ReleasedGeneratedStagingBase  .equ $5800
+.endif
 ReleasedGeneratedStagingLimit .equ $6800
 
 TargetRuntimeBase   .equ $6800

@@ -282,9 +282,10 @@ object.
 
 `string[N]` occupies `N + 2` bytes. Byte zero is the current logical length
 `L`; bytes 1 through `N` are the content capacity; and byte `N + 1` is always
-`$00`. The compiler writes that final byte while building the static image,
-and no runtime operation writes it again. Bytes `L + 1` through `N` are also
-zero. The invariant is `0 <= L <= N`, and the complete object extent is at
+`$00`. Static initialization writes that final byte, and exact-type aggregate
+assignment copies it with the rest of the representation. No byte-level string
+operation changes it. Bytes `L + 1` through `N` are also zero. The
+invariant is `0 <= L <= N`, and the complete object extent is at
 most 255 bytes because the source capacity is at most 253. This string-specific
 limit does not constrain the complete extent of a containing record or array.
 
@@ -302,11 +303,20 @@ existing content byte and does not change the length.
 
 ### 3.4 Aggregate carriers
 
-An aggregate parameter or result is carried as one 16-bit address. Its exact
+An ordinary aggregate parameter or result is carried as one 16-bit address. Its exact
 record type, array element type and length, or string capacity remains compiler
 metadata. The runtime address has no source type tag and is never a source
 integer. Only compiler-generated field selection, checked indexing, parameter
 transfer, result transfer, and copying may consume it.
+
+A `string[]` parameter uses two internal call words: the concrete capacity is
+below the address, and the address is closest to the return address. The source
+signature still has one parameter. The callee stores the address as a two-byte
+alias binding and the capacity as one activation byte. Forwarding an open
+parameter transfers both values. Before `.length` or indexing reads the
+referent, generated code checks the complete dynamic extent `capacity + 2` and
+then the stored-length invariant. The capacity and carrier remain unavailable
+to source code.
 
 ## 4. Program storage and startup
 
@@ -447,7 +457,8 @@ region and then the complete source region before the first destination byte
 changes. It copies the common fixed extent, including a bounded string's length
 byte, complete capacity, and permanent terminator. Self-assignment has no
 effect. Nucleus types cannot produce proper partial overlap between distinct
-same-type aggregate paths.
+same-type aggregate paths. An open-string view is not a whole-object assignment
+operand.
 
 The source checker rejects an assignment rooted directly at an aggregate
 constant. The runtime carrier has no read-only bit, so an alias derived from a
@@ -469,9 +480,10 @@ The caller evaluates every argument from left to right before the callee begins.
 It retains each earlier scalar value or aggregate carrier across evaluation of
 later arguments. A trap during argument evaluation prevents the call.
 
-Scalar parameters receive copied values. Aggregate parameters receive fixed,
-non-null, non-reseatable address carriers to existing program storage. The
-callee may mutate that storage where the language permits.
+Scalar parameters receive copied values. Concrete aggregate parameters receive
+fixed, non-null, non-reseatable address carriers to existing program storage.
+An open-string parameter receives the same fixed carrier plus its actual
+capacity. The callee may mutate that storage where the language permits.
 
 ### 6.2 Activation state
 
@@ -625,14 +637,6 @@ selected bank.
 Arithmetic and aggregate helpers remain ordinary local calls. They are not
 placed in the vector table.
 
-The predefined `print` routine is also a local helper, not a vector entry or a
-new System Service. Generated code supplies a checked bounded-string carrier
-and logical length. The helper calls the existing `writeOutputByte` vector in
-index order, stops on its first recoverable failure, and preserves bytes from
-earlier successful calls. The compiler checks the stored length against the
-static capacity before entering the helper, so a corrupt length traps before
-any output effect.
-
 ### 8.2 Stable service errors
 
 |   Code | Source constant  | Meaning                                   |
@@ -685,7 +689,7 @@ and checked 16-bit target address through its private ABI. Source code exposes
 neither value.
 
 The far-call adapter selects the destination bank, enters the ordinary Nucleus
-routine ABI, and installs a fixed-memory return path. Identity `$0005` uses the
+routine ABI, and installs a fixed-memory return path. Identity `$0004` uses the
 selected-bank byte at writable-state offset eight and a sixteen-byte far-return
 arena after the saved root-frame words. Each live far call uses the zero-based
 slot `ActivationDepth - 1`: depth one selects slot zero, and the published
@@ -847,10 +851,9 @@ data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
-`test/nobj.test.ts` assembles runtime identity `$0005` under
-`defaultRuntimeLinkContext` and measures a 382-byte canonical linked helper image. It
-retains the identity-4 vector, writable-state, banking, and helper offsets and
-adds the 18-byte `PrintString` helper at offset 364.
+`test/nobj.test.ts` assembles runtime identity `$0004` under
+`defaultRuntimeLinkContext` and measures a 364-byte canonical linked helper
+image.
 `proofs/stage9-conformance-z80-slice-proof.json` includes the historical direct
-service adapters and measures 614 bytes;
-`proofs/chapter21-target-z80-slice-proof.json` selects a 592-byte form.
+service adapters and measures 596 bytes;
+`proofs/chapter21-target-z80-slice-proof.json` selects a 574-byte form.

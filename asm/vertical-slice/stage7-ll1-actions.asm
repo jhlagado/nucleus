@@ -85,7 +85,7 @@ HybridLL1ResolveRecordType:
 HybridLL1BeginTypeBound:
 HybridLL1ExpectU16:
             LD   A,ScalarTypeU16
-            JR   HybridLL1SaveExpectedType
+            JP   HybridLL1SaveExpectedType
 
 ; Return the checked, positive, byte-sized constant bound in HL.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
@@ -127,9 +127,16 @@ HybridLL1InternCurrentType:
             RET  C
             JR   HybridLL1SetCurrentType
 
+; `string[]` is a parameter-only view rather than an interned object type.
+HybridLL1MakeOpenStringType:
+            LD   A,AggregateOpenStringTypeId
+            JR   HybridLL1SetCurrentType
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1MakeArrayType:
             LD   A,(AggregateCurrentTypeId)
+            CP   AggregateOpenStringTypeId
+            JP   Z,AggregateTypeShapeFailure
             CP   AggregateFirstDynamicTypeId
             JR   C,HybridLL1ArrayElementReady
             PUSH AF
@@ -283,6 +290,8 @@ HybridLL1AssertTypeFailure:
 HybridLL1SaveProgramType:
             LD   A,(AggregateCurrentTypeId)
 HybridLL1SaveObjectType:
+            CP   AggregateOpenStringTypeId
+            JP   Z,AggregateTypeShapeFailure
             LD   (DeclarationInfo),A
             CALL AggregateGetExtent
             LD   (AggregateCurrentObjectExtent),HL
@@ -469,6 +478,9 @@ HybridLL1BeginRecordField:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitRecordField:
+            LD   A,(AggregateCurrentTypeId)
+            CP   AggregateOpenStringTypeId
+            JP   Z,AggregateTypeShapeFailure
             LD   A,(AggregateFieldCount)
             LD   B,A
             LD   A,(AggregateCurrentFieldCount)
@@ -720,6 +732,8 @@ HybridLL1AllowSubResult:
 
 HybridLL1SaveSubResult:
             LD   A,(AggregateCurrentTypeId)
+            CP   AggregateOpenStringTypeId
+            JP   Z,AggregateTypeShapeFailure
             LD   (Stage7CurrentResultType),A
             OR   A
             RET
@@ -884,10 +898,7 @@ HybridLL1InstallParameterLoop:
             LD   A,B
             OR   A
             RET  Z
-            DEC  A
-            ADD  A,A
-            ADD  A,4
-            LD   C,A
+            CALL Stage7ParameterSourceOffset
             LD   A,D
             PUSH DE
             PUSH BC

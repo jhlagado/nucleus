@@ -40,6 +40,7 @@
     "for-step-opt": "DiagnosticExpectedLine",
     "type": "DiagnosticExpectedType",
     "type-atom": "DiagnosticExpectedType",
+    "string-capacity": "DiagnosticExpectedScalar",
     "type-array-opt": "DiagnosticExpectedScalar",
     "scalar-type": "DiagnosticExpectedType"
   },
@@ -452,12 +453,15 @@
       "rhs": [
         "TokenString",
         "TokenLeftBracket",
-        "a:BeginTypeBound",
-        "x:ConstantExpression",
-        "TokenRightBracket",
-        "a:MakeStringType"
+        "string-capacity",
+        "TokenRightBracket"
       ]
     },
+    {
+      "lhs": "string-capacity",
+      "rhs": ["a:BeginTypeBound", "x:ConstantExpression", "a:MakeStringType"]
+    },
+    { "lhs": "string-capacity", "rhs": ["a:MakeOpenStringType"] },
     {
       "lhs": "type-array-opt",
       "rhs": [

@@ -33,6 +33,8 @@ Stage7BindParameter:
             CALL NextSemanticByte
             LD   (Stage7ArgumentIndex),A    ; positive source displacement
             LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7BindOpenString
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7BindWord
             CP   ScalarTypeU16
@@ -45,6 +47,10 @@ Stage7BindParameter:
             RET  C
             LD   HL,Stage7StoreIXL
             JR   Stage7EmitPairPathOffset
+Stage7BindOpenString:
+            LD   A,$3B                      ; third activation byte
+            CALL EmitByte
+            RET  C
 Stage7BindWord:
             LD   HL,Stage7DecSP2
             CALL   EmitPair
@@ -66,6 +72,28 @@ Stage7BindWord:
             CALL EmitPair
             RET  C
             LD   A,(Stage7PathOffset)
+            DEC  A
+            CALL EmitByte
+            RET  C
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7BindOpenCapacity
+            OR   A
+            RET
+Stage7BindOpenCapacity:
+            LD   HL,Stage7LoadIXL
+            CALL EmitPair
+            RET  C
+            LD   A,(Stage7ArgumentIndex)
+            INC  A
+            INC  A
+            CALL EmitByte
+            RET  C
+            LD   HL,Stage7StoreIXL
+            CALL EmitPair
+            RET  C
+            LD   A,(Stage7PathOffset)
+            DEC  A
             DEC  A
             JP   EmitByte
 
@@ -425,40 +453,6 @@ Stage8NoArgumentFailable:
             LD   (Stage7ArgumentCount),A
             JP   Stage8CallableFailable
 
-; Print one bounded string through the selected runtime helper. The parser has
-; retained the exact capacity; the carrier still addresses the length byte.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8PrintString:
-            CALL Stage7ReadStringExtent
-            CALL Stage8ReadCallState
-            CALL Stage7PreserveCarrierRegion
-            RET  C
-            CALL TypedEmitPopHL
-            RET  C
-            CALL TypedPushHL
-            RET  C
-.if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckStringLengthOffset
-.else
-            LD   HL,CheckStringLength
-.endif
-            CALL Stage7EmitStringCheck
-            RET  C
-            LD   HL,Stage7CopyFinish      ; POP HL length / POP DE carrier
-            CALL EmitPair
-            RET  C
-.if TargetStreamingOutput
-            LD   DE,NucleusRuntimePrintStringOffset
-            CALL EmitRuntimeCall
-.else
-            LD   HL,PrintString
-            CALL EmitCall
-.endif
-            RET  C
-            XOR  A
-            LD   (Stage7CallResultType),A
-            JR   Stage8NoArgumentFailable
-
 .if TargetStreamingOutput
 .else
 Stage8ServiceAddressTable:
@@ -666,6 +660,15 @@ Stage7PreserveCarrierRegion:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitRegionCheck:
+            CALL Stage7EmitRegionPrefix
+            RET  C
+            LD   HL,(Stage7PathExtent)
+            CALL EmitLoadBcImmediate
+            RET  C
+            JR   Stage7EmitRegionInvoke
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitRegionPrefix:
 .if TargetStreamingOutput
             LD   DE,(TargetCurrentRoBase)
             CALL EmitLoadDeImmediate
@@ -678,19 +681,18 @@ Stage7EmitRegionCheck:
             RET  C
             LD   A,$21
             CALL EmitOpcodeWord
-            RET  C
-            LD   HL,(Stage7PathExtent)
-            CALL EmitLoadBcImmediate
-            RET  C
-            LD   DE,NucleusRuntimeCheckAggregateRegionOffset
-            CALL EmitRuntimeCall
 .else
             LD   DE,ProgramDataRegionLimit
             CALL EmitLoadDeImmediate
-            RET  C
-            LD   HL,(Stage7PathExtent)
-            CALL EmitLoadBcImmediate
-            RET  C
+.endif
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitRegionInvoke:
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeCheckAggregateRegionOffset
+            CALL EmitRuntimeCall
+.else
             LD   HL,CheckAggregateRegion
             CALL EmitCall
 .endif
@@ -720,16 +722,12 @@ Stage7StringLength:
 .else
             LD   HL,CheckStringLength
 .endif
-            JR   Stage7EmitStringCheck
+            JP   Stage7EmitStringCheck
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7StringIndex:
             CALL Stage7ReadStringExtent
-            LD   HL,Stage7PopIndexBase
-            CALL   EmitPair
-            RET  C
-            LD   HL,Stage7PushDEHL
-            CALL   EmitPair
+            CALL Stage7EmitStringIndexPrefix
             RET  C
             CALL Stage7EmitRegionCheck
             RET  C
@@ -741,6 +739,151 @@ Stage7StringIndex:
 .else
             LD   HL,CheckStringIndex
 .endif
+            JP   Stage7EmitStringCheck
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitStringIndexPrefix:
+            LD   HL,Stage7PopIndexBase
+            CALL   EmitPair
+            RET  C
+            LD   HL,Stage7PushDEHL
+            JP   EmitPair
+
+; Open string operations read the caller-supplied concrete capacity from the
+; hidden activation byte. The ordinary source value remains one address path.
+.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+Stage7ReadOpenStringOffset:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            JP   Stage7ReadCallOffset
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7OpenStringLength:
+            CALL Stage7ReadOpenStringOffset
+            CALL TypedEmitPopHL
+            RET  C
+            LD   A,$E5                    ; retain carrier
+            CALL EmitByte
+            RET  C
+            CALL Stage7EmitOpenRegionCheck
+            RET  C
+            CALL TypedEmitPopHL
+            RET  C
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeCheckStringLengthOffset
+.else
+            LD   HL,CheckStringLength
+.endif
+            JR   Stage7EmitOpenStringCheck
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7OpenStringIndex:
+            CALL Stage7ReadOpenStringOffset
+            CALL Stage7EmitStringIndexPrefix
+            RET  C
+            CALL Stage7EmitOpenRegionCheck
+            RET  C
+            LD   HL,Stage7CopyFinish
+            CALL EmitPair
+            RET  C
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeCheckStringIndexOffset
+.else
+            LD   HL,CheckStringIndex
+.endif
+
+.if TargetStreamingOutput
+.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.else
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.endif
+Stage7EmitOpenStringCheck:
+.if TargetStreamingOutput
+            PUSH DE
+.else
+            PUSH HL
+.endif
+            CALL Stage7EmitOpenCapacityC
+.if TargetStreamingOutput
+            POP  DE
+.else
+            POP  HL
+.endif
+            JR   Stage7EmitStringCheckFinish
+
+.if TargetStreamingOutput
+.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.else
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.endif
+Stage7EmitStringCheckFinish:
+            RET  C
+.if TargetStreamingOutput
+            CALL EmitRuntimeCall
+.else
+            CALL EmitCall
+.endif
+            RET  C
+            CALL Stage7BoundsGuard
+            RET  C
+            CALL EmitByteInline
+            .db  $E5                      ; push length or addressed byte
+
+; Emit BC = hidden concrete capacity + two representation bytes, then perform
+; the ordinary complete-region guard before a generic string may be touched.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitOpenRegionCheck:
+            CALL Stage7EmitRegionPrefix
+            RET  C
+            CALL Stage7EmitOpenCapacityC
+            RET  C
+            LD   HL,Stage7OpenExtentBytes
+            CALL EmitFour
+            RET  C
+            JP   Stage7EmitRegionInvoke
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitOpenCapacityC:
+            LD   HL,Stage7LoadIXC
+            JR   Stage7EmitOpenDisplacedCapacity
+
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitOpenDisplacedCapacity:
+            CALL EmitPair
+            RET  C
+            LD   A,(Stage7ArgumentCount)
+            CPL
+            JP   EmitByte
+
+; Convert a just-evaluated address carrier into the internal open-argument
+; pair. Mode zero carries a static capacity; mode one forwards a hidden local.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7PrepareOpenArgument:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentIndex),A
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            LD   A,$D1                    ; POP DE address carrier
+            CALL EmitByte
+            RET  C
+            LD   A,(Stage7ArgumentIndex)
+            OR   A
+            JR   NZ,Stage7PrepareForwardedOpenArgument
+            LD   A,(Stage7ArgumentCount)
+            LD   L,A
+            LD   H,0
+            CALL EmitLoadHl
+            JR   Stage7PrepareOpenArgumentPush
+Stage7PrepareForwardedOpenArgument:
+            LD   HL,Stage7LoadIXL
+            CALL Stage7EmitOpenDisplacedCapacity
+            RET  C
+            LD   HL,Stage7ZeroHighBytes
+            CALL EmitPair
+Stage7PrepareOpenArgumentPush:
+            RET  C
+            LD   HL,Stage7PushHLDE
+            JP   EmitPair
 
 .if TargetStreamingOutput
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -762,17 +905,7 @@ Stage7EmitStringCheck:
 .else
             POP  HL
 .endif
-            RET  C
-.if TargetStreamingOutput
-            CALL EmitRuntimeCall
-.else
-            CALL EmitCall
-.endif
-            RET  C
-            CALL Stage7BoundsGuard
-            RET  C
-            CALL EmitByteInline
-            .db  $E5
+            JR   Stage7EmitStringCheckFinish
 
 Stage7PopHLLoadDE:        .db $E1,$11
 Stage7IndexToA            .equ TypedLoadSPPrefix+1
@@ -785,6 +918,10 @@ Stage7CopyPrepare         .equ TypedPopOperandsBytes
 Stage7CopyFinish:         .db $E1,$D1
 Stage7PopDEAddPush:       .db $D1,$19,$E5
 Stage7PushDEHL:           .db $D5,$E5
+Stage7PushHLDE            .equ TypedPopOperandsBytes+2
+Stage7LoadIXC:            .db $DD,$4E
+Stage7ZeroHighBytes       .equ TypedZeroHigh
+Stage7OpenExtentBytes:    .db $06,$00,$03,$03
 Stage7LDIR                .equ SegmentedCopyBytes
 
 Stage7DecSP2              .equ TypedParameter16Bytes

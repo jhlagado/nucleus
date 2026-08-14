@@ -438,7 +438,6 @@ ScalarTypeU16           .equ 2
 ScalarTypeBoolean       .equ 3
 ScalarMetaTypeMask      .equ $03
 ScalarMetaConstant      .equ $80
-
 SymbolClassConstant     .equ $00
 SymbolClassProgram      .equ $04
 SymbolClassLocal        .equ $08
@@ -456,6 +455,9 @@ AggregateFirstDynamicTypeId .equ 4
 AggregateTypeKindRecord .equ 4
 AggregateTypeKindString .equ 5
 AggregateTypeKindArray  .equ 6
+; Parameter-only open bounded-string view. It is never interned in the
+; aggregate type table and therefore remains outside its compact ordinals.
+AggregateOpenStringTypeId .equ $7C
 
 SymbolInfoConstantU8    .equ SymbolClassConstant+ScalarTypeU8
 SymbolInfoConstantU16   .equ SymbolClassConstant+ScalarTypeU16

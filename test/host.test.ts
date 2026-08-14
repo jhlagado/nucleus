@@ -152,7 +152,7 @@ describe("the stable in-process Nucleus host API", () => {
     expect(info).toMatchObject({
       hostApiVersion: 1,
       languageVersion: "0.1",
-      runtimeIdentity: 5,
+      runtimeIdentity: 4,
       capacities: { sourceParts: 8, sourceWindowBytes: 2048, targetBanks: 4 },
       targets: { flat: true, banked: true, maxBanks: 4 },
     });

@@ -4,6 +4,13 @@ const ByteLabel as string[8] = "BYTE: "
 const WordLabel as string[8] = "WORD: "
 const Newline as string[2] = "\r\n"
 
+sub output(text as string[]) fails
+    var index as u8
+    for index = 0 until text.length
+        writeOutputByte(text[index]) else fail
+    end
+end
+
 sub hexDigit(value as u8) as u8
     if value < 10
         return '0' + value
@@ -24,17 +31,17 @@ end
 sub main() fails
     var choice as u8
 
-    print(Banner) else fail
-    print(Menu) else fail
+    output(Banner) else fail
+    output(Menu) else fail
     choice = readInputByte() else fail
     if choice = '1'
-        print(ByteLabel) else fail
+        output(ByteLabel) else fail
         printHex8($A5) else fail
     elseif choice = '2'
-        print(WordLabel) else fail
+        output(WordLabel) else fail
         printHex16($1234) else fail
     elseif choice <> 'Q'
         writeOutputByte('?') else fail
     end
-    print(Newline) else fail
+    output(Newline) else fail
 end

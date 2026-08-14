@@ -491,9 +491,12 @@ Stage7InstallParameterSymbol:
             RET  C
             LD   A,(Stage7PathType)
             CP   AggregateFirstDynamicTypeId
-            LD   A,2
-            JR   NC,Stage7InstallParameterWidth
-            LD   A,(Stage7PathType)
+            JR   C,Stage7InstallScalarParameterWidth
+            CP   AggregateOpenStringTypeId
+            LD   A,3
+            SBC  A,0
+            JR   Stage7InstallParameterWidth
+Stage7InstallScalarParameterWidth:
             CALL TypedTypeWidth
 Stage7InstallParameterWidth:
             LD   HL,NextLocalSlot
@@ -574,10 +577,7 @@ Stage7RoutineParameterLoop:
             LD   A,B
             OR   A
             JR   Z,Stage7RoutineLocals
-            DEC  A
-            ADD  A,A
-            ADD  A,4
-            LD   C,A
+            CALL Stage7ParameterSourceOffset
             LD   A,D
             PUSH DE
             PUSH BC
@@ -589,6 +589,7 @@ Stage7RoutineParameterLoop:
             INC  E
             DEC  B
             JR   Stage7RoutineParameterLoop
+
 Stage7RoutineLocals:
             CALL TypedParseLocalRun
             RET  C
@@ -671,6 +672,42 @@ Stage7MainStatements:
             JP   ParserExpect
 .endif
 
+; Return the positive IX displacement of the current source argument. Every
+; later source parameter contributes one address/scalar word; each later open
+; string contributes its hidden capacity word as well.
+.routine in B,D out A,B,C,D,E,carry,zero clobbers sign,parity,halfCarry,HL
+Stage7ParameterSourceOffset:
+            PUSH BC
+            PUSH DE
+            LD   A,B
+            ADD  A,A
+            ADD  A,2
+            LD   C,A
+            DEC  B
+            JR   Z,_parameterSourceOffsetDone
+            LD   A,D
+            INC  A
+            CALL Stage7ParameterAddress
+_parameterSourceOffsetLoop:
+            INC  HL
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            CP   AggregateOpenStringTypeId
+            JR   NZ,_parameterSourceOffsetNext
+            INC  C
+            INC  C
+_parameterSourceOffsetNext:
+            INC  HL                      ; next four-byte parameter entry
+            DJNZ _parameterSourceOffsetLoop
+_parameterSourceOffsetDone:
+            LD   A,C
+            POP  DE
+            POP  BC
+            LD   C,A
+            OR   A
+            RET
+
 ; Return aggregate symbol info in D, byte payload in BC, and exact type ID in
 ; A. The ordinary symbol-table address determines the parallel type entry.
 .routine out A,BC,D,carry,zero clobbers sign,parity,halfCarry,E,HL
@@ -735,6 +772,13 @@ Stage7EmitAggregateSymbolRoot:
             CALL Stage7LookupAggregateCurrent
             RET  C
             LD   (Stage7PathType),A
+            CP   AggregateOpenStringTypeId
+            JR   NZ,Stage7EmitAggregateRootClass
+            LD   A,C
+            INC  A
+            INC  A
+            LD   (Stage7OpenStringCapacityOffset),A
+Stage7EmitAggregateRootClass:
             LD   A,D
             AND  SymbolClassMask
             JR   Z,Stage7EmitAggregateRootReadOnly
@@ -804,19 +848,30 @@ Stage7PathField:
             PUSH AF
             CP   AggregateFirstDynamicTypeId
             JP   C,Stage7PathFieldTypeFailure
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7PathStringField
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
             JR   NZ,Stage7PathRecordField
+Stage7PathStringField:
             LD   HL,NameLength
             LD   B,6
             CALL TokenNameEquals
             JP   NC,Stage7PathFieldTypeFailure
             LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7PathOpenStringField
             CALL AggregateTypeAddress
             INC  HL
             LD   C,(HL)                  ; capacity for L <= N validation
             LD   A,SemanticStringLength
+            JR   Stage7PathStringLengthReady
+Stage7PathOpenStringField:
+            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   C,A
+            LD   A,SemanticOpenStringLength
+Stage7PathStringLengthReady:
             CALL ParserEmitOperationC
             JP   C,Stage7PathSuffixFailure
             LD   HL,(TokenStartOffset)
@@ -885,6 +940,8 @@ Stage7PathIndexComposition:
             LD   (Stage7PathType),A
             CALL Stage8RequireNoPendingFailure
             RET  C
+            LD   A,(Stage7OpenStringCapacityOffset)
+            PUSH AF
             LD   A,(Stage7PathType)
             PUSH AF
 Stage7PathIndex:
@@ -920,9 +977,16 @@ Stage7PathIndex:
             POP  HL
             LD   (Stage7CallOffset),HL
             POP  AF
+            LD   E,A
+            POP  BC
+            LD   A,B
+            LD   (Stage7OpenStringCapacityOffset),A
+            LD   A,E
             CP   AggregateFirstDynamicTypeId
             JP   C,TypedTypeFailure
             PUSH AF
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7PathOpenStringIndex
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
@@ -969,6 +1033,12 @@ Stage7PathStringIndex:
             INC  HL
             LD   C,(HL)                  ; capacity
             LD   A,SemanticStringIndex
+            JR   Stage7PathStringIndexReady
+Stage7PathOpenStringIndex:
+            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   C,A
+            LD   A,SemanticOpenStringIndex
+Stage7PathStringIndexReady:
             CALL ParserEmitOperationC
             JR   C,Stage7PathSuffixFailure
             LD   HL,(Stage7CallOffset)
@@ -984,10 +1054,14 @@ Stage7PathSuffixFailure:
 Stage7PathIndexTypeFailure:
             POP  HL
             POP  AF
+            POP  BC
             JP   TypedTypeFailure
 Stage7PathIndexFailure:
             POP  HL
-            JR   Stage7PathSuffixFailure
+            POP  AF
+            POP  BC
+            SCF
+            RET
 Stage7PathIndexExpressionFailure:
             POP  AF
             LD   (ExpressionEmitEnabled),A
@@ -1145,7 +1219,7 @@ Stage7CallArgumentLoop:
             INC  HL
             LD   A,(HL)
             OR   A
-            JR   Z,Stage7CallArgumentsDone
+            JP   Z,Stage7CallArgumentsDone
             DEC  HL
             LD   A,(HL)                  ; current parameter table index
             CALL Stage7ParameterAddress
@@ -1176,8 +1250,22 @@ Stage7CallAggregateArgument:
             INC  HL
             LD   D,(HL)
             POP  AF
+            LD   (Stage7PathType),A
+            LD   A,D
+            LD   (Stage7CallResultType),A
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7CallOpenStringType
+            LD   A,(Stage7PathType)
             CP   D
             JP   NZ,Stage7CallTypeFailure
+            JR   Stage7CallAggregateTypeReady
+Stage7CallOpenStringType:
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7CallAggregateTypeReady
+            CALL Stage7StringCapacity
+            JP   C,Stage7CallFailure
+Stage7CallAggregateTypeReady:
 .if TargetStreamingOutput
             ; A cross-bank aggregate parameter must originate at a direct
             ; program root. Diagnose through the ordinary call-frame unwind.
@@ -1197,6 +1285,11 @@ Stage7CallAggregateBankReady:
 .endif
             CALL Stage8RequireNoPendingFailure
             JP   C,Stage7CallFailure
+            LD   A,(Stage7CallResultType)
+            CP   AggregateOpenStringTypeId
+            JR   NZ,Stage7CallArgumentReady
+            CALL Stage7PrepareOpenStringArgument
+            JP   C,Stage7CallFailure
 Stage7CallArgumentReady:
             CALL Stage7CurrentCallFrame
             INC  HL
@@ -1210,9 +1303,40 @@ Stage7CallArgumentReady:
 .if TargetStreamingOutput
             JP   C,Stage7CallFailure
 .else
-            JR   C,Stage7CallFailure
+            JP   C,Stage7CallFailure
 .endif
-            JR   Stage7CallArgumentLoop
+            JP   Stage7CallArgumentLoop
+
+; Convert one concrete or already-open bounded-string carrier into the two-word
+; internal call form: actual capacity below the ordinary address carrier.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7PrepareOpenStringArgument:
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7PrepareForwardedOpenString
+            CALL Stage7StringCapacity
+            RET  C
+            LD   (Stage7ArgumentCount),A
+            XOR  A
+            JR   Stage7PrepareOpenStringReady
+Stage7PrepareForwardedOpenString:
+            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   (Stage7ArgumentCount),A
+            LD   A,1
+Stage7PrepareOpenStringReady:
+            LD   C,A
+            LD   A,SemanticPrepareOpenArgument
+            CALL ParserEmitOperationC
+            RET  C
+            LD   A,(Stage7ArgumentCount)
+            CALL SemanticSinkPut
+            RET  C
+            CALL Stage7CurrentCallFrame
+            LD   DE,Stage7CallFrameArgumentCount
+            ADD  HL,DE
+            INC  (HL)
+            OR   A
+            RET
 Stage7CallArgumentsDone:
             CALL ParserExpectRight
 .if TargetStreamingOutput
@@ -1437,8 +1561,6 @@ Stage8TypedPrimaryConstant:
 ; A is the dense service ID and C says whether a successful u8 result is kept.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ParseServiceCall:
-            CP   Stage8IntrinsicPrint
-            JR   Z,Stage8ParsePrintCall
             LD   E,A
             LD   D,0
             LD   HL,Stage8ServiceSignatureTable
@@ -1481,46 +1603,16 @@ Stage8ServiceResultTypeReady:
             LD   (Stage8CallFlags),A
             JP   Stage7PublishCallable
 
-; `print` is parsed as an ordinary call name, but its sole parameter accepts
-; every bounded-string capacity. The transcript carries the checked static
-; capacity rather than adding an open string type to the source language.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8ParsePrintCall:
-            CALL ParserExpectLeft
-            RET  C
-            LD   HL,(Stage7CallOffset)
-            PUSH HL
-            CALL Stage7ParseAggregateValue
-            POP  HL
-            LD   (Stage7CallOffset),HL
-            RET  C
-            LD   (Stage7PathType),A
-            CALL Stage8RequireNoPendingFailure
-            RET  C
-            LD   A,(Stage7PathType)
+; Return the declared byte capacity of a bounded-string type ordinal.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+Stage7StringCapacity:
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
             JP   NZ,TypedTypeFailure
             INC  HL
             LD   A,(HL)
-            LD   (Stage8ServiceId),A
-            CALL ParserExpectRight
-            RET  C
-            LD   A,SemanticPrintString
-            CALL SemanticSinkOperation
-            RET  C
-            LD   A,(Stage8ServiceId)
-            CALL SemanticSinkPut
-            RET  C
-            LD   HL,(Stage7CallOffset)
-            CALL Stage7EmitWord
-            RET  C
-            CALL Stage8EmitFailurePlaceholders
-            RET  C
-            LD   A,Stage7RoutineFails
-            LD   (Stage8DirectFailable),A
-            XOR  A
+            OR   A
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
@@ -1633,6 +1725,8 @@ Stage7AggregateCopyAssignment:
             JR   C,Stage7AggregateCopyFailure
             LD   D,A
             POP  AF
+            CP   AggregateOpenStringTypeId
+            JP   Z,TypedTypeFailure
             CP   D
             JP   NZ,TypedTypeFailure
             CALL AggregateGetExtent

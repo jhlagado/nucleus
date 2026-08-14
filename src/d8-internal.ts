@@ -89,6 +89,7 @@ const semanticOperationWidth = (payload: Uint8Array, key: number): number => {
     case 99:
     case 106:
     case 107:
+    case 110:
       return requireSemanticBytes(payload, key, 3);
     case 32:
     case 71:
@@ -96,12 +97,13 @@ const semanticOperationWidth = (payload: Uint8Array, key: number): number => {
     case 83:
     case 96:
     case 97:
+    case 108:
+    case 109:
       return requireSemanticBytes(payload, key, 4);
     case 77:
     case 95:
       return requireSemanticBytes(payload, key, 5);
     case 90:
-    case 23:
       return requireSemanticBytes(payload, key, 7);
     case 72:
       return requireSemanticBytes(payload, key, 9);

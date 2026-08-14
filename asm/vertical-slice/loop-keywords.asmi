@@ -78,12 +78,11 @@ NameWriteOutputByte:
             .db 18,"rewindStorageInput"
             .db 16,"writeStorageByte"
             .db 17,"seekStorageOutput"
-            .db  5,"print"
             .db 10,"endOfInput"
             .db 12,"inputFailure"
             .db 13,"outputFailure"
             .db 14,"storageFailure"
-Stage8PredefinedCount .equ 11
+Stage8PredefinedCount .equ 10
 
 ; Complete service selectors: target ID in bits 0..2, argument type in bits
 ; 3..4, successful u8 result in bit 5, and service kind in bit 7.

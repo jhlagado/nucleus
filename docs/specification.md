@@ -151,7 +151,7 @@ Nucleus 0.1 is one language. Measurements may change the draft before it is froz
 
 ### 2.2 Language-shaping constraints
 
-Nucleus is a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems. Its minimum programming model includes `u8`, `u16`, and Boolean values; scalar and aggregate constants; formal arguments; named scalar local variables; routines with no result or one typed result; fixed-layout records; checked fixed arrays; bounded strings; complete positional static initializers; exact-type aggregate assignment; assignment and calls; `if`/`elseif`/`else`; `while`; counted `for`; `return`; and the unlabeled, innermost-loop forms of `exit` and `continue`. Silently removing one of these requirements does not make an oversized compiler acceptable. If a faithful implementation cannot fit, that result requires compiler-architecture redesign or rejection of the architecture hypothesis.
+Nucleus is a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems. Its minimum programming model includes `u8`, `u16`, and Boolean values; scalar and aggregate constants; formal arguments, including capacity-polymorphic bounded-string parameters; named scalar local variables; routines with no result or one typed result; fixed-layout records; checked fixed arrays; bounded strings with length and checked byte indexing; complete positional static initializers; assignment and calls; `if`/`elseif`/`else`; `while`; counted `for`; `return`; and the unlabeled, innermost-loop forms of `exit` and `continue`. Silently removing one of these requirements does not make an oversized compiler acceptable. If a faithful implementation cannot fit, that result requires compiler-architecture redesign or rejection of the architecture hypothesis.
 
 The language design uses deterministic parsing with canonical forms, minimal lookahead, and no backtracking. A smaller production count is useful only when it preserves the required programming model. Grammar terseness is not an independent design goal.
 
@@ -885,12 +885,14 @@ The type system supports local checking during one streaming source pass. A comp
 
 ### 6.2 Type set
 
-Nucleus 0.1 has three scalar types and three aggregate forms:
+Nucleus 0.1 has three scalar types, three owned aggregate forms, and one
+parameter-only aggregate view:
 
-| Category  | Types or forms                       |
-| --------- | ------------------------------------ |
-| Scalar    | `u8`, `u16`, `boolean`               |
-| Aggregate | nominal records, `T[N]`, `string[N]` |
+| Category        | Types or forms                       |
+| --------------- | ------------------------------------ |
+| Scalar          | `u8`, `u16`, `boolean`               |
+| Owned aggregate | nominal records, `T[N]`, `string[N]` |
+| Parameter view  | `string[]`                           |
 
 The following skeleton records type formation without defining declaration grammar:
 
@@ -903,12 +905,15 @@ scalar-type      ::= "u8" | "u16" | "boolean"
 fixed-array-type ::= element-type "[" array-length "]"
 element-type     ::= scalar-type | record-type-name | bounded-string-type
 bounded-string-type
-                 ::= "string" "[" string-capacity "]"
+                 ::= "string" "[" [ string-capacity ] "]"
 ```
 
 An array has one dimension. An array element may be a scalar, record, or bounded string, but not another array. Records may contain fields of any admitted type, including fixed arrays.
 
-`string[N]` is the bounded-text form. `string` is a core reserved word. No other type word is added by this chapter.
+`string[N]` is the owned bounded-text form. An omitted capacity is admitted only
+in a formal parameter: `string[]` denotes a view whose actual capacity comes
+from the argument. `string` is a core reserved word. No other type word is
+added by this chapter.
 
 ### 6.3 Scalar types
 
@@ -946,9 +951,9 @@ A scalar named constant has either an exact integer type inferred from its initi
 
 Top-level variables and aggregate constants provide owned aggregate storage. Aggregate storage may also occur inline as a record field or fixed-array element. A routine cannot declare aggregate storage or an aggregate-alias local. The permitted declaration sites, initialization rules, mutability, and storage duration appear in Chapters 7 and 8.
 
-An aggregate parameter is a fixed typed alias to caller-provided storage. Its binding cannot be changed, but mutation and exact-type aggregate assignment through it change the caller's object. A routine may also return a transient aggregate alias to existing storage.
+An aggregate parameter is a fixed typed alias to caller-provided storage. Its binding cannot be changed, but mutation through it changes the caller's object. A parameter declared as `string[]` additionally retains the concrete argument's capacity for checked access. A routine may also return a transient aggregate alias to existing storage, but an open-string view cannot be a result.
 
-Assignment between aggregate designators of the exact same type copies the complete record, fixed array, or bounded string into the destination. The assignment changes the destination object's contents and never rebinds an alias. Routine arguments and aggregate results continue to transfer aliases rather than copying automatically.
+Assignment between aggregate designators of the exact same concrete type copies the complete value into the destination. This includes two bounded strings with the same capacity. Assignment changes the destination object's contents and never rebinds an alias. Routine arguments and aggregate results transfer aliases rather than copying automatically. Concrete aggregate parameters and all aggregate results require exact type identity; `string[]` parameters use the specific compatibility rule in Section 6.10.
 
 An aggregate routine result is a transient typed alias to existing program-lifetime storage. Chapter 7 defines its permitted consumption, and Chapter 13 defines result syntax. Nucleus has no aggregate storage whose lifetime ends with a call, so aggregate results require no separate escape analysis.
 
@@ -980,20 +985,24 @@ Indexing an array of scalars produces a scalar occurrence with the element type.
 
 `string[N]` is a fixed-capacity counted sequence of bytes with a current length from 0 through `N`. `N` is a compile-time integer from 1 through 253 and is part of the type. The empty string is a valid value. Payload bytes may have any value from 0 through 255, including zero.
 
-A string literal is a contextual bounded-string initializer. It is compatible with `string[N]` when its decoded byte length does not exceed `N`. A literal that is too long is invalid. The literal does not create an open-ended string type, infer a new capacity, or permit a later capacity mismatch.
+A string literal is a contextual bounded-string initializer. It is compatible with `string[N]` when its decoded byte length does not exceed `N`. A literal that is too long is invalid. The literal does not create an open-ended string type or infer a capacity independently of its context.
 
-Two bounded-string types are identical only when their capacities are equal. An alias to `string[16]` is not compatible with `string[32]`, even when the current contents would fit both. This exact rule keeps the referent extent available from the static type and permits a one-address alias representation.
+Two concrete bounded-string types are identical only when their capacities are equal. An alias to `string[16]` cannot bind to a `string[32]` parameter or result, even when the current contents would fit both. Concrete aggregate aliases and results therefore retain an exact extent.
 
 A bounded string is an aggregate, not a `u8` array. It has no source-level header field, payload field, or terminator field. Nucleus 0.1 provides two intrinsic postfix operations without exposing that representation:
 
 - `text.length` is a read-only `u8` value equal to the current logical byte length.
 - `text[index]` selects one existing byte as a `u8` storage path. The index must have type `u8` or `u16` and must be less than the current length. A failed check performs the `bounds` trap before a read or write.
 
-A bounded string's length is established only by static initialization or by whole-object assignment from an identical `string[N]`. A byte assignment replaces exactly one existing byte and does not change the string's length or capacity. These operations provide no append, insertion, resize, truncation, or whole-string comparison. Source code cannot build counted text by filling bytes and then changing the length. Constructed text uses a fixed `u8[N]` array plus a caller-managed scalar length. Whole-string assignment is available only between identical `string[N]` types under Section 7.8. Embedded zero bytes are ordinary content and do not terminate either operation.
+A bounded string's length is established by static initialization or copied as part of exact-type aggregate assignment. A byte assignment replaces exactly one existing byte and does not change the string's length or capacity. These operations provide no append, insertion, resize, truncation, slice, or splice. Source code cannot build counted text by filling bytes and then changing the length. Embedded zero bytes are ordinary content.
+
+Bounded strings have no comparison operators. A library routine can compare two `string[]` parameters by checking their lengths and indexed bytes.
 
 The `.length` intrinsic applies only when the postfix base has bounded-string type. On a record base, `.length` remains ordinary lookup in that record's field scope. Any other field suffix on a bounded string is invalid.
 
-Nucleus 0.1 has no `string[]`, open string, slice, general view, or address-and-length source value. A source-defined routine that accepts a bounded string names an exact capacity in its parameter type. The predefined `print` routine is the sole capacity-polymorphic exception: it accepts any `string[N]` at its call site without creating an open string type or a source-visible address-and-length value. A broader view for source-defined routines may be considered in a later language version after its compiler, carrier, lifetime, and result-ABI costs have been measured.
+`string[]` is a parameter-only, capacity-polymorphic view. A call may bind it to a concrete `string[N]` storage path or transient alias, for any admitted `N`, or forward another `string[]` parameter. The view retains the actual capacity for `.length` and checked indexing. It does not own storage and is invalid as a variable, constant, record field, array element, local, or routine result. Whole-object assignment and comparison through an open view are invalid.
+
+A string literal remains a contextual static initializer, not a general aggregate expression or argument. Passing literal text therefore requires a named concrete bounded-string object in this version. `string[]` is not a slice: it always views one complete bounded-string object, has no offset or independently chosen length, and cannot be rebound.
 
 This chapter fixes the semantic domain and capacity, not the stored layout. Chapter 7 defines storage identity and lifetime, Chapter 8 defines declaration initialization, and the Z80 runtime and backend contract defines the physical representation and byte encoding. That representation preserves embedded zero bytes, logical lengths through 253, and alias-visible byte mutation.
 
@@ -1001,9 +1010,9 @@ This chapter fixes the semantic domain and capacity, not the stored layout. Chap
 
 An aggregate alias has the same source type as its referent and a separate alias category. For example, an alias to a `Person` record permits `Person` field selection, and an alias to `u8[64]` permits indexing with the fixed bound 64. The alias does not create a reference type that can be named independently.
 
-The compiler must retain the referent type through aggregate parameters, field and element selection, scalar and aggregate assignments, calls, and aggregate results. Passing or returning an alias, or using it as an aggregate-copy source or destination, is invalid unless the required aggregate type is identical to its referent type.
+The compiler must retain the referent type through aggregate parameters, field and element selection, scalar and aggregate assignments, calls, and aggregate results. Passing or returning a concrete alias requires exact referent-type identity. Binding `string[]` retains the argument's concrete capacity separately from its address; forwarding the parameter preserves both.
 
-A direct backend represents an alias at runtime with one untagged 16-bit address because compiler metadata records the record layout, array length, or string capacity. The runtime carrier has no source spelling and no runtime type tag. Source code cannot read, write, compare, convert, store, return as a scalar, or perform arithmetic on the carrier itself.
+A direct backend may represent a concrete alias at runtime with one untagged address because compiler metadata records its extent. An open-string parameter additionally needs the actual capacity supplied by its caller. These carriers have no source spelling or runtime type tag. Source code cannot read, write, compare, convert, store, return as a scalar, or perform arithmetic on a carrier itself.
 
 An alias carrier and `u16` remain different typed entities even though both occupy one word. No conversion exists in either direction. Address derivation for field and element access is a checked compiler or backend operation, not `u16` arithmetic visible to the program.
 
@@ -1019,24 +1028,25 @@ Type identity is determined as follows:
 | Record          | The single declaration that introduced the record.                 |
 | Fixed array     | Identical element type and identical fixed length.                 |
 | `string[N]`     | Identical capacity `N`.                                            |
+| `string[]`      | Parameter-only view over one complete concrete bounded string.     |
 | Aggregate alias | The exact referent type; aliasing adds a category, not a new type. |
 
 The compiler applies these compatibility rules:
 
-| Context                                                | Required compatibility                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Scalar assignment, initialization, argument, or result | Exact scalar type, fitting exact integer literal or named constant, or implicit `u8`-to-`u16` widening. |
-| Checked narrowing to `u8`                              | Explicit operation and successful range check.                                                          |
-| Boolean condition or destination                       | `boolean` only.                                                                                         |
-| Record field selection                                 | The field's declared type.                                                                              |
-| Fixed-array index                                      | `u8` or `u16` index; result has the exact element type.                                                 |
-| Bounded-string `.length`                               | Read-only `u8` value equal to the current logical length.                                               |
-| Bounded-string index                                   | `u8` or `u16` index below the current length; result is a writable `u8` path.                           |
-| Predefined `print` argument                            | Any bounded-string type; the call retains that type's static capacity.                                  |
-| Aggregate parameter                                    | Exact referent-type identity.                                                                           |
-| Aggregate assignment                                   | Exact type identity; copy the complete aggregate into the destination.                                  |
-| Aggregate result                                       | Exact referent-type identity and immediate consumption under Chapter 7.                                 |
-| Aggregate by-value argument or result                  | Invalid; calls transfer aggregate aliases.                                                              |
+| Context                                                | Required compatibility                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Scalar assignment, initialization, argument, or result | Exact scalar type, fitting exact integer literal or named constant, or implicit `u8`-to-`u16` widening.         |
+| Checked narrowing to `u8`                              | Explicit operation and successful range check.                                                                  |
+| Boolean condition or destination                       | `boolean` only.                                                                                                 |
+| Record field selection                                 | The field's declared type.                                                                                      |
+| Fixed-array index                                      | `u8` or `u16` index; result has the exact element type.                                                         |
+| Bounded-string `.length`                               | Read-only `u8` value equal to the current logical length.                                                       |
+| Bounded-string index                                   | `u8` or `u16` index below the current length; result is a writable `u8` path.                                   |
+| Concrete aggregate parameter                           | Exact referent-type identity.                                                                                   |
+| `string[]` parameter                                   | Any concrete bounded-string storage path or transient alias, or another `string[]`; retain the actual capacity. |
+| Aggregate assignment                                   | Exact concrete type identity; copy the complete aggregate into the destination.                                 |
+| Aggregate result                                       | Exact referent-type identity and immediate consumption under Chapter 7.                                         |
+| Aggregate by-value argument or result                  | Invalid; calls transfer aggregate aliases.                                                                      |
 
 Compatibility is checked at the source operation. The backend does not infer compatibility from equal byte widths, equal layouts, compiler storage ordinals, registers, or runtime addresses.
 
@@ -1052,8 +1062,8 @@ Nucleus 0.1 has none of the following:
 - variant records, unions, or overlaid aggregate layouts;
 - structural equivalence between distinct record declarations;
 - arbitrary casts, type punning, or unchecked narrowing;
-- generic types or generic aggregate parameters;
-- open arrays, slices, or variable-capacity views;
+- generic types or generic parameters other than the single built-in `string[]` form;
+- open arrays, slices, or user-defined variable-capacity views;
 - heap-allocated or resizable types;
 - variable-sized local allocation; or
 - unrestricted dynamic data.
@@ -1172,7 +1182,7 @@ Each routine invocation creates a distinct logical activation. An activation con
 
 A scalar parameter receives a copied value. Each scalar local belongs to one activation. Its source lifetime begins when execution reaches its declaration and Chapter 8 has established its initial value; its lifetime ends with the activation. A scalar result is copied from the returned expression to the caller. It is not shared storage in the callee.
 
-An aggregate parameter is a typed alias to caller-provided storage. Its binding belongs to the activation, but the target retains program lifetime. A routine has no other named aggregate binding.
+An aggregate parameter is a typed alias to caller-provided storage. Its binding belongs to the activation, but the target retains program lifetime. An open-string parameter also carries the referent's concrete capacity within the activation. A routine has no other named aggregate binding.
 
 Two simultaneously active invocations have distinct logical parameters and scalar locals. This rule applies even when the implementation assigns the same registers or physical storage to invocations that cannot overlap.
 
@@ -1184,11 +1194,11 @@ Programs declare every aggregate object at top level, pass required objects or s
 
 ### 7.6 Aggregate parameter binding
 
-An aggregate alias binds once when a call establishes an aggregate parameter. The argument is a compatible aggregate storage path rooted in a program variable, aggregate constant, or aggregate parameter, a field or fixed-array element reached from such a root, or a transient aggregate result admitted by Section 7.9. Every admitted source ultimately denotes top-level program storage.
+An aggregate alias binds once when a call establishes an aggregate parameter. The argument is a compatible aggregate storage path rooted in a program variable, aggregate constant, or aggregate parameter, a field or fixed-array element reached from such a root, or a transient aggregate result admitted by Section 7.9. Every admitted source ultimately denotes top-level program storage. A `string[]` binding records both the address of one complete bounded string and its actual capacity; forwarding the view preserves that pair.
 
-The caller evaluates every field selection and checked index used to form the argument once before the call begins. The callee receives the resulting typed alias, and its binding cannot be changed. The target type must exactly match the parameter type under Chapter 6.
+The caller evaluates every field selection and checked index used to form the argument once before the call begins. The callee receives the resulting typed alias, and its binding cannot be changed. The target type must satisfy the parameter-compatibility rule in Chapter 6.
 
-An alias does not extend the target's lifetime. Scalar-leaf writes and exact-type aggregate assignment through an aggregate alias are allowed under the ordinary assignment rules, including when the original target was named by an aggregate constant. Read-only status belongs only to the direct constant-rooted source path; it is not carried in the alias type or checked dynamically.
+An alias does not extend the target's lifetime. Scalar-leaf writes and compatible aggregate assignment through an aggregate alias are allowed under the ordinary assignment rules, including when the original target was named by an aggregate constant. Read-only status belongs only to the direct constant-rooted source path; it is not carried in the alias type or checked dynamically.
 
 ### 7.7 Subobject lifetime and identity
 
@@ -1202,11 +1212,11 @@ Two aliases may denote the same object or overlapping objects. Nucleus provides 
 
 Scalar assignment copies a value into a scalar destination. The destination may be a scalar variable, parameter, record field, fixed-array element, or existing bounded-string byte. After the assignment, later changes to the source do not change the destination.
 
-Aggregate assignment requires a mutable aggregate destination and an aggregate source of the exact same type. It copies the complete aggregate value into the destination. The direct backend copies exactly the type's packed fixed byte extent. A bounded-string copy includes its logical length and complete fixed-capacity object representation.
+Aggregate assignment requires a mutable aggregate destination and an aggregate source of the exact same concrete type. It copies the complete packed value into the destination. Two bounded strings are assignment-compatible only when their capacities are equal. An open-string parameter is a view and cannot be a whole-object assignment operand.
 
 The compiler evaluates the destination storage path once, then the source storage path or transient aggregate-alias result once, and validates both complete extents before the first destination byte changes. If evaluation or validation traps, no byte of the aggregate destination changes. A source and destination that denote the same object or subobject produce no change.
 
-Under the Nucleus 0.1 type and containment rules, two designators of one exact aggregate type are either identical or disjoint. A proper partial overlap would require recursive by-value containment, an overlaid layout, a slice, or arbitrary address formation, all of which are absent. Aggregate assignment therefore needs no runtime overlap check.
+Under the Nucleus 0.1 type and containment rules, two designators admitted by aggregate assignment are either identical or disjoint. A proper partial overlap would require recursive by-value containment, an overlaid layout, a slice, or arbitrary address formation, all of which are absent. Aggregate assignment therefore needs no runtime overlap check.
 
 Aggregate alias binding is not assignment. Once established, an aggregate parameter cannot be rebound. When an aggregate parameter is the destination of aggregate assignment, the copy changes its referent. It does not change the binding.
 
@@ -1220,7 +1230,7 @@ Program-lifetime storage consists of top-level variable and aggregate-constant o
 
 An aggregate return source is a storage path rooted in a visible program variable, aggregate constant, or aggregate parameter, a field or fixed-array element reached from such a root, or a transient aggregate result forwarded from another call. Field selection and checked indexing continue to denote program-lifetime subobjects because every aggregate subobject has the lifetime of its containing object.
 
-The caller must consume a returned aggregate alias immediately. It may discard the result, forward it as an aggregate argument or aggregate return, select a field or element from it, or use it as the source of exact-type aggregate assignment. Assignment is the materialization operation: it copies the complete aggregate into program storage or into the referent of an aggregate parameter. A result cannot be stored as a carrier or survive beyond the containing source operation. Code that needs to retain the value assigns it to a program object or caller-supplied destination.
+The caller must consume a returned aggregate alias immediately. It may discard the result, forward it as an aggregate argument or aggregate return, select a field or element from it, or use it as an aggregate-assignment source compatible under Section 7.8. Assignment is the materialization operation: it copies the value into program storage or into the referent of an aggregate parameter. A result cannot be stored as a carrier or survive beyond the containing source operation. Code that needs to retain the value assigns it to a program object or caller-supplied destination.
 
 Immediate consumption does not permit a later call to destroy the transient carrier before it is used. When evaluation of another argument, index, or suffix can call a routine, the compiler must stage or preserve the typed carrier as live implementation state. This staging is not a source alias and ends with the containing operation.
 
@@ -1310,7 +1320,12 @@ An implementation may bound scalar locals, aggregate-parameter bindings, or the 
 
 Runtime activation capacity is implementation-defined under Chapter 13. An implementation may bound simultaneous activation depth, activation-storage consumption, or both. Reaching either published limit at runtime performs the activation-capacity trap defined by Chapter 15. The limits and trap do not change the source lifetime of an activation that begins successfully.
 
-Nucleus 0.1 exposes no raw pointer value, address arithmetic, heap allocation, manual deallocation, open slice or view, variable-sized local, or storage-layout query through this chapter. Field byte offsets, array byte offsets, bounded-string encoding, address carriers, aggregate-copy lowering, and call-state layouts belong to the Z80 runtime and backend contract.
+Nucleus 0.1 exposes no raw pointer value, address arithmetic, heap allocation,
+manual deallocation, open slice or view other than the parameter-only
+`string[]` view, variable-sized local, or storage-layout query through this
+chapter. Field byte offsets, array byte offsets, bounded-string encoding,
+address carriers, aggregate-copy lowering, and call-state layouts belong to the
+Z80 runtime and backend contract.
 
 ## 8. Constants and declarations
 
@@ -1324,17 +1339,17 @@ Nucleus uses explicit declarations. Variables, fields, parameters, locals, routi
 
 The declaration families are:
 
-| Declaration            | Permitted location                          | Binding or storage established                                             |
-| ---------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
-| Named constant         | Top level                                   | One inferred scalar value or one explicitly typed read-only aggregate root |
-| Compile-time assertion | Top level                                   | No binding or storage; one required compile-time condition                 |
-| Program variable       | Top level                                   | One mutable program-lifetime scalar or aggregate object                    |
-| Record type            | Top level                                   | One nominal fixed-layout record type and its field scope                   |
-| Forward routine        | Top level                                   | One routine signature without a body                                       |
-| Routine definition     | Top level                                   | One routine signature and body, or completion of an earlier forward        |
-| Formal parameter       | Routine header                              | One scalar activation value or aggregate-alias binding                     |
-| Scalar local           | Contiguous routine declaration prefix       | One per-invocation scalar value                                            |
-| Record field           | Between a record header and its closing end | One named scalar or aggregate subobject in each object of the record type  |
+| Declaration            | Permitted location                          | Binding or storage established                                                            |
+| ---------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Named constant         | Top level                                   | One inferred scalar value or one explicitly typed read-only aggregate root                |
+| Compile-time assertion | Top level                                   | No binding or storage; one required compile-time condition                                |
+| Program variable       | Top level                                   | One mutable program-lifetime scalar or aggregate object                                   |
+| Record type            | Top level                                   | One nominal fixed-layout record type and its field scope                                  |
+| Forward routine        | Top level                                   | One routine signature without a body                                                      |
+| Routine definition     | Top level                                   | One routine signature and body, or completion of an earlier forward                       |
+| Formal parameter       | Routine header                              | One scalar activation value, concrete aggregate-alias binding, or `string[]` view binding |
+| Scalar local           | Contiguous routine declaration prefix       | One per-invocation scalar value                                                           |
+| Record field           | Between a record header and its closing end | One named scalar or aggregate subobject in each object of the record type                 |
 
 Only top-level declarations occur in the compilation-unit sequence. Parameters occur only in a routine header. Local declarations form one contiguous prefix after the header and before the first statement. A conditional or loop body cannot contain a declaration, and a declaration after the first statement of a routine is invalid.
 
@@ -1438,7 +1453,7 @@ const Prompt as string[8] = "READY"
 
 The initializer is required and follows the same complete, type-directed static-initializer rules as a program variable. Every scalar leaf is a compatible scalar constant expression. The declaration cannot use a runtime expression, read storage, call a routine, omit a component, or name the constant being declared. A scalar type after `as` is invalid: scalar constants retain the inferred form from Section 8.4.
 
-The named root is read-only. Source assignment cannot be rooted directly at the aggregate constant name, including assignment to the complete object, one record field, one array element, or one bounded-string byte. The constant remains an ordinary aggregate source: field and index selection, `.length`, exact-type copying, aggregate argument passing, and aggregate return are admitted.
+The named root is read-only. Source assignment cannot be rooted directly at the aggregate constant name, including assignment to the complete object, one record field, one array element, or one bounded-string byte. The constant remains an ordinary aggregate source: field and index selection, `.length`, exact-type aggregate assignment, aggregate argument passing, and aggregate return are admitted.
 
 Read-only status is deliberately not part of the aggregate alias type. Passing a constant to an aggregate parameter or returning it as an aggregate result removes the direct-root distinction, so mutation through that alias is permitted by the language and is not dynamically checked. A target that places the bytes in writable memory may observe the change; a target that places them in ROM may ignore or reject the physical write. Portable programs treat aggregate constants as immutable and do not depend on mutation through an alias. This bounded rule avoids a transitive const or permission type system.
 
@@ -1524,7 +1539,7 @@ The program variable becomes visible only after the compiler has checked its typ
 
 One routine header declares a routine name, an ordered list of zero or more formal parameters, and either no result type or one result type. Every parameter has an explicit `name as Type` declaration. Parameters have no initializer or default argument, and a header has no grouped names or multiple result list.
 
-A scalar parameter denotes a per-invocation copied value. An aggregate parameter establishes a fixed typed alias to caller-provided program-lifetime storage. Scalar-leaf mutation and exact-type aggregate assignment through that alias are permitted; neither changes the binding. Chapter 13 defines calls, result rules, and the value supplied for each parameter; this chapter defines only the bindings written in the header.
+A scalar parameter denotes a per-invocation copied value. A concrete aggregate parameter establishes a fixed typed alias to caller-provided program-lifetime storage. A `string[]` parameter establishes a fixed view over one complete concrete bounded string and retains its actual capacity. Scalar-leaf mutation through either alias form is permitted and does not change the binding. Chapter 13 defines calls, result rules, and the value supplied for each parameter; this chapter defines only the bindings written in the header.
 
 A forward routine declaration contains the complete and sole header and no body. The compiler retains its exact routine and parameter names, ordered parameter types, optional result type, and `fails` effect. The later abbreviated `sub NAME` header opens the body under Chapters 4 and 5; the forward's parameter names create that body's parameter bindings. The definition completes the existing routine binding and does not declare another routine or repeat its signature.
 
@@ -1563,8 +1578,8 @@ The compiler must diagnose:
 - a scalar type written on an aggregate-constant form, a nonconstant aggregate initializer, or an initializer form incompatible with its declared component type;
 - assignment rooted directly at an aggregate constant name;
 - a record, fixed array, or bounded string used as a local variable type;
-- an aggregate argument or result with a nonidentical referent type;
-- an attempt to copy between nonidentical aggregate types; and
+- a concrete aggregate argument or result with a nonidentical referent type, except for a bounded string bound to `string[]`;
+- an assignment between different aggregate types, including bounded strings with different capacities; and
 - an abbreviated body without one matching incomplete forward, a second completion, or an uncompleted forward.
 
 An implementation may bound top-level declarations, record fields, parameters, scalar locals, constant-expression nesting, structured-initializer depth and elements, decoded string bytes, type descriptors, retained signatures, and initialization records. It must publish each limit and issue a capacity diagnostic before truncation, wraparound, omitted initialization, dropped fields, or an incorrect binding can occur. A capacity failure does not change an otherwise conforming declaration into invalid source.
@@ -1669,7 +1684,7 @@ sub invalidLocal()
 end
 ```
 
-Inside a routine, both `var current as Cell = cells[0]` and `var aggregateLocal as Cell` are invalid because every local must have scalar type. At top level, `var copiedCell as Cell = cells[0]` would read aggregate storage during static initialization and is independently invalid. Aggregate parameters and program variables remain valid aggregate-assignment destinations of the exact same type.
+Inside a routine, both `var current as Cell = cells[0]` and `var aggregateLocal as Cell` are invalid because every local must have scalar type. At top level, `var copiedCell as Cell = cells[0]` would read aggregate storage during static initialization and is independently invalid. Aggregate parameters and program variables remain valid aggregate-assignment destinations under the compatibility rules in Section 6.10.
 
 ## 9. Expressions
 
@@ -1733,7 +1748,7 @@ Expression checking records both a type and one of these source categories:
 
 A **storage path** begins with a visible program variable, aggregate constant, parameter, or local and continues through zero or more field and index suffixes. Each suffix preserves the root object's identity while selecting a subobject. An aggregate-constant-rooted path is readable but not a direct assignment target. A scalar constant and a routine call are not storage-path roots. A call that returns an aggregate alias may be selected or indexed in a value context, but Chapter 10 does not admit it as an assignment root.
 
-A bare aggregate storage path is valid where a rule requires compatible aggregate storage, an alias, or the source or destination of exact-type aggregate assignment. It is not a general expression value. Nucleus has no aggregate comparison, truth test, automatic argument copy, or automatic result copy.
+A bare aggregate storage path is valid where a rule requires compatible aggregate storage, an alias, or an aggregate-assignment operand. It is not otherwise a general expression value. Nucleus has no aggregate comparison, aggregate truth test, automatic argument copy, or automatic result copy.
 
 ### 9.5 Explicit integer conversions
 
@@ -1795,7 +1810,7 @@ The six comparison operators accept compatible integer operands and produce `boo
 
 Boolean operands support only `=` and `<>`. Both operands must have type `boolean`. Boolean ordering is invalid.
 
-Records, fixed arrays, bounded strings, aggregate aliases, and alias carriers have no comparison operation in Nucleus 0.1. Equal layout, equal capacity, or identity of the referred object does not add an equality operator. A bounded-string content operation, if admitted at the system boundary, defines its own result and does not change this rule.
+Records, fixed arrays, and bounded strings, including aliases to them, have no comparison operation in Nucleus 0.1. Equal layout or identity of the referred object does not add an equality operator.
 
 Comparison chaining is invalid. `minimum <= value <= maximum` is not two comparisons; after the first comparison, the left side would be Boolean and the grammar permits no second comparison operator. The equivalent valid form is `minimum <= value and value <= maximum`.
 
@@ -1896,7 +1911,8 @@ Each of these forms is invalid:
 ```nucleus
 first < second < third  // comparisons do not chain
 flag + 1               // Boolean is not integer
-recordValue = other    // aggregate equality is absent
+recordValue = other    // record equality is absent
+shortText < longText   // strings have no comparison operators
 routineName            // a routine name is not a value
 boolean(value)          // Boolean conversion is absent
 ```
@@ -1972,11 +1988,11 @@ The compiler evaluates an assignment in this order:
 
 The target path is evaluated once. A call or mutation in an index expression therefore occurs before any operation in the right-hand expression. If target evaluation traps, the right-hand expression is not evaluated. If the right-hand expression or a checked conversion traps, the destination is not changed, although effects from the earlier target evaluation remain.
 
-A scalar destination uses the scalar compatibility rules from Chapter 6. An aggregate destination requires a writable aggregate storage path. Its source must be an aggregate storage path or transient aggregate result with the exact same aggregate type. The compiler validates the complete source and destination extents before copying the fixed object representation. Assignment through an alias changes its referent and never rebinds the alias. Self-assignment has no effect.
+A scalar destination uses the scalar compatibility rules from Chapter 6. An aggregate destination requires a writable aggregate storage path and an aggregate storage path or transient result of the exact same concrete type. The compiler validates the complete source and destination extents before changing the destination. Assignment through an alias changes its referent and never rebinds the alias. Self-assignment has no effect.
 
 In this statement position, `=` is the assignment operator. Inside an expression, it is equality under Chapter 9. Assignment is not an expression and produces no value. Chained assignment, compound assignment such as `+=`, increment and decrement statements, and assignment inside a condition or argument are absent.
 
-Assignment to a record, fixed array, bounded string, or aggregate alias copies a complete value only when the source has the exact same type. A string-byte assignment still replaces one selected byte without changing the string's length or capacity. No assignment changes an alias binding.
+Aggregate assignment copies a complete value only when the source has the exact same concrete type. A string-byte assignment replaces one selected byte without changing the string's length or capacity. No assignment changes an alias binding, and `string[]` is not a whole-object assignment type.
 
 ### 10.5 Routine-call statements
 
@@ -2392,7 +2408,9 @@ If argument evaluation traps, no later argument is evaluated and the routine bod
 
 A scalar argument must have the exact parameter type, be an exact literal that fits it, or use the implicit `u8`-to-`u16` widening. Passing `u16` to `u8` requires explicit checked `u8(...)`. Boolean and integer arguments do not convert between each other.
 
-An aggregate argument must be an aggregate storage path or a transient aggregate-alias result with exact referent-type identity. It does not copy the record, fixed array, or bounded string. The callee's parameter becomes a fixed alias to the same object or subobject. Scalar-leaf mutation and exact-type aggregate assignment through that parameter are visible through every other path to the same storage.
+An argument for a concrete aggregate parameter must be an aggregate storage path or transient alias with exact referent-type identity. An argument for `string[]` may instead have any concrete bounded-string capacity or be another open-string parameter. In every case the call transfers an alias rather than copying the object. An open-string binding also retains the actual capacity so `.length` and indexing use the referent's real bound. Scalar-leaf mutation through the parameter is visible through every other path to the same storage.
+
+A string literal is not an aggregate argument. Source that passes fixed text first declares a concrete bounded-string constant and passes that name. This keeps argument evaluation within the ordinary storage-and-alias model.
 
 Nucleus has no parameter modes, implicit read-only aggregate parameter, write permission, copy-in/copy-out aggregate parameter, or hidden source-level pointer conversion.
 
@@ -2414,7 +2432,7 @@ A scalar result follows the scalar destination rules: exact type, fitting exact 
 
 An aggregate result must be an aggregate storage path or transient aggregate-alias result with exact referent-type identity. The storage path is rooted in a visible program variable, aggregate constant, or aggregate parameter. The caller receives a transient alias to the same existing program-lifetime object, not a copy. Section 7.9 establishes the lifetime of every admitted aggregate result without another result check.
 
-The caller may consume that transient alias only by discarding it as a complete call statement, passing it directly to an aggregate parameter, forwarding it as an aggregate return, applying an immediate field or index suffix, or using it as the source of exact-type aggregate assignment. It cannot be retained in a source variable. To retain the returned value, the caller assigns the call result into a program object or caller-supplied aggregate destination, causing the complete copy defined by Section 7.8.
+The caller may consume that transient alias only by discarding it as a complete call statement, passing it directly to a compatible aggregate parameter, forwarding it as an aggregate return, applying an immediate field or index suffix, or using it as an exact-type aggregate-assignment source. It cannot be retained in a source variable. To retain the returned value, the caller assigns the call result into a program object or caller-supplied aggregate destination, causing the copy defined by Section 7.8.
 
 If evaluating a later argument or suffix performs another call, the compiler preserves the transient carrier until its containing operation consumes it. Backend liveness or argument staging provides that protection; it does not create a source-visible pointer or extend the result beyond the operation.
 
@@ -2780,18 +2798,6 @@ sub seekStorageOutput(offset as u16) fails
 
 The declarations above state interfaces; they are not source definitions and do not require completing bodies in the compilation unit.
 
-The compiler also establishes one predefined intrinsic binding named `print`. A call supplies exactly one argument, and the special compatibility rule in Section 6.10 admits every bounded-string capacity. In the following schematic, `N` denotes the concrete capacity of that argument:
-
-```text
-print(value as string[N]) fails, for each admitted N
-```
-
-This notation does not define overloads, a generic routine, or an open string type. The call retains the argument's one concrete bounded-string type.
-
-`print(value)` performs the observable effect of calling `writeOutputByte` once for each of `value`'s logical bytes, in increasing index order. An empty string performs no output call. Embedded zero bytes are ordinary content. If every byte is accepted, `print` succeeds. If one call fails, `print` returns that code immediately; bytes accepted by earlier calls remain visible, and no later byte is attempted.
-
-`print` is parsed with the ordinary call syntax and participates in `else fail` and `handle` exactly like another result-free failable routine. Its name is a predefined ordinary binding and cannot be redeclared or shadowed. It does not add a Nucleus System Service. A conforming implementation may lower the intrinsic by any means that preserves these observable calls and results.
-
 Standard input starts with its cursor before the first supplied byte. `readInputByte` obtains the next byte from standard input. It may block until a byte, end-of-input condition, or input failure is available. It succeeds with the byte and advances the cursor, fails with `endOfInput` at the end, else fails with `inputFailure` for another input error. Failure leaves the cursor unchanged.
 
 Standard output starts empty and is append-only. `writeOutputByte` appends one byte to standard output. It succeeds after the byte has been accepted else fails with `outputFailure`. Successful writes occur in call order; failure leaves the output unchanged.
@@ -2927,7 +2933,7 @@ type-atom
 scalar-type
     ::= "u8" | "u16" | "boolean"
 bounded-string-type
-    ::= "string" "[" expression "]"
+    ::= "string" "[" [ expression ] "]"
 
 statement-sequence
     ::= { statement }
@@ -3030,27 +3036,27 @@ field-suffix
     ::= "." NAME
 ```
 
-The grammar uses the general `expression` nonterminal for scalar constant leaves and type bounds. Chapter 8's constant-context predicate rejects variables, calls, nonconstant operations, and values outside the required range. The declared type and current aggregate component select a scalar expression, string literal, parenthesized record initializer, or bracketed array initializer. This type-directed choice resolves the shared opening `(` of a parenthesized scalar expression and a record initializer without backtracking. `type` permits at most one array suffix outside a bounded-string atom, which admits arrays of scalars, records, and bounded strings but not arrays of arrays.
+The grammar uses the general `expression` nonterminal for scalar constant leaves and type bounds. Chapter 8's constant-context predicate rejects variables, calls, nonconstant operations, and values outside the required range. An omitted bounded-string bound is admitted only in a formal parameter; every other type position rejects it. The declared type and current aggregate component select a scalar expression, string literal, parenthesized record initializer, or bracketed array initializer. This type-directed choice resolves the shared opening `(` of a parenthesized scalar expression and a record initializer without backtracking. `type` permits at most one array suffix outside a bounded-string atom, which admits arrays of scalars, records, and bounded strings but not arrays of arrays.
 
 ### 17.3 Semantic predicates
 
 The grammar uses these declared semantic predicates:
 
-| Predicate                      | Decision                                                                                                                                                                                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCallableName`               | At statement head, select a routine-call statement; in an expression, admit a call suffix only on a visible source routine, service, or `print`, and retain its result and failure category. |
-| `isWritableName`               | At statement head, select assignment only when the resolved declaration is a mutable scalar or aggregate root; an aggregate constant root is rejected before suffix parsing.                 |
-| `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                                               |
-| `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.                     |
-| `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                                   |
-| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                                      |
-| `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.                        |
+| Predicate                      | Decision                                                                                                                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isCallableName`               | At statement head, select a routine-call statement; in an expression, admit a call suffix only on a visible source routine or service, and retain its result and failure category. |
+| `isWritableName`               | At statement head, select assignment only when the resolved declaration is a mutable scalar or aggregate root; an aggregate constant root is rejected before suffix parsing.       |
+| `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                                     |
+| `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.           |
+| `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                         |
+| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                            |
+| `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.              |
 
 Field lookup after `.` uses the selected record type, except that a bounded-string base admits only the intrinsic read-only suffix `.length`. Index selection uses a fixed-array domain or a bounded string's current logical length according to the base type; this distinction needs no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 171 BNF rules over 94 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 173 BNF rules over 95 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
 | Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Lookahead | Conflict                                           | Resolution                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
@@ -3074,19 +3080,19 @@ Identifiers use their complete case-sensitive source spelling as identity. Progr
 
 Name-led parsing first resolves the visible binding, then checks its declaration class. A routine name starts a call. A mutable scalar or aggregate storage path starts an assignment. An aggregate constant starts a readable aggregate path but is rejected as a direct-root assignment target. A record type is valid only in a type position. A failable call is parsed as an ordinary call and then checked for exactly one failure consumer under Chapter 14. Failure to find a binding, finding the wrong class, or finding a later declaration is invalid source.
 
-The standard service names, `print`, and error constants from Chapter 16 are visible before source declarations. `main` is source-defined and must have no parameters and no result.
+The standard service names and error constants from Chapter 16 are visible before source declarations. `main` is source-defined and must have no parameters and no result.
 
 ### 18.3 Types and compatibility
 
-Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Bounded-string identity consists of exact capacity. Source-defined calls require that exact identity for aggregate arguments; the predefined `print` call instead admits any bounded-string identity and retains its capacity for checking.
+Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Concrete bounded-string identity consists of exact capacity. `string[]` is admitted only for parameters and retains the argument's actual capacity.
 
-Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and implicit `u8`-to-`u16` widening. Checked `u8(...)` is the only `u16`-to-`u8` conversion. Boolean and integer types do not convert. Aggregate arguments, results, parameter bindings, and assignments require exact type identity. Aggregate assignment copies the complete value. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
+Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and implicit `u8`-to-`u16` widening. Checked `u8(...)` is the only `u16`-to-`u8` conversion. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity or another open-string parameter. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
 
 The compiler checks every operator, condition, assignment, argument, result, field, index, initializer, and failure code locally. A failable invocation supplies no ordinary expression value until its failure has been consumed under Chapter 14.
 
 ### 18.4 Storage and aliases
 
-A program variable or aggregate constant owns program-lifetime storage. A scalar parameter or local owns one activation value. An aggregate parameter is a fixed typed alias established for the activation. A returned aggregate alias is transient and cannot establish a source binding. Alias binding is not assignment. A writable aggregate storage path may be an assignment destination, and an aggregate storage path or transient aggregate-alias result of the exact same type may be its source. Direct paths rooted at an aggregate constant are readable but not writable; aliases derived from them do not retain that marker. A routine-local declaration with aggregate type is invalid.
+A program variable or aggregate constant owns program-lifetime storage. A scalar parameter or local owns one activation value. An aggregate parameter is a fixed typed alias established for the activation; `string[]` additionally retains its actual capacity. A returned aggregate alias is transient and cannot establish a source binding. Alias binding is not assignment. A writable aggregate storage path may be an assignment destination whose source has the exact same concrete aggregate type. Direct paths rooted at an aggregate constant are readable but not writable; aliases derived from them do not retain that marker. A routine-local declaration with aggregate type is invalid.
 
 Field and checked-index selection preserve the root identity and exact selected type. A bounded-string index selects an existing writable `u8` byte when the index is below the string's current length; `.length` yields a read-only `u8` value. Every aggregate object and subobject has program lifetime, so a returned aggregate alias needs no separate lifetime metadata.
 
@@ -3100,7 +3106,7 @@ Program variables use the zero or complete static initializer forms in Chapter 8
 
 ### 18.6 Routine and failure checking
 
-A call must match the visible signature in arity and parameter order. Scalar arguments copy compatible values. Aggregate arguments bind aliases of the exact referent type. A forward declaration is the sole complete signature. Its abbreviated `sub NAME` body header must resolve to that exact incomplete forward, and the stored forward parameter names bind the body.
+A call must match the visible signature in arity and parameter order. Scalar arguments copy compatible values. Concrete aggregate parameters bind aliases of the exact referent type; `string[]` binds any complete bounded-string object and preserves its actual capacity. A forward declaration is the sole complete signature. Its abbreviated `sub NAME` body header must resolve to that exact incomplete forward, and the stored forward parameter names bind the body.
 
 Every failable invocation has exactly one failure consumer. `else fail` requires a failable enclosing routine and is admitted only after a complete direct failable call in a scalar-local initializer, assignment right side, or call statement. Same-line `handle NAME` is admitted only after an eligible assignment or call statement and requires an existing writable `u8` destination that is not an active counted-loop counter. Failable invocations are invalid in returns, larger expressions, and argument lists.
 
@@ -3130,9 +3136,9 @@ Normal return from `main` terminates successfully. Failure from `main` and a saf
 
 Expressions evaluate in the order specified by Section 9.11. Binary operands are left-to-right except for Boolean short-circuit suppression. Postfix suffixes apply left-to-right, and each index is checked when reached. Arguments evaluate left-to-right before a call begins.
 
-Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Comparisons use unsigned integer order or Boolean equality as applicable. Checked narrowing, division, indexing, and counted-loop increment perform their required checks before producing or storing a result.
+Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Comparisons use unsigned integer order or Boolean equality. Checked narrowing, division, indexing, and counted-loop increment perform their required checks before producing or storing a result.
 
-Scalar assignment evaluates and checks the complete target path, then evaluates the right side, then converts and stores. Aggregate assignment evaluates its complete destination path first and its source second. It validates both complete extents before changing the destination, then copies exactly the byte representation of their common nominal type. Self-assignment has no effect. The type rules make two distinct same-type aggregate subobjects disjoint, so partial overlap cannot arise in Nucleus 0.1.
+Scalar assignment evaluates and checks the complete target path, then evaluates the right side, then converts and stores. Aggregate assignment evaluates its complete destination path first and its source second, then validates both complete extents before changing the destination. It copies the common exact-type representation. Self-assignment has no effect. The type rules make two distinct assignment-compatible aggregate subobjects disjoint, so partial overlap cannot arise in Nucleus 0.1.
 
 A failure or trap before a success-result store or aggregate copy leaves the destination unchanged, while effects already completed remain visible. A handled failable scalar assignment then stores its error code in the handler destination; if both destinations name the same scalar, that scalar receives the error code.
 
@@ -3162,7 +3168,7 @@ Error propagation ends activations through ordinary return control. It performs 
 
 ### 19.7 System services and traps
 
-The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. `print` performs those byte-output calls in string-index order and stops at the first failure; earlier successful writes remain. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success.
+The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success.
 
 A trap stops source execution at the failing operation. The environment reports the required reason and best available location. Earlier completed effects remain; no later source operation or source-level cleanup executes.
 
@@ -3176,12 +3182,12 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source       | Ordered multipart compilation input with stable part identities and part-relative diagnostics; flat ordered build manifest; ASCII-compatible bytes, `//` comments, logical newlines, case-sensitive preserved names, lowercase keywords, decimal, hexadecimal, and binary integers, byte characters, bounded string literals, fixed punctuation. |
 | Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
-| Types        | `u8`, `u16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, exact aggregate aliases, and exact-type aggregate value copying.                                                                                                                                         |
+| Types        | `u8`, `u16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` views, exact aggregate aliases, and exact-type aggregate copying.                                                                                                              |
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
-| Expressions  | Calls, checked array and bounded-string indexing, field selection and string `.length`, explicit integer conversions, unary `+`/`-`, arithmetic including quotient and remainder, one comparison, `not`, `and`, `or`, and integer-only `xor`.                                                                                                    |
-| Statements   | Scalar and exact-type aggregate assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                                                                            |
+| Expressions  | Calls, checked array and bounded-string indexing, field selection and string `.length`, explicit integer conversions, unary `+`/`-`, arithmetic including quotient and remainder, one scalar comparison, `not`, `and`, `or`, and integer-only `xor`.                                                                                             |
+| Statements   | Scalar assignment, exact-type aggregate assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                                                                    |
 | Control      | Flat `if`/`elseif`/`else`, pre-test `while`, counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                                                                                                                              |
-| Routines     | Formal arguments, named scalar locals, no result or one typed result, early return, direct and mutual recursion, one complete forward signature whose parameter names bind its abbreviated body, and capacity-polymorphic predefined `print(string[N])`.                                                                                         |
+| Routines     | Formal arguments including capacity-polymorphic `string[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                                                   |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
 | System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes, normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                                                                                     |
 
@@ -3199,13 +3205,13 @@ These forms are omitted from 0.1 and may be reconsidered only by a future langua
 
 The maintainer of this language specification owns source-language admission. The maintainer of the Z80 runtime and backend contract co-owns decisions that change the target representation or System Services interface.
 
-| Candidate                                                               | Required decision evidence and owner                                                                                                                                       |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dense nonnegative selection                                             | Compiler cost versus emitted jump-table savings on representative programs; language-specification maintainer in a future revision.                                        |
-| Routine-local aggregate objects or fixed local aggregate aliases        | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.                        |
-| Open arrays, slices, or capacity-erased string views                    | Source typing, multiword carrier, lifetime, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
-| Bounded-string growth, resize, append, and capacity-changing operations | Typed contract, alias effects, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                                        |
-| Additional system services                                              | Portable typed contract and complete compiler, runtime, and target cost; System Services maintainer in a future service revision.                                          |
+| Candidate                                                               | Required decision evidence and owner                                                                                                                             |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dense nonnegative selection                                             | Compiler cost versus emitted jump-table savings on representative programs; language-specification maintainer in a future revision.                              |
+| Routine-local aggregate objects or fixed local aggregate aliases        | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.              |
+| Open arrays, slices, or views other than parameter-only `string[]`      | Source typing, carrier, lifetime, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
+| Bounded-string growth, resize, append, and capacity-changing operations | Typed contract, alias effects, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                              |
+| Additional system services                                              | Portable typed contract and complete compiler, runtime, and target cost; System Services maintainer in a future service revision.                                |
 
 These candidates are not provisional 0.1 syntax. Extensions may prototype them only under Section 1.7.
 
@@ -3221,7 +3227,7 @@ Implementation alternatives such as register allocation, helper organization, ha
 
 ### 21.1 Complete accepted program
 
-This program exercises records, complete aggregate initializers, exact-type aggregate assignment, a checked fixed array, an aggregate alias parameter and result, scalar locals, a counted loop, a conditional chain, a call, and observable output:
+This program exercises records, complete aggregate initializers, exact-type record assignment, a checked fixed array, an aggregate alias parameter and result, scalar locals, a counted loop, a conditional chain, a call, and observable output:
 
 ```nucleus
 record Cell

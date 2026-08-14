@@ -17,11 +17,12 @@ describe("Nucleus D8 semantic transcript validation", () => {
     ].map((operation) => [operation, 2] as const),
     ...[
       20, 24, 28, 30, 34, 35, 43, 44, 56, 57, 61, 62, 70, 74, 87, 89, 98, 99,
-      106, 107,
+      106, 107, 110,
     ].map((operation) => [operation, 3] as const),
-    ...[32, 71, 82, 83, 96, 97].map((operation) => [operation, 4] as const),
+    ...[32, 71, 82, 83, 96, 97, 108, 109].map(
+      (operation) => [operation, 4] as const,
+    ),
     ...[77, 95].map((operation) => [operation, 5] as const),
-    [23, 7],
     [90, 7],
     [72, 9],
   ]);
@@ -90,7 +91,7 @@ describe("Nucleus D8 semantic transcript validation", () => {
   });
 
   it("rejects retired and unknown operation bytes", () => {
-    for (const operation of [0, 26, 27, 108, 255]) {
+    for (const operation of [0, 23, 26, 27, 255]) {
       expect(() =>
         nucleusSemanticOperationKeys(Uint8Array.of(operation), 1),
       ).toThrow("is not in the production dispatch table");

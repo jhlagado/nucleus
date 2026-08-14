@@ -149,8 +149,12 @@ describe("the normative Nucleus 0.1 grammar", () => {
       "A routine-local declaration with aggregate type is invalid.",
     );
     expect(text).toContain(
-      "Aggregate assignment requires a mutable aggregate destination and an aggregate source of the exact same type",
+      "Aggregate assignment requires a mutable aggregate destination and an aggregate source of the exact same concrete type",
     );
+    expect(text).toContain(
+      "`string[]` is a parameter-only, capacity-polymorphic view",
+    );
+    expect(text).toContain("Bounded strings have no comparison operators");
     expect(text).toContain(
       "The caller must consume a returned aggregate alias immediately",
     );

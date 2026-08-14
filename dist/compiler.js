@@ -4,13 +4,13 @@ import { debugCompilerHex, debugCompilerSymbols, normalCompilerHex, normalCompil
 import { materializeNobj, parseNobj, } from "./nobj.js";
 import { commitNobjAdapterGeneration, } from "./proof.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
-const SOURCE_BASE = 0x5000;
-const SOURCE_LIMIT = 0x5800;
+const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
+const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
 const PART_BANKS = TARGET_DESCRIPTOR + 0x10;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
-const RUNTIME_IDENTITY = 5;
+const RUNTIME_IDENTITY = 4;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
@@ -116,18 +116,18 @@ const writeWord = (memory, address, value) => {
     memory[address + 1] = value >>> 8;
 };
 const readWord = (memory, address) => (memory[address] ?? 0) | ((memory[address + 1] ?? 0) << 8);
-const prepareSource = (memory, parts, requestedBanks) => {
+const prepareSource = (memory, parts, sourceBase, sourceLimit, requestedBanks) => {
     if (parts.length < 1 || parts.length > MAX_SOURCE_PARTS) {
         throw new RangeError(`Nucleus source requires 1..${MAX_SOURCE_PARTS} parts`);
     }
     const encoded = parts.map(sourcePartBytes);
     const loaded = [];
-    let sourceCursor = SOURCE_BASE + parts.length * 5;
+    let sourceCursor = sourceBase + parts.length * 5;
     for (let index = 0; index < encoded.length; index += 1) {
         const bytes = encoded[index] ?? new Uint8Array();
-        const descriptor = SOURCE_BASE + index * 5;
+        const descriptor = sourceBase + index * 5;
         const end = sourceCursor + bytes.length;
-        if (end > SOURCE_LIMIT) {
+        if (end > sourceLimit) {
             throw new RangeError("Nucleus source parts exceed the 2 KiB host source window");
         }
         memory[descriptor] = index + 1;
@@ -322,7 +322,9 @@ export const compileNucleus = async (parts, target = {}, options = {}) => {
         },
     });
     const memory = runtime.hardware.memory;
-    const prepared = prepareSource(memory, parts, isBankedTarget(target) ? target.partBanks : undefined);
+    const sourceBase = symbol(image.symbols, "SourceBase");
+    const sourceLimit = symbol(image.symbols, "SourceLimit");
+    const prepared = prepareSource(memory, parts, sourceBase, sourceLimit, isBankedTarget(target) ? target.partBanks : undefined);
     const partBanks = prepared.partBanks;
     const begin = prepareTarget(memory, partBanks, target);
     if (debugHooks) {
@@ -359,8 +361,8 @@ export const compileNucleus = async (parts, target = {}, options = {}) => {
     runtime.cpu.sp = STACK_TOP;
     runtime.cpu.pc = symbol(image.symbols, "CompileTargetAggregateCallParts");
     runtime.cpu.a = parts.length;
-    runtime.cpu.h = SOURCE_BASE >>> 8;
-    runtime.cpu.l = SOURCE_BASE & 0xff;
+    runtime.cpu.h = sourceBase >>> 8;
+    runtime.cpu.l = sourceBase & 0xff;
     runtime.cpu.ix = TARGET_DESCRIPTOR;
     runtime.cpu.halted = false;
     let instructions = 0;

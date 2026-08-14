@@ -73,8 +73,9 @@ explicitly reopens them:
 - all routine-local variables are scalar;
 - all owned aggregate storage belongs to top-level program variables,
   aggregate constants, and their inline subobjects;
-- aggregate parameters and results use typed, opaque address carriers;
-- aggregate assignment copies the complete fixed representation;
+- concrete aggregate parameters and results use typed, opaque address carriers;
+  `string[]` parameters additionally retain the argument's actual capacity;
+- aggregate assignment copies only the exact concrete representation;
 - the compiler emits checked semantic operations into a direct-Z80 backend and
   initially uses fixed templates without register allocation or whole-program
   optimization;
@@ -897,7 +898,7 @@ to the immediately preceding segmented-output plateau, the correction removes
 The following aggregate-width correction supersedes that object ceiling.
 Dynamic descriptors now retain a 16-bit array length and a separate 16-bit
 complete extent. Record-field offsets and record extents are also words.
-Selection, region validation, and exact-type copying consume those word values;
+Selection, region validation, and exact-type aggregate copying consume those word values;
 arrays use the element's complete word extent as their stride. Bounded strings
 remain capped at `string[253]`, but participate in the same complete-extent,
 allocation, region-checking, and copying paths as every other aggregate.
@@ -1671,7 +1672,11 @@ end to equal the semantic read cursor captured at `$DE`. These
 checks add zero compiler, adapter, workspace, transcript, generated-program,
 runtime, NOBJ, or HEX bytes.
 
-### Compression and capacity-polymorphic `print`
+### Retired checkpoints: `print` and bounded-string operators
+
+The measurements in this section record superseded implementation checkpoints.
+Neither `print` nor the bounded-string operators described here belong to the
+current language.
 
 The next pass began from `proofs/chapter21-target-z80-slice-proof.json` at
 standalone HEAD `a782cc9dc83c395e4b7fc7dd536584d7541f0a4f`. The baseline was
@@ -1739,7 +1744,8 @@ larger runtime moves target placement and therefore changes layout-dependent
 address operands, NOBJ, and Intel HEX bytes.
 
 The `supports a measured TEC-1-style menu and value display` case in
-`test/print.test.ts`, using that test's fixed flat target and service addresses,
+`91b52cf4ccee824dda8f8f78fcf2fdb961acd25e:test/print.test.ts`, using that
+test's fixed flat target and service addresses,
 locks the following account. The retained console is a 1,034-byte source file. It uses
 five static messages across four distinct capacities (`string[2]`,
 `string[8]`, `string[20]`, and `string[40]`), three ordinary numeric-formatting
@@ -1752,15 +1758,121 @@ choice produces the exact menu and `1234` display text.
 This console needs no string comparison, search, or copy routine. Its three
 formatter routines transform integers and belong to the separate
 number-formatting tier. For this program, the measured non-output string-routine
-count is zero. The project therefore defers both further string intrinsics and
-`string[]` until a broader program requires them.
+count is zero. A later design decision added logical string equality and
+widening string assignment because both operate on existing bounded values
+without a new carrier or source type. Search, slicing, splicing, and `string[]`
+remain deferred until a concrete program supplies requirements against which
+they can be designed and measured.
 
 The console uses four of the eight aggregate-type entries. A separate boundary
-case in `test/print.test.ts` admits eight distinct bounded-string capacities
+case in `91b52cf4ccee824dda8f8f78fcf2fdb961acd25e:test/print.test.ts` admits eight distinct bounded-string capacities
 with `print` and rejects the ninth with the existing aggregate-type-capacity
 diagnostic. This proves that `print` allocates no hidden wildcard type, but it
 does not prove that eight entries suit every application. The capacity remains
 eight for now, with no 48-byte workspace increase.
+
+The bounded-string operator pass began at standalone HEAD
+`91b52cf4ccee824dda8f8f78fcf2fdb961acd25e`. Measured baseline: 15,504
+compiler-code bytes plus 399 immutable bytes, or 15,903 bytes of compiler core
+with 481 bytes of headroom. Measured workspace: 3,606 bytes. The target-enabled
+Chapter 21 proof selected a measured 592-byte runtime, emitted a measured
+7,931-byte NOBJ using 1,479 image bytes, and executed a measured 1,043,067
+compiler instructions in 10,189,213 T-states.
+
+The pass adds logical equality between bounded strings of any capacities through the
+existing `=` operator. It compares length and payload rather than representation
+or alias identity. Existing assignment syntax now admits `string[M]` on the
+right of `string[N]` when `M <= N`; the generated operation validates both
+complete regions and the source length before copying, then clears the unused
+destination tail. Narrowing assignment remains invalid. Routine parameters and
+results retain exact type identity because they transfer aliases rather than
+values. The grammar and generated LL(1) tables are unchanged. Semantic
+operations 26 and 27 reuse retired typed-dispatch slots and each occupy five
+transcript bytes.
+
+The operator experiment was measured while it remained in the working tree,
+then removed without an archived source checkpoint. Its transient counts are
+therefore not published as reproducible measurements. The retained conclusion
+is qualitative: the operators consumed compiler core and runtime bytes that the
+more general `string[]` facility could replace with source routines.
+
+The uncommitted operator experiment distinguished equality across capacities,
+embedded zero bytes, empty strings, widening assignment, destination-tail
+clearing, narrowing and ordering rejection, grouped operands, nested calls,
+field and transient sources, corrupt lengths and carrier regions, capacity-253
+boundaries, banked calls, D8 decoding, and normal/debug NOBJ identity. Those
+fixtures were removed with the operators, so this paragraph records design
+history rather than current proof evidence.
+The pass also repairs constant `*`, `/`, and `mod` folding so the result value
+cannot contaminate its type metadata. `find`, slice, splice, string-literal call
+arguments, and capacity-widening aggregate parameters are not part of this pass.
+
+### Parameter-only `string[]` and retirement of the string intrinsics
+
+The `print` and bounded-string-operator checkpoints above are retained as
+historical measurements, not as the current language. The next experiment
+showed that a source-defined routine can accept `string[]` safely without a
+runtime helper. The parameter is one source binding represented internally by
+an address and the concrete argument capacity. A caller may pass any
+`string[N]` storage path or forward another `string[]`. The callee may read
+`.length` and read or write existing indexed bytes; each access validates the
+dynamic complete extent and stored length. The view owns no storage and cannot
+be used as a variable, constant, field, array element, local, result,
+whole-object assignment operand, or comparison operand.
+
+The semantic transcript adds measured fixed-width operations 108, 109, and
+110 for open-string length, indexing, and call preparation. An open parameter
+uses a measured three activation bytes: two for its address and one for its
+actual capacity. Forwarding preserves both. The grammar admits the empty bound
+only in a formal parameter, and the implementation allocates no aggregate-type
+entry for the view. Tests execute capacities 1, 5, 12, and 253, embedded zero
+bytes, mutation, forwarding through an abbreviated forward body, nested calls,
+recursion, transient aggregate results, mixed scalar and open parameters, a
+corrupted stored length, and a two-bank normal/debug build. They also reject
+every owning or result position, whole-object assignment and comparison through
+the view, and forwarding an open view across a bank boundary. `print` remains
+available as an ordinary user-defined routine name.
+
+After that proof, the predefined `print`, logical bounded-string equality, and
+cross-capacity bounded-string assignment were removed. Exact-capacity string
+assignment remains ordinary exact-type aggregate copying. A source library can
+implement output and comparison over `string[]`; cross-capacity copying remains
+deferred until the language defines a length-changing operation and its source
+semantics. String literals remain contextual static initializers, so a direct
+call such as `emit("hello")` is not yet admitted; the current form names a
+concrete bounded-string constant and passes it.
+
+The focused post-correctness compression pass removes a measured 128 compiler
+code bytes. It walks retained parameter records directly, shares the concrete
+and open `.length`, index, and backend-check tails, shortens proven branches,
+shares existing two-byte templates, and removes redundant parser state loads.
+The semantic operation numbers and widths remain fixed. The pass changes no
+immutable compiler data, workspace, semantic transcript, generated program,
+runtime, NOBJ, HEX, or D8 bytes. CLI builds of `examples/hello.nu` and
+`examples/tec1-console.nu` reproduce the saved pre-compression NOBJ and D8
+sidecars byte for byte.
+
+`proofs/chapter21-target-z80-slice-proof.json` measures the final shipping
+assembly at 15,863 compiler-code bytes plus 393 immutable bytes, or 16,256
+compiler-core bytes with 128 bytes of 16 KiB headroom. It also measures 3,607
+bytes of complete target workspace, a one-byte increase from the earlier
+compressed checkpoint. `proofs/flat-target-debug-z80-slice-proof.json` measures
+the instrumented host image at 15,920 code bytes plus 393 immutable bytes, or
+16,313 core bytes, inside its separate 17 KiB host-only core reservation.
+`test/nobj.test.ts` measures the canonical runtime at identity `$0004` and 364
+bytes. The target-enabled Chapter 21 proof selects 574 runtime bytes;
+`proofs/stage9-conformance-z80-slice-proof.json` measures the 596-byte
+historical direct form.
+
+The intermediate source that combined all three retired features with
+`string[]` was not retained as a reproducible checkpoint, so this account does
+not publish an isolated compiler- or runtime-byte saving for their removal.
+The current reproducible figures are the compiler and runtime measurements
+above. `proofs/chapter21-target-z80-slice-proof.json` emits a measured
+7,913-byte NOBJ with a 1,461-byte used image. It executes 1,044,685 compiler
+instructions in 10,209,748 T-states before the focused compression pass and
+1,044,583 instructions in 10,208,611 T-states after it; proof code and data
+measure 2,345 bytes in both builds.
 
 ## Capacity ledger
 
@@ -1783,7 +1895,7 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | bounded-string capacity                 |        253 | descriptor byte; object extent is capacity plus two                                   | `bounded-string-capacity`; use `u8[N]` plus a scalar length for constructed text | accepted 253 and rejected 254/255; zero payload and sealed-byte proof             |
 | complete aggregate type extent          |     65,535 | retained word shared by records, arrays, and bounded strings                          | program-data capacity diagnostic when an allocated object cannot fit             | 501-byte nested record; exact 1,024-byte object; rejected 1,025-byte object       |
 | expression nesting                      |         16 | thirteen-byte metadata entries retaining operand value, type, and position            | capacity diagnostic                                                              | seventeen-deep pending-expression proof                                           |
-| semantic transcript payload bytes       |        511 | counted variable-width stream                                                         | capacity diagnostic                                                              | widened assignment-exhaustion proof                                               |
+| semantic transcript payload bytes       |        511 | counted variable-width stream                                                         | capacity diagnostic                                                              | scalar-assignment exact-fill and first-overflow proof                             |
 | semantic transcript operations          |        255 | one-byte published operation count                                                    | capacity diagnostic                                                              | pre-append operation-count guard                                                  |
 | Boolean fixups                          |         16 | two-byte generated addresses                                                          | capacity diagnostic                                                              | exhaustion and underflow boundary proofs                                          |
 | active control frames                   |          8 | ten-byte parser frames                                                                | capacity diagnostic                                                              | nested structured-control proofs                                                  |

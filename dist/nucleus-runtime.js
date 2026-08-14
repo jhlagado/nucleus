@@ -21,7 +21,6 @@ const helperIdentitySymbols = {
     DivideU16: "NucleusRuntimeDivideU16Offset",
     ModuloU16: "NucleusRuntimeModuloU16Offset",
     CompareU16: "NucleusRuntimeCompareU16Offset",
-    PrintString: "NucleusRuntimePrintStringOffset",
 };
 const serviceOrder = [
     "readInputByte",
@@ -44,7 +43,7 @@ export const defaultRuntimeLinkContext = {
     vectorBase: 0x7800,
     programDataBase: 0x7846,
     programDataCapacity: 0x0800,
-    readOnlyBase: 0x697e,
+    readOnlyBase: 0x696c,
     readOnlyCapacity: 0x0800,
     services: {
         readInputByte: 0x9000,
@@ -102,8 +101,6 @@ RuntimeProgramDataBase      .equ ${hexWord(context.programDataBase)}
 RuntimeProgramDataCapacity  .equ ${hexWord(context.programDataCapacity)}
 RuntimeReadOnlyBase         .equ ${hexWord(context.readOnlyBase)}
 RuntimeReadOnlyCapacity     .equ ${hexWord(context.readOnlyCapacity)}
-RuntimeWriteOutputByte      .equ ${hexWord(context.vectorBase + 3)}
-
 StateBase          .equ RuntimeWritableStateBase
 RunState           .equ StateBase+$00
 TrapNumber         .equ StateBase+$01
@@ -206,26 +203,16 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
     try {
         const contextPath = path.join(temporaryDirectory, "nucleus-runtime-link-context.asmi");
         const entryPath = path.join(temporaryDirectory, "runtime-link.asm");
-        const interfacePath = path.join(temporaryDirectory, "runtime-services.asmi");
         await writeFile(contextPath, contextAssembly(context), "utf8");
         await writeFile(entryPath, `.include "nucleus-runtime-link-context.asmi"\n` +
             `.org RuntimeLinkBase\nRuntimeCodeStart:\n` +
             `.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n`, "utf8");
-        await writeFile(interfacePath, [
-            "extern RuntimeWriteOutputByte",
-            "in A",
-            "out A,carry,zero",
-            "clobbers B,C,D,E,HL,sign,parity,halfCarry",
-            "end",
-            "",
-        ].join("\n"), "utf8");
         const assembled = await compile(entryPath, {
             includeDirs: [temporaryDirectory, runtimeSourceDirectory],
             emitBin: false,
             emitHex: true,
             emitD8m: true,
             registerContracts: "strict",
-            registerContractsInterfaces: [interfacePath],
         });
         const errors = assembled.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
         if (errors.length > 0) {

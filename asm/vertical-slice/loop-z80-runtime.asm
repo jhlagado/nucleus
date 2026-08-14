@@ -430,31 +430,6 @@ CompareFalse:
             OR   A
             RET
 
-; DE addresses a checked bounded-string object and L is its logical length.
-; Successful bytes remain visible if a later write reports outputFailure.
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-PrintString:
-            LD   A,L
-            OR   A
-            RET  Z
-            LD   B,A
-            INC  DE
-PrintStringLoop:
-            PUSH BC
-            PUSH DE
-            LD   A,(DE)
-.if RuntimeProofServices
-            CALL WriteOutputByte
-.else
-            CALL RuntimeWriteOutputByte
-.endif
-            POP  DE
-            POP  BC
-            RET  C
-            INC  DE
-            DJNZ PrintStringLoop
-            RET
-
 .if RuntimeProofServices
 ; Carry returns endOfInput, a configured input failure, or success in A.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL

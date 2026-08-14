@@ -130,13 +130,12 @@ failable call, same-line `handle NAME ... end` handles it, and `return` denotes
 success only. These forms lower to ordinary Z80 conditional control flow, not
 exceptions or stack unwinding.
 
-`print(text)` accepts any bounded `string[N]`, writes its logical bytes through
-the existing output service, and uses the same `else fail` or `handle` forms.
-It is a compiler intrinsic, not a new service. The
-[`tec1-console.nu`](examples/tec1-console.nu) example uses it for a menu,
-prompts, and labels while keeping hexadecimal formatting in ordinary Nucleus
-routines. Its compiler, artifact, and example-specific counts are recorded in the
-[implementation account](docs/implementation-plan.md#compression-and-capacity-polymorphic-print).
+The parameter-only type `string[]` lets one source routine accept every bounded
+`string[N]` capacity while retaining the actual capacity for `.length` and checked
+indexing. The [`tec1-console.nu`](examples/tec1-console.nu) example implements
+text output as an ordinary failable Nucleus routine and implements hexadecimal
+formatting in ordinary Nucleus routines. The compiler and runtime measurements are
+recorded in the [implementation account](docs/implementation-plan.md#parameter-only-string-and-retirement-of-the-string-intrinsics).
 
 ```bash
 npm run proof

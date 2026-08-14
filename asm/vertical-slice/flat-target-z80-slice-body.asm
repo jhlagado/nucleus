@@ -499,7 +499,7 @@ ProofStart:
             OR   A
             JP   NZ,ProofLoadedFailure
             LD   HL,(AdapterCapturedContext+$0E)
-            LD   DE,$81A4
+            LD   DE,$8192
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -513,7 +513,7 @@ ProofStart:
             OR   L
             JP   NZ,ProofLoadedFailure
             LD   HL,(AdapterCapturedMap+$09)
-            LD   DE,$81A4
+            LD   DE,$8192
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -688,7 +688,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(AdapterCapturedMap+$05)
-            LD   DE,$81BC
+            LD   DE,$81AA
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
@@ -718,7 +718,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(AdapterCapturedMap+TargetMapDataLoadAddress-TargetFlatMapBase)
-            LD   DE,$81BC
+            LD   DE,$81AA
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure

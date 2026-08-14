@@ -61,7 +61,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 5,
+      "runtimeIdentity": 4,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -103,7 +103,7 @@
       "vectorBase": 36864,
       "programDataBase": 36934,
       "programDataCapacity": 3,
-      "readOnlyBase": 33188,
+      "readOnlyBase": 33170,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,

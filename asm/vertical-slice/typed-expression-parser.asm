@@ -460,7 +460,7 @@ TypedReduceAdd:
             LD   E,SemanticAdd16
             CALL TypedPrepareConstantBinary
             RET  C
-            JR   Z,TypedReduceIntegerMeta
+            JP   Z,TypedReduceIntegerMeta
             ADD  HL,DE
             JR   TypedReduceIntegerConstantDone
 TypedReduceSubtract:
@@ -480,6 +480,7 @@ TypedReduceMultiply:
             JR   Z,TypedReduceIntegerMeta
             ; Constant multiplication modulo 65536, using sixteen shift/add
             ; steps.
+            PUSH BC
             LD   BC,0
             LD   A,16
 TypedReduceMultiplyLoop:
@@ -497,6 +498,7 @@ TypedReduceMultiplySkip:
             JR   NZ,TypedReduceMultiplyLoop
             LD   H,B
             LD   L,C
+            POP  BC
             JR   TypedReduceIntegerConstantDone
 TypedReduceDivide:
             LD   DE,SemanticDivide8*$100+SemanticDivide16
@@ -526,6 +528,7 @@ TypedReduceDivideFold:
             ; Constant unsigned division uses a bounded subtraction loop.
             LD   DE,(ExpressionRightValue)
             LD   HL,(ExpressionLeftValue)
+            PUSH BC
             LD   BC,0
 TypedReduceDivideLoop:
             OR   A
@@ -537,9 +540,11 @@ TypedReduceDivideDone:
             ADD  HL,DE
             LD   A,(ExpressionOperator)
             CP   TokenMod
-            JR   Z,TypedReduceIntegerConstantDone
+            JR   Z,TypedReduceDivideResultReady
             LD   H,B
             LD   L,C
+TypedReduceDivideResultReady:
+            POP  BC
             OR   A
 TypedReduceIntegerConstantDone:
             CALL TypedMaskResultWidth

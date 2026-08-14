@@ -85,11 +85,7 @@ TypedOperationTable:
             .dw TypedDefine8          ; 20
             .dw TypedBeginMain        ; 21
             .dw TypedDeclare8         ; 22
-.if AggregateCallSlices
-            .dw Stage8PrintString     ; 23 retired literal8 slot
-.else
             .dw TypedInternalOperation ; 23 retired literal8
-.endif
             .dw TypedLoadProgram8     ; 24
             .dw TypedLoadLocal8       ; 25
             .dw TypedInternalOperation ; 26 retired multiply8
@@ -175,7 +171,10 @@ TypedOperationTable:
             .dw Stage8EndHandler      ; 105
             .dw Stage8BeginCallableMain ; 106
             .dw Stage7LoadReadOnlyAlias ; 107
-TypedOperationCount .equ 88
+            .dw Stage7OpenStringLength ; 108
+            .dw Stage7OpenStringIndex  ; 109
+            .dw Stage7PrepareOpenArgument ; 110
+TypedOperationCount .equ 91
 .else
 TypedOperationCount .equ 62
 .endif

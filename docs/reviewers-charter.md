@@ -249,8 +249,10 @@ record type system.
 
 Bounded strings retain a current length, permit embedded zero bytes, support
 `.length`, checked byte access, byte replacement, and exact-type aggregate
-assignment. They have no append, insertion, resize, truncation, open capacity,
-or general comparison operation.
+assignment. A parameter may use the sole capacity-polymorphic `string[]` view,
+which retains the concrete argument capacity for checking; it is neither owned
+open-capacity storage nor a slice. Bounded strings have no append, insertion,
+resize, truncation, or general comparison operation.
 
 ### Structured initializers
 
@@ -271,9 +273,11 @@ fields and array elements are inline subobjects. A routine cannot declare an
 aggregate local, whether as owned storage or as a local alias.
 
 An aggregate parameter is a fixed typed alias to caller-provided storage. It
-is neither nullable nor reseatable. A routine that needs aggregate destination
-or scratch storage receives it from its caller or addresses a top-level
-object. Every local variable is scalar and belongs to its activation.
+is neither nullable nor reseatable. A concrete aggregate alias carries one
+address; a `string[]` binding also retains the concrete argument capacity in
+the activation. A routine that needs aggregate destination or scratch storage
+receives it from its caller or addresses a top-level object. Every local
+variable is scalar and belongs to its activation.
 
 Assignment between identical aggregate types copies the complete object. The
 left side supplies the destination storage and the right side supplies the

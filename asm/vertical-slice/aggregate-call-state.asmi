@@ -31,7 +31,8 @@ Stage8RetainedCarriers      .equ Stage7StateBase+$1A
 ; These values span expression parsing, so nested calls must not overlay them.
 Stage8ServiceId             .equ Stage7StateBase+$1B
 Stage8CallFlags             .equ Stage7StateBase+$1C
-Stage7StateEnd              .equ Stage7StateBase+$1D
+Stage7OpenStringCapacityOffset .equ Stage7StateBase+$1D
+Stage7StateEnd              .equ Stage7StateBase+$1E
 
 Stage7RoutineTableBase      .equ Stage7StateEnd
 Stage7RoutineEntrySize      .equ 8
@@ -140,18 +141,16 @@ SemanticBeginHandler         .equ 104
 SemanticEndHandler           .equ 105
 SemanticBeginCallableMain    .equ 106
 SemanticLoadReadOnlyAlias    .equ 107
-; Operation 23 was the retired byte-literal form before the production typed
-; dispatcher. Reuse that otherwise-dead slot without widening the table.
-SemanticPrintString          .equ SemanticLiteralU8
-
+SemanticOpenStringLength     .equ 108
+SemanticOpenStringIndex      .equ 109
+SemanticPrepareOpenArgument  .equ 110
 Stage8ServiceReadInput       .equ 0
 Stage8ServiceWriteOutput     .equ 1
 Stage8ServiceReadStorage     .equ 2
 Stage8ServiceRewindStorage   .equ 3
 Stage8ServiceWriteStorage    .equ 4
 Stage8ServiceSeekStorage     .equ 5
-Stage8IntrinsicPrint          .equ 6
-Stage8PredefinedConstantBase .equ 7
+Stage8PredefinedConstantBase .equ 6
 
 ; One completed call selector carries the target kind, successful-result
 ; retention choice, and dense target ID. Source labels occupy 27..31 and

@@ -61,7 +61,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 5,
+      "runtimeIdentity": 4,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -82,20 +82,20 @@
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 1,
-      "dataLoadAddress": 33212,
+      "dataLoadAddress": 33194,
       "dataLoadLength": 70,
       "partBanks": [1],
       "banks": [
         {
-          "usedLength": 385,
+          "usedLength": 367,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 563,
-          "readOnlyBase": 33212,
+          "usedLength": 545,
+          "readOnlyBase": 33194,
           "readOnlyLength": 70,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
