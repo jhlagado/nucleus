@@ -421,6 +421,7 @@ Stage8ServiceAddress:
 .endif
             RET  C
             XOR  A
+Stage8NoArgumentFailable:
             LD   (Stage7ArgumentCount),A
             JP   Stage8CallableFailable
 
@@ -455,9 +456,8 @@ Stage8PrintString:
 .endif
             RET  C
             XOR  A
-            LD   (Stage7ArgumentCount),A
             LD   (Stage7CallResultType),A
-            JP   Stage8CallableFailable
+            JR   Stage8NoArgumentFailable
 
 .if TargetStreamingOutput
 .else

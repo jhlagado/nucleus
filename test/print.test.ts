@@ -66,8 +66,8 @@ describe("the polymorphic print intrinsic", () => {
     if (!built.success) return;
     const bank = built.materialized.parsed.map.banks[0];
     expect(new TextEncoder().encode(source)).toHaveLength(1_034);
-    expect(built.instructions).toBe(311_818);
-    expect(built.cycles).toBe(3_101_195);
+    expect(built.instructions).toBe(311_823);
+    expect(built.cycles).toBe(3_101_255);
     expect(built.nobj).toHaveLength(13_837);
     expect(bank?.usedLength).toBe(2_299);
     expect(bank?.readOnlyLength).toBe(158);

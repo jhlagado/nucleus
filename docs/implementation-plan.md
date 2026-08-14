@@ -1707,16 +1707,23 @@ length against that capacity before calling a shared runtime helper. The helper
 then sends bytes through the existing `writeOutputByte` vector and introduces
 no System Service.
 
-Fresh assembly of `proofs/chapter21-target-z80-slice-proof.json` measures 15,508 shipping compiler-code bytes
-plus 399 immutable bytes, or 15,907 bytes of core and 477 bytes of headroom.
+Fresh assembly of `proofs/chapter21-target-z80-slice-proof.json` measures
+15,504 shipping compiler-code bytes plus 399 immutable bytes, or 15,903 bytes
+of core and 481 bytes of headroom.
 The instrumented proof in `proofs/flat-target-debug-z80-slice-proof.json`
-measures 15,565 code bytes plus 399 immutable bytes, or 15,964 bytes of core.
-Relative to the compressed checkpoint, `print` adds 133
-code bytes and six immutable name bytes, for a 139-byte compiler-core delta.
+measures 15,561 code bytes plus 399 immutable bytes, or 15,960 bytes of core.
+Relative to the compressed checkpoint, `print` adds 129
+code bytes and six immutable name bytes, for a 135-byte compiler-core delta.
 This remained below the 150-byte review threshold after a focused pass reused
-the retired dispatch slot; the earlier form measured 156 added core bytes and
-was not retained. Compiler workspace and the 511-byte semantic payload
-capacity are unchanged.
+the retired dispatch slot and shared the no-argument failable-call tail with
+ordinary services. The shared tail saves four core bytes and adds five compiler
+instructions and 60 T-states to the retained console build; its NOBJ, Intel
+HEX, and materialized-image hashes remain byte-identical. The earlier form
+measured 156 added core bytes and was not retained. A generated bounds-trap
+helper was rejected because it would trade scarce compiler-core bytes for
+target bytes, and the only remaining shipping-layout `JP`-to-`JR` candidate
+failed the retained parser layouts. Compiler workspace and the 511-byte
+semantic payload capacity are unchanged.
 
 Runtime identity `$0005` adds the 18-byte `PrintString` helper at offset 364.
 `test/nobj.test.ts` measures the default-context canonical linked runtime at
@@ -1737,7 +1744,7 @@ locks the following account. The retained console is a 1,034-byte source file. I
 five static messages across four distinct capacities (`string[2]`,
 `string[8]`, `string[20]`, and `string[40]`), three ordinary numeric-formatting
 routines, and direct `print` calls for its banner, menu, labels, and newline.
-It compiles in 311,818 instructions and 3,101,195 T-states, emits a 13,837-byte
+It compiles in 311,823 instructions and 3,101,255 T-states, emits a 13,837-byte
 NOBJ, uses 2,299 target-image bytes, and contains 1,706 generated code bytes and
 158 total read-only bytes, of which 88 are aggregate constants. Execution of the word
 choice produces the exact menu and `1234` display text.
