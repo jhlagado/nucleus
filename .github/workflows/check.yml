@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: jhlagado/debug80
-          ref: 4b396036afeeadaff8ae5028f3e9b7674ee425ef
+          ref: 3f2adb669bb9e7888305c623f8c843054c3dd111
           path: .debug80
       - uses: actions/setup-node@v4
         with:
@@ -21,8 +21,12 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm ci
         working-directory: .debug80
+      - run: npm run build -w @jhlagado/azm
+        working-directory: .debug80
       - run: npm run build -w @jhlagado/debug80-runtime
         working-directory: .debug80
+      - name: Link the unpublished AZM toolchain
+        run: npm link --no-save ./.debug80/packages/azm
       - name: Install the unpublished runtime peer
         run: |
           mkdir -p node_modules/@jhlagado/debug80-runtime

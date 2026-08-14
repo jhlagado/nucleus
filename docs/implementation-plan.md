@@ -1852,17 +1852,38 @@ runtime, NOBJ, HEX, or D8 bytes. CLI builds of `examples/hello.nu` and
 `examples/tec1-console.nu` reproduce the saved pre-compression NOBJ and D8
 sidecars byte for byte.
 
+A later production-layout gate removes another measured 137 compiler-code
+bytes. Conditional assembly excludes the obsolete scalar-forward expression
+parser (105 bytes), legacy `else fail` token helpers (16 bytes), and two
+non-streaming proof entry wrappers (16 bytes) from the shipping and
+instrumented layouts. The historical non-streaming proofs retain their entry
+wrappers. Their selected compiler layouts also omit the 121 bytes of legacy
+parser code. A local comparison against clean baseline
+`89f51a61267ff5ff9e0fd59c071f4c5220710abd` built each example with
+`test/fixtures/host-target.json` and requested NOBJ, HEX, and D8 output. The
+post-gate files reproduce all six baseline SHA-256 values:
+
+```text
+8cbe545ed1feb4415aac0f778d8960fa758e6177f5af193f41e639eb496e57fd  hello.nobj
+94fe3f78cb7c9d66bf5a01a5844c8ab255b6116b206aeaa9ad0f08607547c0ff  hello.hex
+f3b61adfec15eeaaf91683e22b39243077dfea0e492012cbda32ffadbdb0d1c7  hello.d8
+af9003849ac15b894e1c1acd531a194edd6611eca0fb45a747dad061ea4d4f99  tec1.nobj
+5fabecabbe79658c3a2ad78a3db655f00fdfb82be3728278ed53c8bff939146b  tec1.hex
+b0811c6ec8eb12b08d56c922ac41ffb5c445287d4ca3d18e70fd5f09c026d8a1  tec1.d8
+```
+
 `proofs/chapter21-target-z80-slice-proof.json` measures the final shipping
-assembly at 15,863 compiler-code bytes plus 393 immutable bytes, or 16,256
-compiler-core bytes with 128 bytes of 16 KiB headroom. It also measures 3,607
+assembly at 15,726 compiler-code bytes plus 393 immutable bytes, or 16,119
+compiler-core bytes with 265 bytes of 16 KiB headroom. It also measures 3,607
 bytes of complete target workspace, a one-byte increase from the earlier
 compressed checkpoint. `proofs/flat-target-debug-z80-slice-proof.json` measures
-the instrumented host image at 15,920 code bytes plus 393 immutable bytes, or
-16,313 core bytes, inside its separate 17 KiB host-only core reservation.
+the instrumented host image at 15,783 code bytes plus 393 immutable bytes, or
+16,176 core bytes, inside its separate 17 KiB host-only core reservation.
 `test/nobj.test.ts` measures the canonical runtime at identity `$0004` and 364
 bytes. The target-enabled Chapter 21 proof selects 574 runtime bytes;
-`proofs/stage9-conformance-z80-slice-proof.json` measures the 596-byte
-historical direct form.
+the current assembly of `proofs/stage9-conformance-z80-slice-proof.json`
+measures 14,006 compiler-code bytes, 393 immutable bytes, and the 596-byte
+runtime used by that historical direct proof.
 
 The intermediate source that combined all three retired features with
 `string[]` was not retained as a reproducible checkpoint, so this account does

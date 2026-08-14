@@ -434,6 +434,9 @@ ParserExpectIndexDeclaration:
             JP   ParserExpectEqual
 .endif
 
+.if HybridLL1Full
+            ; Packed actions consume the active `else fail` grammar.
+.else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectElseFailLine:
             CALL ParserExpectElseFail
@@ -456,6 +459,7 @@ ParserExpectElseFail:
             JR   ParserExpect
 .else
             JP   ParserExpect
+.endif
 .endif
 
 .if LegacyCompilerSlices

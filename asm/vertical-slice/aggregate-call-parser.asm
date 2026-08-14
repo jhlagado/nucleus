@@ -227,6 +227,9 @@ TargetRequireEntrySourceBank:
             JP   TargetConfigurationFailure
 .endif
 
+.if TargetStreamingOutput
+            ; The target entry initializes parts and calls the shared body.
+.else
 .routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileAggregateCallParts:
             PUSH AF
@@ -240,6 +243,7 @@ CompileAggregateCallParts:
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileAggregateCallSlice:
             CALL CompileSliceInitialize
+.endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileAggregateCallReady:
             INC  A

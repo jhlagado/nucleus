@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { compile } from "@jhlagado/azm/compile";
 
+await import("./check-azm-toolchain.mjs");
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(root, "asm", "vertical-slice");
 const outputPath = path.join(root, "src", "generated-compiler-images.ts");

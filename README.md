@@ -137,6 +137,31 @@ text output as an ordinary failable Nucleus routine and implements hexadecimal
 formatting in ordinary Nucleus routines. The compiler and runtime measurements are
 recorded in the [implementation account](docs/implementation-plan.md#parameter-only-string-and-retirement-of-the-string-intrinsics).
 
+## Development toolchain
+
+Compiler-image generation requires the current AZM checkout from the Debug80
+workspace. The registry release `@jhlagado/azm` 0.3.9 cannot prove the
+`noreturn` inline-operand convention used by the compiler's strict register and
+stack contracts. Link the workspace package before regenerating or checking
+compiler images:
+
+```bash
+cd /path/to/debug80
+npm install
+npm run build -w @jhlagado/azm
+cd packages/azm
+npm link
+cd /path/to/nucleus
+npm link @jhlagado/azm
+npm run check:azm-toolchain
+```
+
+The Debug80 checkout must contain commit `3f2adb66` or a later implementation
+of its `noreturn` inline-operand contract analysis. The compiler-image scripts
+run the same capability check themselves. It tests the required behavior
+because the linked and registry packages currently report the same version
+number.
+
 ```bash
 npm run proof
 npm run measure

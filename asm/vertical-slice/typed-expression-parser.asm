@@ -643,8 +643,12 @@ TypedPrimaryOrdinaryName:
             LD   A,D
             JR   TypedPrimaryNameResolved
 .endif
+.if AggregateCallSlices
+            ; The retained routine table handles scalar calls above.
+.else
             CALL TypedMatchForwardName
             JR   C,TypedPrimaryScalarCall
+.endif
 TypedPrimaryVariableName:
             CALL SymbolLookupCurrent
             RET  C
@@ -721,6 +725,9 @@ TypedPrimaryConstantName:
 
 ; Parse one call to the retained scalar forward. The outer call position stays
 ; on the compiler stack while a nested argument call is parsed.
+.if AggregateCallSlices
+            ; Kept only for the pre-aggregate expression proof layouts.
+.else
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedPrimaryScalarCall:
             LD   HL,(TokenStartOffset)
@@ -784,6 +791,7 @@ TypedPrimaryCallFailure:
             POP  HL
             SCF
             RET
+.endif
 .if AggregateCallSlices
 ; A failable invocation remains consumable only while it is the complete,
 ; untouched expression. Preserve the expression result while checking that no
