@@ -40,6 +40,13 @@ EmitByteRoom:
             OR   A
             RET
 .endif
+
+.routine noreturn
+EmitByteInline:
+            POP  HL
+            LD   A,(HL)
+            JR   EmitByte
+
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:
             LD   C,H
@@ -148,8 +155,8 @@ PatchStore:
             RET
 .endif
 PatchInvalid:
-            LD   A,DiagnosticFixupRange
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticFixupRange
 
 .if TargetStreamingOutput
 .else

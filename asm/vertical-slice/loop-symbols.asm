@@ -74,6 +74,18 @@ SymbolPrepareFull:
             LD   A,DiagnosticSymbolCapacity
             JR   CompilerSetDiagnostic
 
+; Retain A as the aggregate-type ordinal for the symbol about to be committed.
+; BC remains the caller's prepared symbol payload.
+.routine in A,BC out A,BC,carry,zero clobbers sign,parity,halfCarry,DE,HL
+SymbolCommitTyped:
+            PUSH AF
+            LD   A,(SymbolCount)
+            LD   E,A
+            LD   D,0
+            LD   HL,AggregateSymbolTypeBase
+            ADD  HL,DE
+            POP  AF
+            LD   (HL),A
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 SymbolCommit:
             LD   HL,SymbolCount

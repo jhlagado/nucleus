@@ -77,8 +77,8 @@ AggregateAppendType:
             OR   A
             RET
 AggregateTypeCapacityFailure:
-            LD   A,DiagnosticTypeMetadataCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTypeMetadataCapacity
 
 ; Intern a structural string or array descriptor. CandidateKind/Aux/Length and
 ; CandidateExtent must already be complete.
@@ -135,8 +135,8 @@ AggregateExtentCapacityReady:
             OR   A
             RET
 AggregateExtentCapacityFailure:
-            LD   A,DiagnosticProgramDataCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticProgramDataCapacity
 
 .if SegmentedOutput
 ; The read-only image shares the same 1 KiB proof region as generated rodata,
@@ -154,22 +154,22 @@ AggregateReadOnlyCapacityReady:
             OR   A
             RET
 AggregateReadOnlyCapacityFailure:
-            LD   A,DiagnosticReadOnlyCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticReadOnlyCapacity
 .endif
 
 .if HybridLL1Full
 AggregateNestedArrayFailure:
             POP  AF
 AggregateTypeShapeFailure:
-            LD   A,DiagnosticTypeBound
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTypeBound
 AggregateProgramDataCapacityFailure:
-            LD   A,DiagnosticProgramDataCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticProgramDataCapacity
 AggregateStringCapacityFailure:
-            LD   A,DiagnosticStringCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticStringCapacity
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseBound:
@@ -363,8 +363,8 @@ AggregateFieldDuplicateFailure:
 
 .if HybridLL1Full
 AggregateRecordEmptyFailure:
-            LD   A,DiagnosticRecordEmpty
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticRecordEmpty
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseRecordAfterTake:
@@ -494,8 +494,8 @@ AggregateRecordEmptyFailure:
 .endif
 
 AggregateInitializerCapacityFailure:
-            LD   A,DiagnosticInitializerCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticInitializerCapacity
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 AggregateInitializerLeave:
@@ -600,11 +600,11 @@ AggregateDecodeStringAdvancePadding:
             RET
 
 AggregateInitializerShapeFailure:
-            LD   A,DiagnosticInitializerShape
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticInitializerShape
 AggregateInitializerCountFailure:
-            LD   A,DiagnosticInitializerCount
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticInitializerCount
 
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 AggregatePeekPreserveBC:
@@ -687,8 +687,8 @@ AggregateParseStringInitializer:
             CP   B
             JR   C,AggregateParseStringDecode
             JR   Z,AggregateParseStringDecode
-            LD   A,DiagnosticStringLength
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticStringLength
 AggregateParseStringDecode:
             ; AggregateZeroCurrentObject already defined the complete object,
             ; so decoding need only overwrite the length and payload bytes.

@@ -23,8 +23,8 @@ TokenFinish:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 TokenLexicalFailure:
-            LD   A,DiagnosticLexical
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticLexical
 
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,C
 TokenIsLetter:

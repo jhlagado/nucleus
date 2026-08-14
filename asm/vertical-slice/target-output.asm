@@ -151,8 +151,8 @@ TargetFlatReadOnlyReady:
             JR   TargetCodeCapacityReady
 TargetBeginCapacityFailure:
 TargetCapacityFailure:
-            LD   A,DiagnosticTargetCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTargetCapacity
 TargetCodeCapacityReady:
 
             LD   IX,(TargetDescriptorPointer)

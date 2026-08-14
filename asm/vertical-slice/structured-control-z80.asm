@@ -56,8 +56,8 @@ StructuredRecordFixup:
             XOR  A
             RET
 StructuredFixupFailure:
-            LD   A,DiagnosticControlFixupCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticControlFixupCapacity
 
 ; Emit opcode A with a zero word operand and retain that operand for label C.
 .if TargetStreamingOutput
@@ -299,8 +299,8 @@ StructuredForSetup:
             LD   A,B
             CALL StructuredStoreCounter
             RET  C
-            LD   A,$D5                    ; PUSH DE, retained bound
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $D5                      ; PUSH DE, retained bound
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForTest:
@@ -470,8 +470,8 @@ StructuredForNextStore:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 StructuredForCleanup:
-            LD   A,$D1                    ; POP DE, discard retained bound
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $D1                      ; POP DE, discard retained bound
 
 StructuredBranchFalseBytes .equ TypedBeginAndBytes
 StructuredPopBoundStart    .equ TypedPopOperandsBytes

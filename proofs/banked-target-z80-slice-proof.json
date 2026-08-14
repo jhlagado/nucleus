@@ -14,10 +14,10 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
     { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4407 },
-    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33581 },
-    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33357 },
-    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 3283 },
-    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3507 },
+    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33599 },
+    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33375 },
+    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 3265 },
+    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3489 },
     { "at": "AdapterCapturedBank0RoLength", "width": "u16", "equals": 0 },
     { "at": "AdapterCapturedBank1RoLength", "width": "u16", "equals": 2 }
   ],
@@ -67,7 +67,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 4,
+      "runtimeIdentity": 5,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -88,22 +88,22 @@
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33194,
+      "dataLoadAddress": 33212,
       "dataLoadLength": 72,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 813,
-          "readOnlyBase": 33194,
+          "usedLength": 831,
+          "readOnlyBase": 33212,
           "readOnlyLength": 72,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 589,
-          "readOnlyBase": 33135,
+          "usedLength": 607,
+          "readOnlyBase": 33153,
           "readOnlyLength": 2,
-          "aggregateConstantBase": 33135,
+          "aggregateConstantBase": 33153,
           "aggregateConstantLength": 2
         }
       ]
@@ -158,7 +158,7 @@
         { "at": 28800, "bytes": [50, 41, 64, 211, 127, 233] },
         {
           "at": 28832,
-          "bytes": [193, 62, 1, 33, 111, 129, 195, 128, 112]
+          "bytes": [193, 62, 1, 33, 129, 129, 195, 128, 112]
         },
         { "at": 28864, "bytes": [201, 201, 201, 201, 201, 201] },
         { "at": 16640, "bytes": [0] },

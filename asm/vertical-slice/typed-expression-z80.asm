@@ -78,14 +78,18 @@ TypedInvalidPopped:
 TypedInternalOperation:
             JP   TypedExpressionStackUnderflow
 TypedBooleanFixupCapacity:
-            LD   A,DiagnosticBooleanFixupCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticBooleanFixupCapacity
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
             .dw TypedBeginMain        ; 21
             .dw TypedDeclare8         ; 22
+.if AggregateCallSlices
+            .dw Stage8PrintString     ; 23 retired literal8 slot
+.else
             .dw TypedInternalOperation ; 23 retired literal8
+.endif
             .dw TypedLoadProgram8     ; 24
             .dw TypedLoadLocal8       ; 25
             .dw TypedInternalOperation ; 26 retired multiply8
@@ -208,17 +212,15 @@ TypedBeginProgramFrame:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare8:
             CALL NextSemanticByte
-            LD   A,$3B                    ; DEC SP
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $3B                      ; DEC SP
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare16:
-            CALL NextSemanticByte
-            LD   A,$3B
-            CALL EmitByte
+            CALL TypedDeclare8
             RET  C
-            LD   A,$3B
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $3B
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedLiteral16:
@@ -232,8 +234,8 @@ TypedLiteral16:
 TypedEmitOpcodeWordPushHL:
             CALL EmitOpcodeWord
             RET  C
-            LD   A,$E5                    ; PUSH HL
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5                      ; PUSH HL
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedLoadProgram8:
@@ -272,14 +274,14 @@ TypedEmitIndexed:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedEmitPopHL:
-            LD   A,$E1                    ; POP HL
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E1                      ; POP HL
 
 .routine out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 TypedLoadLocalLowIndexed:
             CALL TypedLocalDisplacement
             LD   HL,TypedLoadLocalLow
-            JP   TypedEmitIndexed
+            JR   TypedEmitIndexed
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TypedLoadLocal8:
@@ -296,8 +298,8 @@ TypedLoadLocal16:
             LD   HL,TypedLoadLocalHigh
             CALL TypedEmitIndexed
             RET  C
-            LD   A,$E5
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedPopOperands:
@@ -306,8 +308,8 @@ TypedPopOperands:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedPushHL:
-            LD   A,$E5
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5
 
 .routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitSequence:
@@ -762,8 +764,8 @@ TypedCallScalar:
             CALL EmitCall
 .endif
             RET  C
-            LD   A,$E5                    ; PUSH HL result carrier
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5                      ; PUSH HL result carrier
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedReturnScalar:
@@ -771,8 +773,8 @@ TypedReturnScalar:
             RET  C
             CALL ExpressionRestoreFrame
             RET  C
-            LD   A,$C9
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $C9
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TypedEndRoutine:

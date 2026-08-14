@@ -35,8 +35,8 @@ SourcePartCapacityFailure:
             LD   E,A
             CALL SourceInitialize
             CALL TokenRecordStart
-            LD   A,DiagnosticSourcePartCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticSourcePartCapacity
 
 ; Load the descriptor at HL and retain the address of the following one.
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL

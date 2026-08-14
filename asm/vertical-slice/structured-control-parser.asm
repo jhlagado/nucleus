@@ -62,8 +62,8 @@ ControlClearFrame:
             OR   A
             RET
 ControlCapacityFailure:
-            LD   A,DiagnosticControlCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticControlCapacity
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ControlTopFrame:
@@ -93,6 +93,11 @@ ControlPopFrame:
             XOR  A
             RET
 
+.if HybridLL1Full
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+ControlAllocateExit:
+            LD   B,ControlFrameExit
+.endif
 .routine in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ControlAllocateInto:
             LD   A,(ControlNextLabel)
@@ -112,6 +117,10 @@ ControlAllocateInto:
             RET
 
 .if HybridLL1Full
+.routine in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+HybridLL1PushFlowFrameAndLabelA:
+            CALL HybridLL1PushFlowFrame
+            RET  C
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 ControlAllocateLabelA:
             LD   B,ControlFrameLabelA
@@ -123,11 +132,11 @@ ControlAllocateLabelA:
 .endif
 
 ControlLabelFailure:
-            LD   A,DiagnosticControlLabelCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticControlLabelCapacity
 ControlLoopFailure:
-            LD   A,DiagnosticExpectedLoop
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedLoop
 
 ; Emit operation D followed by byte C.
 .routine in C,D out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -201,8 +210,8 @@ ControlCheckCounterContinue:
             RET
 ControlActiveCounterFailure:
             POP  AF
-            LD   A,DiagnosticActiveCounter
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticActiveCounter
 
 .if HybridLL1Full
 .else
@@ -460,8 +469,8 @@ StructuredStepHaveMagnitude:
             OR   A
             RET
 StructuredStepFailure:
-            LD   A,DiagnosticLoopStep
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticLoopStep
 
 ; TokenFor has already been consumed.
 .if HybridLL1Full
@@ -636,8 +645,8 @@ StructuredForModeReady:
             JP   StructuredCompleteLoop
 .endif
 StructuredCounterFailure:
-            LD   A,DiagnosticLoopCounter
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticLoopCounter
 
 ; Emit the fixed-width counted-loop records from the current frame.
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY

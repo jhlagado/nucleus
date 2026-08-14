@@ -381,8 +381,8 @@ Stage7AppendParameter:
             OR   A
             RET
 Stage7ParameterCapacityFailure:
-            LD   A,DiagnosticParameterCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticParameterCapacity
 
 ; Parse the parameter list and optional result of the provisional routine.
 .if HybridLL1Full
@@ -467,29 +467,21 @@ Stage7InstallParameter:
             LD   B,0
             LD   A,(Stage7PathType)
             CP   AggregateFirstDynamicTypeId
-            JR   C,Stage7InstallScalarParameter
             LD   D,SymbolAggregateFlag+SymbolClassParameter
-            JR   Stage7InstallParameterSymbol
+            JR   NC,Stage7InstallParameterSymbol
 Stage7InstallScalarParameter:
             OR   SymbolClassParameter
             LD   D,A
 Stage7InstallParameterSymbol:
             CALL SymbolPrepareCurrentWord
             RET  C
-            LD   A,(SymbolCount)
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateSymbolTypeBase
-            ADD  HL,DE
             LD   A,(Stage7PathType)
-            LD   (HL),A
-            CALL SymbolCommit
+            CALL SymbolCommitTyped
             RET  C
+            LD   A,(Stage7PathType)
+            LD   C,A
             LD   A,SemanticBindParameter
-            CALL SemanticSinkOperation
-            RET  C
-            LD   A,(Stage7PathType)
-            CALL SemanticSinkPut
+            CALL ParserEmitOperationC
             RET  C
             LD   A,(Stage7PathOffset)
             CALL SemanticSinkPut
@@ -723,15 +715,6 @@ Stage7SymbolIndexReady:
             OR   A
             RET
 
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitOperationByte:
-            PUSH BC
-            CALL SemanticSinkOperation
-            POP  BC
-            RET  C
-            LD   A,C
-            JP   SemanticSinkPut
-
 ; Stage 7 structural operands are emitted whenever their owning operation is
 ; emitted. They are not expression values and therefore do not consult the
 ; constant-folding emission flag used by TypedEmitWord.
@@ -779,7 +762,7 @@ Stage7EmitAggregateRootParameter:
             JP   NZ,TypedTypeFailure
             LD   A,SemanticLoadParameterAlias
 Stage7EmitAggregateRootSelected:
-            CALL Stage7EmitOperationByte
+            CALL ParserEmitOperationC
 Stage7EmitAggregateRootReady:
             RET  C
             LD   A,(Stage7PathType)
@@ -834,7 +817,7 @@ Stage7PathField:
             INC  HL
             LD   C,(HL)                  ; capacity for L <= N validation
             LD   A,SemanticStringLength
-            CALL Stage7EmitOperationByte
+            CALL ParserEmitOperationC
             JP   C,Stage7PathSuffixFailure
             LD   HL,(TokenStartOffset)
             CALL Stage7EmitWord
@@ -845,8 +828,8 @@ Stage7PathField:
             OR   A
             RET
 Stage7FieldMissing:
-            LD   A,DiagnosticUnknownName
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticUnknownName
 Stage7PathRecordField:
             POP  AF
             CALL AggregateTypeAddress
@@ -986,7 +969,7 @@ Stage7PathStringIndex:
             INC  HL
             LD   C,(HL)                  ; capacity
             LD   A,SemanticStringIndex
-            CALL Stage7EmitOperationByte
+            CALL ParserEmitOperationC
             JR   C,Stage7PathSuffixFailure
             LD   HL,(Stage7CallOffset)
             CALL Stage7EmitWord
@@ -1097,8 +1080,8 @@ Stage7ParseCall:
             LD   A,(Stage7CallDepth)
             CP   Stage7CallFrameCapacity
             JR   C,Stage7PushCallFrameSpace
-            LD   A,DiagnosticExpressionCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpressionCapacity
 Stage7PushCallFrameSpace:
             CALL Stage7CallFrameAddress
             LD   A,C
@@ -1454,6 +1437,8 @@ Stage8TypedPrimaryConstant:
 ; A is the dense service ID and C says whether a successful u8 result is kept.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ParseServiceCall:
+            CP   Stage8IntrinsicPrint
+            JR   Z,Stage8ParsePrintCall
             LD   E,A
             LD   D,0
             LD   HL,Stage8ServiceSignatureTable
@@ -1496,6 +1481,48 @@ Stage8ServiceResultTypeReady:
             LD   (Stage8CallFlags),A
             JP   Stage7PublishCallable
 
+; `print` is parsed as an ordinary call name, but its sole parameter accepts
+; every bounded-string capacity. The transcript carries the checked static
+; capacity rather than adding an open string type to the source language.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage8ParsePrintCall:
+            CALL ParserExpectLeft
+            RET  C
+            LD   HL,(Stage7CallOffset)
+            PUSH HL
+            CALL Stage7ParseAggregateValue
+            POP  HL
+            LD   (Stage7CallOffset),HL
+            RET  C
+            LD   (Stage7PathType),A
+            CALL Stage8RequireNoPendingFailure
+            RET  C
+            LD   A,(Stage7PathType)
+            CALL AggregateTypeAddress
+            LD   A,(HL)
+            CP   AggregateTypeKindString
+            JP   NZ,TypedTypeFailure
+            INC  HL
+            LD   A,(HL)
+            LD   (Stage8ServiceId),A
+            CALL ParserExpectRight
+            RET  C
+            LD   A,SemanticPrintString
+            CALL SemanticSinkOperation
+            RET  C
+            LD   A,(Stage8ServiceId)
+            CALL SemanticSinkPut
+            RET  C
+            LD   HL,(Stage7CallOffset)
+            CALL Stage7EmitWord
+            RET  C
+            CALL Stage8EmitFailurePlaceholders
+            RET  C
+            LD   A,Stage7RoutineFails
+            LD   (Stage8DirectFailable),A
+            XOR  A
+            RET
+
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 Stage8EmitFailurePlaceholders:
             LD   HL,(SinkCursor)
@@ -1512,7 +1539,7 @@ Stage8FailurePlaceholderLoop:
 Stage7TypedPrimaryAggregateSymbol:
             CALL Stage7EmitAggregateSymbolRoot
             RET  C
-            JR   Stage7TypedPrimaryRoutineAggregate
+            JP   Stage7TypedPrimaryRoutineAggregate
 
 ; Current routine name has already been consumed as a complete statement.
 .if HybridLL1Full
@@ -1554,8 +1581,8 @@ Stage7ParseAggregateAssignment:
             LD   A,D
             AND  SymbolClassMask
             JR   NZ,Stage7AggregateAssignmentWritable
-            LD   A,DiagnosticReadOnlyAssignment
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticReadOnlyAssignment
 Stage7AggregateAssignmentWritable:
             CALL Stage7EmitAggregateSymbolRoot
             RET  C

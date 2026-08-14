@@ -103,6 +103,17 @@ Stage7ReadCallOffset:
             LD   (Stage7CallOffset),DE
             RET
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+Stage8ReadCallState:
+            LD   DE,Stage8EmitCallMode
+            LD   B,3
+Stage8ReadCallStateLoop:
+            CALL NextSemanticByte          ; mode, handler, retained carriers
+            LD   (DE),A
+            INC  DE
+            DJNZ Stage8ReadCallStateLoop
+            RET
+
 ; Retain the source position of a propagated failure. The root wrapper uses
 ; the last propagation site when failure finally leaves callable main.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -141,13 +152,7 @@ Stage8ReadServiceCall:
             LD   (Stage7CallResultType),A
 Stage8ReadCallCommon:
             CALL Stage7ReadCallOffset
-            LD   DE,Stage8EmitCallMode
-            LD   B,3
-Stage8ReadCallStateLoop:
-            CALL NextSemanticByte          ; mode, handler, retained carriers
-            LD   (DE),A
-            INC  DE
-            DJNZ Stage8ReadCallStateLoop
+            CALL Stage8ReadCallState
             LD   A,(Stage7CallLabel)
             AND  Stage8CallableServiceFlag
             JP   NZ,Stage8InvokeService
@@ -259,8 +264,8 @@ Stage8CallableSuccess:
             LD   A,(Stage7CallLabel)
             AND  Stage8CallableServiceFlag
             JR   NZ,Stage8CallableServiceResult
-            LD   A,$E5                    ; PUSH HL result carrier
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5                      ; PUSH HL result carrier
 Stage8CallableServiceResult:
             LD   HL,Stage8ErrorCarrierBytes
             JP   EmitFour
@@ -419,6 +424,41 @@ Stage8ServiceAddress:
             LD   (Stage7ArgumentCount),A
             JP   Stage8CallableFailable
 
+; Print one bounded string through the selected runtime helper. The parser has
+; retained the exact capacity; the carrier still addresses the length byte.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage8PrintString:
+            CALL Stage7ReadStringExtent
+            CALL Stage8ReadCallState
+            CALL Stage7PreserveCarrierRegion
+            RET  C
+            CALL TypedEmitPopHL
+            RET  C
+            CALL TypedPushHL
+            RET  C
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeCheckStringLengthOffset
+.else
+            LD   HL,CheckStringLength
+.endif
+            CALL Stage7EmitStringCheck
+            RET  C
+            LD   HL,Stage7CopyFinish      ; POP HL length / POP DE carrier
+            CALL EmitPair
+            RET  C
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimePrintStringOffset
+            CALL EmitRuntimeCall
+.else
+            LD   HL,PrintString
+            CALL EmitCall
+.endif
+            RET  C
+            XOR  A
+            LD   (Stage7ArgumentCount),A
+            LD   (Stage7CallResultType),A
+            JP   Stage8CallableFailable
+
 .if TargetStreamingOutput
 .else
 Stage8ServiceAddressTable:
@@ -493,8 +533,8 @@ Stage7EndRoutine:
             RET  NZ
             CALL ExpressionRestoreFrame
             RET  C
-            LD   A,$C9
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $C9
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7LoadProgramAlias:
@@ -731,8 +771,8 @@ Stage7EmitStringCheck:
             RET  C
             CALL Stage7BoundsGuard
             RET  C
-            LD   A,$E5
-            JP   EmitByte
+            CALL EmitByteInline
+            .db  $E5
 
 Stage7PopHLLoadDE:        .db $E1,$11
 Stage7IndexToA            .equ TypedLoadSPPrefix+1

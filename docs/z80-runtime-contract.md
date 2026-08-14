@@ -625,6 +625,14 @@ selected bank.
 Arithmetic and aggregate helpers remain ordinary local calls. They are not
 placed in the vector table.
 
+The predefined `print` routine is also a local helper, not a vector entry or a
+new System Service. Generated code supplies a checked bounded-string carrier
+and logical length. The helper calls the existing `writeOutputByte` vector in
+index order, stops on its first recoverable failure, and preserves bytes from
+earlier successful calls. The compiler checks the stored length against the
+static capacity before entering the helper, so a corrupt length traps before
+any output effect.
+
 ### 8.2 Stable service errors
 
 |   Code | Source constant  | Meaning                                   |
@@ -677,7 +685,7 @@ and checked 16-bit target address through its private ABI. Source code exposes
 neither value.
 
 The far-call adapter selects the destination bank, enters the ordinary Nucleus
-routine ABI, and installs a fixed-memory return path. Identity `$0004` uses the
+routine ABI, and installs a fixed-memory return path. Identity `$0005` uses the
 selected-bank byte at writable-state offset eight and a sixteen-byte far-return
 arena after the saved root-frame words. Each live far call uses the zero-based
 slot `ActivationDepth - 1`: depth one selects slot zero, and the published
@@ -838,3 +846,11 @@ the proof that produced it. Reports separate compiler code, compiler immutable
 data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
+
+`test/nobj.test.ts` assembles runtime identity `$0005` under
+`defaultRuntimeLinkContext` and measures a 382-byte canonical linked helper image. It
+retains the identity-4 vector, writable-state, banking, and helper offsets and
+adds the 18-byte `PrintString` helper at offset 364.
+`proofs/stage9-conformance-z80-slice-proof.json` includes the historical direct
+service adapters and measures 614 bytes;
+`proofs/chapter21-target-z80-slice-proof.json` selects a 592-byte form.

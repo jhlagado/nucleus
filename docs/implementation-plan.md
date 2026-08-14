@@ -1621,7 +1621,7 @@ IMAGE events. The host records and validates those events, then publishes D8
 only after a valid NOBJ commit. The semantic transcript, NOBJ format, target
 records, generated program, selected runtime, and language are unchanged.
 
-The shipping `DebugHooks = 0` layout remains the current 15,482-byte compiler
+At the D8 checkpoint, the shipping `DebugHooks = 0` layout measured 15,482-byte compiler
 code plus 393 immutable bytes, for a 15,875-byte compiler core and 509 bytes of
 headroom. Workspace remains 3,606 bytes, parser extent remains 9,216 bytes,
 the largest generated program remains 1,040 bytes, and the selected proof
@@ -1630,7 +1630,7 @@ instructions in 10,196,561 T-states. A baseline/current binary comparison and
 flat and banked host compiles keep the shipping compiler, semantic transcript,
 generated publications, runtime, NOBJ, and Intel HEX bytes identical.
 
-The instrumented layout measures 15,539 code bytes plus the same 393 immutable
+At that checkpoint, the instrumented layout measured 15,539 code bytes plus the same 393 immutable
 bytes, for a 15,932-byte core. It adds no workspace or transcript storage. The
 parser grows by 50 bytes to 9,266: 48 action bytes for eleven source marks, one
 declaration mark, four pushes, six pops, and two routine marks, plus a two-byte
@@ -1671,6 +1671,90 @@ end to equal the semantic read cursor captured at `$DE`. These
 checks add zero compiler, adapter, workspace, transcript, generated-program,
 runtime, NOBJ, or HEX bytes.
 
+### Compression and capacity-polymorphic `print`
+
+The next pass began from `proofs/chapter21-target-z80-slice-proof.json` at
+standalone HEAD `a782cc9dc83c395e4b7fc7dd536584d7541f0a4f`. The baseline was
+reproduced before editing: 15,482 compiler-code bytes plus 393 immutable
+bytes, for a 15,875-byte core and 509 bytes of headroom. Workspace was 3,606
+bytes; the selected proof runtime was 574 bytes; proof code and data were 2,345
+bytes; and the proof executed 1,043,353 instructions in 10,196,561 T-states.
+Its Chapter 21 NOBJ was 7,913 bytes and used 1,461 target-image bytes.
+
+The compression pass introduced checked inline operands for tail diagnostics
+and single-byte emission, then shared only register-contract-compatible parser
+and backend tails. AZM's stack and register checker now treats a call to a
+declared `noreturn` helper as a terminal control-flow edge. The helper's return
+address can therefore select one following data byte without that byte entering
+the caller's reachable instruction stream. The checker neither decodes that byte nor propagates reachability through the
+tail. A conventional D8 disassembler still renders that inline data byte as an
+instruction; this is a cosmetic listing limitation, not executable code or a
+source-map error. Every generated program, semantic transcript, NOBJ, Intel HEX image, and
+selected runtime remained byte-identical to the baseline. The final compressed
+checkpoint, measured with the same manifest before the `print` edits, contained
+15,375 code bytes plus 393 immutable bytes, or 15,768
+core bytes, leaving 616 bytes of headroom. Workspace remained 3,606 bytes. A
+relative branch that fit the target-enabled image but failed a retained
+historical layout was restored to `JP`; both conditional compiler layouts and
+all retained proof layouts therefore assemble strictly.
+
+`print` is a predefined, result-free, failable call rather than a statement or
+grammar production. The ordinary parser recognizes its name and accepts any
+bounded-string capacity at that call site. The semantic transcript reuses the
+retired operation byte 23 and carries the static capacity, source offset, and
+existing three-byte failure state. The backend checks the stored logical
+length against that capacity before calling a shared runtime helper. The helper
+then sends bytes through the existing `writeOutputByte` vector and introduces
+no System Service.
+
+Fresh assembly of `proofs/chapter21-target-z80-slice-proof.json` measures 15,508 shipping compiler-code bytes
+plus 399 immutable bytes, or 15,907 bytes of core and 477 bytes of headroom.
+The instrumented proof in `proofs/flat-target-debug-z80-slice-proof.json`
+measures 15,565 code bytes plus 399 immutable bytes, or 15,964 bytes of core.
+Relative to the compressed checkpoint, `print` adds 133
+code bytes and six immutable name bytes, for a 139-byte compiler-core delta.
+This remained below the 150-byte review threshold after a focused pass reused
+the retired dispatch slot; the earlier form measured 156 added core bytes and
+was not retained. Compiler workspace and the 511-byte semantic payload
+capacity are unchanged.
+
+Runtime identity `$0005` adds the 18-byte `PrintString` helper at offset 364.
+`test/nobj.test.ts` measures the default-context canonical linked runtime at
+382 bytes. `proofs/chapter21-target-z80-slice-proof.json` measures a 592-byte
+selected runtime, while `proofs/stage9-conformance-z80-slice-proof.json`
+measures the 614-byte historical direct-proof form. The
+target-enabled producer proof remains 2,345 bytes and executes 1,043,067
+instructions in 10,189,213 T-states. Its ordinary Chapter 21 source does not
+call `print`; its larger 1,479-byte image and 7,931-byte NOBJ come from the
+selected runtime revision. Generated-code length and instruction topology,
+initialized-data contents, and source semantics remain unchanged, but the
+larger runtime moves target placement and therefore changes layout-dependent
+address operands, NOBJ, and Intel HEX bytes.
+
+The `supports a measured TEC-1-style menu and value display` case in
+`test/print.test.ts`, using that test's fixed flat target and service addresses,
+locks the following account. The retained console is a 1,034-byte source file. It uses
+five static messages across four distinct capacities (`string[2]`,
+`string[8]`, `string[20]`, and `string[40]`), three ordinary numeric-formatting
+routines, and direct `print` calls for its banner, menu, labels, and newline.
+It compiles in 311,818 instructions and 3,101,195 T-states, emits a 13,837-byte
+NOBJ, uses 2,299 target-image bytes, and contains 1,706 generated code bytes and
+158 total read-only bytes, of which 88 are aggregate constants. Execution of the word
+choice produces the exact menu and `1234` display text.
+
+This console needs no string comparison, search, or copy routine. Its three
+formatter routines transform integers and belong to the separate
+number-formatting tier. For this program, the measured non-output string-routine
+count is zero. The project therefore defers both further string intrinsics and
+`string[]` until a broader program requires them.
+
+The console uses four of the eight aggregate-type entries. A separate boundary
+case in `test/print.test.ts` admits eight distinct bounded-string capacities
+with `print` and rejects the ninth with the existing aggregate-type-capacity
+diagnostic. This proves that `print` allocates no hidden wildcard type, but it
+does not prove that eight entries suit every application. The capacity remains
+eight for now, with no 48-byte workspace increase.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -1707,7 +1791,7 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | aggregate-constant bytes                |      1,024 | private-image suffix, one shared length word, and relative-offset symbol payloads     | read-only-data capacity diagnostic                                               | record/array/string constants; exact 1,024-byte suffix and rejected next byte     |
 | total generated read-only-data bytes    |      1,024 | initialized-data prefix followed by aggregate-constant suffix                         | diagnostic for the declaration class that first exceeds the combined region      | mixed data/constant shifting and exact separate boundary proofs                   |
 | zero-initialized program-data bytes     |      1,024 | retained word length; no stored image bytes                                           | capacity diagnostic                                                              | exact four-string-plus-tail BSS and rejected following byte                       |
-| emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 556 bytes; banked 813/589 bytes; per-bank and entry-bank overflow proofs     |
+| emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 574 bytes; banked 831/607 bytes; per-bank and entry-bank overflow proofs     |
 | physical target banks                   |          4 | target descriptor and four per-bank cursor/remaining entries                          | target-configuration diagnostic                                                  | accepted four-bank profiles; rejected fifth bank                                  |
 | activation bytes                        |      3,840 | reserved machine-stack region; frame size is bounded by retained declarations         | `activation-capacity` or fixed memory-map rejection                              | memory-map proof, sixteen-position call, and depth boundary                       |
 | activation depth                        |          8 | counter plus generated hardware-stack frames                                          | `activation-capacity`                                                            | recursive handler-bypass and root-frame trap proof                                |

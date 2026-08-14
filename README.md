@@ -9,14 +9,15 @@ package does not govern Nucleus.
 
 ## Layout
 
-|            |                                                                         |
-| ---------- | ----------------------------------------------------------------------- |
-| `docs/`    | language and runtime authorities, implementation plan, and charter      |
-| `grammar/` | machine-readable production grammar, generator, and packed LL(1) tables |
-| `asm/`     | direct-Z80 compiler, runtime, and executable AZM proof fixtures         |
-| `proofs/`  | bounded memory profiles and proof-harness manifests                     |
-| `src/`     | Node compiler, CLI, target validation, NOBJ, D8, and publication        |
-| `test/`    | grammar, contract, measurement, and direct-Z80 proof gates              |
+|             |                                                                         |
+| ----------- | ----------------------------------------------------------------------- |
+| `docs/`     | language and runtime authorities, implementation plan, and charter      |
+| `grammar/`  | machine-readable production grammar, generator, and packed LL(1) tables |
+| `asm/`      | direct-Z80 compiler, runtime, and executable AZM proof fixtures         |
+| `examples/` | small source programs, including a TEC-1-style console                  |
+| `proofs/`   | bounded memory profiles and proof-harness manifests                     |
+| `src/`      | Node compiler, CLI, target validation, NOBJ, D8, and publication        |
+| `test/`     | grammar, contract, measurement, and direct-Z80 proof gates              |
 
 ## Host compiler
 
@@ -128,6 +129,14 @@ Recoverable errors remain explicit and local: `else fail` propagates one
 failable call, same-line `handle NAME ... end` handles it, and `return` denotes
 success only. These forms lower to ordinary Z80 conditional control flow, not
 exceptions or stack unwinding.
+
+`print(text)` accepts any bounded `string[N]`, writes its logical bytes through
+the existing output service, and uses the same `else fail` or `handle` forms.
+It is a compiler intrinsic, not a new service. The
+[`tec1-console.nu`](examples/tec1-console.nu) example uses it for a menu,
+prompts, and labels while keeping hexadecimal formatting in ordinary Nucleus
+routines. Its compiler, artifact, and example-specific counts are recorded in the
+[implementation account](docs/implementation-plan.md#compression-and-capacity-polymorphic-print).
 
 ```bash
 npm run proof

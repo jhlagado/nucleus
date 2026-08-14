@@ -596,14 +596,15 @@ describe("NOBJ 0.1", () => {
 
   it("assembles the canonical provider from the exact selected runtime source", async () => {
     const runtime = await loadCanonicalRuntimeImage();
-    expect(runtime.identity).toBe(4);
-    expect(runtime.bytes).toHaveLength(364);
+    expect(runtime.identity).toBe(5);
+    expect(runtime.bytes).toHaveLength(382);
     expect(runtime.vectorBytes).toHaveLength(33);
     expect(runtime.initialBytes).toHaveLength(70);
     expect(runtime.initialBytes[33]).toBe(1);
     expect(runtime.initialBytes[40]).toBe(8);
     expect(runtime.currentBankOffset).toBe(8);
     expect(runtime.helperOffsets?.CheckAggregateRegion).toBe(115);
+    expect(runtime.helperOffsets?.PrintString).toBe(364);
     expect(runtime.bytes.some((byte) => byte !== 0)).toBe(true);
   }, 30_000);
 

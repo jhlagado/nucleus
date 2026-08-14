@@ -140,6 +140,9 @@ SemanticBeginHandler         .equ 104
 SemanticEndHandler           .equ 105
 SemanticBeginCallableMain    .equ 106
 SemanticLoadReadOnlyAlias    .equ 107
+; Operation 23 was the retired byte-literal form before the production typed
+; dispatcher. Reuse that otherwise-dead slot without widening the table.
+SemanticPrintString          .equ SemanticLiteralU8
 
 Stage8ServiceReadInput       .equ 0
 Stage8ServiceWriteOutput     .equ 1
@@ -147,7 +150,8 @@ Stage8ServiceReadStorage     .equ 2
 Stage8ServiceRewindStorage   .equ 3
 Stage8ServiceWriteStorage    .equ 4
 Stage8ServiceSeekStorage     .equ 5
-Stage8PredefinedConstantBase .equ 6
+Stage8IntrinsicPrint          .equ 6
+Stage8PredefinedConstantBase .equ 7
 
 ; One completed call selector carries the target kind, successful-result
 ; retention choice, and dense target ID. Source labels occupy 27..31 and

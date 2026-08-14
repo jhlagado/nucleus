@@ -993,7 +993,7 @@ A bounded string's length is established only by static initialization or by who
 
 The `.length` intrinsic applies only when the postfix base has bounded-string type. On a record base, `.length` remains ordinary lookup in that record's field scope. Any other field suffix on a bounded string is invalid.
 
-Nucleus 0.1 has no `string[]`, open string, slice, general view, or address-and-length source value. A routine that accepts a bounded string names an exact capacity in its parameter type. A broader read-only view may be considered in a later language version after its compiler, carrier, lifetime, and result-ABI costs have been measured.
+Nucleus 0.1 has no `string[]`, open string, slice, general view, or address-and-length source value. A source-defined routine that accepts a bounded string names an exact capacity in its parameter type. The predefined `print` routine is the sole capacity-polymorphic exception: it accepts any `string[N]` at its call site without creating an open string type or a source-visible address-and-length value. A broader view for source-defined routines may be considered in a later language version after its compiler, carrier, lifetime, and result-ABI costs have been measured.
 
 This chapter fixes the semantic domain and capacity, not the stored layout. Chapter 7 defines storage identity and lifetime, Chapter 8 defines declaration initialization, and the Z80 runtime and backend contract defines the physical representation and byte encoding. That representation preserves embedded zero bytes, logical lengths through 253, and alias-visible byte mutation.
 
@@ -1032,6 +1032,7 @@ The compiler applies these compatibility rules:
 | Fixed-array index                                      | `u8` or `u16` index; result has the exact element type.                                                 |
 | Bounded-string `.length`                               | Read-only `u8` value equal to the current logical length.                                               |
 | Bounded-string index                                   | `u8` or `u16` index below the current length; result is a writable `u8` path.                           |
+| Predefined `print` argument                            | Any bounded-string type; the call retains that type's static capacity.                                  |
 | Aggregate parameter                                    | Exact referent-type identity.                                                                           |
 | Aggregate assignment                                   | Exact type identity; copy the complete aggregate into the destination.                                  |
 | Aggregate result                                       | Exact referent-type identity and immediate consumption under Chapter 7.                                 |
@@ -2779,6 +2780,18 @@ sub seekStorageOutput(offset as u16) fails
 
 The declarations above state interfaces; they are not source definitions and do not require completing bodies in the compilation unit.
 
+The compiler also establishes one predefined intrinsic binding named `print`. A call supplies exactly one argument, and the special compatibility rule in Section 6.10 admits every bounded-string capacity. In the following schematic, `N` denotes the concrete capacity of that argument:
+
+```text
+print(value as string[N]) fails, for each admitted N
+```
+
+This notation does not define overloads, a generic routine, or an open string type. The call retains the argument's one concrete bounded-string type.
+
+`print(value)` performs the observable effect of calling `writeOutputByte` once for each of `value`'s logical bytes, in increasing index order. An empty string performs no output call. Embedded zero bytes are ordinary content. If every byte is accepted, `print` succeeds. If one call fails, `print` returns that code immediately; bytes accepted by earlier calls remain visible, and no later byte is attempted.
+
+`print` is parsed with the ordinary call syntax and participates in `else fail` and `handle` exactly like another result-free failable routine. Its name is a predefined ordinary binding and cannot be redeclared or shadowed. It does not add a Nucleus System Service. A conforming implementation may lower the intrinsic by any means that preserves these observable calls and results.
+
 Standard input starts with its cursor before the first supplied byte. `readInputByte` obtains the next byte from standard input. It may block until a byte, end-of-input condition, or input failure is available. It succeeds with the byte and advances the cursor, fails with `endOfInput` at the end, else fails with `inputFailure` for another input error. Failure leaves the cursor unchanged.
 
 Standard output starts empty and is append-only. `writeOutputByte` appends one byte to standard output. It succeeds after the byte has been accepted else fails with `outputFailure`. Successful writes occur in call order; failure leaves the output unchanged.
@@ -3023,15 +3036,15 @@ The grammar uses the general `expression` nonterminal for scalar constant leaves
 
 The grammar uses these declared semantic predicates:
 
-| Predicate                      | Decision                                                                                                                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCallableName`               | At statement head, select a routine-call statement; in an expression, admit a call suffix only on a visible routine and retain its result and failure category.              |
-| `isWritableName`               | At statement head, select assignment only when the resolved declaration is a mutable scalar or aggregate root; an aggregate constant root is rejected before suffix parsing. |
-| `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                               |
-| `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.     |
-| `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                   |
-| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                      |
-| `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.        |
+| Predicate                      | Decision                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isCallableName`               | At statement head, select a routine-call statement; in an expression, admit a call suffix only on a visible source routine, service, or `print`, and retain its result and failure category. |
+| `isWritableName`               | At statement head, select assignment only when the resolved declaration is a mutable scalar or aggregate root; an aggregate constant root is rejected before suffix parsing.                 |
+| `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                                               |
+| `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.                     |
+| `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                                   |
+| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                                      |
+| `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.                        |
 
 Field lookup after `.` uses the selected record type, except that a bounded-string base admits only the intrinsic read-only suffix `.length`. Index selection uses a fixed-array domain or a bounded string's current logical length according to the base type; this distinction needs no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
@@ -3061,11 +3074,11 @@ Identifiers use their complete case-sensitive source spelling as identity. Progr
 
 Name-led parsing first resolves the visible binding, then checks its declaration class. A routine name starts a call. A mutable scalar or aggregate storage path starts an assignment. An aggregate constant starts a readable aggregate path but is rejected as a direct-root assignment target. A record type is valid only in a type position. A failable call is parsed as an ordinary call and then checked for exactly one failure consumer under Chapter 14. Failure to find a binding, finding the wrong class, or finding a later declaration is invalid source.
 
-The standard service names and error constants from Chapter 16 are visible before source declarations. `main` is source-defined and must have no parameters and no result.
+The standard service names, `print`, and error constants from Chapter 16 are visible before source declarations. `main` is source-defined and must have no parameters and no result.
 
 ### 18.3 Types and compatibility
 
-Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Bounded-string identity consists of exact capacity.
+Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Bounded-string identity consists of exact capacity. Source-defined calls require that exact identity for aggregate arguments; the predefined `print` call instead admits any bounded-string identity and retains its capacity for checking.
 
 Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and implicit `u8`-to-`u16` widening. Checked `u8(...)` is the only `u16`-to-`u8` conversion. Boolean and integer types do not convert. Aggregate arguments, results, parameter bindings, and assignments require exact type identity. Aggregate assignment copies the complete value. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
 
@@ -3149,7 +3162,7 @@ Error propagation ends activations through ordinary return control. It performs 
 
 ### 19.7 System services and traps
 
-The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success.
+The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. `print` performs those byte-output calls in string-index order and stops at the first failure; earlier successful writes remain. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success.
 
 A trap stops source execution at the failing operation. The environment reports the required reason and best available location. Earlier completed effects remain; no later source operation or source-level cleanup executes.
 
@@ -3168,7 +3181,7 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | Expressions  | Calls, checked array and bounded-string indexing, field selection and string `.length`, explicit integer conversions, unary `+`/`-`, arithmetic including quotient and remainder, one comparison, `not`, `and`, `or`, and integer-only `xor`.                                                                                                    |
 | Statements   | Scalar and exact-type aggregate assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                                                                            |
 | Control      | Flat `if`/`elseif`/`else`, pre-test `while`, counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                                                                                                                              |
-| Routines     | Formal arguments, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                                                                                             |
+| Routines     | Formal arguments, named scalar locals, no result or one typed result, early return, direct and mutual recursion, one complete forward signature whose parameter names bind its abbreviated body, and capacity-polymorphic predefined `print(string[N])`.                                                                                         |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
 | System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes, normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                                                                                     |
 

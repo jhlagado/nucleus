@@ -194,8 +194,8 @@ HybridLL1PopSymbol:
             RET
 
 HybridLL1CapacityFailure:
-            LD   A,DiagnosticParserCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticParserCapacity
 
 HybridLL1EngineEnd:
             .include "../../grammar/stage7-tables.asmi"

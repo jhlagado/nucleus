@@ -94,6 +94,7 @@ const semanticOperationWidth = (payload, key) => {
         case 95:
             return requireSemanticBytes(payload, key, 5);
         case 90:
+        case 23:
             return requireSemanticBytes(payload, key, 7);
         case 72:
             return requireSemanticBytes(payload, key, 9);

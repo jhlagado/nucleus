@@ -48,6 +48,12 @@ CompilerSetDiagnostic:
             SCF
             RET
 
+.routine noreturn
+SetDiagInline:
+            POP  HL
+            LD   A,(HL)
+            JR   CompilerSetDiagnostic
+
 HybridLL1MeasuredStart:
             .include "stage7-ll1-parser.asm"
 HybridLL1MeasuredEnd:

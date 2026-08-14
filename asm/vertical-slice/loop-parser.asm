@@ -25,6 +25,12 @@ CompilerSetDiagnostic:
             SCF
             RET
 
+.routine noreturn
+SetDiagInline:
+            POP  HL
+            LD   A,(HL)
+            JR   CompilerSetDiagnostic
+
 ; Copy one complete offset/line/column record from HL to DE. LDIR preserves
 ; carry, allowing diagnostic callers to establish failure after the copy.
 .routine in DE,HL out BC,DE,HL clobbers parity,halfCarry

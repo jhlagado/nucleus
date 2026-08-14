@@ -36,8 +36,8 @@ TypedRetainDeclarationNameReady:
             RET
 
 TypedDuplicateNameFailure:
-            LD   A,DiagnosticDuplicateName
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticDuplicateName
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TypedRejectCurrentOrdinaryName:
@@ -176,8 +176,8 @@ TypedExpressionPush:
             RET
 
 TypedExpressionStackFull:
-            LD   A,DiagnosticExpressionCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpressionCapacity
 
 ; Store A/HL as the pending left result before pushing it.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -223,8 +223,8 @@ TypedRestoreOperands:
             OR   A
             RET
 TypedExpressionStackUnderflow:
-            LD   A,DiagnosticInternalOperation
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticInternalOperation
 
 TypedValueRangeFailure:
             LD   HL,ExpressionValuePosition
@@ -235,11 +235,11 @@ TypedRangeFailureAtPosition:
             LD   DE,TokenStartOffset
             CALL CompilerCopyPosition
 TypedRangeFailure:
-            LD   A,DiagnosticIntegerRange
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticIntegerRange
 TypedTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTypeMismatch
 TypedDivisionFailure:
             LD   B,C                     ; statically selected divide width
             LD   C,DiagnosticDivisionZero
@@ -1188,8 +1188,8 @@ TypedComparisonStackFailure:
 TypedComparisonChained:
             POP  HL
             POP  AF
-            LD   A,DiagnosticComparisonChain
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticComparisonChain
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedReduceComparison:
             LD   A,(ExpressionLeftMeta)
@@ -2178,8 +2178,8 @@ TypedStatementReturn:
             JP   TypedParseStatementsContinue
 .endif
 TypedRoutineFlowFailure:
-            LD   A,DiagnosticRoutineFlow
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticRoutineFlow
 .if HybridLL1Full
 .else
 TypedStatementTransfer:
@@ -2348,7 +2348,7 @@ TypedParseRoutineStatements:
             JP   ParserExpect
 .endif
 TypedForwardIncomplete:
-            LD   A,DiagnosticForwardIncomplete
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticForwardIncomplete
 
             .include "structured-control-parser.asm"

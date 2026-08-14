@@ -1,4 +1,5 @@
+const Greeting as string[2] = "Hi"
+
 sub main() fails
-    writeOutputByte('H') else fail
-    writeOutputByte('i') else fail
+    print(Greeting) else fail
 end

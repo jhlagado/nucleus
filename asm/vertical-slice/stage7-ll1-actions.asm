@@ -56,8 +56,8 @@ HybridLL1StaticInitializer:
             RET
 
 HybridLL1StrayClause:
-            LD   A,DiagnosticExpectedEnd
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedEnd
 
 ; --------------------------------------------------------------- type actions
 
@@ -85,7 +85,7 @@ HybridLL1ResolveRecordType:
 HybridLL1BeginTypeBound:
 HybridLL1ExpectU16:
             LD   A,ScalarTypeU16
-            JP   HybridLL1SaveExpectedType
+            JR   HybridLL1SaveExpectedType
 
 ; Return the checked, positive, byte-sized constant bound in HL.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
@@ -256,14 +256,8 @@ HybridLL1CommitAggregateConstant:
             LD   HL,AggregateInitializerBase
             LD   BC,(AggregateCurrentObjectExtent)
             LDIR
-            LD   A,(SymbolCount)
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateSymbolTypeBase
-            ADD  HL,DE
             LD   A,(AggregateCurrentTypeId)
-            LD   (HL),A
-            JP   SymbolCommit
+            JP   SymbolCommitTyped
 
 HybridLL1BeginAssert .equ TypedRetainDeclarationNameReady
 
@@ -277,11 +271,11 @@ HybridLL1CommitAssert:
             LD   A,(ExpressionRightValue)
             OR   A
             RET  NZ
-            LD   A,DiagnosticAssertionFailed
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticAssertionFailed
 HybridLL1AssertTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTypeMismatch
 
 ; ------------------------------------------------------ program declarations
 
@@ -342,14 +336,8 @@ HybridLL1ProgramPrepareSymbol:
             CALL TypedPrepareCurrentWord
             POP  BC
             RET  C
-            LD   A,(SymbolCount)
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateSymbolTypeBase
-            ADD  HL,DE
             LD   A,(DeclarationInfo)
-            LD   (HL),A
-            CALL SymbolCommit
+            CALL SymbolCommitTyped
             RET  C
             OR   A
             RET
@@ -561,8 +549,8 @@ HybridLL1RequireBeforeMain:
             LD   A,(Stage7CurrentRoutine)
             INC  A
             RET  NZ
-            LD   A,DiagnosticExpectedEof
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedEof
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 HybridLL1RequireMain:
@@ -593,11 +581,11 @@ HybridLL1RequireForwardLoop:
             DEC  B
             JR   HybridLL1RequireForwardLoop
 HybridLL1MissingMain:
-            LD   A,DiagnosticExpectedTopLevel
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTopLevel
 HybridLL1IncompleteForward:
-            LD   A,DiagnosticForwardIncomplete
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticForwardIncomplete
 
 ; The grammar deliberately treats the lexeme `main` as the same NAME token as
 ; ordinary routine names. This action is the one semantic discriminator.
@@ -667,8 +655,8 @@ HybridLL1BeginMainSignature:
             LD   (Stage7CurrentFlags),A
             RET
 HybridLL1RoutineCapacityFailure:
-            LD   A,DiagnosticRoutineCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticRoutineCapacity
 
 ; A forward uses the ordinary signature builder, then publishes that sole
 ; signature without opening a body or emitting code.
@@ -715,8 +703,8 @@ HybridLL1RetainParameter:
             OR   A
             RET
 HybridLL1MainParameterFailure:
-            LD   A,DiagnosticExpectedRight
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedRight
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitParameter:
@@ -743,8 +731,8 @@ HybridLL1MarkSubFails:
             OR   A
             RET
 HybridLL1SubSignatureLineFailure:
-            LD   A,DiagnosticExpectedLine
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedLine
 
 ; Open the abbreviated body of one exact incomplete forward and recover its
 ; sole stored signature, including the original parameter spellings.
@@ -812,8 +800,8 @@ HybridLL1BeginForwardMainBody:
             LD   (Stage7CurrentRoutine),A
             JP   HybridLL1BeginMainBody
 HybridLL1ForwardMissing:
-            LD   A,DiagnosticUnknownName
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticUnknownName
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginSubBody:
@@ -1042,8 +1030,8 @@ HybridLL1CheckFailureResult:
             JP   Stage8RequireNoPendingFailure
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 HybridLL1FailureContext:
-            LD   A,DiagnosticFailureContext
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticFailureContext
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ; Both callers have already observed a nonzero Stage8DirectFailable. The
@@ -1104,12 +1092,9 @@ Stage8SelectPendingFailure:
             CP   TokenHandle
             JR   NZ,HybridLL1FailureContext
             LD   B,ControlKindHandler
-            CALL HybridLL1PushFlowFrame
+            CALL HybridLL1PushFlowFrameAndLabelA
             RET  C
-            CALL ControlAllocateLabelA
-            RET  C
-            LD   B,ControlFrameExit
-            CALL ControlAllocateInto
+            CALL ControlAllocateExit
             RET  C
             LD   HL,(Stage8CallModePointer)
             LD   (HL),Stage8CallModeHandle
@@ -1532,8 +1517,7 @@ HybridLL1BeginIf:
             LD   B,ControlKindIf
             CALL HybridLL1PushFlowFrame
             RET  C
-            LD   B,ControlFrameExit
-            CALL ControlAllocateInto
+            CALL ControlAllocateExit
             RET  C
             CALL ControlAllocateLabelA
             RET  C
@@ -1655,14 +1639,11 @@ HybridLL1BeginWhile:
 .endif
 .endif
             LD   B,ControlKindWhile
-            CALL HybridLL1PushFlowFrame
-            RET  C
-            CALL ControlAllocateLabelA
+            CALL HybridLL1PushFlowFrameAndLabelA
             RET  C
             INC  HL
             LD   (HL),C
-            LD   B,ControlFrameExit
-            CALL ControlAllocateInto
+            CALL ControlAllocateExit
             RET  C
             CALL ControlTopFrame
             INC  HL
@@ -1754,15 +1735,12 @@ HybridLL1DefaultForStep:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginForBody:
             LD   B,ControlKindFor
-            CALL HybridLL1PushFlowFrame
-            RET  C
-            CALL ControlAllocateLabelA
+            CALL HybridLL1PushFlowFrameAndLabelA
             RET  C
             LD   B,ControlFrameContinue
             CALL ControlAllocateInto
             RET  C
-            LD   B,ControlFrameExit
-            CALL ControlAllocateInto
+            CALL ControlAllocateExit
             RET  C
             LD   B,ControlFrameCounter
             CALL ControlTopFrameField
