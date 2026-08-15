@@ -47,6 +47,17 @@ EmitByteInline:
             LD   A,(HL)
             JR   EmitByte
 
+.routine noreturn
+EmitByteInlineChecked:
+            POP  HL
+            LD   A,(HL)
+            INC  HL
+            PUSH HL
+            CALL EmitByte
+            RET  NC
+            POP  HL
+            RET
+
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:
             LD   C,H
@@ -395,8 +406,8 @@ EncodeLoopProgramBody:
 
             LD   HL,(EmitCursor)
             LD   (EmitLoopHead),HL
-            LD   A,$7A
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $7A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -427,8 +438,8 @@ EncodeLoopProgramBody:
             RET  C
 .endif
             LD   (EmitFailureFixup),DE
-            LD   A,$7A
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $7A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -443,8 +454,8 @@ EncodeLoopProgramBody:
             RET  C
 .endif
             LD   (EmitUpdateExitFixup),DE
-            LD   A,$14
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $14
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -578,8 +589,8 @@ EmitLoadScalar:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitRestoreAfterCall:
-            LD   A,$F5
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F5
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -610,8 +621,8 @@ EmitTrapEnding:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $AF
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -856,8 +867,8 @@ CallLiteral:
             RET  C
 .endif
             LD   (EmitExitFixup),DE
-            LD   A,$CD
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $CD
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -913,8 +924,8 @@ CallIfParameterZero:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$B7
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $B7
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -961,8 +972,8 @@ CallReturnSelfMinus:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$D8
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $D8
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1174,8 +1185,8 @@ ExpressionLoadLocal:
             CALL NextSemanticByte
             CPL
             LD   C,A
-            LD   A,$DD
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $DD
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1188,13 +1199,13 @@ ExpressionLoadLocal:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 ExpressionMultiply:
-            LD   A,$C1
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $C1
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F1
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1230,13 +1241,13 @@ ExpressionStoreLocal:
             CALL NextSemanticByte
             CPL
             LD   C,A
-            LD   A,$F1
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$DD
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $DD
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1251,8 +1262,8 @@ ExpressionWrite:
             LD   H,A
             LD   L,C
             LD   (EmitLoopHead),HL
-            LD   A,$F1
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1309,8 +1320,8 @@ ExpressionEndMain:
 EncodeExpressionProgramBody:
             LD   HL,GeneratedLimit
             CALL BeginProgram
-            LD   A,$C3
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $C3
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1379,8 +1390,8 @@ EncodeArrayProgramBody:
             RET  C
 .endif
             LD   (EmitUpdateExitFixup),DE
-            LD   A,$5F
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $5F
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1389,8 +1400,8 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$21
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $21
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1401,13 +1412,13 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$19
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $19
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$7E
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $7E
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1452,8 +1463,8 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $AF
 .if CompilerDiagnosticReturns
             RET  C
 .endif

@@ -695,13 +695,13 @@ TypedEmitTrapEnding:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F5                    ; PUSH AF, preserve trap reason
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F5                    ; PUSH AF, preserve trap reason
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$AF                    ; XOR A
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $AF                    ; XOR A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -715,8 +715,8 @@ TypedEmitTrapEnding:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F1                    ; POP AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1                    ; POP AF
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1049,8 +1049,8 @@ EncodeSegmentedBss:
 EncodeSegmentedEntry:
 .endif
 EncodeProgramEntry:
-            LD   A,$C3
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $C3
 .if CompilerDiagnosticReturns
             RET  C
 .endif

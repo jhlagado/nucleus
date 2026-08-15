@@ -6,8 +6,9 @@ import { compile } from "@jhlagado/azm/compile";
 
 const source = `.org $100
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,HL
 EmitByte:
+        LD HL,0
         OR A
         RET
 
@@ -16,9 +17,11 @@ EmitByteInlineChecked:
         POP HL
         LD A,(HL)
         INC HL
+        PUSH HL
         CALL EmitByte
-        RET C
-        JP (HL)
+        RET NC
+        POP HL
+        RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 Caller:

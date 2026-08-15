@@ -2089,6 +2089,40 @@ in 10,452,808 T-states. Proof code and data remain 2,487 and 2,489 bytes.
 Historical layouts retain the ordinary branches and cleanup path. Fresh CLI
 builds reproduce the six saved NOBJ, HEX, and D8 hashes.
 
+### Checked inline-byte emission
+
+The checked inline-byte stage starts from generation-driver checkpoint
+`8f7271ffdf3284ae7e2a879a861c6215d1427d20`. Forty-three source sites had the
+same checked sequence: load a fixed byte, call `EmitByte`, and propagate carry.
+The replacement call stores the byte immediately after its call instruction.
+Its shared helper reads that byte, retains the following instruction address on
+the compiler stack, and calls `EmitByte`. Success returns to the retained
+instruction address. In historical layouts, an ordinary carry failure discards
+that address and returns to the enclosing routine's caller. Production output
+failure still takes the nonlocal diagnostic continuation.
+
+The initial helper sketch retained its continuation in `HL`, but the real
+`EmitByte` contract clobbers `HL`; strict register checking rejected that form.
+The retained ten-byte helper uses the stack instead. The AZM capability gate
+now models the real `HL` clobber and both success and failure stack paths.
+
+Only 23 converted sites are resident in the shipping layout. After paying for
+the shared helper, shipping compiler code measures 14,936 bytes plus 393
+immutable bytes, or 15,329 compiler-core bytes with 1,055 bytes of 16 KiB
+headroom. The measured saving is 13 code bytes. The instrumented image measures
+14,992 code bytes plus 393 immutable bytes, or 15,385 core bytes with 2,023
+bytes left in its 17 KiB reservation. Workspace remains 3,609 bytes and the
+selected runtime remains 574 bytes.
+
+The extra helper instructions trade compilation speed for resident space. The
+shipping proof executes 1,057,362 instructions in 10,412,236 T-states, an
+increase of 949 instructions and 10,439 T-states. The instrumented proof has
+the same increase and executes 1,061,991 instructions in 10,463,247 T-states.
+Proof code and data remain 2,487 and 2,489 bytes. The inline data bytes can
+appear as instructions in a raw compiler disassembly; they do not affect D8
+source attribution or operation-key decoding. Fresh CLI builds reproduce the
+six saved NOBJ, HEX, and D8 hashes.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

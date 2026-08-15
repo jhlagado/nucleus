@@ -43,8 +43,8 @@ Stage7BindParameter:
             JR   NC,Stage7BindWord
             CP   ScalarTypeU16
             JR   Z,Stage7BindWord
-            LD   A,$3B                      ; DEC SP
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $3B                      ; DEC SP
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -56,8 +56,8 @@ Stage7BindParameter:
             LD   HL,Stage7StoreIXL
             JR   Stage7EmitPairPathOffset
 Stage7BindOpenString:
-            LD   A,$3B                      ; third activation byte
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $3B                      ; third activation byte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -308,8 +308,8 @@ Stage7EmitFarSourceCall:
             JP   EmitTargetVectorCall
 .endif
 Stage8CallableSourceFailable:
-            LD   A,$F5                    ; PUSH AF result discriminant/code
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F5                    ; PUSH AF result discriminant/code
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -323,8 +323,8 @@ Stage8CallableSourceFailable:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F1                    ; POP AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1                    ; POP AF
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -372,8 +372,8 @@ Stage8DiscardCarriers:
             OR   A
             RET  Z
 Stage8DiscardCarrier:
-            LD   A,$D1                    ; POP DE carrier
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $D1                    ; POP DE carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -491,8 +491,8 @@ Stage8FailureReturnTail:
             LD   HL,Stage8FailureReturnBytes
             JP   EmitPair
 Stage8FailureHandle:
-            LD   A,$4F                    ; LD C,A error code
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $4F                    ; LD C,A error code
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -504,8 +504,8 @@ Stage8FailureHandle:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$79                    ; LD A,C
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $79                    ; LD A,C
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -602,8 +602,8 @@ Stage8BeginCallableMain:
 .endif
             LD   (EmitExitFixup),DE
 .if TargetStreamingOutput
-            LD   A,$F5                    ; PUSH AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F5                    ; PUSH AF
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -729,8 +729,8 @@ Stage7SelectIndex:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$E5                    ; retain base
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $E5                    ; retain base
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -814,8 +814,8 @@ Stage7PreserveCarrierRegion:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$E5                    ; retain source
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $E5                    ; retain source
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -948,8 +948,8 @@ Stage7OpenStringLength:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$E5                    ; retain carrier
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $E5                    ; retain carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1075,8 +1075,8 @@ Stage7PrepareOpenArgument:
             LD   (Stage7ArgumentIndex),A
             CALL NextSemanticByte
             LD   (Stage7ArgumentCount),A
-            LD   A,$D1                    ; POP DE address carrier
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $D1                    ; POP DE address carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif

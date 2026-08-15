@@ -423,16 +423,16 @@ StructuredForNext:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$E5                    ; preserve current counter
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $E5                    ; preserve current counter
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,(EmitControlMode)
             BIT  1,A
             JR   NZ,StructuredNegativeDistance
-            LD   A,$EB                    ; EX DE,HL => bound-current
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $EB                    ; EX DE,HL => bound-current
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -502,8 +502,8 @@ StructuredForNextFit:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$CA                    ; JP Z,fit
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $CA                    ; JP Z,fit
 .if CompilerDiagnosticReturns
             RET  C
 .endif

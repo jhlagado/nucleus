@@ -618,13 +618,13 @@ TargetEmitStartup:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$39                    ; ADD HL,SP
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $39                    ; ADD HL,SP
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$EB                    ; EX DE,HL
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $EB                    ; EX DE,HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -635,13 +635,13 @@ TargetEmitStartup:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F9                    ; LD SP,HL
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F9                    ; LD SP,HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$D5                    ; PUSH DE, saved incoming SP
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $D5                    ; PUSH DE, saved incoming SP
 .if CompilerDiagnosticReturns
             RET  C
 .endif
