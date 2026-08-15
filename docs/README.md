@@ -16,6 +16,7 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`z80-runtime-contract.md`](z80-runtime-contract.md) governs packed representation, generated-code integrity, services, traps, and direct Z80 execution; the language specification remains authoritative for source-language meaning.
 - [`implementation-plan.md`](implementation-plan.md) records the non-normative construction order, measurement accounts, capacity ledger, and readiness gates for the first Z80 implementation.
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
+- [`oddities.md`](oddities.md) is a non-normative working note: first-time surprises, settled design, and rough edges still intended to be smoothed.
 
 Implementation records, deferred proposals, and active plans live in
 [`plans/`](plans/); each file's status header says which it is. Machine-readable
