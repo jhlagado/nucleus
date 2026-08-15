@@ -390,6 +390,28 @@ AggregateAtomicFailedAsExpected:
             LD   A,(AggregateRecordCount)
             CP   2
             JP   NZ,ProofFailIdentity
+
+            ; The retained non-streaming parser uses the same outermost-first
+            ; suffix collection and interns the inner u8[3] row before the
+            ; outer two-row array.
+            LD   A,157
+            LD   HL,AggregateNestedArraySource
+            LD   DE,AggregateNestedArraySourceEnd
+            CALL CompileAggregateSlice
+            JP   C,ProofFailNestedArray
+            LD   HL,(StaticImageLength)
+            LD   DE,6
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailNestedArray
+            LD   HL,StaticImageBase
+            LD   DE,AggregateNestedArrayExpected
+            LD   B,6
+            CALL ProofCompareBytes
+            JP   C,ProofFailNestedArray
+            LD   A,(AggregateTypeCount)
+            CP   2
+            JP   NZ,ProofFailNestedArray
             LD   HL,GeneratedBase+3
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
@@ -698,6 +720,8 @@ ProofFailMalformedEscape:  LD A,33
                            JP ProofFailed
 ProofFailStringExtentCapacity: LD A,34
                            JP ProofFailed
+ProofFailNestedArray:      LD A,35
+                           JP ProofFailed
 ProofFailDuplicateField:   LD A,24
                            JP ProofFailed
 ProofFailTypeExtentCapacity: LD A,25
@@ -719,6 +743,12 @@ AggregateExpectedImage:
             ; many[1]
             .db 2,0,13,14,15,0,0,0,0,0,0,16,17,18
 AggregateExpectedImageEnd:
+AggregateNestedArrayExpected:
+            .db 1,2,3,4,5,6
+AggregateNestedArraySource:
+            .db "var grid as u8[2][3] = [[1,2,3],[4,5,6]]",10
+            .db "sub main() fails",10,"end",10
+AggregateNestedArraySourceEnd:
 AggregateSealedStringBoundarySource:
             .db "var full as string[253]",10
             .db "sub main() fails",10,"end",10

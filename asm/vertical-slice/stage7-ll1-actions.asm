@@ -148,83 +148,22 @@ HybridLL1MakeOpenStringType:
             LD   A,AggregateOpenStringTypeId
             JR   HybridLL1SetCurrentType
 
-; An open array is a parameter-only contextual type. Its low seven bits retain
-; the exact concrete element type without consuming an aggregate-type entry.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-HybridLL1MakeOpenArrayType:
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CP   AggregateFirstDynamicTypeId
-            JR   C,HybridLL1OpenArrayElementReady
-            CALL AggregateRejectIfArrayKind
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-HybridLL1OpenArrayElementReady:
-            OR   AggregateOpenArrayTypeMask
-            JR   HybridLL1SetCurrentType
+HybridLL1BeginArrayType:
+            JP   AggregateBeginArrayType
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1MakeArrayType:
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CP   AggregateFirstDynamicTypeId
-            JR   C,HybridLL1ArrayElementReady
-            CALL AggregateRejectIfArrayKind
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-HybridLL1ArrayElementReady:
-            LD   (AggregateCandidateAux),A
+HybridLL1SaveArrayDimension:
             CALL HybridLL1CheckedBound
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (AggregateCandidateLength),HL
-            LD   B,H
-            LD   C,L
-            LD   A,(AggregateCandidateAux)
-            CALL AggregateGetExtent
-            LD   D,H
-            LD   E,L
-            LD   HL,0
-HybridLL1ArrayExtentLoop:
-            ADD  HL,DE
-            JP   C,AggregateProgramDataCapacityFailure
-            CALL AggregateCheckExtentCapacity
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            DEC  BC
-            LD   A,B
-            OR   C
-            JR   NZ,HybridLL1ArrayExtentLoop
-            LD   (AggregateCandidateExtent),HL
-            LD   A,AggregateTypeKindArray
-            LD   (AggregateCandidateKind),A
-            JR   HybridLL1InternCurrentType
+            JP   AggregateSaveArrayDimension
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-AggregateRejectOpenViewCurrent:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
-            OR   A
-            RET
+HybridLL1SaveOpenArrayDimension:
+            JP   AggregateSaveOpenArrayDimension
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-AggregateRejectIfArrayKind:
-            PUSH AF
-            CALL AggregateTypeAddress
-            LD   A,(HL)
-            CP   AggregateTypeKindArray
-            JP   Z,AggregateNestedArrayFailure
-            POP  AF
-            RET
+HybridLL1FinishArrayType:
+            JP   AggregateFinishArrayType
 
 ; --------------------------------------------------------- scalar constants
 
@@ -346,7 +285,7 @@ HybridLL1AssertTypeFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1SaveProgramType:
 HybridLL1SaveObjectType:
-            CALL AggregateRejectOpenViewCurrent
+            CALL AggregateRejectOpenViewPlacement
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -826,7 +765,7 @@ HybridLL1AllowSubResult:
             RET
 
 HybridLL1SaveSubResult:
-            CALL AggregateRejectOpenViewCurrent
+            CALL AggregateRejectOpenViewPlacement
 .if CompilerDiagnosticReturns
             RET  C
 .endif

@@ -2,17 +2,17 @@
 HybridLL1NonterminalCount .equ 43
 HybridLL1ProductionCount  .equ 73
 HybridLL1ProductionSplit  .equ 37
-HybridLL1ActionCount      .equ 77
+HybridLL1ActionCount      .equ 79
 HybridLL1StartSymbol      .equ $40
 HybridLL1ActionOrdinalEmitExit .equ 46
 HybridLL1ActionOrdinalEmitContinue .equ 47
 HybridLL1ActionOrdinalForTo .equ 61
 HybridLL1ActionOrdinalForUntil .equ 62
-HybridLL1ActionOrdinalTypeU8 .equ 72
-HybridLL1ActionOrdinalTypeU16 .equ 73
-HybridLL1ActionOrdinalTypeBoolean .equ 74
-HybridLL1ActionOrdinalTypeI8 .equ 75
-HybridLL1ActionOrdinalTypeI16 .equ 76
+HybridLL1ActionOrdinalTypeU8 .equ 74
+HybridLL1ActionOrdinalTypeU16 .equ 75
+HybridLL1ActionOrdinalTypeBoolean .equ 76
+HybridLL1ActionOrdinalTypeI8 .equ 77
+HybridLL1ActionOrdinalTypeI16 .equ 78
 
 HybridLL1RowDirectory:
             .db HybridLL1Row0-HybridLL1Rows,DiagnosticExpectedTopLevel ; compilation-unit
@@ -559,33 +559,33 @@ HybridLL1Production57: ; for-step-opt
 HybridLL1Production58: ; for-step-opt
             .db $c1
 HybridLL1Production59: ; type
-            .db $68,$66
+            .db $c3,$68,$c2,$66
 HybridLL1Production60: ; type-atom
             .db $6a
 HybridLL1Production61: ; type-atom
-            .db $c2,TokenName
+            .db $c4,TokenName
 HybridLL1Production62: ; type-atom
             .db TokenRightBracket,$67,TokenLeftBracket,TokenString
 HybridLL1Production63: ; string-capacity
-            .db $c4,$83,$c3
+            .db $c6,$83,$c5
 HybridLL1Production64: ; string-capacity
-            .db $c5
+            .db $c7
 HybridLL1Production65: ; type-array-opt
-            .db $69,TokenLeftBracket
+            .db $68,$69,TokenLeftBracket
 HybridLL1Production66: ; type-array-bound
-            .db $c6,TokenRightBracket,$83,$c3
+            .db $c8,TokenRightBracket,$83,$c5
 HybridLL1Production67: ; type-array-bound
-            .db $c7,TokenRightBracket
+            .db $c9,TokenRightBracket
 HybridLL1Production68: ; scalar-type
-            .db $c8,TokenU8
+            .db $ca,TokenU8
 HybridLL1Production69: ; scalar-type
-            .db $c9,TokenU16
+            .db $cb,TokenU16
 HybridLL1Production70: ; scalar-type
-            .db $ca,TokenBoolean
+            .db $cc,TokenBoolean
 HybridLL1Production71: ; scalar-type
-            .db $cb,TokenI8
+            .db $cd,TokenI8
 HybridLL1Production72: ; scalar-type
-            .db $cc,TokenI16
+            .db $ce,TokenI16
 HybridLL1ProductionsEnd:
 
 HybridLL1ActionDirectory:
@@ -655,12 +655,14 @@ HybridLL1ActionDirectory:
             .dw HybridLL1StepConstant ; x:StepConstant
             .dw HybridLL1SaveForStep ; a:SaveForStep
             .dw HybridLL1DefaultForStep ; a:DefaultForStep
+            .dw HybridLL1BeginArrayType ; a:BeginArrayType
+            .dw HybridLL1FinishArrayType ; a:FinishArrayType
             .dw HybridLL1ResolveRecordType ; a:ResolveRecordType
             .dw HybridLL1BeginTypeBound ; a:BeginTypeBound
             .dw HybridLL1MakeStringType ; a:MakeStringType
             .dw HybridLL1MakeOpenStringType ; a:MakeOpenStringType
-            .dw HybridLL1MakeArrayType ; a:MakeArrayType
-            .dw HybridLL1MakeOpenArrayType ; a:MakeOpenArrayType
+            .dw HybridLL1SaveArrayDimension ; a:SaveArrayDimension
+            .dw HybridLL1SaveOpenArrayDimension ; a:SaveOpenArrayDimension
             .dw HybridLL1SetScalarTypeAction ; a:TypeU8, parameter 1
             .dw HybridLL1SetScalarTypeAction ; a:TypeU16, parameter 2
             .dw HybridLL1SetScalarTypeAction ; a:TypeBoolean, parameter 3

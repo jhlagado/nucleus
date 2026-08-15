@@ -2749,6 +2749,61 @@ address space where its code, immutable data, workspace, source, stack, and
 target regions do not overlap. No compiler pointer may donate address bits to
 metadata or depend on a repository proof origin.
 
+### Nested fixed arrays and open row views
+
+This milestone starts from `d2913fc73455478f83549335c49a8cfe4d18b346`.
+The measured baseline is 16,110 compiler-code bytes plus 410 immutable bytes,
+or 16,520 compiler-core bytes. Workspace is 3,613 bytes. The compiler was
+already 136 bytes above the 16 KiB implementation gate after signed integers;
+the project owner retained the language-first sequence for this milestone.
+
+Array suffixes now form nested fixed arrays in source order. `u8[3][2]` is
+three rows of exact type `u8[2]`, and the existing index operation implements
+`grid[y][x]` as two independently checked selections. An omitted outer bound
+remains a parameter-only view: `u8[][2]` accepts complete arrays whose elements
+are exact `u8[2]` rows. An omitted inner bound, open-view storage, comma
+indexing, and flattened multidimensional descriptors remain invalid.
+
+The parser collects at most four concrete suffixes, then interns them from the
+last suffix to the first. Every row uses the existing four-byte dynamic-type
+descriptor and retained word extent. The first prototype overlaid the suffix
+buffer on aggregate initializer storage. A retained non-streaming proof showed
+that the same addresses contain the accumulated static image in that layout,
+so the overlay was rejected. The selected implementation has a dedicated
+26-byte workspace: a count, an outer-open flag, four entries containing a
+length and source offset, a saved parser offset, and the complete
+offset/line/column position of an omitted outer bound. The retained position
+preserves the established diagnostic for an illegal owning or result `T[]` at
+its closing bracket. No live state is overlaid.
+
+Measured production assembly is 16,270 compiler-code bytes plus 410 immutable
+bytes, or 16,680 compiler-core bytes. The feature adds 160 code bytes and no
+immutable bytes. It adds 26 workspace bytes, for a final workspace extent of
+3,639 bytes. The compiler is therefore 296 bytes above the 16,384-byte gate.
+The instrumented compiler grows by the same 160 code bytes to 16,326 code plus
+410 immutable, or 16,736 core bytes. The final code delta is ten bytes above
+the approximate 150-byte review threshold because preserving the established
+open-array diagnostic position requires retaining and restoring its complete
+six-byte source position; the type representation and indexer remain
+unchanged.
+
+The selected runtime remains identity 8 and 899 proof bytes. The existing
+target proof's runtime, generated program, NOBJ, and materialized output remain
+unchanged. Its compiler execution rises from 1,019,079 instructions and
+9,924,743 T-states to 1,025,324 instructions and 9,980,322 T-states because
+every parsed type now enters and finishes bounded suffix collection. The
+instrumented proof measures 1,029,115 instructions and 10,022,113 T-states.
+The largest retained generated program remains 1,040 bytes.
+
+Focused production proofs execute nested initialization, per-dimension reads,
+writes and traps, row assignment, row parameters, `.length`, exact open-row
+compatibility, type-table reuse and exhaustion, and the four/five-dimension
+boundary. The retained non-streaming parser separately compiles and checks a
+nested initialized object. Normal and instrumented banked builds produce
+identical NOBJ and materialized bank bytes for the same nested-array program.
+The implementation introduces no raw machine-instruction data, pointer tags,
+origin assumptions, semantic operations, runtime helpers, or target services.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -2765,7 +2820,8 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | retained parameter entries              |         16 | one global table of four-byte scalar or aggregate parameter entries                   | capacity diagnostic                                                              | accepted sixteen total entries; rejected seventeenth across routines              |
 | nested compiler call frames             |          4 | eight-byte parser frames                                                              | capacity diagnostic                                                              | rejected fifth nested call                                                        |
 | LL(1) grammar symbols                   |         64 | byte stack; thirteen bytes of action scratch overlay inactive initializer state       | parser-capacity diagnostic                                                       | exact-fill and atomic internal-overflow engine proof                              |
-| dynamic types, records, and fields      | 8 / 5 / 12 | four-byte type, two-byte record, and six-byte field entries                           | capacity diagnostic                                                              | accepted nested layout and metadata exhaustion proofs                             |
+| dynamic types, records, and fields      | 8 / 5 / 12 | four-byte type, two-byte record, and six-byte field entries                           | capacity diagnostic                                                              | shared nested-row interning, exact-fill, and first-overflow proofs                |
+| concrete array suffixes per type        |          4 | dedicated 20-byte suffix workspace with four length-and-source-offset entries         | type-metadata capacity diagnostic before a fifth suffix is retained              | accepted four-dimensional type and rejected fifth suffix                          |
 | fixed-array element count               |     65,535 | retained word; allocation is bounded separately by complete extent                    | program-data capacity diagnostic when the object cannot fit                      | accepted and indexed `u8[1024]`; rejected allocated `u8[1025]`                    |
 | bounded-string capacity                 |        253 | descriptor byte; object extent is capacity plus two                                   | `bounded-string-capacity`; an open view reports the retained capacity            | accepted 253 and rejected 254/255; construction, zero-tail, and sealed-byte proof |
 | complete aggregate type extent          |     65,535 | retained word shared by records, arrays, and bounded strings                          | program-data capacity diagnostic when an allocated object cannot fit             | 501-byte nested record; exact 1,024-byte object; rejected 1,025-byte object       |
@@ -2780,7 +2836,7 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | object-stream patch records             |     65,531 | external sequential patch spool; exact maximum when one required image record is used | output-service failure or total-record capacity diagnostic before partial record | resolution-order submission, image-before-patch serialization, and count boundary |
 | object-stream image or patch bytes      |     65,532 | one NOBJ record with a word payload length and three-byte bank/address prefix         | output-service failure or target-capacity diagnostic                             | accepted 1 and 65,532 bytes; rejected 65,533 before append                        |
 | committed object generations            |          1 | storage-layer current-generation reference; incomplete generation remains uncommitted | output-service failure; previous commit remains current                          | A retained after divergent image-plus-patch B failure; C committed and executed   |
-| structured-initializer depth            |          4 | recursive parser state; total nodes are streamed and not retained                     | capacity diagnostic                                                              | exact nesting boundary and wide 256-element initializer                           |
+| structured-initializer depth            |          4 | recursive parser state; total nodes are streamed and not retained                     | capacity diagnostic                                                              | nested record/array boundary and wide 256-element initializer                     |
 | initialized program-data bytes          |      1,024 | prefix of the private compiler image plus a retained word length                      | program-data capacity diagnostic                                                 | exact four-string-plus-tail image and rejected following byte                     |
 | aggregate-constant bytes                |      1,024 | private-image suffix, one shared length word, and relative-offset symbol payloads     | read-only-data capacity diagnostic                                               | record/array/string constants; exact 1,024-byte suffix and rejected next byte     |
 | total generated read-only-data bytes    |      1,024 | initialized-data prefix followed by aggregate-constant suffix                         | diagnostic for the declaration class that first exceeds the combined region      | mixed data/constant shifting and exact separate boundary proofs                   |

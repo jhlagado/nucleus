@@ -63,11 +63,13 @@ HybridLL1SelectForBoundAction:
 HybridLL1StepConstant:
 HybridLL1SaveForStep:
 HybridLL1DefaultForStep:
+HybridLL1BeginArrayType:
+HybridLL1FinishArrayType:
 HybridLL1ResolveRecordType:
 HybridLL1BeginTypeBound:
 HybridLL1MakeStringType:
 HybridLL1MakeOpenStringType:
-HybridLL1MakeArrayType:
-HybridLL1MakeOpenArrayType:
+HybridLL1SaveArrayDimension:
+HybridLL1SaveOpenArrayDimension:
 HybridLL1SetScalarTypeAction:
             RET

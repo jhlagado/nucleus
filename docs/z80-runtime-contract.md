@@ -286,8 +286,11 @@ are:
 - the complete inline extent for a record, fixed array, or bounded string.
 
 A fixed array stores its elements consecutively. Its stride is the complete
-element extent. Neither a record nor an array stores a runtime type tag, field
-table, length word, or address.
+element extent. When that element is another fixed array, the inner array's
+complete extent is the outer stride; recursively applying this rule gives the
+specified row-major layout without a multidimensional runtime descriptor.
+Neither a record nor an array stores a runtime type tag, field table, length
+word, or address.
 
 Compiler metadata retains every complete aggregate extent, fixed-array length,
 fixed-array stride, and record-field offset as an unsigned 16-bit value. The
@@ -488,11 +491,14 @@ not use wrapped 16-bit arithmetic as evidence that the region fits.
 
 A fixed-array access first rejects a negative signed index, then checks its
 unsigned magnitude against the declared length, forms `base + index * stride`,
-and establishes the complete element region. An open-array access performs the
-same sequence with the retained count word as its bound and the statically known
-element extent as its stride. A string access applies the same negative-index
-rule before Section 3.3's length check. Any failed check performs `bounds`
-before a load, store, or alias result is produced.
+and establishes the complete element region. Selecting an array element yields
+that inner array's ordinary carrier, so a following index repeats the same
+check with the inner length and stride rather than flattening the dimensions.
+An open-array access performs the same sequence with the retained count word as
+its outer bound and the statically known element extent as its stride. A string
+access applies the same negative-index rule before Section 3.3's length check.
+Any failed check performs `bounds` before a load, store, or alias result is
+produced.
 
 The compiler may omit a runtime check only when information already proved at
 that source point establishes the same condition.

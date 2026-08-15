@@ -266,9 +266,11 @@ language for constants.
 
 ### Aggregate types
 
-Nucleus admits nominal records, one-dimensional fixed arrays, and `string[N]`.
-Arrays may contain scalars, records, or bounded strings, but not arrays.
-Records have nominal identity; equal field sequences do not create structural
+Nucleus admits nominal records, nested fixed arrays, and `string[N]`. Each
+array suffix contributes one outermost-first dimension, so `u8[3][2]` is three
+rows of exact type `u8[2]` and is indexed in the same order as it is written.
+Arrays may contain scalars, records, bounded strings, or fixed arrays. Records
+have nominal identity; equal field sequences do not create structural
 compatibility.
 
 Nucleus does not admit record subtyping, interface inheritance, generic record
@@ -292,8 +294,9 @@ An array parameter may use `T[]`, a length-polymorphic view of one complete
 concrete `T[N]` object. It retains the actual `u16` element count, admits
 read-only `.length` and checked indexing, and requires exact element-type
 identity. It has no independent offset or caller-selected count and is not a
-slice. Array length is never writable. Nested fixed arrays remain absent, so an
-open view cannot use an array as its element type.
+slice. Array length is never writable. The omitted bound is the outermost
+dimension, so `u8[][2]` is an open view whose elements are exact `u8[2]` rows;
+an omitted inner bound such as `u8[2][]` remains invalid.
 
 ### Structured initializers
 
@@ -519,7 +522,7 @@ Do not present any of the following as a routine correction or size cleanup:
 - routine-local aggregate declarations, whether owning storage or binding an alias;
 - program-variable, parameter, or source-writable counted-loop counters;
 - general runtime aggregate constructors;
-- arrays of arrays, open-array storage or results, or slices;
+- open-array storage or results, inner omitted bounds, or slices;
 - exception unwinding;
 - interrupt routines, vector declarations, raw bank-address operations, or
   bank selectors in source;

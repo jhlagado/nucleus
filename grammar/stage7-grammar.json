@@ -454,7 +454,15 @@
     },
     { "lhs": "for-step-opt", "rhs": ["a:DefaultForStep"] },
 
-    { "lhs": "type", "rhs": ["type-atom", "type-array-opt"] },
+    {
+      "lhs": "type",
+      "rhs": [
+        "type-atom",
+        "a:BeginArrayType",
+        "type-array-opt",
+        "a:FinishArrayType"
+      ]
+    },
     { "lhs": "type-atom", "rhs": ["scalar-type"] },
     { "lhs": "type-atom", "rhs": ["TokenName", "a:ResolveRecordType"] },
     {
@@ -473,7 +481,7 @@
     { "lhs": "string-capacity", "rhs": ["a:MakeOpenStringType"] },
     {
       "lhs": "type-array-opt",
-      "rhs": ["TokenLeftBracket", "type-array-bound"]
+      "rhs": ["TokenLeftBracket", "type-array-bound", "type-array-opt"]
     },
     {
       "lhs": "type-array-bound",
@@ -481,12 +489,12 @@
         "a:BeginTypeBound",
         "x:ConstantExpression",
         "TokenRightBracket",
-        "a:MakeArrayType"
+        "a:SaveArrayDimension"
       ]
     },
     {
       "lhs": "type-array-bound",
-      "rhs": ["TokenRightBracket", "a:MakeOpenArrayType"]
+      "rhs": ["TokenRightBracket", "a:SaveOpenArrayDimension"]
     },
     { "lhs": "type-array-opt", "rhs": [] },
     { "lhs": "scalar-type", "rhs": ["TokenU8", "a:TypeU8"] },

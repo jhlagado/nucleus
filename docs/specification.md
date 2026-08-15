@@ -897,20 +897,31 @@ parameter-only aggregate-view families:
 The following skeleton records type formation without defining declaration grammar:
 
 ```text
-type             ::= scalar-type
+type             ::= type-atom { array-suffix }
+type-atom        ::= scalar-type
                    | record-type-name
-                   | fixed-array-type
-                   | open-array-type
                    | bounded-string-type
 scalar-type      ::= "u8" | "u16" | "i8" | "i16" | "boolean"
-fixed-array-type ::= element-type "[" array-length "]"
-open-array-type  ::= element-type "[" "]"
-element-type     ::= scalar-type | record-type-name | bounded-string-type
+array-suffix     ::= "[" [ array-length ] "]"
 bounded-string-type
                  ::= "string" "[" [ string-capacity ] "]"
 ```
 
-An array has one dimension. An array element may be a scalar, record, or bounded string, but not another array. Records may contain fields of any admitted concrete type, including fixed arrays. An omitted array bound is admitted only in a formal parameter: `T[]` denotes a view of one complete concrete `T[N]` object and retains that object's element count.
+Each array suffix contributes one dimension. Suffixes are read outermost first:
+`u8[3][2]` is an array of three `u8[2]` rows, and `grid[y][x]`
+selects the same outer and inner dimensions in that order. The complete layout
+is row-major because every row occupies its ordinary fixed-array extent inline.
+An array element may therefore be a scalar, record, bounded string, or another
+fixed array. Records may contain fields of any admitted concrete type,
+including nested fixed arrays.
+
+An omitted array bound is admitted only in the first array suffix of a formal
+parameter. `T[]` denotes a view of one complete concrete `T[N]` object and
+retains that object's outermost element count. For example, `u8[][2]` accepts
+complete arrays whose rows have exact type `u8[2]`; `u8[2][]` and `u8[][]` are
+invalid. The bracket pair in `string[16]` belongs to the bounded-string atom,
+so `string[16][4]` is an array of four `string[16]` objects and
+`string[16][]` is an open array of that exact element type.
 
 `string[N]` is the owned bounded-text form. An omitted capacity is admitted only
 in a formal parameter: `string[]` denotes a view whose actual capacity comes
@@ -973,21 +984,46 @@ Chapter 8 defines record declaration and field syntax. Runtime byte offsets and 
 
 ### 6.7 Fixed-array types
 
-`T[N]` is a one-dimensional fixed array with element type `T` and length `N`. `N` must be a positive compile-time integer from 1 through 65,535. A compiler may publish a smaller capacity for a particular storage region or implementation, but exceeding that capacity is a capacity failure rather than another array type.
+`T[N]` is a fixed array with element type `T` and length `N`. Each written
+suffix adds one dimension, and a nested fixed array is an ordinary element
+type. `N` must be a positive compile-time integer from 1 through 65,535. A
+compiler may publish a smaller capacity for a particular storage region or
+implementation, but exceeding that capacity is a capacity failure rather than
+another array type.
 
 The index domain is always zero through `N - 1`. Nucleus has no arbitrary lower bound, subrange index, enumeration index, or range type. The length and element type are part of the array type.
 
-Two fixed-array types are identical when their element types are identical and their lengths are equal. Thus `u8[16]` and `u8[16]` are the same type, while `u8[16]`, `u8[32]`, and `u16[16]` are three different types.
+Two fixed-array types are identical when their element types are identical and
+their lengths are equal. This rule applies recursively: two `u8[3][2]` types
+are identical because both are length-three arrays whose element type is the
+same `u8[2]` type. `u8[3][2]`, `u8[2][3]`, and `u16[3][2]` are distinct.
 
 An array index may have any integer type. A constant negative index or one outside the array domain is invalid. A dynamic signed index is checked for negativity before the ordinary unsigned upper-bound and region checks. A failed dynamic check performs the bounds trap specified by Chapter 15 before any element load, store, or alias formation.
 
-Indexing an array of scalars produces a scalar occurrence with the element type. Indexing an array of records or bounded strings produces a storage path or aggregate alias with the element type. The index operation never produces an untyped address.
+Indexing an array of scalars produces a scalar occurrence with the element
+type. Indexing an array of records, bounded strings, or fixed arrays produces a
+storage path or aggregate alias with the element type. Each suffix performs its
+own bounds check. Nested indexing never substitutes one flattened check against
+the product of the dimensions, and the index operation never produces an
+untyped address.
 
 Both a concrete `T[N]` path and an open `T[]` parameter admit `.length`. The result is a read-only `u16`: it is the fixed `N` for the concrete type and the retained actual element count for the open view. Evaluation of a concrete base still performs every required call, path selection, check, and trap before producing the statically known result. Array `.length` is not a constant-expression operation and cannot be assigned.
 
-`T[]` is a parameter-only, length-polymorphic view of one complete concrete fixed array. It may bind to any complete `T[N]` storage path or transient alias, for any admitted `N`, or forward another `T[]` parameter. The element type is exactly invariant: `u8[]` accepts only arrays of `u8`, a nominal record view accepts only that record type, and `string[16][]` accepts only arrays whose elements are exactly `string[16]`. Scalar widening, record layout equivalence, and bounded-string capacity polymorphism do not apply to the element type.
+`T[]` is a parameter-only, length-polymorphic view of one complete concrete
+fixed array. It may bind to any complete `T[N]` storage path or transient alias,
+for any admitted `N`, or forward another `T[]` parameter. The omitted bound is
+the outermost dimension. The element type is exactly invariant: `u8[]` accepts
+only arrays of `u8`, a nominal record view accepts only that record type,
+`string[16][]` accepts only arrays whose elements are exactly `string[16]`, and
+`u8[][2]` accepts arrays whose rows are exactly `u8[2]`. Scalar widening,
+record layout equivalence, bounded-string capacity polymorphism, and a different
+inner dimension do not apply to the element type.
 
-The view retains the actual `u16` element count and uses it for `.length` and checked indexing. It owns no storage, cannot be rebound, and is invalid as a variable, constant, record field, array element, local, or routine result. It is not a slice: source cannot select a prefix, suffix, offset, range, or caller-chosen count, and whole-array assignment through the view is invalid. Nested fixed arrays are not part of Nucleus 0.1, so nested-row open views are also absent.
+The view retains the actual `u16` outermost element count and uses it for
+`.length` and checked indexing. It owns no storage, cannot be rebound, and is
+invalid as a variable, constant, record field, array element, local, or routine
+result. It is not a slice: source cannot select a prefix, suffix, offset, range,
+or caller-chosen count, and whole-array assignment through the view is invalid.
 
 ### 6.8 Bounded strings
 
@@ -1123,11 +1159,23 @@ An implementation must diagnose a source form that requires one of these mechani
 
 Exact type identity is checked from retained metadata without reconstructing source text. Record declarations require nominal IDs. Predefined scalars, fixed arrays, and bounded strings have compact, bounded structural descriptions: kind, element type when applicable, and length or capacity. A compiler may store those descriptions directly in symbols and signatures or intern them behind compact ordinals. Measurements of compiler-core bytes, immutable data, writable workspace, and comparison code determine the representation used by the first implementation.
 
-One direct representation fits every admitted type in four bytes. Its kind byte distinguishes the five scalars, records, bounded strings, and the permitted array-element families. A second byte carries a record ordinal or string capacity where needed, and two bytes carry an array length. Folding the element family into the array kind is valid because arrays cannot contain arrays. It does not remove arrays of records, arrays of bounded strings, or aliases to any aggregate type; alias category is stored separately from referent-type identity.
+One direct representation fits every admitted dynamic type in four bytes. Its
+kind byte distinguishes records, bounded strings, and fixed arrays. A second
+byte carries a record ordinal, string capacity, or the complete interned element
+type ordinal, and two bytes carry an array length. Nested arrays use the same
+descriptor: each distinct intermediate row type consumes one entry in the
+shared dynamic-type table and contributes its retained complete extent.
 
 Four inline bytes are not automatically cheaper than one ordinal per symbol. With mostly distinct types, direct descriptors avoid an interning table; with many repeated types, ordinals reduce writable symbol storage. The measurement package reports both retained-data totals for representative symbol populations. The first compiler also counts the code and scratch state for descriptor construction, interning, exhaustion checks, and equality before selecting either form.
 
-Every selected representation has a published capacity. An ordinal representation diagnoses exhaustion before an ID wraps or aliases another type. An inline representation diagnoses any limit on element-type nesting, length, capacity, symbol entries, record fields, or signatures before truncation changes a compatibility result. A byte-sized type ID remains a candidate, not a language or target requirement.
+Every selected representation has a published capacity. The first compiler
+admits at most four concrete array suffixes in one type and retains at most
+eight dynamic types across records, bounded strings, and fixed arrays. An
+ordinal representation diagnoses exhaustion before an ID wraps or aliases
+another type. An inline representation diagnoses any limit on element-type
+nesting, length, capacity, symbol entries, record fields, or signatures before
+truncation changes a compatibility result. A byte-sized type ID remains a
+candidate, not a language or target requirement.
 
 The numeric type ID has no source meaning and need not match across compilations. Z80 registers and compiler-managed storage locations are untagged; the compiler's symbol and expression metadata supply their current source types. Runtime type tags, reflection, and dynamic type tests are absent.
 
@@ -1171,10 +1219,15 @@ Array and bounded-string bounds are part of their types:
 
 ```nucleus
 var bytes as u8[16]
+var grid as u8[3][2]
 var name as string[12]
 ```
 
 `bytes[0]` through `bytes[15]` are within the declared domain. `bytes[16]` is a compile-time error. A runtime value used as the index is checked before access. `string[12]` and `string[16]` are different types, and a thirteen-byte literal cannot initialize `name`.
+
+`grid[0]` has exact aggregate type `u8[2]`, `grid.length` is three, and
+`grid[0].length` is two. `grid[2][1]` is the last scalar element. The spelling
+`u8[2][3]` denotes a different layout and type.
 
 For a bounded string `name`, `name.length` reads its logical length and `name[index]` reads or replaces one existing byte. An index equal to the current length traps; assignment through the index does not append or change `name.length`.
 
@@ -1265,7 +1318,7 @@ Aggregate assignment requires a mutable aggregate destination and an aggregate s
 
 The compiler evaluates the destination storage path once, then the source storage path or transient aggregate-alias result once, and validates both complete extents before the first destination byte changes. If evaluation or validation traps, no byte of the aggregate destination changes. A source and destination that denote the same object or subobject produce no change.
 
-Under the Nucleus 0.1 type and containment rules, two designators admitted by aggregate assignment are either identical or disjoint. A proper partial overlap would require recursive by-value containment, an overlaid layout, a slice, or arbitrary address formation, all of which are absent. Aggregate assignment therefore needs no runtime overlap check.
+Under the Nucleus 0.1 type and containment rules, two designators admitted by aggregate assignment are either identical or disjoint. A proper partial overlap would require assignment between different containment levels, an overlaid layout, a slice, or arbitrary address formation; none has compatible source types here. Aggregate assignment therefore needs no runtime overlap check.
 
 Aggregate alias binding is not assignment. Once established, an aggregate parameter cannot be rebound. When an aggregate parameter is the destination of aggregate assignment, the copy changes its referent. It does not change the binding.
 
@@ -3029,7 +3082,9 @@ local-initializer
     ::= expression [ failure-propagation ]
 
 type
-    ::= type-atom [ "[" [ expression ] "]" ]
+    ::= type-atom { type-array-suffix }
+type-array-suffix
+    ::= "[" [ expression ] "]"
 type-atom
     ::= scalar-type | NAME | bounded-string-type
 scalar-type
@@ -3138,7 +3193,7 @@ field-suffix
     ::= "." NAME
 ```
 
-The grammar uses the general `expression` nonterminal for scalar constant leaves and type bounds. Chapter 8's constant-context predicate rejects variables, calls, nonconstant operations, and values outside the required range. An omitted bounded-string capacity or array bound is admitted only in a formal parameter; every other type position rejects it. `string[]` is the open bounded-string view. An omitted outer array bound produces `T[]`, including `string[16][]` for an open array whose exact element type is `string[16]`. The declared type and current aggregate component select a scalar expression, string literal, parenthesized record initializer, or bracketed array initializer. This type-directed choice resolves the shared opening `(` of a parenthesized scalar expression and a record initializer without backtracking. `type` permits at most one array suffix outside a bounded-string atom, which admits arrays of scalars, records, and bounded strings but not arrays of arrays.
+The grammar uses the general `expression` nonterminal for scalar constant leaves and type bounds. Chapter 8's constant-context predicate rejects variables, calls, nonconstant operations, and values outside the required range. An omitted bounded-string capacity or array bound is admitted only in a formal parameter; every other type position rejects it. `string[]` is the open bounded-string view. An omitted array bound must be the first array suffix and produces `T[]`, including `string[16][]` for an open array whose exact element type is `string[16]` and `u8[][2]` for an open array whose exact row type is `u8[2]`. The declared type and current aggregate component select a scalar expression, string literal, parenthesized record initializer, or bracketed array initializer. This type-directed choice resolves the shared opening `(` of a parenthesized scalar expression and a record initializer without backtracking. Concrete suffixes are interpreted outermost first and form nested fixed-array types; `u8[2][]` and `u8[][]` are rejected by the type-position predicate.
 
 ### 17.3 Semantic predicates
 
@@ -3158,7 +3213,7 @@ Field lookup after `.` uses the selected record type. A concrete bounded-string 
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 179 BNF rules over 96 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 180 BNF rules over 97 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
 | Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Lookahead | Conflict                                           | Resolution                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
@@ -3290,7 +3345,7 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source       | Ordered multipart compilation input with stable part identities and part-relative diagnostics; flat ordered build manifest; ASCII-compatible bytes, `//` comments, logical newlines, case-sensitive preserved names, lowercase keywords, decimal, hexadecimal, and binary integers, byte characters, bounded string literals, fixed punctuation. |
 | Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
-| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                                                                         |
+| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked nested fixed arrays with outermost-first suffixes, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element outermost `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                                         |
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
 | Expressions  | Calls, checked concrete/open-array and bounded-string indexing, field selection, array and string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                           |
 | Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
@@ -3325,7 +3380,7 @@ These candidates are not provisional 0.1 syntax. Extensions may prototype them o
 
 ### 20.4 Excluded mechanisms
 
-Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory or port access, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, nested arrays, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
+Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory or port access, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
 
 It also excludes assignment expressions, chained comparisons, conditional expressions, general expression statements, `call` and `then` keywords, `select`/`case`, pattern matching, repeat/do loops, `for in`, omitted counted-loop operands, counted-loop counters drawn from program variables or parameters, source assignment to an active counter, nested reuse of an active counter, labels, goto, labelled exit, exceptions, throw/catch, unwinding, destructors, `finally`, `defer`, resumable traps, and runtime type tags.
 

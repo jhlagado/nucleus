@@ -279,7 +279,22 @@ AggregateInitializerBase .equ StaticImageBase
 StaticImageCapacity     .equ 255
 .endif
 StaticImageLimit        .equ StaticImageBase+StaticImageCapacity
-AggregateWorkspaceEnd   .equ StaticImageLimit
+
+; Type suffixes are collected outermost-first before their descriptors are
+; interned innermost-first. This buffer is deliberately separate from both the
+; initializer scratch image and the accumulated static image because retained
+; streaming and non-streaming layouts give those regions different lifetimes.
+AggregateTypeDimensionCapacity .equ 4
+AggregateTypeDimensionEntrySize .equ 4 ; length word, source-offset word
+AggregateTypeDimensionCount .equ StaticImageLimit
+AggregateTypeOpenArrayFlag .equ AggregateTypeDimensionCount+1
+AggregateTypeDimensionBase .equ AggregateTypeOpenArrayFlag+1
+AggregateTypeDimensionLimit .equ AggregateTypeDimensionBase+AggregateTypeDimensionEntrySize*AggregateTypeDimensionCapacity
+AggregateTypeResumeOffset .equ AggregateTypeDimensionLimit ; word
+AggregateTypeOpenArrayPosition .equ AggregateTypeResumeOffset+2 ; offset, line, column
+AggregateTypeWorkspaceLimit .equ AggregateTypeOpenArrayPosition+6
+
+AggregateWorkspaceEnd   .equ AggregateTypeWorkspaceLimit
 CompilerWorkspaceEnd    .equ AggregateWorkspaceEnd
 
 AggregateInitializerDepthCapacity .equ 4

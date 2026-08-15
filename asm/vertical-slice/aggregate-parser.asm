@@ -125,6 +125,183 @@ AggregateInternFound:
             OR   A
             RET
 
+; Collect array suffixes in source order. The complete type is formed only
+; after the last suffix, so u8[3][2] can be interned as u8[2] and then as
+; three elements of that row type.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+AggregateBeginArrayType:
+            XOR  A
+            LD   (AggregateTypeDimensionCount),A
+            LD   (AggregateTypeOpenArrayFlag),A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+AggregateRejectOpenViewCurrent:
+            LD   A,(AggregateCurrentTypeId)
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
+            OR   A
+            RET
+
+; HL is one already-checked positive concrete dimension.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+AggregateSaveArrayDimension:
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(AggregateTypeDimensionCount)
+            CP   AggregateTypeDimensionCapacity
+            JP   NC,AggregateTypeCapacityFailure
+            LD   C,L
+            LD   B,H
+            ADD  A,A
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,AggregateTypeDimensionBase
+            ADD  HL,DE
+            LD   (HL),C
+            INC  HL
+            LD   (HL),B
+            INC  HL
+            LD   DE,(TokenStartOffset)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            LD   HL,AggregateTypeDimensionCount
+            INC  (HL)
+            OR   A
+            RET
+
+; The only omitted array bound is the first suffix of a formal-parameter
+; type. Later placement checks keep the completed view parameter-only.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+AggregateSaveOpenArrayDimension:
+            LD   A,(AggregateTypeDimensionCount)
+            LD   B,A
+            LD   A,(AggregateTypeOpenArrayFlag)
+            OR   B
+            JP   NZ,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,TokenStartOffset
+            LD   DE,AggregateTypeOpenArrayPosition
+            CALL CompilerCopyPosition
+            LD   A,1
+            LD   (AggregateTypeOpenArrayFlag),A
+            OR   A
+            RET
+
+; Owning and result positions historically diagnose an illegal open array at
+; its closing bracket. The recursive suffix collector has already buffered the
+; following token, so restore the retained suffix position only for an open
+; array; concrete types and string[] keep their existing diagnostic positions.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+AggregateRejectOpenViewPlacement:
+            LD   A,(AggregateCurrentTypeId)
+            OR   A
+            JP   P,AggregateRejectOpenViewCurrent
+            LD   HL,AggregateTypeOpenArrayPosition
+            LD   DE,TokenStartOffset
+            CALL CompilerCopyPosition
+            JP   AggregateRejectOpenViewCurrent
+
+; Wrap AggregateCurrentTypeId in one concrete array dimension. HL is the
+; dimension length and the previous current type becomes the exact element ID.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+AggregateWrapArrayCurrent:
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   (AggregateCandidateAux),A
+            LD   (AggregateCandidateLength),HL
+            LD   B,H
+            LD   C,L
+            LD   A,(AggregateCandidateAux)
+            CALL AggregateGetExtent
+            LD   D,H
+            LD   E,L
+            LD   HL,0
+AggregateWrapArrayExtentLoop:
+            ADD  HL,DE
+            JP   C,AggregateProgramDataCapacityFailure
+            CALL AggregateCheckExtentCapacity
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,AggregateWrapArrayExtentLoop
+            LD   (AggregateCandidateExtent),HL
+            LD   A,AggregateTypeKindArray
+            LD   (AggregateCandidateKind),A
+            CALL AggregateInternType
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   (AggregateCurrentTypeId),A
+            OR   A
+            RET
+
+; Apply saved concrete dimensions from innermost to outermost, then apply an
+; optional outer open view. The buffer itself stays outside source-visible
+; type identity and is reused by the next type parse.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+AggregateFinishArrayType:
+            LD   A,(AggregateTypeDimensionCount)
+            OR   A
+            JR   Z,AggregateFinishArrayOpen
+            LD   DE,(TokenStartOffset)
+            LD   (AggregateTypeResumeOffset),DE
+            LD   B,A
+            ADD  A,A
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,AggregateTypeDimensionBase
+            ADD  HL,DE
+AggregateFinishArrayLoop:
+            DEC  HL
+            LD   D,(HL)
+            DEC  HL
+            LD   E,(HL)
+            LD   (TokenStartOffset),DE
+            DEC  HL
+            LD   D,(HL)
+            DEC  HL
+            LD   E,(HL)
+            PUSH BC
+            PUSH HL
+            EX   DE,HL
+            CALL AggregateWrapArrayCurrent
+            POP  HL
+            POP  BC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            DJNZ AggregateFinishArrayLoop
+            LD   DE,(AggregateTypeResumeOffset)
+            LD   (TokenStartOffset),DE
+AggregateFinishArrayOpen:
+            LD   A,(AggregateTypeOpenArrayFlag)
+            OR   A
+            JR   Z,AggregateFinishArrayReady
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            OR   AggregateOpenArrayTypeMask
+            LD   (AggregateCurrentTypeId),A
+AggregateFinishArrayReady:
+            LD   A,(AggregateCurrentTypeId)
+            OR   A
+            RET
+
 ; The first compiler admits one aggregate object up to the selected complete
 ; program-data region. HL is a nonzero mathematical extent.
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
@@ -169,8 +346,6 @@ AggregateReadOnlyCapacityFailure:
 .endif
 
 .if HybridLL1Full
-AggregateNestedArrayFailure:
-            POP  AF
 AggregateTypeShapeFailure:
             CALL SetDiagInline
             .db  DiagnosticTypeBound
@@ -216,6 +391,7 @@ AggregateTypeShapeFailure:
 ; diagnostic rather than changing the source type.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseType:
+            CALL AggregateBeginArrayType
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
@@ -291,75 +467,44 @@ AggregateParseStringType:
 .endif
 AggregateTypeBaseReady:
             LD   (AggregateCurrentTypeId),A
+AggregateParseArraySuffixLoop:
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CP   TokenLeftBracket
             JR   Z,AggregateParseArraySuffix
-            LD   A,(AggregateCurrentTypeId)
-            OR   A
-            RET
+            JP   AggregateFinishArrayType
 AggregateParseArraySuffix:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstDynamicTypeId
-            JR   C,AggregateArrayElementReady
-            PUSH AF
-            CALL AggregateTypeAddress
-            LD   A,(HL)
-            CP   AggregateTypeKindArray
-            JR   Z,AggregateNestedArrayFailure
-            POP  AF
-            JR   AggregateArrayElementReady
-AggregateNestedArrayFailure:
-            POP  AF
-            JP   AggregateTypeShapeFailure
-AggregateArrayElementReady:
-            LD   (AggregateCandidateAux),A
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL AggregateParseBound
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   (AggregateCandidateLength),HL
-            LD   B,H
-            LD   C,L
-            LD   A,(AggregateCandidateAux)
-            CALL AggregateGetExtent
-            LD   D,H
-            LD   E,L
-            LD   HL,0
-AggregateArrayExtentLoop:
-            ADD  HL,DE
-            JP   C,AggregateProgramDataCapacityFailure
-            CALL AggregateCheckExtentCapacity
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            DEC  BC
-            LD   A,B
-            OR   C
-            JR   NZ,AggregateArrayExtentLoop
-            LD   (AggregateCandidateExtent),HL
-            LD   A,AggregateTypeKindArray
-            LD   (AggregateCandidateKind),A
-            CALL AggregateInternType
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   (AggregateCurrentTypeId),A
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenLeftBracket
-            JP   Z,AggregateTypeShapeFailure
-            LD   A,(AggregateCurrentTypeId)
-            OR   A
-            RET
+            CP   TokenRightBracket
+            JR   NZ,AggregateParseConcreteArraySuffix
+            CALL ParserTake
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL AggregateSaveOpenArrayDimension
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JR   AggregateParseArraySuffixLoop
+AggregateParseConcreteArraySuffix:
+            CALL AggregateParseBound
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL AggregateSaveArrayDimension
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JR   AggregateParseArraySuffixLoop
 AggregateProgramDataCapacityFailure:
             CALL SetDiagInline
             .db  DiagnosticProgramDataCapacity
