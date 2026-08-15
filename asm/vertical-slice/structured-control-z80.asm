@@ -70,7 +70,9 @@ StructuredEmitFixup:
             PUSH BC
             CALL EmitByte
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitCursor)
             PUSH BC
             PUSH DE
@@ -78,7 +80,9 @@ StructuredEmitFixup:
             CALL EmitWord
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   StructuredRecordFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -123,7 +127,9 @@ StructuredBranchFalse:
             LD   HL,StructuredBranchFalseBytes
             CALL   EmitThree
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$CA                    ; JP Z,nn
             JR   StructuredEmitFixup
 
@@ -139,7 +145,9 @@ StructuredJump:
 StructuredResolveFixups:
 .if TargetStreamingOutput
             CALL TargetSaveOutputBank
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
             LD   A,(EmitControlFixupCount)
             OR   A
@@ -202,7 +210,9 @@ StructuredResolveBankReady:
             POP  DE
             CALL PatchWord
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             INC  IX
             INC  IX
             INC  IX
@@ -233,12 +243,16 @@ StructuredLoadCounter:
             CALL   EmitPair
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             PUSH DE
             CALL EmitByte
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             BIT  2,D
             JR   NZ,StructuredLoadCounterHigh
             LD   HL,TypedZeroHigh
@@ -249,7 +263,9 @@ StructuredLoadCounterHigh:
             LD   HL,TypedLoadLocalHigh
             CALL   EmitPair
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             JP   EmitByte
 
@@ -266,14 +282,18 @@ StructuredStoreCounter:
             CALL   EmitPair
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             PUSH BC
             PUSH DE
             CALL EmitByte
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             BIT  2,D
             RET  Z
             DEC  C
@@ -281,7 +301,9 @@ StructuredStoreCounter:
             LD   HL,TypedStoreLocalHigh
             CALL   EmitPair
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             JP   EmitByte
 
@@ -295,10 +317,14 @@ StructuredForSetup:
             LD   HL,StructuredPopBoundStart
             CALL   EmitPair
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,B
             CALL StructuredStoreCounter
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $D5                      ; PUSH DE, retained bound
 
@@ -317,14 +343,18 @@ StructuredForTest:
             CALL   EmitPair
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH BC
             PUSH DE
             LD   A,B
             CALL StructuredLoadCounter
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             BIT  1,B
             JR   NZ,StructuredForTestNegative
             BIT  0,B
@@ -339,12 +369,16 @@ StructuredForTestNegative:
             LD   A,ComparisonGreaterEqual
 StructuredForTestCompare:
             CALL TypedEmitCompare
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlExitLabel)
             LD   C,A
             LD   HL,StructuredTestHL
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$CA
             JP   StructuredEmitFixup
 
@@ -354,7 +388,9 @@ EmitLoadDeImmediate:
             PUSH DE
             CALL EmitByte
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   H,D
             LD   L,E
             JP   EmitWord
@@ -377,28 +413,40 @@ StructuredForNext:
             XOR  A
             LD   HL,StructuredBoundPeek
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlCounter)
             LD   C,A
             LD   A,(EmitControlMode)
             CALL StructuredLoadCounter
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$E5                    ; preserve current counter
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlMode)
             BIT  1,A
             JR   NZ,StructuredNegativeDistance
             LD   A,$EB                    ; EX DE,HL => bound-current
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 StructuredNegativeDistance:
             LD   HL,StructuredSubtractDE
             CALL   EmitThree
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitControlStep)
             CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlMode)
             AND  1
             LD   A,ComparisonLess
@@ -411,18 +459,26 @@ StructuredNegativeDistance:
             LD   A,ComparisonLessEqual
 StructuredDistanceCompare:
             CALL TypedEmitCompare
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,StructuredTestThenPopCurrent
             CALL   EmitThree
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlExitLabel)
             LD   C,A
             LD   A,$C2                    ; JP NZ,exit cleanup
             CALL StructuredEmitFixup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitControlStep)
             CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlMode)
             BIT  1,A
             JR   NZ,StructuredSubtractStep
@@ -433,7 +489,9 @@ StructuredSubtractStep:
             LD   HL,StructuredSubtractDE
             CALL   EmitThree
 StructuredForNextFit:
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlMode)
             BIT  2,A
             JR   NZ,StructuredForNextStore
@@ -441,19 +499,27 @@ StructuredForNextFit:
             JR   NZ,StructuredForNextStore
             LD   HL,StructuredTestHigh
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$CA                    ; JP Z,fit
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitUpdateExitFixup),HL
             LD   HL,0
             CALL EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitControlTrapOffset)
             LD   A,4
             CALL TypedEmitTrapBody
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitUpdateExitFixup)
             LD   HL,(EmitCursor)
             CALL PatchWord
@@ -462,7 +528,9 @@ StructuredForNextStore:
             LD   C,A
             LD   A,(EmitControlMode)
             CALL StructuredStoreCounter
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitControlTestLabel)
             LD   C,A
             LD   A,$C3

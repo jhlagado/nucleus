@@ -12,11 +12,15 @@ Stage7BeginRoutine:
             PUSH BC
             CALL TargetSelectOutputBank
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
 Stage7DefineRoutineFrame:
             CALL StructuredDefineLabel
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ExpressionFrameBytes
             JP   EmitEight
 
@@ -41,40 +45,60 @@ Stage7BindParameter:
             JR   Z,Stage7BindWord
             LD   A,$3B                      ; DEC SP
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7LoadIXL
             CALL Stage7EmitPairArgumentIndex
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7StoreIXL
             JR   Stage7EmitPairPathOffset
 Stage7BindOpenString:
             LD   A,$3B                      ; third activation byte
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7BindWord:
             LD   HL,Stage7DecSP2
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7LoadIXL
             CALL Stage7EmitPairArgumentIndex
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7LoadIXH
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentIndex)
             INC  A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7StoreIXL
             CALL Stage7EmitPairPathOffset
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7StoreIXH
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathOffset)
             DEC  A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7BindOpenCapacity
@@ -83,15 +107,21 @@ Stage7BindWord:
 Stage7BindOpenCapacity:
             LD   HL,Stage7LoadIXL
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentIndex)
             INC  A
             INC  A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7StoreIXL
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathOffset)
             DEC  A
             DEC  A
@@ -100,14 +130,18 @@ Stage7BindOpenCapacity:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 Stage7EmitPairArgumentIndex:
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentIndex)
             JP   EmitByte
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 Stage7EmitPairPathOffset:
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathOffset)
             JP   EmitByte
 
@@ -116,12 +150,16 @@ Stage7EmitPairPathOffset:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7BoundsGuard:
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitFailureFixup),DE
             LD   HL,(Stage7CallOffset)
             LD   A,1
             CALL TypedEmitTrapBody
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitFailureFixup)
             JP   PatchHere
 
@@ -148,7 +186,9 @@ Stage8ReadCallStateLoop:
 Stage8EmitFailureOffset:
             LD   HL,(Stage7CallOffset)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,TrapOffset-StateBase
             CALL TargetStateAddress
@@ -191,15 +231,21 @@ Stage8ReadCallCommon:
             LD   HL,ActivationClaim
             CALL TypedEmitFailableCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
             LD   HL,(Stage7CallOffset)
             LD   A,5
             CALL TypedEmitTrapBody
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CallLabel)
             AND  Stage8CallableSourceMask
             LD   C,A
@@ -209,7 +255,9 @@ Stage8ReadCallCommon:
             LD   A,$CD
             CALL StructuredEmitFixup
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8EmitCallFlags)
             AND  Stage7RoutineFails
             JR   NZ,Stage8CallableSourceFailable
@@ -220,7 +268,9 @@ Stage8ReadCallCommon:
             LD   HL,ActivationRelease
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage8CallableSuccess
 
 .if TargetStreamingOutput
@@ -246,17 +296,23 @@ Stage7EmitFarSourceCall:
             CALL EmitOpcodeByte
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$21                    ; LD HL,target address
             CALL StructuredEmitFarFixup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,9                      ; far-call vector ordinal
             JP   EmitTargetVectorCall
 .endif
 Stage8CallableSourceFailable:
             LD   A,$F5                    ; PUSH AF result discriminant/code
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeActivationReleaseOffset
             CALL EmitRuntimeCall
@@ -264,25 +320,37 @@ Stage8CallableSourceFailable:
             LD   HL,ActivationRelease
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F1                    ; POP AF
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8CallableFailable:
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
             CALL Stage8EmitFailureOutcome
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8CallableFailureReady:
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8CallableSuccess:
             LD   A,(Stage7ArgumentCount)
             LD   C,A
             CALL Stage8DiscardCarriers
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CallResultType)
             OR   A
             RET  Z
@@ -306,7 +374,9 @@ Stage8DiscardCarriers:
 Stage8DiscardCarrier:
             LD   A,$D1                    ; POP DE carrier
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  C
             JR   Stage8DiscardCarriers
 
@@ -318,10 +388,14 @@ Stage7ReturnAggregate .equ TypedReturnScalar
 Stage8FailRoutine:
             CALL Stage7ReadCallOffset
             CALL Stage8EmitFailureOffset
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage8PopErrorBytes
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage8FailureReturnTail
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -329,18 +403,26 @@ Stage8FailMain:
             CALL Stage7ReadCallOffset
             LD   HL,Stage8PopErrorBytes
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7CallOffset)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedEmitTrapEnding
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ReturnSuccess:
             CALL TypedEmitPopHL           ; result carrier
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage8SuccessTail
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -350,7 +432,9 @@ Stage8EndFailableRoutine:
             RET  NZ
 Stage8SuccessTail:
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage8SuccessReturnBytes
             JP   EmitPair
 
@@ -366,12 +450,16 @@ Stage8BeginHandler:
             CALL NextSemanticByte
             LD   C,A
             CALL StructuredDefineLabel
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL NextSemanticByte
             LD   (Stage8EmitCallFlags),A
             LD   HL,Stage8ErrorCarrierBytes
             CALL EmitFour
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8EmitCallFlags)
             AND  SymbolClassMask
             CP   SymbolClassProgram
@@ -392,25 +480,35 @@ Stage8EmitFailureOutcome:
             CP   Stage8CallModeHandle
             JR   Z,Stage8FailureHandle
             CALL Stage8EmitFailureOffset
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8FailureReturnTail:
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage8FailureReturnBytes
             JP   EmitPair
 Stage8FailureHandle:
             LD   A,$4F                    ; LD C,A error code
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentCount)
             LD   HL,Stage8EmitRetainedCarriers
             ADD  A,(HL)
             LD   C,A
             CALL Stage8DiscardCarriers
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$79                    ; LD A,C
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8EmitHandlerLabel)
             LD   C,A
             LD   A,$C3
@@ -425,11 +523,15 @@ Stage8InvokeService:
             JR   Z,Stage8ServiceWordArgument
             LD   HL,Stage8PopErrorBytes   ; POP HL / LD A,L
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage8ServiceAddress
 Stage8ServiceWordArgument:
             CALL TypedEmitPopHL           ; offset
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8ServiceAddress:
             LD   A,(Stage7CallLabel)
             AND  Stage8CallableServiceMask
@@ -447,7 +549,9 @@ Stage8ServiceAddress:
             EX   DE,HL
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
 Stage8NoArgumentFailable:
             LD   (Stage7ArgumentCount),A
@@ -475,48 +579,72 @@ Stage8BeginCallableMain:
 .if TargetStreamingOutput
             CALL NextSemanticByte
             CALL TargetSelectOutputBank
+.if CompilerDiagnosticReturns
             RET  C
 .endif
+.endif
             CALL TypedBeginProgramFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   C,Stage7MainLabel
             LD   A,$CD
             CALL StructuredEmitFixup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8EmitCallFlags)
             AND  Stage7RoutineFails
             JR   Z,Stage8MainWrapperSuccess
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
 .if TargetStreamingOutput
             LD   A,$F5                    ; PUSH AF
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,TrapOffset-StateBase
             CALL TargetStateAddress
             LD   A,$2A                    ; LD HL,(nn)
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F1                    ; POP AF
             CALL EmitByte
 .else
             LD   HL,Stage8ReloadFailureOffsetBytes
             CALL EmitFive
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedEmitTrapEnding
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8MainWrapperSuccess:
             CALL TypedRestoreRootFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitSuccessReturn
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   C,Stage7MainLabel
             JP   Stage7DefineRoutineFrame
 
@@ -526,7 +654,9 @@ Stage7EndRoutine:
             OR   A
             RET  NZ
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $C9
 
@@ -559,10 +689,14 @@ Stage7SelectField:
             LD   (Stage7PathOffset),DE
             LD   HL,Stage7PopHLLoadDE
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathOffset)
             CALL EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7AddDEPush
             JP   EmitPair
 
@@ -573,10 +707,14 @@ Stage7SelectIndex:
             CALL Stage7ReadExtentAndOffset ; stride and source position
             LD   HL,Stage7PopIndexBase
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathOffset)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckArrayIndexOffset
             CALL EmitRuntimeCall
@@ -584,16 +722,24 @@ Stage7SelectIndex:
             LD   HL,CheckArrayIndex
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7BoundsGuard
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$E5                    ; retain base
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathExtent)
             LD   A,$21                    ; LD HL,nn stride
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeMultiplyU16Offset
             CALL EmitRuntimeCall
@@ -601,7 +747,9 @@ Stage7SelectIndex:
             LD   HL,MultiplyU16
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7PopDEAddPush
             JP   EmitThree
 
@@ -630,17 +778,27 @@ Stage7CopyAggregate:
             CALL Stage7ReadExtentAndOffset
             LD   HL,Stage7CopyPrepare
             CALL   EmitFour
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitRegionCheck
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7PreserveCarrierRegion
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7CopyFinish
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathExtent)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7LDIR
             JP   EmitPair
 
@@ -653,18 +811,26 @@ Stage7ReadExtentAndOffset:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7PreserveCarrierRegion:
             CALL TypedEmitPopHL           ; source
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$E5                    ; retain source
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitRegionCheck:
             CALL Stage7EmitRegionPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathExtent)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage7EmitRegionInvoke
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -672,13 +838,17 @@ Stage7EmitRegionPrefix:
 .if TargetStreamingOutput
             LD   DE,(TargetCurrentRoBase)
             CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(TargetCurrentRoCapacity)
             PUSH HL
             LD   A,$FD
             CALL EmitByte
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$21
             CALL EmitOpcodeWord
 .else
@@ -696,7 +866,9 @@ Stage7EmitRegionInvoke:
             LD   HL,CheckAggregateRegion
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Stage7BoundsGuard
 
 .routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
@@ -714,9 +886,13 @@ Stage7ReadStringExtent:
 Stage7StringLength:
             CALL Stage7ReadStringExtent
             CALL Stage7PreserveCarrierRegion
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedEmitPopHL           ; carrier
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckStringLengthOffset
 .else
@@ -728,12 +904,18 @@ Stage7StringLength:
 Stage7StringIndex:
             CALL Stage7ReadStringExtent
             CALL Stage7EmitStringIndexPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitRegionCheck
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7CopyFinish
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckStringIndexOffset
 .else
@@ -745,7 +927,9 @@ Stage7StringIndex:
 Stage7EmitStringIndexPrefix:
             LD   HL,Stage7PopIndexBase
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7PushDEHL
             JP   EmitPair
 
@@ -761,14 +945,22 @@ Stage7ReadOpenStringOffset:
 Stage7OpenStringLength:
             CALL Stage7ReadOpenStringOffset
             CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$E5                    ; retain carrier
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitOpenRegionCheck
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckStringLengthOffset
 .else
@@ -780,12 +972,18 @@ Stage7OpenStringLength:
 Stage7OpenStringIndex:
             CALL Stage7ReadOpenStringOffset
             CALL Stage7EmitStringIndexPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitOpenRegionCheck
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7CopyFinish
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckStringIndexOffset
 .else
@@ -817,15 +1015,21 @@ Stage7EmitOpenStringCheck:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 .endif
 Stage7EmitStringCheckFinish:
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             CALL EmitRuntimeCall
 .else
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7BoundsGuard
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $E5                      ; push length or addressed byte
 
@@ -834,12 +1038,18 @@ Stage7EmitStringCheckFinish:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitOpenRegionCheck:
             CALL Stage7EmitRegionPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitOpenCapacityC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7OpenExtentBytes
             CALL EmitFour
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Stage7EmitRegionInvoke
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -850,7 +1060,9 @@ Stage7EmitOpenCapacityC:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitOpenDisplacedCapacity:
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentCount)
             CPL
             JP   EmitByte
@@ -865,7 +1077,9 @@ Stage7PrepareOpenArgument:
             LD   (Stage7ArgumentCount),A
             LD   A,$D1                    ; POP DE address carrier
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentIndex)
             OR   A
             JR   NZ,Stage7PrepareForwardedOpenArgument
@@ -877,11 +1091,15 @@ Stage7PrepareOpenArgument:
 Stage7PrepareForwardedOpenArgument:
             LD   HL,Stage7LoadIXL
             CALL Stage7EmitOpenDisplacedCapacity
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7ZeroHighBytes
             CALL EmitPair
 Stage7PrepareOpenArgumentPush:
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,Stage7PushHLDE
             JP   EmitPair
 

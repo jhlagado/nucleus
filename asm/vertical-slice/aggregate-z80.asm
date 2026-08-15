@@ -30,7 +30,9 @@ TargetEmitBankedConstantSymbolLoop:
             PUSH BC
             CALL TargetSelectOutputBank
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   H,0
             LD   L,C
             LD   DE,AggregateSymbolTypeBase
@@ -49,7 +51,9 @@ TargetEmitBankedConstantByteLoop:
             CALL EmitByte
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  DE
             JR   TargetEmitBankedConstantByteLoop
 TargetEmitBankedConstantNext:

@@ -1937,6 +1937,34 @@ This checkpoint changes only the terminal diagnostic route. Existing
 after a production diagnostic. Removing those sites is a separate measured
 migration, not part of this checkpoint.
 
+### Typed-generation diagnostic propagation removal
+
+The first removal stage starts from checkpoint
+`fb043c986622720b478ebb99b76830c6dbfce677`. It covers the typed expression,
+aggregate call, structured-control, and aggregate driver modules. Their
+fallible generation calls either reach `CompilerSetDiagnostic` through the
+streaming emitter or raise an internal compiler diagnostic directly. Neither
+path returns in the production layout. The source contains 217 corresponding
+`RET C` sites; 208 are active in the shipping layout and 209 in the
+instrumented layout. `CompilerDiagnosticReturns` retains every return in the
+historical non-streaming layouts.
+
+Measured after this stage, shipping compiler code is 15,536 bytes. Immutable
+data remains 393 bytes, so compiler core is 15,929 bytes with 455 bytes of 16
+KiB headroom. The instrumented compiler is 15,592 code bytes plus 393 immutable
+bytes, or 15,985 core bytes, leaving 1,423 bytes in its 17 KiB reservation.
+Workspace remains 3,609 bytes and the selected runtime remains 574 bytes.
+
+With the same expanded proof workload, the shipping proof executes 1,070,342
+instructions in 10,476,151 T-states: 1,779 fewer instructions and 8,895 fewer
+T-states than the single-unwind checkpoint. The instrumented proof executes
+1,074,971 instructions in 10,527,162 T-states, reductions of 1,790 instructions
+and 8,950 T-states. Proof code and data remain 2,487 bytes in the shipping
+layout and 2,489 bytes in the instrumented layout. Fresh CLI builds of both
+examples reproduce the six NOBJ, HEX, and D8 SHA-256 values listed above.
+Parser propagation and the general emit-sink layer are unchanged and remain
+separate stages.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

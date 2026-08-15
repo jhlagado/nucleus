@@ -58,12 +58,16 @@ TypedDispatchNext:
             JP   (HL)
 TypedDispatchReturn:
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DJNZ TypedDispatchNext
 .if TargetStreamingOutput
 .if DebugHooks
             CALL StructuredResolveFixups
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedDispatchComplete:
             OUT  (DebugTraceSemanticEndPort),A
             RET
@@ -190,14 +194,18 @@ TypedDefine16:
             CALL NextSemanticByte     ; byte offset
             CALL NextSemanticByte
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL NextSemanticByte
             JP   EmitByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBeginMain:
             CALL TypedBeginProgramFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ExpressionFrameBytes
             JP   EmitEight
 
@@ -217,7 +225,9 @@ TypedDeclare8:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare16:
             CALL TypedDeclare8
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $3B
 
@@ -232,7 +242,9 @@ TypedLiteral16:
 .routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitOpcodeWordPushHL:
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $E5                      ; PUSH HL
 
@@ -241,7 +253,9 @@ TypedLoadProgram8:
             CALL ExpressionProgramAddress
             LD   A,$3A                    ; LD A,(nn)
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TypedAtoHL
             JP   EmitFour
 
@@ -267,7 +281,9 @@ TypedEmitIndexed:
             LD   B,2
             CALL EmitBytes
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             JP   EmitByte
 
@@ -285,18 +301,24 @@ TypedLoadLocalLowIndexed:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TypedLoadLocal8:
             CALL TypedLoadLocalLowIndexed
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TypedZeroHighPush
             JP   EmitThree
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TypedLoadLocal16:
             CALL TypedLoadLocalLowIndexed
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  C
             LD   HL,TypedLoadLocalHigh
             CALL TypedEmitIndexed
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $E5
 
@@ -317,9 +339,13 @@ TypedEmitSequence:
             CALL TypedPopOperands
             POP  HL
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitBytes
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedPushHL
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -376,20 +402,28 @@ TypedSubtract16:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedMultiply8:
             CALL TypedMultiply
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TypedZeroHigh
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedPushHL
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedMultiply16:
             CALL TypedMultiply
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedPushHL
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedMultiply:
             CALL TypedPopOperands
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeMultiplyU16Offset
             JP   EmitRuntimeCall
@@ -403,14 +437,18 @@ TypedMultiply:
 .routine in HL out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 TypedEmitFailableCall:
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitJrNcPlaceholder
 
 .if TargetStreamingOutput
 .routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 TypedEmitFailableRuntimeCall:
             CALL EmitRuntimeCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitJrNcPlaceholder
 .endif
 
@@ -446,7 +484,9 @@ TypedDivide:
             LD   A,C
             LD   (EmitTypedWidth),A
             CALL TypedPopOperands
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeDivideU16Offset
 .else
@@ -466,16 +506,22 @@ TypedDivideCall:
 .else
             CALL TypedEmitFailableCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,3
             CALL TypedEmitCurrentTrap
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitTypedWidth)
             AND  1
             JR   Z,TypedDividePush
             LD   HL,TypedZeroHigh
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedDividePush:
             JP   TypedPushHL
 
@@ -505,13 +551,17 @@ TypedNotBoolean:
             LD   B,7
 TypedUnarySequence:
             CALL EmitBytes
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedPushHL
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitCompare:
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCompareU16Offset
             JP   EmitRuntimeCall
@@ -527,26 +577,38 @@ TypedCompare:
             PUSH BC
             CALL TypedPopOperands
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             CALL TypedEmitCompare
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedPushHL
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedNarrow8:
             CALL TypedReadTrapPosition
             CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TypedTestHigh
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$28                    ; JR Z,success
             CALL EmitRelativePlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,2
             CALL TypedEmitCurrentTrap
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedPushHL
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -556,7 +618,9 @@ TypedStoreProgram8:
             LD   HL,TypedPopHLtoA
             CALL   EmitPair
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$32
             JP   EmitOpcodeWord
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -565,7 +629,9 @@ TypedStoreProgram16:
             PUSH HL
             CALL TypedEmitPopHL
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$22
             JP   EmitOpcodeWord
 
@@ -573,13 +639,17 @@ TypedStoreProgram16:
 TypedStoreLocal8:
             CALL TypedLocalDisplacement
             CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TypedStoreLocalLow
             JP   TypedEmitIndexed
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TypedStoreLocal16:
             CALL TypedStoreLocal8
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  C
             LD   HL,TypedStoreLocalHigh
             JP   TypedEmitIndexed
@@ -589,21 +659,31 @@ TypedWrite8:
             CALL TypedReadTrapPosition
             LD   HL,TypedPopHLtoA
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   A,1
             CALL EmitTargetVectorCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
 .else
             LD   HL,WriteOutputByte
             CALL TypedEmitFailableCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedEmitTrapHead
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedEmitTrapTail
 
 ; Every terminal typed-expression trap must dismantle the routine frame before
@@ -612,13 +692,19 @@ TypedWrite8:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitTrapEnding:
             CALL TypedRestoreRootFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F5                    ; PUSH AF, preserve trap reason
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$AF                    ; XOR A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,ActivationDepth-StateBase
             CALL EmitStoreTargetStateA
@@ -626,10 +712,14 @@ TypedEmitTrapEnding:
             LD   HL,ActivationDepth
             CALL EmitStoreA
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F1                    ; POP AF
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitTrapEnding
 
 ; Emit the common terminal trap body for source position HL and trap code A.
@@ -641,7 +731,9 @@ TypedEmitTrapBody:
             JR   C,TypedEmitTrapBodyFailure
             POP  AF
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedEmitTrapEnding
 TypedEmitTrapBodyFailure:
             LD   L,A
@@ -659,12 +751,16 @@ TypedEmitCurrentTrap:
             JR   C,TypedEmitTrapBodyFailure
             POP  AF
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitTrapTail:
             CALL TypedEmitTrapEnding
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitExitFixup)
             JP   PatchHere
 
@@ -683,7 +779,9 @@ TypedRootFrameReady:
             PUSH HL
             CALL   EmitPair
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH HL
 .if TargetStreamingOutput
             LD   DE,RootSP-StateBase
@@ -693,11 +791,15 @@ TypedRootFrameReady:
 .endif
             CALL EmitWord
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             INC  HL
             INC  HL
             CALL   EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,RootIX-StateBase
             CALL TargetStateAddress
@@ -715,10 +817,14 @@ TypedBeginRoutine:
             LD   (EmitTypedWidth),A
             LD   C,ControlRoutineLabel
             CALL StructuredDefineLabel
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ExpressionFrameBytes
             CALL   EmitEight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(EmitTypedWidth)
             CP   ScalarTypeU16
             LD   HL,TypedParameter8Bytes
@@ -739,7 +845,9 @@ TypedCallScalar:
             LD   (EmitTypedWidth),A
             CALL TypedReadTrapPosition
             CALL TypedEmitPopHL           ; argument
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeActivationClaimOffset
             CALL TypedEmitFailableRuntimeCall
@@ -747,14 +855,20 @@ TypedCallScalar:
             LD   HL,ActivationClaim
             CALL TypedEmitFailableCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,5
             CALL TypedEmitCurrentTrap
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   C,ControlRoutineLabel
             LD   A,$CD                    ; CALL nn
             CALL StructuredEmitFixup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeActivationReleaseOffset
             CALL EmitRuntimeCall
@@ -762,16 +876,22 @@ TypedCallScalar:
             LD   HL,ActivationRelease
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $E5                      ; PUSH HL result carrier
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedReturnScalar:
             CALL TypedEmitPopHL           ; result
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitByteInline
             .db  $C9
 
@@ -828,15 +948,21 @@ TypedBeginOr:
             LD   B,6
 TypedBeginBoolean:
             CALL EmitBytes
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedPushBooleanFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEndBoolean:
             CALL TypedPopBooleanFixup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   PatchHere
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
@@ -845,7 +971,9 @@ TypedEndMain:
             OR   A
             JP   NZ,TypedInternalOperation
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitSuccessReturn
 
 ; Entry point used by the typed-expression proof.
@@ -869,16 +997,24 @@ EncodeSegmentedProgramHeader:
             JR   Z,EncodeSegmentedBss
             LD   HL,GeneratedRoDataBase
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,ProgramDataBase
             CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(StaticImageLength)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,SegmentedCopyBytes
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 EncodeSegmentedBss:
             LD   HL,(ProgramBssLength)
             LD   A,H
@@ -886,10 +1022,14 @@ EncodeSegmentedBss:
             JR   Z,EncodeSegmentedEntry
             LD   HL,ProgramBssBase
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ProgramBssLength)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeInitializeBssOffset
             CALL EmitRuntimeCall
@@ -897,13 +1037,17 @@ EncodeSegmentedBss:
             LD   HL,InitializeBss
             CALL EmitCall
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 EncodeSegmentedEntry:
 .endif
 EncodeProgramEntry:
             LD   A,$C3
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitDataFixup),HL
             LD   HL,0

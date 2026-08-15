@@ -23,6 +23,12 @@ CompilerNonlocalDiagnostics .equ 0
 .endif
 
 .if CompilerNonlocalDiagnostics
+CompilerDiagnosticReturns .equ 0
+.else
+CompilerDiagnosticReturns .equ 1
+.endif
+
+.if CompilerNonlocalDiagnostics
 .routine noreturn
 .else
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
