@@ -1136,12 +1136,15 @@ TypedUnaryMinusU8Ready:
             LD   A,ScalarTypeU8
             JR   TypedUnaryMinusResolved
 
-; Integer * / mod bind tighter than + -. One climber replaces the two
-; handwritten loops. B is the minimum precedence: 1 for additive, 2 for a
-; right operand that must not accept + or -.
+; Integer * / mod bind tighter than + -, which bind tighter than
+; comparisons. B is the minimum precedence: 0 comparison, 1 additive, 2
+; multiplicative, 3 a right operand that must not accept any of them.
+; Comparison enums occupy ExpressionOperator values 0..5; token operators
+; are all larger, so the reduce path can tell them apart. Comparisons are
+; non-associative: a second relation after a reduce is DiagnosticComparisonChain.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedParseAdditive:
-            LD   B,1
+TypedParseComparison:
+            LD   B,0
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseIntegerClimb:
             PUSH BC
@@ -1155,7 +1158,23 @@ TypedIntegerClimbLoop:
             PUSH HL
             LD   A,B
             CP   3
-            JR   NC,TypedIntegerClimbDonePrec
+            JR   C,TypedIntegerClimbPeek
+TypedIntegerClimbDonePrec:
+            POP  HL
+            POP  AF
+            RET
+TypedIntegerClimbDone:
+            POP  BC
+            JR   TypedIntegerClimbDonePrec
+.if CompilerDiagnosticBranches
+TypedIntegerClimbPeekFailure:
+            POP  BC
+            POP  HL
+            POP  AF
+            SCF
+            RET
+.endif
+TypedIntegerClimbPeek:
             PUSH BC
             CALL ParserPeek
 .if CompilerDiagnosticBranches
@@ -1170,7 +1189,20 @@ TypedIntegerClimbLoop:
             CP   TokenSlash
             JR   Z,TypedIntegerClimbMul
             CP   TokenMod
-            JR   NZ,TypedIntegerClimbDone
+            JR   Z,TypedIntegerClimbMul
+            POP  BC
+            LD   D,A
+            LD   A,B
+            OR   A
+            JR   NZ,TypedIntegerClimbDonePrec
+            LD   A,D
+            PUSH BC
+            CALL TypedComparisonToken
+            JR   NC,TypedIntegerClimbDone
+            LD   A,C
+            LD   (ExpressionOperator),A
+            LD   C,0
+            JR   TypedIntegerClimbGotPrec
 TypedIntegerClimbMul:
             LD   C,2
             JR   TypedIntegerClimbGot
@@ -1178,6 +1210,7 @@ TypedIntegerClimbAdd:
             LD   C,1
 TypedIntegerClimbGot:
             LD   (ExpressionOperator),A
+TypedIntegerClimbGotPrec:
             LD   A,C
             POP  BC
             CP   B
@@ -1222,11 +1255,14 @@ TypedIntegerClimbRight:
             CALL TypedRestoreOperands
 .endif
 .if CompilerDiagnosticReturns
-            JR   NC,TypedIntegerClimbReduce
+            JR   NC,TypedIntegerClimbDispatch
             POP  BC
             RET
-TypedIntegerClimbReduce:
+TypedIntegerClimbDispatch:
 .endif
+            LD   A,(ExpressionOperator)
+            CP   6
+            JR   C,TypedIntegerClimbCompare
             CALL TypedReduceIntegerBinary
 .if CompilerDiagnosticReturns
             JR   NC,TypedIntegerClimbReduced
@@ -1235,20 +1271,28 @@ TypedIntegerClimbReduce:
 TypedIntegerClimbReduced:
 .endif
             POP  BC
-            JR   TypedIntegerClimbLoop
-TypedIntegerClimbDone:
+            JP   TypedIntegerClimbLoop
+TypedIntegerClimbCompare:
+            CALL TypedReduceComparison
+.if CompilerDiagnosticReturns
+            JR   NC,TypedIntegerClimbCompared
             POP  BC
-TypedIntegerClimbDonePrec:
+            RET
+TypedIntegerClimbCompared:
+.endif
+            POP  BC
+            PUSH AF
+            PUSH HL
+            CALL ParserPeek
+.if CompilerDiagnosticBranches
+            JR   C,TypedComparisonStackFailure
+.endif
+            CALL TypedComparisonToken
+            JR   C,TypedComparisonChained
             POP  HL
             POP  AF
             RET
 .if CompilerDiagnosticBranches
-TypedIntegerClimbPeekFailure:
-            POP  BC
-            POP  HL
-            POP  AF
-            SCF
-            RET
 TypedIntegerClimbTakeFailurePacked:
             POP  DE
             POP  HL
@@ -1282,66 +1326,6 @@ TypedComparisonTokens:
             .db TokenGreater,ComparisonGreater
             .db TokenGreaterEqual,ComparisonGreaterEqual
 
-TypedParseComparison:
-            CALL TypedParseAdditive
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            PUSH AF
-            PUSH HL
-            CALL ParserPeek
-.if CompilerDiagnosticBranches
-            JR   C,TypedComparisonStackFailure
-.endif
-            CALL TypedComparisonToken
-            JR   NC,TypedComparisonNone
-            LD   A,C
-            LD   (ExpressionOperator),A
-            CALL ParserTake
-.if CompilerDiagnosticBranches
-            JR   C,TypedComparisonStackFailure
-.endif
-            POP  HL
-            POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
-            CALL TypedSaveLeft
-.endif
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL TypedParseAdditive
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
-            CALL TypedRestoreOperands
-.endif
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL TypedReduceComparison
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            PUSH AF
-            PUSH HL
-            CALL ParserPeek
-.if CompilerDiagnosticBranches
-            JR   C,TypedComparisonStackFailure
-.endif
-            CALL TypedComparisonToken
-            JR   C,TypedComparisonChained
-            POP  HL
-            POP  AF
-            RET
-TypedComparisonNone:
-            POP  HL
-            POP  AF
-            RET
 .if CompilerDiagnosticBranches
 TypedComparisonStackFailure:
             POP  HL

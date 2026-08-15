@@ -2267,15 +2267,16 @@ displacements between 119 and 127 bytes in magnitude and remain absolute. The
 two retained changes enter `EmitByte` at −47 bytes and `EmitPair` at +77 bytes,
 with the same safe classification in both production images.
 
-Shipping compiler code measures 14,895 bytes. With 393 immutable bytes,
-compiler core is 15,288 bytes and 1,096 bytes remain in the 16 KiB region. The
-instrumented image measures 14,951 code bytes and 15,344 core bytes, leaving
-2,064 bytes in its separate reservation. Workspace remains 3,609 bytes and the
+Shipping compiler code measures 14,893 bytes. With 393 immutable bytes,
+compiler core is 15,286 bytes and 1,098 bytes remain in the 16 KiB region. The
+instrumented image measures 14,949 code bytes and 15,342 core bytes, leaving
+2,066 bytes in its separate reservation. Workspace remains 3,609 bytes and the
 selected runtime remains 574 bytes.
 
-The integer-expression climber increment changes the shipping proof to
-1,055,489 instructions in 10,392,283 T-states; the instrumented proof executes
-1,060,118 instructions in 10,443,294 T-states.
+Comparisons now use the same min-precedence climber as `*` `/` `mod` `+` `-`.
+Chained relations still raise `DiagnosticComparisonChain`. The shipping proof
+executes 1,055,183 instructions in 10,384,694 T-states; the instrumented proof
+executes 1,059,812 instructions in 10,435,705 T-states.
 Generated program, runtime, NOBJ, HEX, and D8 results remain unchanged.
 
 ## Capacity ledger
