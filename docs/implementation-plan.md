@@ -1965,6 +1965,31 @@ examples reproduce the six NOBJ, HEX, and D8 SHA-256 values listed above.
 Parser propagation and the general emit-sink layer are unchanged and remain
 separate stages.
 
+### Streaming emit-sink diagnostic propagation removal
+
+The second removal stage starts from typed-generation checkpoint
+`b93e907e95122bf053274648bd32485112b829d1`. It covers the general Z80 emitter
+and target-output adapter. Those files contain 160 source-level `RET C` sites;
+51 are active in each production streaming layout. Output-capacity, target
+configuration, adapter, patch, and fixup failures already enter the nonlocal
+diagnostic path. Historical encoders retain all 160 returns through
+`CompilerDiagnosticReturns`.
+
+Measured after this stage, shipping compiler code is 15,485 bytes. With 393
+immutable bytes, compiler core is 15,878 bytes and 506 bytes remain in the 16
+KiB shipping region. The instrumented compiler is 15,541 code bytes plus 393
+immutable bytes, or 15,934 core bytes, leaving 1,474 bytes in its 17 KiB host
+reservation. Workspace remains 3,609 bytes and the selected runtime remains 574
+bytes.
+
+The unchanged expanded shipping proof executes 1,067,291 instructions in
+10,460,896 T-states, 3,051 instructions and 15,255 T-states fewer than the
+typed-generation checkpoint. The instrumented proof executes 1,071,920
+instructions in 10,511,907 T-states, the same reductions. Proof code and data
+remain 2,487 and 2,489 bytes. Fresh CLI builds again reproduce the six saved
+NOBJ, HEX, and D8 hashes. Parser propagation is unchanged and remains the next
+stage.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

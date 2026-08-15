@@ -52,7 +52,9 @@ EmitWord:
             LD   C,H
             LD   A,L
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             JR   EmitByte
 
@@ -75,7 +77,9 @@ EmitBytes:
             CALL EmitByte
             POP  HL
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DJNZ EmitBytes
             OR   A
             RET
@@ -95,7 +99,9 @@ EmitBlock:
             CALL EmitByte
             POP  HL
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  BC
             JR   EmitBlock
 .endif
@@ -221,7 +227,9 @@ BeginSegmentedProgram:
             LD   (SegmentCodeEntry+SegmentEntryLimit),HL
 
             CALL ValidateSegmentTable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             RET
 
@@ -288,7 +296,9 @@ ValidateSegmentEntryLoop:
             LD   HL,(SegmentCodeEntry+SegmentEntryLimit)
             LD   DE,(SegmentRoDataEntry+SegmentEntryBase)
             CALL SegmentRequireOrder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(SegmentDataEntry+SegmentEntryLimit)
             LD   DE,(SegmentBssEntry+SegmentEntryBase)
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
@@ -374,71 +384,113 @@ EncodeLoopProgramBody:
 
             LD   A,(SemanticBufferBase+2)
             CALL EmitLoadDImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SemanticBufferBase+4)
             CALL EmitLoadDImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   HL,(EmitCursor)
             LD   (EmitLoopHead),HL
             LD   A,$7A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SemanticBufferBase+5)
             CALL EmitCompareImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
 
             LD   A,(SemanticBufferBase+7)
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,WriteOutputByte
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$38
             CALL EmitRelativePlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitFailureFixup),DE
             LD   A,$7A
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SemanticBufferBase+5)
             DEC  A
             CALL EmitCompareImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitUpdateExitFixup),DE
             LD   A,$14
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitLoopHead)
             CALL PatchRelative
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitUpdateExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitSuccessReturn
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   DE,(EmitFailureFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,LoopFailureOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitTrapEnding
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             JP   FinishProgram
 .endif
@@ -451,7 +503,9 @@ EmitOpcodeWord:
             PUSH HL
             CALL EmitByte
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             JR   EmitWord
 .else
@@ -489,7 +543,9 @@ EmitStoreTargetStateA:
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 EmitOpcodeByte:
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             JP   EmitByte
 
@@ -524,10 +580,14 @@ EmitLoadScalar:
 EmitRestoreAfterCall:
             LD   A,$F5
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ActivationPop
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F1
             JP   EmitByte
 .endif
@@ -547,10 +607,14 @@ EmitTrapEnding:
             LD   HL,TrapNumber
             CALL EmitStoreA
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$AF
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,TrapRoutine-StateBase
             CALL EmitStoreTargetStateA
@@ -558,7 +622,9 @@ EmitTrapEnding:
             LD   HL,TrapRoutine
             CALL EmitStoreA
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,TrapOffset-StateBase
             CALL TargetStateAddress
@@ -567,12 +633,16 @@ EmitTrapEnding:
 .endif
             LD   A,$22
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,RunTrapped
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitRunEnding:
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   DE,RunState-StateBase
             CALL EmitStoreTargetStateA
@@ -580,7 +650,9 @@ EmitRunEnding:
             LD   HL,RunState
             CALL EmitStoreA
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if TargetStreamingOutput
             LD   A,(TargetDescriptorEntryBankValue)
             LD   D,A
@@ -589,10 +661,14 @@ EmitRunEnding:
             JR   Z,EmitRunEndingLocal
             LD   A,D
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(TargetTerminalAddress)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,10                     ; far-jump vector ordinal
             JP   EmitTargetVectorJump
 EmitRunEndingLocal:
@@ -614,7 +690,9 @@ EmitUnhandledTrapPrefix:
             LD   HL,TrapError
             CALL EmitStoreA
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,6
             JR   EmitLoadAImmediate
 
@@ -628,7 +706,9 @@ EmitJrNcPlaceholder:
 .routine in A out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
 EmitRelativePlaceholder:
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             PUSH HL
             XOR  A
@@ -736,7 +816,9 @@ DispatchCallNext:
             JP   (HL)
 DispatchCallReturn:
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DJNZ DispatchCallNext
             OR   A
             RET
@@ -761,28 +843,44 @@ CallLiteral:
             CALL NextSemanticByte
             CALL NextSemanticByte
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ActivationPush
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrCPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
             LD   A,$CD
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitRoutineCallFixup),HL
             LD   HL,0
             CALL EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitRestoreAfterCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrCPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitUpdateExitFixup),DE
             RET
 
@@ -790,9 +888,13 @@ CallLiteral:
 CallWriteLocal:
             LD   HL,WriteOutputByte
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrCPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitFailureFixup),DE
             RET
 
@@ -808,20 +910,28 @@ CallBeginForward:
 CallIfParameterZero:
             CALL NextSemanticByte
             CALL EmitLoadScalar
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$B7
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$20
             CALL EmitRelativePlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitIfFixup),DE
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 CallReturnParameter:
             CALL EmitLoadScalar
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$C9
             JP   EmitByte
 
@@ -838,21 +948,33 @@ CallReturnSelfMinus:
             PUSH BC
             CALL EmitLoadScalar
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$D6
             CALL EmitOpcodeByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ActivationPush
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$D8
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitRoutineAddress)
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitRestoreAfterCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$C9
             JP   EmitByte
 
@@ -863,23 +985,37 @@ CallEndRoutine:
             OR   L
             RET  NZ
             CALL EmitSuccessReturn
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitUpdateExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,CallCapacityOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitTrapEnding
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitFailureFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,CallFailureOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitTrapEnding
 
 ; Compile the routine slice from its variable-width semantic stream.
@@ -890,7 +1026,9 @@ EncodeCallProgramBody:
             LD   HL,0
             LD   (EmitRoutineAddress),HL
             CALL DispatchCallOperations
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   FinishProgram
 CallBackendEnd:
 .endif
@@ -929,7 +1067,9 @@ DispatchExpressionNext:
             JP   (HL)
 DispatchExpressionReturn:
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DJNZ DispatchExpressionNext
             OR   A
             RET
@@ -1010,7 +1150,9 @@ ExpressionDeclareLocal:
 ExpressionLiteral:
             CALL NextSemanticByte
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 ExpressionPushA:
             LD   A,$F5
@@ -1022,7 +1164,9 @@ ExpressionLoadProgram:
             CALL ExpressionProgramAddress
             LD   A,$3A
             CALL EmitOpcodeWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   ExpressionPushA
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -1032,23 +1176,33 @@ ExpressionLoadLocal:
             LD   C,A
             LD   A,$DD
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$7E
             CALL EmitOpcodeByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   ExpressionPushA
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 ExpressionMultiply:
             LD   A,$C1
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F1
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,MultiplyU8
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F5
             JP   EmitByte
 
@@ -1065,7 +1219,9 @@ ExpressionStoreProgram:
             LD   A,$F1
             CALL EmitByte
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$32
             JP   EmitOpcodeWord
 
@@ -1076,10 +1232,14 @@ ExpressionStoreLocal:
             LD   C,A
             LD   A,$F1
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$DD
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$77
             JP   EmitOpcodeByte
 
@@ -1093,12 +1253,18 @@ ExpressionWrite:
             LD   (EmitLoopHead),HL
             LD   A,$F1
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,WriteOutputByte
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrCPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitFailureFixup),DE
             RET
 .endif
@@ -1112,19 +1278,31 @@ ExpressionRestoreFrame:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 ExpressionEndMain:
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitSuccessReturn
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitFailureFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ExpressionRestoreFrame
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitLoopHead)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   EmitTrapEnding
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
@@ -1133,14 +1311,20 @@ EncodeExpressionProgramBody:
             CALL BeginProgram
             LD   A,$C3
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitDataFixup),HL
             LD   HL,0
             CALL EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL DispatchExpressionOperations
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   FinishProgram
 .endif
 ExpressionFrameBytes:
@@ -1161,97 +1345,157 @@ EncodeArrayProgramBody:
 
             LD   HL,ReadInputByte
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
             LD   HL,ArrayInputFailureOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitFailureFixup),DE
 
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SemanticBufferBase+2)
             CALL EmitCompareImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitUpdateExitFixup),DE
             LD   A,$5F
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             CALL EmitLoadDImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$21
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitDataFixup),HL
             LD   HL,0
             CALL EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$19
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$7E
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,WriteOutputByte
             CALL EmitCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrNcPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitLoopHead),DE
             LD   HL,ArrayOutputFailureOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitCodeStart),DE
 
             LD   DE,(EmitLoopHead)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitSuccessReturn
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   DE,(EmitUpdateExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,ArrayBoundsOffset
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$AF
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TrapError
             CALL EmitStoreA
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,1
             CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitJrPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (EmitExitFixup),DE
 
             LD   DE,(EmitFailureFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitCodeStart)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitUnhandledTrapPrefix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(EmitExitFixup)
             CALL PatchHere
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL EmitTrapEnding
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   HL,(EmitCursor)
             LD   DE,(EmitDataFixup)
@@ -1263,7 +1507,9 @@ EmitArrayData:
             PUSH HL
             CALL EmitByte
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             INC  HL
             DEC  C
             JR   NZ,EmitArrayData

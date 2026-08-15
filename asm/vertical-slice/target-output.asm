@@ -5,7 +5,9 @@
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TargetEmitEntryPlaceholder:
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (EmitDataFixup),HL
             LD   HL,0
@@ -20,10 +22,14 @@ TargetEmitTerminalTest:
             LD   A,$3A                    ; LD A,(nn)
             CALL EmitOpcodeWord
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$FE                    ; CP n
             CALL EmitOpcodeByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,TargetTerminalSelectBytes
             JP   EmitPair
 
@@ -49,7 +55,9 @@ BeginTargetFlatProgram:
             LD   D,(IX+TargetDescriptorImageCapacity+1)
             LD   (TargetImageCapacity),DE
             CALL TargetValidateRegion
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   L,(IX+TargetDescriptorWritableBase)
             LD   H,(IX+TargetDescriptorWritableBase+1)
             LD   (TargetWritableBase),HL
@@ -57,9 +65,13 @@ BeginTargetFlatProgram:
             LD   D,(IX+TargetDescriptorWritableCapacity+1)
             LD   (TargetWritableCapacity),DE
             CALL TargetValidateRegion
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TargetClassifyFlatLayout
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             ; Determine the exact startup extent and validate the optional
             ; established stack before the adapter opens a generation.
             LD   HL,26                   ; JP/CALL main plus terminal dispatch
@@ -166,7 +178,9 @@ TargetCodeCapacityReady:
             LD   (EmitLimit),HL
             LD   A,$C3
             CALL TargetEmitEntryPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 
             LD   HL,(EmitCursor)
             LD   (TargetLinkedRuntimeBase),HL
@@ -178,11 +192,15 @@ TargetCodeCapacityReady:
             JR   C,TargetCapacityFailure
             LD   (TargetReadOnlyBase),HL
             CALL TargetPrepareRuntimeContext
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(TargetLinkedRuntimeBase)
             XOR  A
             CALL TargetEmitRuntimeImage
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TargetEmitStartup
 
 ; Address one retained output-bank cursor and exact remaining-capacity word.
@@ -314,7 +332,9 @@ TargetBeginBankedProgram:
             LD   HL,0
             LD   (TargetReadOnlyBase),HL
             CALL TargetPrepareRuntimeContext
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   IX,(TargetDescriptorPointer)
             CALL TargetSinkBegin
             JP   C,TargetOutputFailure
@@ -341,7 +361,9 @@ TargetEmitBankPrefixLoop:
             PUSH BC
             CALL TargetSelectOutputBank
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(TargetDescriptorEntryBankValue)
             CP   C
             JR   NZ,TargetEmitBankEmptySlot
@@ -349,21 +371,27 @@ TargetEmitBankPrefixLoop:
             PUSH BC
             CALL TargetEmitEntryPlaceholder
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TargetEmitBankRuntime
 TargetEmitBankEmptySlot:
             LD   DE,3
             PUSH BC
             CALL TargetConsumeExtent
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetEmitBankRuntime:
             PUSH BC
             LD   A,C
             LD   HL,(TargetLinkedRuntimeBase)
             CALL TargetEmitRuntimeImage
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(TargetDescriptorEntryBankValue)
             CP   C
             JR   NZ,TargetEmitBankPrefixNext
@@ -373,16 +401,22 @@ TargetEmitBankRuntime:
             JP   C,TargetCapacityFailure
             LD   (TargetReadOnlyBase),HL
             CALL TargetEmitStartup
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             CALL TargetEmitRuntimeInitialImage
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH BC
             LD   HL,StaticImageBase
             LD   BC,(StaticImageLength)
             CALL EmitBlock
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetEmitBankPrefixNext:
             LD   A,(TargetOutputBank)
             LD   C,A
@@ -573,46 +607,68 @@ TargetEmitStartup:
             LD   DE,(EmitDataFixup)
             LD   HL,(EmitCursor)
             CALL PatchWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(TargetStackMode)
             OR   A
             JR   Z,TargetStartupCopy
             LD   HL,0
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$39                    ; ADD HL,SP
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$EB                    ; EX DE,HL
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(TargetWritableBase)
             LD   DE,(TargetWritableCapacity)
             ADD  HL,DE                    ; $0000 denotes mathematical $10000
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$F9                    ; LD SP,HL
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,$D5                    ; PUSH DE, saved incoming SP
             CALL EmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetStartupCopy:
             LD   A,(TargetLayoutMode)
             OR   A
             JR   Z,TargetStartupClear
             LD   HL,(TargetReadOnlyBase)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,(TargetWritableBase)
             CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TargetInitializedLength
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,SegmentedCopyBytes
             CALL EmitPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetStartupClear:
             LD   HL,(ProgramBssLength)
             LD   A,H
@@ -620,13 +676,19 @@ TargetStartupClear:
             JR   Z,TargetStartupEntry
             LD   HL,(TargetBssBase)
             CALL EmitLoadHl
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ProgramBssLength)
             CALL EmitLoadBcImmediate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,NucleusRuntimeInitializeBssOffset
             CALL EmitRuntimeCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetStartupEntry:
             LD   A,(TargetStackMode)
             OR   A
@@ -635,7 +697,9 @@ TargetStartupEntry:
             LD   A,$CD                    ; CALL main before restoring SP
 TargetStartupEmitEntry:
             CALL TargetEmitEntryPlaceholder
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(EmitCursor)
             LD   (TargetTerminalAddress),HL
             LD   A,(TargetStackMode)
@@ -644,22 +708,32 @@ TargetStartupEmitEntry:
             LD   HL,TargetStartupRestoreBytes
             LD   B,3
             CALL EmitBytes
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TargetStartupTerminalState:
             LD   DE,RunState-StateBase
             LD   C,RunSucceeded
             CALL TargetEmitTerminalTest
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,6                      ; success vector
             CALL EmitTargetVectorJump
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   DE,TrapNumber-StateBase
             LD   C,6                      ; unhandled trap number
             CALL TargetEmitTerminalTest
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,7                      ; unhandled-failure vector
             CALL EmitTargetVectorJump
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,8                      ; trap vector
             JP   EmitTargetVectorJump
 
