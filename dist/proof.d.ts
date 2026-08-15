@@ -16,6 +16,7 @@ interface NobjProofManifest {
         readonly halted: boolean;
         readonly initialSp?: number;
         readonly expectedSp?: number;
+        readonly expectedIx?: number;
         readonly writes?: readonly {
             readonly at: number;
             readonly bytes: readonly number[];
@@ -92,6 +93,7 @@ export declare const executeCommittedNobj: (serialized: Uint8Array, execution: {
     readonly halted: boolean;
     readonly initialSp?: number;
     readonly expectedSp?: number;
+    readonly expectedIx?: number;
     readonly writes?: readonly {
         readonly at: number;
         readonly bytes: readonly number[];

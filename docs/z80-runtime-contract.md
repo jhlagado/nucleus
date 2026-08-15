@@ -301,6 +301,20 @@ An aggregate carrier for a bounded string addresses its length byte. Reading
 `index < L` and addresses byte `1 + index`. Byte assignment changes one
 existing content byte and does not change the length.
 
+An open `string[]` binding may expose its retained capacity as a source `u8`
+value. It may also change the logical length through the checked assignment
+defined by the language specification. Generated code validates the complete
+dynamic region before dereferencing the carrier. The resize helper then
+validates both `oldLength <= capacity` and `newLength <= capacity` before any
+write.
+
+On success, the helper preserves bytes 1 through
+`min(oldLength, newLength)`. A shrink clears bytes `newLength + 1` through
+`oldLength`; a growth relies on the sealed zero-tail representation invariant. The helper
+stores the new length after validation and clearing. It never writes byte
+`capacity + 1`. Failure returns the existing bounds condition with the object
+unchanged.
+
 ### 3.4 Aggregate carriers
 
 An ordinary aggregate parameter or result is carried as one 16-bit address. Its exact
@@ -313,10 +327,12 @@ A `string[]` parameter uses two internal call words: the concrete capacity is
 below the address, and the address is closest to the return address. The source
 signature still has one parameter. The callee stores the address as a two-byte
 alias binding and the capacity as one activation byte. Forwarding an open
-parameter transfers both values. Before `.length` or indexing reads the
-referent, generated code checks the complete dynamic extent `capacity + 2` and
-then the stored-length invariant. The capacity and carrier remain unavailable
-to source code.
+parameter transfers both values. Before `.length`, `.capacity`, indexing, or
+writable `.length` accesses the referent, generated code checks the complete
+dynamic extent `capacity + 2`; operations that read or change the logical
+contents then check the stored-length invariant. Source can obtain the retained
+capacity only through `.capacity`. The address carrier remains unavailable to
+source code.
 
 ## 4. Program storage and startup
 
@@ -459,6 +475,12 @@ byte, complete capacity, and permanent terminator. Self-assignment has no
 effect. Nucleus types cannot produce proper partial overlap between distinct
 same-type aggregate paths. An open-string view is not a whole-object assignment
 operand.
+
+Checked open-string length assignment follows the same atomicity boundary. The
+complete-region check, old-length check, and new-length check all precede
+mutation. Shrinking clears the removed content before the helper publishes the
+new length. A failed check leaves the length, payload, zero tail, permanent
+terminator, and surrounding bytes unchanged.
 
 The source checker rejects an assignment rooted directly at an aggregate
 constant. The runtime carrier has no read-only bit, so an alias derived from a
@@ -689,7 +711,7 @@ and checked 16-bit target address through its private ABI. Source code exposes
 neither value.
 
 The far-call adapter selects the destination bank, enters the ordinary Nucleus
-routine ABI, and installs a fixed-memory return path. Identity `$0004` uses the
+routine ABI, and installs a fixed-memory return path. Identity `$0005` uses the
 selected-bank byte at writable-state offset eight and a sixteen-byte far-return
 arena after the saved root-frame words. Each live far call uses the zero-based
 slot `ActivationDepth - 1`: depth one selects slot zero, and the published
@@ -851,9 +873,9 @@ data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
-`test/nobj.test.ts` assembles runtime identity `$0004` under
-`defaultRuntimeLinkContext` and measures a 364-byte canonical linked helper
-image.
+`test/nobj.test.ts` assembles runtime identity `$0005` under
+`defaultRuntimeLinkContext` and measures a 390-byte canonical linked helper
+image. The 26-byte addition is the bounded-string resize helper.
 `proofs/stage9-conformance-z80-slice-proof.json` includes the historical direct
-service adapters and measures 596 bytes;
-`proofs/chapter21-target-z80-slice-proof.json` selects a 574-byte form.
+service adapters and measures 622 bytes;
+`proofs/chapter21-target-z80-slice-proof.json` selects a 600-byte form.

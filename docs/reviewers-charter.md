@@ -251,8 +251,11 @@ Bounded strings retain a current length, permit embedded zero bytes, support
 `.length`, checked byte access, byte replacement, and exact-type aggregate
 assignment. A parameter may use the sole capacity-polymorphic `string[]` view,
 which retains the concrete argument capacity for checking; it is neither owned
-open-capacity storage nor a slice. Bounded strings have no append, insertion,
-resize, truncation, or general comparison operation.
+open-capacity storage nor a slice. That view exposes read-only `.capacity` and
+checked writable `.length`, which ordinary source routines can use to construct
+text. Concrete paths keep read-only `.length` and do not expose `.capacity`.
+Bounded strings have no intrinsic append, insertion, slicing, splicing, or
+general comparison operation.
 
 ### Structured initializers
 

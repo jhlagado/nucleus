@@ -32,7 +32,9 @@ Stage8RetainedCarriers      .equ Stage7StateBase+$1A
 Stage8ServiceId             .equ Stage7StateBase+$1B
 Stage8CallFlags             .equ Stage7StateBase+$1C
 Stage7OpenStringCapacityOffset .equ Stage7StateBase+$1D
-Stage7StateEnd              .equ Stage7StateBase+$1E
+Stage7PathAssignmentMode    .equ Stage7StateBase+$1E
+Stage7StringResizeOffset    .equ Stage7StateBase+$1F
+Stage7StateEnd              .equ Stage7StateBase+$20
 
 Stage7RoutineTableBase      .equ Stage7StateEnd
 Stage7RoutineEntrySize      .equ 8
@@ -144,6 +146,8 @@ SemanticLoadReadOnlyAlias    .equ 107
 SemanticOpenStringLength     .equ 108
 SemanticOpenStringIndex      .equ 109
 SemanticPrepareOpenArgument  .equ 110
+SemanticStringCapacity       .equ 111
+SemanticStringResize         .equ 112
 Stage8ServiceReadInput       .equ 0
 Stage8ServiceWriteOutput     .equ 1
 Stage8ServiceReadStorage     .equ 2

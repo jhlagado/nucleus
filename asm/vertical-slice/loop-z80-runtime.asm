@@ -430,6 +430,40 @@ CompareFalse:
             OR   A
             RET
 
+.if AggregateCallSlices
+; Resize a validated bounded-string region. C is capacity, DE is the
+; canonical u8 new length, and HL is the carrier. Every rejection precedes
+; mutation; shrinking clears the removed payload before publishing length.
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,E,HL,IX,IY
+ResizeString:
+            LD   A,(HL)
+            LD   B,A                     ; old length
+            LD   A,C
+            CP   B
+            RET  C
+            CP   E
+            RET  C
+ResizeStringCapacityReady:
+            LD   A,B
+            SUB  E
+            JR   C,ResizeStringCommit
+            JR   Z,ResizeStringCommit
+            LD   B,A                     ; bytes new+1 through old
+            PUSH HL
+            INC  HL
+            ADD  HL,DE
+            XOR  A
+ResizeStringClear:
+            LD   (HL),A
+            INC  HL
+            DJNZ ResizeStringClear
+            POP  HL
+ResizeStringCommit:
+            LD   (HL),E
+            OR   A
+            RET
+.endif
+
 .if RuntimeProofServices
 ; Carry returns endOfInput, a configured input failure, or success in A.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL

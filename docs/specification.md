@@ -989,18 +989,54 @@ A string literal is a contextual bounded-string initializer. It is compatible wi
 
 Two concrete bounded-string types are identical only when their capacities are equal. An alias to `string[16]` cannot bind to a `string[32]` parameter or result, even when the current contents would fit both. Concrete aggregate aliases and results therefore retain an exact extent.
 
-A bounded string is an aggregate, not a `u8` array. It has no source-level header field, payload field, or terminator field. Nucleus 0.1 provides two intrinsic postfix operations without exposing that representation:
+A bounded string is an aggregate, not a `u8` array. It has no source-level header field, payload field, or terminator field. Nucleus 0.1 provides intrinsic postfix operations without exposing that representation:
 
-- `text.length` is a read-only `u8` value equal to the current logical byte length.
+- `text.length` is a `u8` value equal to the current logical byte length.
 - `text[index]` selects one existing byte as a `u8` storage path. The index must have type `u8` or `u16` and must be less than the current length. A failed check performs the `bounds` trap before a read or write.
 
-A bounded string's length is established by static initialization or copied as part of exact-type aggregate assignment. A byte assignment replaces exactly one existing byte and does not change the string's length or capacity. These operations provide no append, insertion, resize, truncation, slice, or splice. Source code cannot build counted text by filling bytes and then changing the length. Embedded zero bytes are ordinary content.
+A concrete `string[N]` path may read `.length`, but it cannot assign to that
+property or read `.capacity` directly. An open `string[]` parameter may also
+read `.capacity`, which yields the actual capacity retained when the call bound
+the parameter. The property is read-only. Ordinary source routines can accept
+a concrete string through `string[]` when they need a capacity-polymorphic
+capacity query.
+
+An open parameter also admits checked assignment to `.length`:
+
+```nucleus
+text.length = newLength
+```
+
+The right side must be assignable to `u8`. The destination and right side are
+each evaluated once. Before changing the object, execution validates its
+complete `capacity + 2` byte region, its existing length, and the new length.
+Both lengths must be at most the retained capacity. A failure performs the
+`bounds` trap and changes no byte of the object.
+
+Successful assignment preserves the content prefix through the lesser of the
+old and new lengths. Shrinking clears bytes `newLength + 1` through
+`oldLength` before storing the new length. Growing exposes the zero-valued tail
+maintained by the bounded-string invariant. Assigning the current length has no
+effect on the payload. The permanent zero at offset `capacity + 1` is not
+changed.
+
+A bounded string's length is established by static initialization, copied as
+part of exact-type aggregate assignment, or changed through an open
+parameter's checked `.length` target. A byte assignment replaces exactly one
+existing byte and does not change the string's length or capacity. Nucleus has
+no intrinsic append, insertion, slice, or splice operation. Ordinary source
+library routines perform text construction by querying an open view's
+capacity, changing its length, and writing checked bytes. Embedded zero bytes
+are ordinary content.
 
 Bounded strings have no comparison operators. A library routine can compare two `string[]` parameters by checking their lengths and indexed bytes.
 
-The `.length` intrinsic applies only when the postfix base has bounded-string type. On a record base, `.length` remains ordinary lookup in that record's field scope. Any other field suffix on a bounded string is invalid.
+The `.length` intrinsic applies when the postfix base has concrete or open
+bounded-string type. `.capacity` applies only to an open `string[]` parameter.
+On a record base, either spelling remains ordinary lookup in that record's
+field scope. Any other field suffix on a bounded string is invalid.
 
-`string[]` is a parameter-only, capacity-polymorphic view. A call may bind it to a concrete `string[N]` storage path or transient alias, for any admitted `N`, or forward another `string[]` parameter. The view retains the actual capacity for `.length` and checked indexing. It does not own storage and is invalid as a variable, constant, record field, array element, local, or routine result. Whole-object assignment and comparison through an open view are invalid.
+`string[]` is a parameter-only, capacity-polymorphic view. A call may bind it to a concrete `string[N]` storage path or transient alias, for any admitted `N`, or forward another `string[]` parameter. The view retains the actual capacity for `.capacity`, checked `.length` assignment, `.length` reads, and checked indexing. It does not own storage and is invalid as a variable, constant, record field, array element, local, or routine result. Whole-object assignment and comparison through an open view are invalid.
 
 A string literal remains a contextual static initializer, not a general aggregate expression or argument. Passing literal text therefore requires a named concrete bounded-string object in this version. `string[]` is not a slice: it always views one complete bounded-string object, has no offset or independently chosen length, and cannot be rebound.
 
@@ -1729,7 +1765,7 @@ An argument-list suffix in an ordinary expression invokes only an infallible sou
 
 An index suffix requires a fixed-array or bounded-string storage path or typed alias. Its expression must have type `u8` or `u16`. For a fixed array, the result has the array's exact element type; the compiler diagnoses a statically out-of-range index and emits a checked access for a dynamic index unless it proves the index is in range. For a bounded string, the result is a `u8` storage path and the implementation checks the index against the current logical length before every access unless it proves that access safe. A failed check occurs before the element or byte is read or written.
 
-A field suffix on a record storage path or typed record alias resolves the field name only in that record's field scope and produces the field's declared type. A `.length` suffix on a bounded-string storage path or alias produces its read-only `u8` logical length. Other field suffixes on bounded strings are invalid. Selection does not expose an offset, header, or address to source code.
+A field suffix on a record storage path or typed record alias resolves the field name only in that record's field scope and produces the field's declared type. A `.length` suffix on a concrete or open bounded-string path produces its `u8` logical length. A `.capacity` suffix on an open `string[]` parameter produces its read-only actual capacity. Other field suffixes on bounded strings are invalid. Selection does not expose an offset, header, or address to source code.
 
 Index and field suffixes may follow an aggregate result from a routine call. The result remains a transient typed alias to the object established by Chapter 13; the suffix does not copy that object. A scalar result cannot be indexed or selected, and a result-free call cannot take another suffix.
 
@@ -1975,7 +2011,7 @@ Nucleus has no `call` keyword. An already declared routine name followed by its 
 
 ### 10.4 Assignment
 
-An assignment target is a mutable scalar path rooted in a program variable, parameter, or scalar local, or an aggregate path rooted in a program variable or aggregate parameter. A path rooted directly at an aggregate constant name is never an assignment target, including after field or index selection. The parser uses the Chapter 9 postfix-suffix path; the storage-path rule rejects every call suffix and any field or index suffix unsuitable for the preceding type. A bounded-string byte selected through a writable root is writable; `text.length` is not.
+An assignment target is a mutable scalar path rooted in a program variable, parameter, or scalar local, or an aggregate path rooted in a program variable or aggregate parameter. A path rooted directly at an aggregate constant name is never an assignment target, including after field or index selection. The parser uses the Chapter 9 postfix-suffix path; the storage-path rule rejects every call suffix and any field or index suffix unsuitable for the preceding type. A bounded-string byte selected through a writable root is writable. The `.length` property is an additional checked assignment target only when its base is a `string[]` parameter; `.capacity` is never assignable.
 
 A scalar local used as the counter of an enclosing counted loop is read-only until that loop ends. An assignment rooted at that exact local is invalid in the loop body, including inside a nested statement. Chapter 12 defines the corresponding counter rule and nested-loop restriction.
 
@@ -1992,7 +2028,7 @@ A scalar destination uses the scalar compatibility rules from Chapter 6. An aggr
 
 In this statement position, `=` is the assignment operator. Inside an expression, it is equality under Chapter 9. Assignment is not an expression and produces no value. Chained assignment, compound assignment such as `+=`, increment and decrement statements, and assignment inside a condition or argument are absent.
 
-Aggregate assignment copies a complete value only when the source has the exact same concrete type. A string-byte assignment replaces one selected byte without changing the string's length or capacity. No assignment changes an alias binding, and `string[]` is not a whole-object assignment type.
+Aggregate assignment copies a complete value only when the source has the exact same concrete type. A string-byte assignment replaces one selected byte without changing the string's length or capacity. Checked assignment to an open view's `.length` follows Section 6.8 and does not change capacity or alias binding. `string[]` is not a whole-object assignment type.
 
 ### 10.5 Routine-call statements
 
@@ -3052,7 +3088,7 @@ The grammar uses these declared semantic predicates:
 | `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                            |
 | `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.              |
 
-Field lookup after `.` uses the selected record type, except that a bounded-string base admits only the intrinsic read-only suffix `.length`. Index selection uses a fixed-array domain or a bounded string's current logical length according to the base type; this distinction needs no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
+Field lookup after `.` uses the selected record type. A concrete bounded-string base admits `.length`; an open `string[]` base admits `.length` and `.capacity`, with writable `.length` restricted to an assignment target. Index selection uses a fixed-array domain or a bounded string's current logical length according to the base type; these distinctions need no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
 ### 17.4 Predictive analysis
 
@@ -3094,7 +3130,7 @@ The compiler checks every operator, condition, assignment, argument, result, fie
 
 A program variable or aggregate constant owns program-lifetime storage. A scalar parameter or local owns one activation value. An aggregate parameter is a fixed typed alias established for the activation; `string[]` additionally retains its actual capacity. A returned aggregate alias is transient and cannot establish a source binding. Alias binding is not assignment. A writable aggregate storage path may be an assignment destination whose source has the exact same concrete aggregate type. Direct paths rooted at an aggregate constant are readable but not writable; aliases derived from them do not retain that marker. A routine-local declaration with aggregate type is invalid.
 
-Field and checked-index selection preserve the root identity and exact selected type. A bounded-string index selects an existing writable `u8` byte when the index is below the string's current length; `.length` yields a read-only `u8` value. Every aggregate object and subobject has program lifetime, so a returned aggregate alias needs no separate lifetime metadata.
+Field and checked-index selection preserve the root identity and exact selected type. A bounded-string index selects an existing writable `u8` byte when the index is below the string's current length. `.length` yields a `u8` value and is writable only through an open parameter under Section 6.8; `.capacity` yields a read-only `u8` only through that view. Every aggregate object and subobject has program lifetime, so a returned aggregate alias needs no separate lifetime metadata.
 
 ### 18.5 Constants, bounds, and initialization
 
@@ -3140,13 +3176,19 @@ Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Comp
 
 Scalar assignment evaluates and checks the complete target path, then evaluates the right side, then converts and stores. Aggregate assignment evaluates its complete destination path first and its source second, then validates both complete extents before changing the destination. It copies the common exact-type representation. Self-assignment has no effect. The type rules make two distinct assignment-compatible aggregate subobjects disjoint, so partial overlap cannot arise in Nucleus 0.1.
 
+Checked assignment to an open string's `.length` evaluates the open carrier
+once and the new `u8` length once. It validates the complete referent, old
+length, and new length before changing the representation. Shrinking clears
+the removed bytes before storing the new length; growing exposes the existing
+zero tail. A failed validation changes no byte and performs the `bounds` trap.
+
 A failure or trap before a success-result store or aggregate copy leaves the destination unchanged, while effects already completed remain visible. A handled failable scalar assignment then stores its error code in the handler destination; if both destinations name the same scalar, that scalar receives the error code.
 
 ### 19.3 Objects and aliases
 
 Program variables exist throughout execution. Each routine call creates a distinct logical activation containing copied scalar parameters, scalar locals, and aggregate-parameter bindings. Aggregate aliases denote existing program objects or aggregate subobjects and preserve identity. Mutation of a scalar leaf is visible through every path to that leaf.
 
-Aggregate arguments and results transfer aliases, not object contents. A returned aggregate alias transiently denotes the original program-lifetime object after the callee activation ends. It may be discarded, forwarded, selected, passed onward, or consumed by aggregate assignment, but it cannot become a stored local binding. Aggregate assignment copies object contents into the destination referent and does not rebind either operand. Bounded-string byte mutation through any alias is visible through every alias to the same object; it replaces an existing byte without changing length or capacity. No runtime type tag accompanies an alias, and the source language provides no operation that inspects its carrier.
+Aggregate arguments and results transfer aliases, not object contents. A returned aggregate alias transiently denotes the original program-lifetime object after the callee activation ends. It may be discarded, forwarded, selected, passed onward, or consumed by aggregate assignment, but it cannot become a stored local binding. Aggregate assignment copies object contents into the destination referent and does not rebind either operand. Bounded-string byte mutation through any alias is visible through every alias to the same object; it replaces an existing byte without changing length or capacity. Checked `.length` assignment through `string[]` changes the same referent while preserving its capacity and sealed representation. No runtime type tag accompanies an alias, and the source language provides no operation that inspects its carrier.
 
 ### 19.4 Calls, returns, and recursion
 
@@ -3184,8 +3226,8 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
 | Types        | `u8`, `u16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` views, exact aggregate aliases, and exact-type aggregate copying.                                                                                                              |
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
-| Expressions  | Calls, checked array and bounded-string indexing, field selection and string `.length`, explicit integer conversions, unary `+`/`-`, arithmetic including quotient and remainder, one scalar comparison, `not`, `and`, `or`, and integer-only `xor`.                                                                                             |
-| Statements   | Scalar assignment, exact-type aggregate assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                                                                    |
+| Expressions  | Calls, checked array and bounded-string indexing, field selection, string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                                                   |
+| Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
 | Control      | Flat `if`/`elseif`/`else`, pre-test `while`, counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                                                                                                                              |
 | Routines     | Formal arguments including capacity-polymorphic `string[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                                                   |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
@@ -3205,13 +3247,13 @@ These forms are omitted from 0.1 and may be reconsidered only by a future langua
 
 The maintainer of this language specification owns source-language admission. The maintainer of the Z80 runtime and backend contract co-owns decisions that change the target representation or System Services interface.
 
-| Candidate                                                               | Required decision evidence and owner                                                                                                                             |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dense nonnegative selection                                             | Compiler cost versus emitted jump-table savings on representative programs; language-specification maintainer in a future revision.                              |
-| Routine-local aggregate objects or fixed local aggregate aliases        | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.              |
-| Open arrays, slices, or views other than parameter-only `string[]`      | Source typing, carrier, lifetime, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
-| Bounded-string growth, resize, append, and capacity-changing operations | Typed contract, alias effects, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                              |
-| Additional system services                                              | Portable typed contract and complete compiler, runtime, and target cost; System Services maintainer in a future service revision.                                |
+| Candidate                                                          | Required decision evidence and owner                                                                                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dense nonnegative selection                                        | Compiler cost versus emitted jump-table savings on representative programs; language-specification maintainer in a future revision.                              |
+| Routine-local aggregate objects or fixed local aggregate aliases   | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.              |
+| Open arrays, slices, or views other than parameter-only `string[]` | Source typing, carrier, lifetime, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
+| Intrinsic bounded-string append, insertion, slicing, or splicing   | Typed contract, overlap and failure semantics, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.              |
+| Additional system services                                         | Portable typed contract and complete compiler, runtime, and target cost; System Services maintainer in a future service revision.                                |
 
 These candidates are not provisional 0.1 syntax. Extensions may prototype them only under Section 1.7.
 

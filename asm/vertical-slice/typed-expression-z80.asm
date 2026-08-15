@@ -178,7 +178,9 @@ TypedOperationTable:
             .dw Stage7OpenStringLength ; 108
             .dw Stage7OpenStringIndex  ; 109
             .dw Stage7PrepareOpenArgument ; 110
-TypedOperationCount .equ 91
+            .dw Stage7EmitStringCapacityValue ; 111
+            .dw Stage7StringResize   ; 112
+TypedOperationCount .equ 93
 .else
 TypedOperationCount .equ 62
 .endif

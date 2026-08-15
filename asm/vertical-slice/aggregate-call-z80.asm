@@ -1007,7 +1007,6 @@ Stage7EmitOpenStringCheck:
 .else
             POP  HL
 .endif
-            JR   Stage7EmitStringCheckFinish
 
 .if TargetStreamingOutput
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -1125,6 +1124,65 @@ Stage7EmitStringCheck:
 .endif
             JR   Stage7EmitStringCheckFinish
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7EmitStringCapacityValue:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitOpenRegionCheck
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitOpenCapacityC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7CapacityToCarrier
+            JP   EmitFour
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7StringResize:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            CALL Stage7ReadCallOffset
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEHL           ; new length, carrier
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7PushDEHL         ; preserve both across region check
+            CALL EmitPair
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitOpenRegionCheck
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLDE           ; carrier, new length
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitOpenCapacityC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeResizeStringOffset
+            CALL EmitRuntimeCall
+.else
+            LD   HL,ResizeString
+            CALL EmitCall
+.endif
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JP   Stage7BoundsGuard
+
 Stage7IndexToA            .equ TypedLoadSPPrefix+1
 Stage7LoadBImmediate:     .db $06
 Stage7OffsetAddress:      .db $5F,$16,$00,$19,$E5
@@ -1138,6 +1196,12 @@ Stage7PushHLDE            .equ TypedPopOperandsBytes+2
 Stage7LoadIXC:            .db $DD,$4E
 Stage7ZeroHighBytes       .equ TypedZeroHigh
 Stage7OpenExtentBytes:    .db $06,$00,$03,$03
+; Target template assembled from ordinary Z80 mnemonics: capacity C becomes
+; the canonical word carrier pushed on the generated evaluation stack.
+Stage7CapacityToCarrier:
+            LD   L,C
+            LD   H,0
+            PUSH HL
 Stage7LDIR                .equ SegmentedCopyBytes
 
 Stage7DecSP2              .equ TypedParameter16Bytes

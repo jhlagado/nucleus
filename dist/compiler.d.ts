@@ -60,7 +60,7 @@ export declare const writeNucleusIntelHex: (result: NucleusCompileSuccess) => st
 export declare const nucleusCompilerInfo: () => Promise<{
     readonly hostApiVersion: 1;
     readonly languageVersion: "0.1";
-    readonly runtimeIdentity: 4;
+    readonly runtimeIdentity: 5;
     readonly normalImageSha256: string;
     readonly debugImageSha256: string;
     readonly capacities: typeof nucleusCompilerCapacities;

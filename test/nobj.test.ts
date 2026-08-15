@@ -596,8 +596,8 @@ describe("NOBJ 0.1", () => {
 
   it("assembles the canonical provider from the exact selected runtime source", async () => {
     const runtime = await loadCanonicalRuntimeImage();
-    expect(runtime.identity).toBe(4);
-    expect(runtime.bytes).toHaveLength(364);
+    expect(runtime.identity).toBe(5);
+    expect(runtime.bytes).toHaveLength(390);
     expect(runtime.vectorBytes).toHaveLength(33);
     expect(runtime.initialBytes).toHaveLength(70);
     expect(runtime.initialBytes[33]).toBe(1);

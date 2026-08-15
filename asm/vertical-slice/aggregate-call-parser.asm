@@ -954,7 +954,8 @@ Stage7EmitAggregateRootReady:
 
 ; Emit one checked postfix chain. A is the current aggregate type and one
 ; carrier is live on the generated evaluation stack. D returns zero for an
-; address path or one when `.length` has already produced a scalar value.
+; address path, one when a property has produced a scalar value, or two when
+; assignment parsing has retained a bounded-string carrier for `.length =`.
 .routine in A out A,D,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL,IX,IY
 Stage7ParsePathSuffix:
             LD   D,0
@@ -1007,16 +1008,44 @@ Stage7PathStringField:
             LD   HL,NameLength
             LD   B,6
             CALL TokenNameEquals
+            JR   C,Stage7PathStringLength
+            LD   HL,NameCapacity
+            LD   B,8
+            CALL TokenNameEquals
             JP   NC,Stage7PathFieldTypeFailure
             LD   A,(Stage7PathType)
             CP   AggregateOpenStringTypeId
-            JR   Z,Stage7PathOpenStringField
-            CALL AggregateTypeAddress
-            INC  HL
-            LD   C,(HL)                  ; capacity for L <= N validation
+            JP   NZ,Stage7PathFieldTypeFailure
+            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   C,A
+            LD   A,SemanticStringCapacity
+            CALL ParserEmitOperationC
+.if CompilerDiagnosticBranches
+            JP   C,Stage7PathSuffixFailure
+.endif
+            JR   Stage7PathStringScalarReady
+Stage7PathStringLength:
+            LD   A,(Stage7PathAssignmentMode)
+            OR   A
+            JR   Z,Stage7PathStringLengthRead
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JP   NZ,Stage7PathFieldTypeFailure
+            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   (Stage7StringResizeOffset),A
+            POP  AF
+            LD   D,2
+            OR   A
+            RET
+Stage7PathStringLengthRead:
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            JR   Z,Stage7PathOpenStringLengthRead
+            CALL Stage7StringCapacity
+            LD   C,A
             LD   A,SemanticStringLength
             JR   Stage7PathStringLengthReady
-Stage7PathOpenStringField:
+Stage7PathOpenStringLengthRead:
             LD   A,(Stage7OpenStringCapacityOffset)
             LD   C,A
             LD   A,SemanticOpenStringLength
@@ -1030,6 +1059,7 @@ Stage7PathStringLengthReady:
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
 .endif
+Stage7PathStringScalarReady:
             POP  AF
             LD   A,ScalarTypeU8
             LD   D,1
@@ -1963,12 +1993,19 @@ Stage7AggregateAssignmentWritable:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   A,1
+            LD   (Stage7PathAssignmentMode),A
+            LD   A,(Stage7PathType)
             CALL Stage7ParsePathSuffix
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   E,A
+            XOR  A
+            LD   (Stage7PathAssignmentMode),A
             LD   A,D
+            CP   2
+            JR   Z,Stage7StringResizeAssignment
             OR   A
             JP   NZ,TypedTypeFailure
             LD   A,E
@@ -2047,6 +2084,45 @@ Stage7AggregateCopyAssignment:
             RET  C
 .endif
             LD   HL,(Stage7CallOffset)
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if Stage7LL1
+            RET
+.else
+            JP   ParserExpectLine
+.endif
+Stage7StringResizeAssignment:
+            CALL ParserExpectEqual
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,ScalarTypeU8
+            CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   D,A
+            LD   E,ScalarTypeU8
+            CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,1
+            LD   (Stage8RetainedCarriers),A
+            CALL Stage8SelectFailureConsumer
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage7StringResizeOffset)
+            LD   C,A
+            LD   A,SemanticStringResize
+            CALL ParserEmitOperationC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(ExpressionValuePosition)
             CALL Stage7EmitWord
 .if CompilerDiagnosticReturns
             RET  C

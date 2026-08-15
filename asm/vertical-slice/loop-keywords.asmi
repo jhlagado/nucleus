@@ -63,6 +63,7 @@ NameBytes:              .db "bytes"
 .endif
 .if AggregateCallSlices
 NameLength:             .db "length"
+NameCapacity:           .db "capacity"
 
 ; Predefined services and error constants remain ordinary names to the
 ; tokenizer. The packed table gives the parser one namespace and dispatch

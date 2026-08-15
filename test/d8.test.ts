@@ -13,13 +13,13 @@ describe("Nucleus D8 semantic transcript validation", () => {
     ].map((operation) => [operation, 1] as const),
     ...[
       22, 25, 29, 33, 36, 58, 59, 60, 63, 67, 68, 69, 75, 76, 79, 80, 86, 88,
-      102, 103, 105,
+      102, 103, 105, 111,
     ].map((operation) => [operation, 2] as const),
     ...[
       20, 24, 28, 30, 34, 35, 43, 44, 56, 57, 61, 62, 70, 74, 87, 89, 98, 99,
       106, 107, 110,
     ].map((operation) => [operation, 3] as const),
-    ...[32, 71, 82, 83, 96, 97, 108, 109].map(
+    ...[32, 71, 82, 83, 96, 97, 108, 109, 112].map(
       (operation) => [operation, 4] as const,
     ),
     ...[77, 95].map((operation) => [operation, 5] as const),
