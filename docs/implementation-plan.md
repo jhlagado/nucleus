@@ -2123,6 +2123,39 @@ appear as instructions in a raw compiler disassembly; they do not affect D8
 source attribution or operation-key decoding. Fresh CLI builds reproduce the
 six saved NOBJ, HEX, and D8 hashes.
 
+### Indexed inline-pair emission
+
+The indexed inline-pair stage starts from checked inline-byte checkpoint
+`7e5ee504f6813b80c52b038b43ab57dd17713d4b`. Thirty-one source sites loaded
+a fixed two-byte template and called `EmitPair`; thirty of those sites are
+resident in the shipping layout. Each replacement stores a one-byte table
+index after the call. The shared helper retains the following instruction
+address on the compiler stack, resolves the index in a fourteen-entry table,
+and enters the existing `EmitPair` path. Dynamic-template calls and tail jumps
+still pass their original `HL` pointers.
+
+A direct two-byte inline operand was rejected during the prototype. AZM's
+strict contract analysis skips the established one-byte operand after a
+nonreturning helper call, but it decoded the second byte as compiler code. In
+particular, an inline `$DD,$6E` appeared to modify `IX`. The retained indexed
+form uses the already-proved one-byte convention and requires no weaker
+register contract. Four two-byte templates with no remaining users were then
+removed.
+
+Shipping compiler code measures 14,911 bytes. With 393 immutable bytes,
+compiler core is 15,304 bytes and 1,080 bytes remain in the 16 KiB region. The
+measured saving is 25 code bytes. The instrumented image measures 14,967 code
+bytes plus 393 immutable bytes, or 15,360 core bytes, leaving 2,048 bytes in
+its 17 KiB reservation. Workspace remains 3,609 bytes and the selected runtime
+remains 574 bytes.
+
+The table lookup adds work to every converted emission. The shipping proof
+executes 1,057,884 instructions in 10,416,296 T-states, increases of 522
+instructions and 4,060 T-states. The instrumented proof has the same increases
+and executes 1,062,513 instructions in 10,467,307 T-states. Proof code and data
+remain 2,487 and 2,489 bytes. The complete functional proof set retains the
+same generated program, runtime, NOBJ, HEX, and D8 results.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

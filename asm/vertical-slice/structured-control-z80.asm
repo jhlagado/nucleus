@@ -239,8 +239,8 @@ StructuredLoadCounter:
             LD   C,A
             PUSH BC
             PUSH DE
-            LD   HL,TypedLoadLocalLow
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLoadIXL
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
@@ -260,8 +260,8 @@ StructuredLoadCounter:
 StructuredLoadCounterHigh:
             DEC  C
             PUSH BC
-            LD   HL,TypedLoadLocalHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLoadIXH
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -278,8 +278,8 @@ StructuredStoreCounter:
             LD   C,A
             PUSH BC
             PUSH DE
-            LD   HL,TypedStoreLocalLow
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairStoreIXL
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
@@ -298,8 +298,8 @@ StructuredStoreCounter:
             RET  Z
             DEC  C
             PUSH BC
-            LD   HL,TypedStoreLocalHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairStoreIXH
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -314,8 +314,8 @@ StructuredForSetup:
             CALL NextSemanticByte
             LD   B,A
             PUSH BC
-            LD   HL,StructuredPopBoundStart
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEHL
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -339,8 +339,8 @@ StructuredForTest:
             LD   (EmitControlExitLabel),A
             PUSH BC
             PUSH DE
-            LD   HL,StructuredBoundPeek
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEPushDE
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
@@ -374,8 +374,8 @@ StructuredForTestCompare:
 .endif
             LD   A,(EmitControlExitLabel)
             LD   C,A
-            LD   HL,StructuredTestHL
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairTestL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -411,8 +411,8 @@ StructuredForNext:
             CALL ReadSemanticWord
             LD   (EmitControlTrapOffset),DE
             XOR  A
-            LD   HL,StructuredBoundPeek
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEPushDE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -497,8 +497,8 @@ StructuredForNextFit:
             JR   NZ,StructuredForNextStore
             BIT  1,A
             JR   NZ,StructuredForNextStore
-            LD   HL,StructuredTestHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairTestH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -543,8 +543,6 @@ StructuredForCleanup:
 
 StructuredBranchFalseBytes .equ TypedBeginAndBytes
 StructuredPopBoundStart    .equ TypedPopOperandsBytes
-StructuredBoundPeek:         .db $D1,$D5
 StructuredTestHL           .equ TypedBeginAndBytes+1
 StructuredSubtractDE:        .db $B7,$ED,$52
 StructuredTestThenPopCurrent: .db $7D,$B7,$E1
-StructuredTestHigh         .equ TypedTestHigh

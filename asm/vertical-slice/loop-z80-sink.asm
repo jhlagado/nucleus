@@ -58,6 +58,49 @@ EmitByteInlineChecked:
             POP  HL
             RET
 
+.routine noreturn
+EmitPairIndexedInline:
+            POP  HL
+            LD   A,(HL)
+            INC  HL
+            PUSH HL
+            ADD  A,A
+            LD   L,A
+            LD   H,0
+            LD   DE,EmitPairInlineTable
+            ADD  HL,DE
+            JP   EmitPair
+
+EmitPairDecSp2          .equ 0
+EmitPairLoadIXL         .equ 1
+EmitPairLoadIXH         .equ 2
+EmitPairStoreIXL        .equ 3
+EmitPairStoreIXH        .equ 4
+EmitPairPopDEHL         .equ 5
+EmitPairPopDEPushDE     .equ 6
+EmitPairTestL           .equ 7
+EmitPairTestH           .equ 8
+EmitPairPopHLToA        .equ 9
+EmitPairPopHLLoadDE     .equ 10
+EmitPairPopHLDE         .equ 11
+EmitPairZeroH           .equ 12
+EmitPairLDIR            .equ 13
+EmitPairInlineTable:
+            .db  $3B,$3B                 ; DEC SP / DEC SP
+            .db  $DD,$6E                 ; LD L,(IX+n)
+            .db  $DD,$66                 ; LD H,(IX+n)
+            .db  $DD,$75                 ; LD (IX+n),L
+            .db  $DD,$74                 ; LD (IX+n),H
+            .db  $D1,$E1                 ; POP DE / POP HL
+            .db  $D1,$D5                 ; POP DE / PUSH DE
+            .db  $7D,$B7                 ; LD A,L / OR A
+            .db  $7C,$B7                 ; LD A,H / OR A
+            .db  $E1,$7D                 ; POP HL / LD A,L
+            .db  $E1,$11                 ; POP HL / LD DE,nn
+            .db  $E1,$D1                 ; POP HL / POP DE
+            .db  $26,$00                 ; LD H,0
+            .db  $ED,$B0                 ; LDIR
+
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:
             LD   C,H

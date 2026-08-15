@@ -664,8 +664,8 @@ TargetStartupCopy:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,SegmentedCopyBytes
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLDIR
 .if CompilerDiagnosticReturns
             RET  C
 .endif

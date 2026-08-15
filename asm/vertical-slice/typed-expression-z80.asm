@@ -405,8 +405,8 @@ TypedMultiply8:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,TypedZeroHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairZeroH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -517,8 +517,8 @@ TypedDivideCall:
             LD   A,(EmitTypedWidth)
             AND  1
             JR   Z,TypedDividePush
-            LD   HL,TypedZeroHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairZeroH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -594,8 +594,8 @@ TypedNarrow8:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,TypedTestHigh
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairTestH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -615,8 +615,8 @@ TypedNarrow8:
 TypedStoreProgram8:
             CALL ExpressionProgramAddress
             PUSH HL
-            LD   HL,TypedPopHLtoA
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLToA
             POP  HL
 .if CompilerDiagnosticReturns
             RET  C
@@ -657,8 +657,8 @@ TypedStoreLocal16:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedWrite8:
             CALL TypedReadTrapPosition
-            LD   HL,TypedPopHLtoA
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLToA
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1016,8 +1016,8 @@ EncodeSegmentedProgramHeader:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,SegmentedCopyBytes
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLDIR
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1103,7 +1103,6 @@ TypedPopOperandsBytes:  .db $D1,$E1
 .if AggregateCallSlices
                           .db $E5,$D5
 .endif
-TypedTestHigh:          .db $7C,$B7
 TypedAdd8Bytes:         .db $7D,$83,$6F,$26,$00
 .if AggregateCallSlices
 TypedAdd16Bytes          .equ Stage7OffsetAddress+3

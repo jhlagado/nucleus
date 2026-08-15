@@ -62,8 +62,8 @@ Stage7BindOpenString:
             RET  C
 .endif
 Stage7BindWord:
-            LD   HL,Stage7DecSP2
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairDecSp2
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -72,8 +72,8 @@ Stage7BindWord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7LoadIXH
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLoadIXH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -88,8 +88,8 @@ Stage7BindWord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7StoreIXH
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairStoreIXH
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -105,8 +105,8 @@ Stage7BindWord:
             OR   A
             RET
 Stage7BindOpenCapacity:
-            LD   HL,Stage7LoadIXL
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairLoadIXL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -117,8 +117,8 @@ Stage7BindOpenCapacity:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7StoreIXL
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairStoreIXL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -391,8 +391,8 @@ Stage8FailRoutine:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage8PopErrorBytes
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLToA
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -401,8 +401,8 @@ Stage8FailRoutine:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage8FailMain:
             CALL Stage7ReadCallOffset
-            LD   HL,Stage8PopErrorBytes
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLToA
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -521,8 +521,8 @@ Stage8InvokeService:
             JR   Z,Stage8ServiceAddress
             CP   Stage8ServiceArgumentU16
             JR   Z,Stage8ServiceWordArgument
-            LD   HL,Stage8PopErrorBytes   ; POP HL / LD A,L
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLToA
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -687,8 +687,8 @@ Stage7LoadParameterAlias .equ TypedLoadLocal16
 Stage7SelectField:
             CALL ReadSemanticWord
             LD   (Stage7PathOffset),DE
-            LD   HL,Stage7PopHLLoadDE
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLLoadDE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -705,8 +705,8 @@ Stage7SelectIndex:
             CALL ReadSemanticWord
             LD   (Stage7PathOffset),DE     ; length
             CALL Stage7ReadExtentAndOffset ; stride and source position
-            LD   HL,Stage7PopIndexBase
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEHL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -789,8 +789,8 @@ Stage7CopyAggregate:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7CopyFinish
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLDE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -911,8 +911,8 @@ Stage7StringIndex:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7CopyFinish
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLDE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -925,8 +925,8 @@ Stage7StringIndex:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitStringIndexPrefix:
-            LD   HL,Stage7PopIndexBase
-            CALL   EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEHL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -979,8 +979,8 @@ Stage7OpenStringIndex:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7CopyFinish
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLDE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1094,8 +1094,8 @@ Stage7PrepareForwardedOpenArgument:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7ZeroHighBytes
-            CALL EmitPair
+            CALL EmitPairIndexedInline
+            .db  EmitPairZeroH
 Stage7PrepareOpenArgumentPush:
 .if CompilerDiagnosticReturns
             RET  C
@@ -1125,7 +1125,6 @@ Stage7EmitStringCheck:
 .endif
             JR   Stage7EmitStringCheckFinish
 
-Stage7PopHLLoadDE:        .db $E1,$11
 Stage7IndexToA            .equ TypedLoadSPPrefix+1
 Stage7LoadBImmediate:     .db $06
 Stage7OffsetAddress:      .db $5F,$16,$00,$19,$E5
@@ -1133,7 +1132,6 @@ Stage7LoadIndirect8Bytes  .equ Stage7LoadIndirect8Prefix
 Stage7LoadIndirect16Bytes:.db $E1,$5E,$23,$56,$D5
 Stage7StoreIndirect16Bytes:.db $D1,$E1,$73,$23,$72
 Stage7CopyPrepare         .equ TypedPopOperandsBytes
-Stage7CopyFinish:         .db $E1,$D1
 Stage7PopDEAddPush:       .db $D1,$19,$E5
 Stage7PushDEHL:           .db $D5,$E5
 Stage7PushHLDE            .equ TypedPopOperandsBytes+2
