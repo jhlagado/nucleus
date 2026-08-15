@@ -1699,6 +1699,7 @@ Stage7PrepareOpenStringReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+Stage7CompleteOpenArgument:
             CALL Stage7CurrentCallFrame
             LD   DE,Stage7CallFrameArgumentCount
             ADD  HL,DE
@@ -1740,12 +1741,7 @@ Stage7PrepareOpenArrayReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL Stage7CurrentCallFrame
-            LD   DE,Stage7CallFrameArgumentCount
-            ADD  HL,DE
-            INC  (HL)
-            OR   A
-            RET
+            JR   Stage7CompleteOpenArgument
 Stage7CallArgumentsDone:
             CALL ParserExpectRight
 .if TargetStreamingOutput

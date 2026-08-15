@@ -2528,6 +2528,32 @@ historical Stage 8 and Stage 9 layouts. High-bit keyword packing remains the
 separately measured rejection recorded above. The next recovery checkpoint is
 therefore open-view unification, not another undifferentiated peephole sweep.
 
+The first open-view unification checkpoint starts from
+`d34a24eb86a96732cf21327117de6a147bc4f1fc`.
+Concrete and forwarded string arguments publish a one-byte capacity, while
+array arguments publish a two-byte count, so most of their apparent symmetry
+does not survive an ABI-level comparison. Both paths did, however, finish by
+locating the retained call frame, incrementing its argument-word count, and
+returning success. The array path now enters the string path's existing
+completion tail after publishing its word operand.
+
+The source-level merge removes nine bytes; branch-layout effects make the
+measured resident reduction eight bytes in every retained layout. Production
+code is 15,469 bytes plus 401 immutable bytes, or 15,870 compiler-core bytes,
+leaving 514 bytes below 16 KiB. The instrumented compiler is 15,525 code bytes
+plus 401 immutable bytes. Workspace remains 3,611 bytes and runtime selection
+remains 600 bytes. The target-enabled and historical proof instruction and
+T-state counts are unchanged because their fixed census programs do not enter
+the merged array-publication tail; focused concrete, forwarded, recursive,
+banked, failure, transcript-boundary, and D8 open-view proofs execute it.
+
+This checkpoint does not claim the original 40--90-byte hypothesis. The byte
+capacity and word count forms deliberately retain different semantic widths,
+activation layouts, region checks, and generated-code sequences. Further
+unification must identify another identical boundary rather than erase those
+differences. The next large isolated experiment remains dispatcher-side
+operand prefetch.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
