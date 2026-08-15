@@ -101,6 +101,7 @@ Stage8MatchPredefinedSkip:
 ; bounded source-part descriptor ABI.
 .routine in A,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileTargetAggregateCallParts:
+            LD   (CompilerAbortSp),SP
             LD   (TargetDescriptorPointer),IX
             PUSH AF
             PUSH HL
@@ -144,7 +145,15 @@ TargetResetBankRoLengthLoop:
             DJNZ TargetResetBankRoLengthLoop
             CALL CompileAggregateCallReady
             RET  C
-            JP   EncodeAggregateProgram
+            ; A diagnostic during generation restores this synthetic frame and
+            ; returns directly through the one target-output abort path. A
+            ; successful generation returns normally and discards the frame.
+            LD   HL,AbortTargetProgram
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            CALL EncodeAggregateProgram
+            POP  HL
+            RET
 TargetValidateCompileFailure:
             JP   TargetConfigurationFailure
 

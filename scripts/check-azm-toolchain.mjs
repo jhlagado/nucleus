@@ -26,6 +26,14 @@ Caller:
         .db $42
         XOR A
         RET
+
+AbortSp: .dw 0
+
+.routine noreturn
+CompilerAbort:
+        LD SP,(AbortSp)
+        SCF
+        RET
 `;
 
 const directory = await mkdtemp(path.join(os.tmpdir(), "nucleus-azm-check-"));
@@ -73,13 +81,17 @@ try {
     ({ name }) => name === "EmitByteInlineChecked",
   );
   const callerSummary = summaries?.find(({ name }) => name === "Caller");
+  const abortSummary = summaries?.find(({ name }) => name === "CompilerAbort");
   if (
     inlineSummary?.noreturn !== true ||
+    abortSummary?.noreturn !== true ||
+    abortSummary?.stackBalanced !== true ||
+    abortSummary.hasUnknownStackEffect !== false ||
     callerSummary?.stackBalanced !== true ||
     callerSummary.hasUnknownStackEffect !== false
   ) {
     throw toolchainError([
-      "The strict register-contract report omitted the required noreturn or balanced-caller proof.",
+      "The strict register-contract report omitted a required noreturn, restored-SP, or balanced-caller proof.",
     ]);
   }
 

@@ -796,8 +796,10 @@ AbortTargetProgram:
 TargetConfigurationFailure:
             LD   A,DiagnosticTargetConfiguration
             JR   TargetDiagnosticReady
-; A late map or commit failure still owns an open sink generation. Preserve
-; the adapter's diagnostic and abort before entering the common output tail.
+; Fixup resolution closes the bank selector before MAP/COMMIT, while the sink
+; generation remains open. Abort that late phase here; the production
+; diagnostic continuation subsequently sees TargetOutputClosed and therefore
+; cannot issue a second abort.
 TargetFinishOutputFailure:
             PUSH AF
             CALL TargetSinkAbort

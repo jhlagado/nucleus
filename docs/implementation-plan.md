@@ -1872,12 +1872,13 @@ af9003849ac15b894e1c1acd531a194edd6611eca0fb45a747dad061ea4d4f99  tec1.nobj
 b0811c6ec8eb12b08d56c922ac41ffb5c445287d4ca3d18e70fd5f09c026d8a1  tec1.d8
 ```
 
-`proofs/chapter21-target-z80-slice-proof.json` measures the final shipping
-assembly at 15,726 compiler-code bytes plus 393 immutable bytes, or 16,119
-compiler-core bytes with 265 bytes of 16 KiB headroom. It also measures 3,607
-bytes of complete target workspace, a one-byte increase from the earlier
-compressed checkpoint. `proofs/flat-target-debug-z80-slice-proof.json` measures
-the instrumented host image at 15,783 code bytes plus 393 immutable bytes, or
+At production-layout commit `e4f231d83bcfb38426bfbb8d8e08aa9093aaa936`,
+`proofs/chapter21-target-z80-slice-proof.json` measured the shipping assembly at
+15,726 compiler-code bytes plus 393 immutable bytes, or 16,119 compiler-core
+bytes with 265 bytes of 16 KiB headroom. It also measured 3,607 bytes of
+complete target workspace, a one-byte increase from the earlier compressed
+checkpoint. `proofs/flat-target-debug-z80-slice-proof.json` measured the
+instrumented host image at 15,783 code bytes plus 393 immutable bytes, or
 16,176 core bytes, inside its separate 17 KiB host-only core reservation.
 `test/nobj.test.ts` measures the canonical runtime at identity `$0004` and 364
 bytes. The target-enabled Chapter 21 proof selects 574 runtime bytes;
@@ -1894,6 +1895,47 @@ above. `proofs/chapter21-target-z80-slice-proof.json` emits a measured
 instructions in 10,209,748 T-states before the focused compression pass and
 1,044,583 instructions in 10,208,611 T-states after it; proof code and data
 measure 2,345 bytes in both builds.
+
+### Production single-unwind diagnostic checkpoint
+
+The production streaming compiler now has one nonlocal exit for compile-time
+diagnostics. `CompileTargetAggregateCallParts` saves its incoming stack pointer
+before parsing. `CompilerSetDiagnostic` records the same code, part, offset,
+line, and column as before, restores that pointer, and returns directly to the
+public caller. After parsing succeeds, the entry pushes `AbortTargetProgram` as
+a synthetic continuation and saves the new stack pointer before generation.
+A generation diagnostic therefore returns through exactly one guarded abort
+path. Successful generation discards the synthetic word normally.
+
+The late MAP and COMMIT path remains a deliberate exception to catch-owned
+abort. Fixup resolution has already set `TargetOutputBank` to the closed value
+before either operation, although the sink transaction remains open. A MAP or
+COMMIT failure therefore calls `TargetSinkAbort` locally before raising its
+diagnostic; the synthetic continuation observes the closed bank selector and
+does not call it again. The counting proof adapter distinguishes zero aborts
+before BEGIN, one abort during generation, one abort after either MAP or
+COMMIT, and a successful compilation immediately after those failures. It also
+checks the exact public stack pointer after representative parse, generation,
+MAP, COMMIT, and success returns. Historical non-streaming layouts retain their
+ordinary carry-propagation boundaries.
+
+Measured after this checkpoint, the shipping image is 15,744 compiler-code
+bytes plus 393 immutable bytes, or 16,137 compiler-core bytes with 247 bytes of
+16 KiB headroom. Workspace is 3,609 bytes; the new saved stack pointer accounts
+for its two-byte increase. The instrumented image is 15,801 code bytes plus 393
+immutable bytes, or 16,194 core bytes, leaving 1,214 bytes in its separate 17
+KiB reservation. The expanded normal proof is 2,487 bytes and executes
+1,072,121 instructions in 10,485,046 T-states. The instrumented proof is 2,489
+bytes and executes 1,076,761 instructions in 10,536,112 T-states. These timing
+figures are not a before-and-after compiler-speed comparison: the checkpoint
+adds a complete failing COMMIT compilation to the proof workload. The selected
+runtime remains 574 bytes. Existing flat, loaded, and banked golden tests retain
+their exact NOBJ, generated-image, runtime, HEX, and D8 results.
+
+This checkpoint changes only the terminal diagnostic route. Existing
+`RET C`, `JR C`, and `JP C` propagation remains in place and is unreachable
+after a production diagnostic. Removing those sites is a separate measured
+migration, not part of this checkpoint.
 
 ## Capacity ledger
 

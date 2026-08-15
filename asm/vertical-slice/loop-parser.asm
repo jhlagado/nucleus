@@ -12,7 +12,21 @@ HybridLL1Full .equ 0
 HybridLL1Full .equ 0
 .endif
 
+.if AggregateCallSlices
+.if TargetStreamingOutput
+CompilerNonlocalDiagnostics .equ 1
+.else
+CompilerNonlocalDiagnostics .equ 0
+.endif
+.else
+CompilerNonlocalDiagnostics .equ 0
+.endif
+
+.if CompilerNonlocalDiagnostics
+.routine noreturn
+.else
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
+.endif
 CompilerSetDiagnostic:
             LD   (DiagnosticCode),A
             LD   A,(SourcePartId)
@@ -22,6 +36,9 @@ CompilerSetDiagnostic:
             PUSH BC
             CALL CompilerCopyPosition
             POP  BC
+.if CompilerNonlocalDiagnostics
+            LD   SP,(CompilerAbortSp)
+.endif
             SCF
             RET
 

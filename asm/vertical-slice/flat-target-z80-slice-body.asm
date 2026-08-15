@@ -393,7 +393,7 @@ ProofStart:
             LD   DE,$1000
             LD   A,10
             LD   (ProofCase),A
-            CALL TargetValidateRegion
+            CALL ProofCallTargetValidateRegion
             JP   C,ProofRegionFailure
             LD   HL,$FFFF
             LD   (EmitCursor),HL
@@ -416,7 +416,7 @@ ProofStart:
             LD   DE,$1000
             LD   A,11
             LD   (ProofCase),A
-            CALL TargetValidateRegion
+            CALL ProofCallTargetValidateRegion
             JP   NC,ProofRegionFailure
             LD   A,(DiagnosticCode)
             CP   DiagnosticTargetCapacity
@@ -431,7 +431,7 @@ ProofStart:
             LD   (TargetWritableBase),HL
             LD   HL,$0200
             LD   (TargetWritableCapacity),HL
-            CALL TargetClassifyFlatLayout
+            CALL ProofCallTargetClassifyFlatLayout
             JP   NC,ProofRegionFailure
             LD   A,(DiagnosticCode)
             CP   DiagnosticTargetConfiguration
@@ -444,7 +444,7 @@ ProofStart:
             LD   (TargetWritableBase),HL
             LD   HL,$0100
             LD   (TargetWritableCapacity),HL
-            CALL TargetClassifyFlatLayout
+            CALL ProofCallTargetClassifyFlatLayout
             JP   C,ProofRegionFailure
             LD   A,(TargetLayoutMode)
             OR   A
@@ -456,6 +456,8 @@ ProofStart:
             LD   IX,FlatTargetEarlyWritableDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofLoadedFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofLoadedFailure
             LD   A,(DiagnosticCode)
             CP   DiagnosticTargetCapacity
             JP   NZ,ProofLoadedFailure
@@ -495,6 +497,8 @@ ProofStart:
             LD   IX,FlatTargetLoadedDescriptor
             CALL CompileTargetAggregateCallParts
             JP   C,ProofLoadedFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofLoadedFailure
             LD   A,(TargetLayoutMode)
             OR   A
             JP   NZ,ProofLoadedFailure
@@ -553,6 +557,8 @@ ProofStart:
             LD   IX,FlatTargetBadFlagsDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofConfigurationFailure
             LD   A,(DiagnosticCode)
             LD   (AdapterSavedDiagnostic),A
             LD   A,(AdapterAborted)
@@ -586,6 +592,8 @@ ProofStart:
             LD   IX,FlatTargetDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofAtomicFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofAtomicFailure
             LD   A,21
             LD   (ProofCase),A
             LD   A,(DiagnosticCode)
@@ -625,6 +633,8 @@ ProofStart:
             LD   IX,FlatTargetDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofAtomicFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofAtomicFailure
             LD   A,(DiagnosticCode)
             CP   DiagnosticTargetOutput
             JP   NZ,ProofAtomicFailure
@@ -644,6 +654,37 @@ ProofStart:
             LD   HL,AdapterLogBase
             LD   DE,AdapterFailedLogBase
             LDIR
+
+            ; COMMIT fails after the target bank selector has closed. The
+            ; local late-output path must abort once; the synthetic diagnostic
+            ; continuation must observe the closed selector and not abort
+            ; again.
+            LD   A,31
+            LD   (ProofCase),A
+            XOR  A
+            LD   (AdapterCommitted),A
+            LD   (AdapterAborted),A
+            LD   (AdapterMapFailure),A
+            INC  A
+            LD   (AdapterCommitFailure),A
+            LD   HL,AdapterLogBase
+            LD   (AdapterCursor),HL
+            LD   A,1
+            LD   HL,FlatTargetTrapParts
+            LD   IX,FlatTargetDescriptor
+            CALL CompileTargetAggregateCallParts
+            JP   NC,ProofAtomicFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofAtomicFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticTargetOutput
+            JP   NZ,ProofAtomicFailure
+            LD   A,(AdapterCommitted)
+            OR   A
+            JP   NZ,ProofAtomicFailure
+            LD   A,(AdapterAborted)
+            CP   1
+            JP   NZ,ProofAtomicFailure
             LD   A,25
             LD   (ProofCase),A
             XOR  A
@@ -651,6 +692,7 @@ ProofStart:
             LD   (AdapterAborted),A
             LD   (AdapterFailureCountdown),A
             LD   (AdapterMapFailure),A
+            LD   (AdapterCommitFailure),A
             LD   HL,AdapterLogBase
             LD   (AdapterCursor),HL
             LD   A,1
@@ -886,9 +928,14 @@ ProofStart:
             LD   IX,BankedFailureDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
+            CALL ProofCompilerStackExact
+            JP   NZ,ProofConfigurationFailure
             LD   A,(DiagnosticCode)
             CP   DiagnosticTargetConfiguration
             JP   NZ,ProofFail
+            LD   A,(AdapterAborted)
+            OR   A
+            JP   NZ,ProofAtomicFailure
 
             LD   A,46
             LD   (ProofCase),A
@@ -1306,9 +1353,34 @@ TargetSinkCommitReady:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkAbort:
-            LD   A,1
+            LD   A,(AdapterAborted)
+            INC  A
             LD   (AdapterAborted),A
             OR   A
+            RET
+
+; Direct proof calls do not enter through the public compiler boundary. These
+; wrappers plant their ordinary CALL continuation as the diagnostic return SP,
+; so both success and a nonlocal diagnostic return to the same proof site.
+.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,HL
+ProofCallTargetValidateRegion:
+            LD   (CompilerAbortSp),SP
+            JP   TargetValidateRegion
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ProofCallTargetClassifyFlatLayout:
+            LD   (CompilerAbortSp),SP
+            JP   TargetClassifyFlatLayout
+
+; Called only while ProofStart owns StackTop. The helper's return address is
+; the sole expected two-byte displacement from that root stack pointer.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCompilerStackExact:
+            LD   HL,0
+            ADD  HL,SP
+            LD   DE,StackTop-2
+            OR   A
+            SBC  HL,DE
             RET
 
 ProofStatus: .db 0
@@ -1366,13 +1438,13 @@ AdapterRuntimeLog:      .dw 0
 AdapterRuntimeContextPointer .equ AdapterRuntimeContext
 ProofEnd:
 
-AdapterLoadedLogBase    .equ $9930
-AdapterSuccessLogBase   .equ $9C30
-AdapterTrapLogBase      .equ $A000
-AdapterUnhandledLogBase .equ $A500
-AdapterBankedTrapLogBase .equ $AC00
-AdapterLogBase          .equ $B400
-AdapterFailedLogBase    .equ $C600
-AdapterEntry1LogBase    .equ $CB00
-AdapterChapter21LogBase .equ $D000
+AdapterLoadedLogBase    .equ $99F0
+AdapterSuccessLogBase   .equ $9CF0
+AdapterTrapLogBase      .equ $A0C0
+AdapterUnhandledLogBase .equ $A5C0
+AdapterBankedTrapLogBase .equ $ACC0
+AdapterLogBase          .equ $B4C0
+AdapterFailedLogBase    .equ $C6C0
+AdapterEntry1LogBase    .equ $CBC0
+AdapterChapter21LogBase .equ $D0C0
 AdapterLogLimit         .equ $F000

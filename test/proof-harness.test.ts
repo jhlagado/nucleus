@@ -20,17 +20,16 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(
-      outcome.extents.find(({ name }) => name === "compiler-core")?.bytes,
-    ).toBeLessThanOrEqual(16_384);
-    expect(outcome.extents).toContainEqual({
-      name: "compiler-code",
-      bytes: 15_726,
-    });
-    expect(outcome.extents).toContainEqual({
-      name: "compiler-core",
-      bytes: 16_119,
-    });
+    expect(outcome.instructions).toBe(1_072_121);
+    expect(outcome.cycles).toBe(10_485_046);
+    expect(outcome.extents).toEqual([
+      { name: "compiler-code", bytes: 15_744 },
+      { name: "compiler-immutable", bytes: 393 },
+      { name: "compiler-core", bytes: 16_137 },
+      { name: "compiler-workspace", bytes: 3_609 },
+      { name: "selected-proof-runtime", bytes: 574 },
+      { name: "proof-code-and-data", bytes: 2_487 },
+    ]);
     expect(outcome.nobj?.parsed.begin.runtimeIdentity).toBe(4);
     expect(outcome.nobj?.parsed.map.entryAddress).toBe(0x8000);
     expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(556);
@@ -104,16 +103,16 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(1_049_043);
-    expect(outcome.cycles).toBe(10_257_695);
+    expect(outcome.instructions).toBe(1_076_761);
+    expect(outcome.cycles).toBe(10_536_112);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_783 },
+      { name: "compiler-code", bytes: 15_801 },
       { name: "compiler-immutable", bytes: 393 },
-      { name: "compiler-core", bytes: 16_176 },
-      { name: "instrumented-core-gap", bytes: 1_232 },
-      { name: "compiler-workspace", bytes: 3_607 },
+      { name: "compiler-core", bytes: 16_194 },
+      { name: "instrumented-core-gap", bytes: 1_214 },
+      { name: "compiler-workspace", bytes: 3_609 },
       { name: "selected-proof-runtime", bytes: 574 },
-      { name: "proof-code-and-data", bytes: 2_347 },
+      { name: "proof-code-and-data", bytes: 2_489 },
     ]);
   }, 30_000);
 
