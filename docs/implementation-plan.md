@@ -2064,6 +2064,31 @@ reachable. Proof code and data remain 2,487 and 2,489 bytes. The historical
 layouts assemble and execute with their branches and cleanup blocks present.
 Fresh CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes.
 
+### Generation-driver diagnostic-branch removal
+
+The generation-driver stage starts from cleanup checkpoint
+`f2912144749e9ad3c9438146c3b503309f68e2e6`. It removes eight production carry
+branches after typed trap emission, target initialization, runtime/static-image
+emission, and semantic dispatch, together with the trap-emission cleanup block
+that those branches alone reached. Each called operation either succeeds or
+raises a diagnostic through the armed generation continuation. Branches that
+convert sink failure into a diagnostic, perform arithmetic or comparison, or
+implement MAP and COMMIT rollback remain active.
+
+Shipping compiler code now measures 14,949 bytes plus 393 immutable bytes, or
+15,342 compiler-core bytes with 1,042 bytes of 16 KiB headroom. This stage saves
+27 code bytes. The instrumented image measures 15,005 code bytes plus 393
+immutable bytes, or 15,398 core bytes with 2,010 bytes left in its 17 KiB
+reservation. Workspace remains 3,609 bytes and the selected runtime remains
+574 bytes.
+
+The shipping proof executes 1,056,413 instructions in 10,401,797 T-states, 65
+instructions and 581 T-states fewer than the cleanup checkpoint. The
+instrumented proof has the same reductions and executes 1,061,042 instructions
+in 10,452,808 T-states. Proof code and data remain 2,487 and 2,489 bytes.
+Historical layouts retain the ordinary branches and cleanup path. Fresh CLI
+builds reproduce the six saved NOBJ, HEX, and D8 hashes.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

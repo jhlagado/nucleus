@@ -728,19 +728,23 @@ TypedEmitTrapEnding:
 TypedEmitTrapBody:
             PUSH AF
             CALL EmitLoadHl
+.if CompilerDiagnosticBranches
             JR   C,TypedEmitTrapBodyFailure
+.endif
             POP  AF
             CALL EmitLoadAImmediate
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             JR   TypedEmitTrapEnding
+.if CompilerDiagnosticBranches
 TypedEmitTrapBodyFailure:
             LD   L,A
             POP  BC
             LD   A,L
             SCF
             RET
+.endif
 
 ; Emit and patch a terminal trap using the retained typed-expression source
 ; position. A is the trap code and DE the success-branch operand.
@@ -748,7 +752,9 @@ TypedEmitTrapBodyFailure:
 TypedEmitCurrentTrap:
             PUSH AF
             CALL TypedEmitTrapHead
+.if CompilerDiagnosticBranches
             JR   C,TypedEmitTrapBodyFailure
+.endif
             POP  AF
             CALL EmitLoadAImmediate
 .if CompilerDiagnosticReturns

@@ -70,7 +70,9 @@ EncodeAggregateProgram:
 .if TargetStreamingOutput
             LD   IX,(TargetDescriptorPointer)
             CALL BeginTargetFlatProgram
+.if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram
+.endif
 .else
 .if AggregateCallSlices
             LD   HL,GeneratedCodeLimit
@@ -90,7 +92,9 @@ EncodeAggregateProgramWithinLimit:
             JR   Z,AggregateTargetLoadedRoData
             LD   HL,(EmitCursor)
             CALL TargetEmitRuntimeInitialImage
+.if CompilerDiagnosticBranches
             JP   C,AggregateAbortProgram
+.endif
             JR   AggregateTargetCopyReady
 AggregateTargetLoadedRoData:
             LD   HL,StaticImageBase
@@ -124,7 +128,9 @@ AggregateTargetCopyReady:
 .if TargetStreamingOutput
 AggregateTargetCopySelected:
             CALL EmitBlock
+.if CompilerDiagnosticBranches
             JP   C,AggregateAbortProgram
+.endif
 .else
             LD   A,B
             OR   C
@@ -173,7 +179,9 @@ AggregateTargetBoundsReady:
 .endif
 .endif
             CALL TypedDispatch
+.if CompilerDiagnosticBranches
             JP   C,AggregateAbortProgram
+.endif
 .if TargetStreamingOutput
             JP   FinishTargetFlatProgram
 .else

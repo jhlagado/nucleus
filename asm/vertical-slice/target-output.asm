@@ -772,11 +772,15 @@ FinishTargetFlatProgram:
             LD   (EmitLimit),HL
             LD   HL,(TargetWritableBase)
             CALL TargetEmitRuntimeInitialImage
+.if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram
+.endif
             LD   HL,StaticImageBase
             LD   BC,(StaticImageLength)
             CALL EmitBlock
+.if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram
+.endif
 TargetLoadedDataReady:
             LD   HL,(ReadOnlyImageLength)
             LD   (TargetMapAggregateLength),HL
