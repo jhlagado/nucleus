@@ -19,6 +19,8 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`oddities.md`](oddities.md) is a non-normative working note: first-time surprises, settled design, and rough edges still intended to be smoothed.
 
 Implementation records, deferred proposals, and active plans live in
-[`plans/`](plans/); each file's status header says which it is. Machine-readable
-grammar sources and generated LL(1) tables live in [`../grammar/`](../grammar/)
-rather than under documentation.
+[`plans/`](plans/); each file's status header says which it is. The active
+compiler goal is [`plans/2026-08-16-compiler-rewrite.md`](plans/2026-08-16-compiler-rewrite.md):
+a feature-complete core aimed at 12K. Machine-readable grammar sources and
+generated LL(1) tables live in [`../grammar/`](../grammar/) rather than under
+documentation.

@@ -1,0 +1,19 @@
+---
+description: Standing goal — rewrite the Nucleus compiler toward a 12K core without weakening the language.
+alwaysApply: true
+---
+
+# Compiler rewrite goal
+
+The active project goal is a **feature-complete Nucleus compiler whose core
+(code + immutable) aims at 12,288 bytes**. The 16 KiB bank is the hard gate,
+not the target. Read `docs/plans/2026-08-16-compiler-rewrite.md` before size
+or architecture work.
+
+Required in the destination: `string[]`, `T[]`, `i8`/`i16`, nested arrays.
+Keep no-pointers, no-heap, streaming one-pass, interned types, scalar locals,
+and the proof harness.
+
+Do not weaken the language to fit. Treat parser/emit representation changes as
+redesign. Rewrite in place with proofs green at every step. Re-census the
+current core before acting on old site counts.
