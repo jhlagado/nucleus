@@ -2258,6 +2258,28 @@ proof has the same increases and executes 1,059,965 instructions in 10,446,239
 T-states. Generated program, runtime, NOBJ, HEX, and D8 results remain
 unchanged.
 
+### Final relative helper tails
+
+The branch pass starts from semantic-operand checkpoint
+`d25551d4d0907d050b1b8e7adc022c599ff5a4f0`. A fresh normal/debug listing
+census found eight absolute jumps with a relative encoding in range. Six had
+displacements between 119 and 127 bytes in magnitude and remain absolute. The
+two retained changes enter `EmitByte` at −47 bytes and `EmitPair` at +77 bytes,
+with the same safe classification in both production images.
+
+Shipping compiler code measures 14,897 bytes. With 393 immutable bytes,
+compiler core is 15,290 bytes and 1,094 bytes remain in the 16 KiB region. The
+instrumented image measures 14,953 code bytes and 15,346 core bytes, leaving
+2,062 bytes in its separate reservation. Workspace remains 3,609 bytes and the
+selected runtime remains 574 bytes.
+
+The proof instruction counts are unchanged. Relative jumps take two more
+T-states than absolute jumps, so the 248 executed helper transfers add 496
+T-states. The shipping proof executes 1,055,336 instructions in 10,395,724
+T-states; the instrumented proof executes 1,059,965 instructions in 10,446,735
+T-states. Generated program, runtime, NOBJ, HEX, and D8 results remain
+unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

@@ -59,7 +59,7 @@ EmitByteInlineChecked:
             POP  HL
             RET
 .else
-            JP   EmitByte
+            JR   EmitByte
 .endif
 
 .routine noreturn
@@ -73,7 +73,11 @@ EmitPairIndexedInline:
             LD   H,0
             LD   DE,EmitPairInlineTable
             ADD  HL,DE
+.if TargetStreamingOutput
+            JR   EmitPair
+.else
             JP   EmitPair
+.endif
 
 EmitPairDecSp2          .equ 0
 EmitPairLoadIXL         .equ 1
