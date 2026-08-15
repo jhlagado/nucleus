@@ -1111,10 +1111,14 @@ HybridLL1FailOperationReady:
             RET  C
 .endif
             LD   HL,(Stage8FailureOffset)
-            PUSH HL
             LD   A,L
+.if CompilerDiagnosticReturns
+            PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

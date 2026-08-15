@@ -882,10 +882,14 @@ Stage7SymbolIndexReady:
 ; constant-folding emission flag used by TypedEmitWord.
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 Stage7EmitWord:
-            PUSH HL
             LD   A,L
+.if CompilerDiagnosticReturns
+            PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

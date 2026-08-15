@@ -804,9 +804,13 @@ StructuredEmitForPrefix:
             LD   DE,ControlFrameCounter
             ADD  HL,DE
             LD   A,(HL)
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -832,9 +836,13 @@ StructuredEmitForTest:
             RET  C
 .endif
             LD   A,(HL)                  ; mode
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -845,9 +853,13 @@ StructuredEmitForTest:
 StructuredEmitFrameBytes:
             LD   A,(HL)
             PUSH BC
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -869,18 +881,26 @@ StructuredEmitForNext:
             LD   DE,ControlFrameLabelA
             ADD  HL,DE
             LD   A,(HL)                  ; test label
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             INC  HL                     ; continue label
             INC  HL                     ; exit label
             LD   A,(HL)
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

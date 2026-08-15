@@ -843,9 +843,13 @@ ParserParseScalarWrite:
 .endif
             POP  HL
             LD   A,L
+.if CompilerDiagnosticReturns
             PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

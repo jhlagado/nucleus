@@ -2234,6 +2234,30 @@ proof added 120,085 instructions and 1,245,777 T-states, and several bounded
 historical proofs exceeded their execution budgets. The length-prefixed table
 remains.
 
+### Semantic operand preservation
+
+The semantic-operand stage starts from keyword-bound checkpoint
+`60920ef929ea5593137566f2bf054091a6de3867`. Eleven source sites preserve
+`HL` around `SemanticSinkPut`; seven are resident in the production compiler.
+A six-byte production-only wrapper replaces their five-byte local
+push/call/pop sequences with three-byte calls. Historical layouts retain the
+original sequences and therefore keep their code placement and execution
+results.
+
+Shipping compiler code measures 14,899 bytes. With 393 immutable bytes,
+compiler core is 15,292 bytes and 1,092 bytes remain in the 16 KiB region. The
+measured saving is eight code bytes. The instrumented image measures 14,955
+code bytes and 15,348 core bytes, leaving 2,060 bytes in its separate
+reservation. Workspace remains 3,609 bytes and the selected runtime remains
+574 bytes.
+
+The wrapper adds one compiler call and return whenever a converted operand is
+published. The shipping proof executes 1,055,336 instructions in 10,395,228
+T-states, increases of 138 instructions and 1,863 T-states. The instrumented
+proof has the same increases and executes 1,059,965 instructions in 10,446,239
+T-states. Generated program, runtime, NOBJ, HEX, and D8 results remain
+unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

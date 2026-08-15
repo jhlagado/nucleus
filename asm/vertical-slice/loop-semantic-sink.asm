@@ -32,6 +32,15 @@ SemanticSinkPutFull:
             CALL SetDiagInline
             .db  DiagnosticSinkCapacity
 
+.if TargetStreamingOutput
+.routine in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
+SemanticSinkPutPreserveHL:
+            PUSH HL
+            CALL SemanticSinkPut
+            POP  HL
+            RET
+.endif
+
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:
             LD   B,A

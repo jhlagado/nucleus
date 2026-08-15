@@ -1891,20 +1891,29 @@ TypedEmitProgramDefinitionOp:
 .endif
             PUSH BC
             PUSH DE
+.if CompilerDiagnosticReturns
             PUSH HL
             LD   A,C
             CALL SemanticSinkPut
             POP  HL
+.else
+            LD   A,C
+            CALL SemanticSinkPutPreserveHL
+.endif
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             PUSH DE
-            PUSH HL
             LD   A,L
+.if CompilerDiagnosticReturns
+            PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
             POP  DE
 .if CompilerDiagnosticReturns
             RET  C
@@ -2612,10 +2621,14 @@ TypedParseWrite:
             RET  C
 .endif
             LD   HL,(ExpressionCallOffset)
-            PUSH HL
             LD   A,L
+.if CompilerDiagnosticReturns
+            PUSH HL
             CALL SemanticSinkPut
             POP  HL
+.else
+            CALL SemanticSinkPutPreserveHL
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

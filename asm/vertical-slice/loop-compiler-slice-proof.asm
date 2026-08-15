@@ -2,6 +2,7 @@
 
             .include "memory-map.asmi"
 SegmentedOutput .equ 0
+TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
 
             .org CompilerCoreBase
