@@ -619,12 +619,12 @@ TargetEmitStartup:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $39                    ; ADD HL,SP
+            ADD  HL,SP                    ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $EB                    ; EX DE,HL
+            EX   DE,HL                    ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -636,12 +636,12 @@ TargetEmitStartup:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $F9                    ; LD SP,HL
+            LD   SP,HL                    ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $D5                    ; PUSH DE, saved incoming SP
+            PUSH DE                       ; emitted target instruction; saved incoming SP
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -889,5 +889,8 @@ TargetOutputFailure:
 TargetDiagnosticReady:
             JP   CompilerSetDiagnostic
 
-TargetStartupRestoreBytes: .db $C1,$E1,$F9 ; discard CALL return / restore SP
-TargetTerminalSelectBytes .equ TypedBeginAndBytes+3 ; JR NZ across one JP
+TargetStartupRestoreBytes:
+            POP  BC                       ; discard CALL return
+            POP  HL
+            LD   SP,HL                    ; restore SP
+TargetTerminalSelectBytes .equ TypedBeginAndBranch ; JR NZ across one JP

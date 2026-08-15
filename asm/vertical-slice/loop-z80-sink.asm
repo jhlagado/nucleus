@@ -43,12 +43,17 @@ EmitByteRoom:
 
 .routine noreturn
 EmitByteInline:
+            ; The byte after CALL is a complete one-byte target instruction.
+            ; Callers spell it as an AZM mnemonic; this helper consumes its
+            ; assembled byte instead of executing it in the compiler.
             POP  HL
             LD   A,(HL)
             JR   EmitByte
 
 .routine noreturn
 EmitByteInlineChecked:
+            ; As above, with a continuation for layouts whose diagnostics
+            ; still return through carry.
             POP  HL
             LD   A,(HL)
             INC  HL
@@ -94,20 +99,32 @@ EmitPairPopHLDE         .equ 11
 EmitPairZeroH           .equ 12
 EmitPairLDIR            .equ 13
 EmitPairInlineTable:
-            .db  $3B,$3B                 ; DEC SP / DEC SP
-            .db  $DD,$6E                 ; LD L,(IX+n)
-            .db  $DD,$66                 ; LD H,(IX+n)
-            .db  $DD,$75                 ; LD (IX+n),L
-            .db  $DD,$74                 ; LD (IX+n),H
-            .db  $D1,$E1                 ; POP DE / POP HL
-            .db  $D1,$D5                 ; POP DE / PUSH DE
-            .db  $7D,$B7                 ; LD A,L / OR A
-            .db  $7C,$B7                 ; LD A,H / OR A
-            .db  $E1,$7D                 ; POP HL / LD A,L
-            .db  $E1,$11                 ; POP HL / LD DE,nn
-            .db  $E1,$D1                 ; POP HL / POP DE
-            .db  $26,$00                 ; LD H,0
-            .db  $ED,$B0                 ; LDIR
+            DEC  SP
+            DEC  SP
+EmitPairLoadIXLTemplate:
+            .db  $DD,$6E                 ; opcode-template prefix: LD L,(IX+0)
+EmitPairLoadIXHTemplate:
+            .db  $DD,$66                 ; opcode-template prefix: LD H,(IX+0)
+EmitPairStoreIXLTemplate:
+            .db  $DD,$75                 ; opcode-template prefix: LD (IX+0),L
+EmitPairStoreIXHTemplate:
+            .db  $DD,$74                 ; opcode-template prefix: LD (IX+0),H
+            POP  DE
+            POP  HL
+            POP  DE
+            PUSH DE
+            LD   A,L
+            OR   A
+            LD   A,H
+            OR   A
+            POP  HL
+            LD   A,L
+EmitPairPopHLLoadDETemplate:
+            .db  $E1,$11                 ; opcode-template prefix: POP HL / LD DE,0
+            POP  HL
+            POP  DE
+            LD   H,0
+            LDIR
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:
@@ -458,7 +475,7 @@ EncodeLoopProgramBody:
             LD   HL,(EmitCursor)
             LD   (EmitLoopHead),HL
             CALL EmitByteInlineChecked
-            .db  $7A
+            LD   A,D                      ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -490,7 +507,7 @@ EncodeLoopProgramBody:
 .endif
             LD   (EmitFailureFixup),DE
             CALL EmitByteInlineChecked
-            .db  $7A
+            LD   A,D                      ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -506,7 +523,7 @@ EncodeLoopProgramBody:
 .endif
             LD   (EmitUpdateExitFixup),DE
             CALL EmitByteInlineChecked
-            .db  $14
+            INC  D                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -641,7 +658,7 @@ EmitLoadScalar:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitRestoreAfterCall:
             CALL EmitByteInlineChecked
-            .db  $F5
+            PUSH AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -673,7 +690,7 @@ EmitTrapEnding:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $AF
+            XOR  A                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -919,7 +936,8 @@ CallLiteral:
 .endif
             LD   (EmitExitFixup),DE
             CALL EmitByteInlineChecked
-            .db  $CD
+CallLiteralCallOpcode:
+            .db  $CD                      ; opcode-template prefix: CALL 0
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -976,7 +994,7 @@ CallIfParameterZero:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $B7
+            OR   A                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1024,7 +1042,7 @@ CallReturnSelfMinus:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $D8
+            RET  C                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1237,7 +1255,8 @@ ExpressionLoadLocal:
             CPL
             LD   C,A
             CALL EmitByteInlineChecked
-            .db  $DD
+ExpressionLoadLocalIndexPrefix:
+            .db  $DD                      ; opcode-template prefix: LD A,(IX+0)
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1251,12 +1270,12 @@ ExpressionLoadLocal:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 ExpressionMultiply:
             CALL EmitByteInlineChecked
-            .db  $C1
+            POP  BC                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $F1
+            POP  AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1293,12 +1312,13 @@ ExpressionStoreLocal:
             CPL
             LD   C,A
             CALL EmitByteInlineChecked
-            .db  $F1
+            POP  AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $DD
+ExpressionStoreLocalIndexPrefix:
+            .db  $DD                      ; opcode-template prefix: LD (IX+0),A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1314,7 +1334,7 @@ ExpressionWrite:
             LD   L,C
             LD   (EmitLoopHead),HL
             CALL EmitByteInlineChecked
-            .db  $F1
+            POP  AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1372,7 +1392,8 @@ EncodeExpressionProgramBody:
             LD   HL,GeneratedLimit
             CALL BeginProgram
             CALL EmitByteInlineChecked
-            .db  $C3
+ExpressionEntryJumpOpcode:
+            .db  $C3                      ; opcode-template prefix: JP 0
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1390,13 +1411,19 @@ EncodeExpressionProgramBody:
             JP   FinishProgram
 .endif
 ExpressionFrameBytes:
-            .db $DD,$E5,$DD,$21,$00,$00,$DD,$39
+            PUSH IX
+            LD   IX,0
+            ADD  IX,SP
 .if LegacyEncoders
 ExpressionAddBytes:
-            .db $C1,$F1,$80,$F5
+            POP  BC
+            POP  AF
+            ADD  A,B
+            PUSH AF
 .endif
 ExpressionRestoreBytes:
-            .db $DD,$F9,$DD,$E1
+            LD   SP,IX
+            POP  IX
 .if LegacyEncoders
 ExpressionBackendEnd:
 
@@ -1442,7 +1469,7 @@ EncodeArrayProgramBody:
 .endif
             LD   (EmitUpdateExitFixup),DE
             CALL EmitByteInlineChecked
-            .db  $5F
+            LD   E,A                      ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1452,7 +1479,8 @@ EncodeArrayProgramBody:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $21
+ArrayDataAddressOpcode:
+            .db  $21                      ; opcode-template prefix: LD HL,0
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1464,12 +1492,12 @@ EncodeArrayProgramBody:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $19
+            ADD  HL,DE                    ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $7E
+            LD   A,(HL)                   ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1515,7 +1543,7 @@ EncodeArrayProgramBody:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $AF
+            XOR  A                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif

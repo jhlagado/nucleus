@@ -326,7 +326,7 @@ StructuredForSetup:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $D5                      ; PUSH DE, retained bound
+            PUSH DE                       ; emitted target instruction; retained bound
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForTest:
@@ -424,7 +424,7 @@ StructuredForNext:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $E5                    ; preserve current counter
+            PUSH HL                       ; emitted target instruction; preserve current counter
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -432,7 +432,7 @@ StructuredForNext:
             BIT  1,A
             JR   NZ,StructuredNegativeDistance
             CALL EmitByteInlineChecked
-            .db  $EB                    ; EX DE,HL => bound-current
+            EX   DE,HL                    ; emitted target instruction; bound-current
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -503,7 +503,8 @@ StructuredForNextFit:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $CA                    ; JP Z,fit
+StructuredFitJumpOpcode:
+            .db  $CA                      ; opcode-template prefix: JP Z,0
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -539,10 +540,15 @@ StructuredForNextStore:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 StructuredForCleanup:
             CALL EmitByteInline
-            .db  $D1                      ; POP DE, discard retained bound
+            POP  DE                       ; emitted target instruction; discard retained bound
 
 StructuredBranchFalseBytes .equ TypedBeginAndBytes
 StructuredPopBoundStart    .equ TypedPopOperandsBytes
-StructuredTestHL           .equ TypedBeginAndBytes+1
-StructuredSubtractDE:        .db $B7,$ED,$52
-StructuredTestThenPopCurrent: .db $7D,$B7,$E1
+StructuredTestHL           .equ TypedBeginAndTest
+StructuredSubtractDE:
+            OR   A
+            SBC  HL,DE
+StructuredTestThenPopCurrent:
+            LD   A,L
+            OR   A
+            POP  HL

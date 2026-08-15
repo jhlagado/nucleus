@@ -44,7 +44,7 @@ Stage7BindParameter:
             CP   ScalarTypeU16
             JR   Z,Stage7BindWord
             CALL EmitByteInlineChecked
-            .db  $3B                      ; DEC SP
+            DEC  SP                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -57,7 +57,7 @@ Stage7BindParameter:
             JR   Stage7EmitPairPathOffset
 Stage7BindOpenString:
             CALL EmitByteInlineChecked
-            .db  $3B                      ; third activation byte
+            DEC  SP                       ; emitted target instruction; third activation byte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -309,7 +309,7 @@ Stage7EmitFarSourceCall:
 .endif
 Stage8CallableSourceFailable:
             CALL EmitByteInlineChecked
-            .db  $F5                    ; PUSH AF result discriminant/code
+            PUSH AF                       ; emitted target instruction; result discriminant/code
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -324,7 +324,7 @@ Stage8CallableSourceFailable:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $F1                    ; POP AF
+            POP  AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -361,7 +361,7 @@ Stage8CallableSuccess:
             AND  Stage8CallableServiceFlag
             JR   NZ,Stage8CallableServiceResult
             CALL EmitByteInline
-            .db  $E5                      ; PUSH HL result carrier
+            PUSH HL                       ; emitted target instruction; result carrier
 Stage8CallableServiceResult:
             LD   HL,Stage8ErrorCarrierBytes
             JP   EmitFour
@@ -373,7 +373,7 @@ Stage8DiscardCarriers:
             RET  Z
 Stage8DiscardCarrier:
             CALL EmitByteInlineChecked
-            .db  $D1                    ; POP DE carrier
+            POP  DE                       ; emitted target instruction; carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -492,7 +492,7 @@ Stage8FailureReturnTail:
             JP   EmitPair
 Stage8FailureHandle:
             CALL EmitByteInlineChecked
-            .db  $4F                    ; LD C,A error code
+            LD   C,A                      ; emitted target instruction; error code
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -505,7 +505,7 @@ Stage8FailureHandle:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $79                    ; LD A,C
+            LD   A,C                      ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -603,7 +603,7 @@ Stage8BeginCallableMain:
             LD   (EmitExitFixup),DE
 .if TargetStreamingOutput
             CALL EmitByteInlineChecked
-            .db  $F5                    ; PUSH AF
+            PUSH AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -658,7 +658,7 @@ Stage7EndRoutine:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $C9
+            RET                           ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7LoadProgramAlias:
@@ -730,7 +730,7 @@ Stage7SelectIndex:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $E5                    ; retain base
+            PUSH HL                       ; emitted target instruction; retain base
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -815,7 +815,7 @@ Stage7PreserveCarrierRegion:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $E5                    ; retain source
+            PUSH HL                       ; emitted target instruction; retain source
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -949,7 +949,7 @@ Stage7OpenStringLength:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $E5                    ; retain carrier
+            PUSH HL                       ; emitted target instruction; retain carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1031,7 +1031,7 @@ Stage7EmitStringCheckFinish:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $E5                      ; push length or addressed byte
+            PUSH HL                       ; emitted target instruction; length or addressed byte
 
 ; Emit BC = hidden concrete capacity + two representation bytes, then perform
 ; the ordinary complete-region guard before a generic string may be touched.
@@ -1076,7 +1076,7 @@ Stage7PrepareOpenArgument:
             CALL NextSemanticByte
             LD   (Stage7ArgumentCount),A
             CALL EmitByteInlineChecked
-            .db  $D1                    ; POP DE address carrier
+            POP  DE                       ; emitted target instruction; address carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1125,19 +1125,44 @@ Stage7EmitStringCheck:
 .endif
             JR   Stage7EmitStringCheckFinish
 
-Stage7IndexToA            .equ TypedLoadSPPrefix+1
-Stage7LoadBImmediate:     .db $06
-Stage7OffsetAddress:      .db $5F,$16,$00,$19,$E5
+Stage7IndexToA:
+            LD   A,E
+Stage7LoadBImmediate:     .db $06         ; opcode-template prefix: LD B,0
+Stage7OffsetAddress:
+            LD   E,A
+            LD   D,0
+Stage7AddDEPush:
+            ADD  HL,DE
+            PUSH HL
 Stage7LoadIndirect8Bytes  .equ Stage7LoadIndirect8Prefix
-Stage7LoadIndirect16Bytes:.db $E1,$5E,$23,$56,$D5
-Stage7StoreIndirect16Bytes:.db $D1,$E1,$73,$23,$72
+Stage7LoadIndirect16Bytes:
+            POP  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            PUSH DE
+Stage7StoreIndirect16Bytes:
+Stage7StoreIndirect8Bytes:
+            POP  DE
+            POP  HL
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
 Stage7CopyPrepare         .equ TypedPopOperandsBytes
-Stage7PopDEAddPush:       .db $D1,$19,$E5
-Stage7PushDEHL:           .db $D5,$E5
-Stage7PushHLDE            .equ TypedPopOperandsBytes+2
-Stage7LoadIXC:            .db $DD,$4E
+Stage7PopDEAddPush:
+            POP  DE
+            ADD  HL,DE
+            PUSH HL
+Stage7PushDEHL:
+            PUSH DE
+            PUSH HL
+Stage7PushHLDE            .equ TypedPushHLDEBytes
+Stage7LoadIXC:            .db $DD,$4E     ; opcode-template prefix: LD C,(IX+0)
 Stage7ZeroHighBytes       .equ TypedZeroHigh
-Stage7OpenExtentBytes:    .db $06,$00,$03,$03
+Stage7OpenExtentBytes:
+            LD   B,0
+            INC  BC
+            INC  BC
 Stage7LDIR                .equ SegmentedCopyBytes
 
 Stage7DecSP2              .equ TypedParameter16Bytes
@@ -1145,17 +1170,19 @@ Stage7LoadIXL             .equ TypedLoadLocalLow
 Stage7LoadIXH             .equ TypedLoadLocalHigh
 Stage7StoreIXL            .equ TypedStoreLocalLow
 Stage7StoreIXH            .equ TypedStoreLocalHigh
-Stage7AddDEPush           .equ Stage7OffsetAddress+3
 Stage7PopIndexBase        .equ TypedPopOperandsBytes
-Stage7StoreIndirect8Bytes .equ Stage7StoreIndirect16Bytes
-Stage8PopErrorBytes       .equ TypedNot8Bytes ; POP HL / LD A,L prefix
-Stage8FailureReturnBytes: .db $37,$C9      ; SCF / RET
-Stage8SuccessReturnBytes: .db $B7,$C9      ; OR A / RET
+Stage8PopErrorBytes       .equ TypedPopHLtoA
+Stage8FailureReturnBytes:
+            SCF
+            RET
+Stage8SuccessReturnBytes:
+            OR   A
+            RET
 Stage8ErrorCarrierBytes .equ TypedAtoHL       ; LD L,A / LD H,0 / PUSH HL
 .if TargetStreamingOutput
 .else
 Stage8ReloadFailureOffsetBytes:
-            .db $F5,$2A                   ; PUSH AF / LD HL,(nn)
-            .dw TrapOffset
-            .db $F1                       ; POP AF
+            PUSH AF
+            LD   HL,(TrapOffset)
+            POP  AF
 .endif

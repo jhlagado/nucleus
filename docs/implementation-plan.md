@@ -2156,6 +2156,38 @@ and executes 1,062,513 instructions in 10,467,307 T-states. Proof code and data
 remain 2,487 and 2,489 bytes. The complete functional proof set retains the
 same generated program, runtime, NOBJ, HEX, and D8 results.
 
+### Generated-instruction source policy
+
+Z80 instructions stored as compiler templates are written with AZM mnemonics.
+This applies even when the compiler copies the assembled bytes instead of
+executing them. A numeric `.db` or `.dw` must not stand in for a complete Z80
+instruction.
+
+Twenty retained templates contain only the fixed prefix of an instruction.
+Their operands are not known until the compiler processes the user program. A
+complete AZM instruction necessarily includes that operand, while the compiler
+needs only the fixed prefix at this stage. Each exception is
+labelled `opcode-template prefix` in the source. The opcode-template test
+assembles the corresponding instruction with a zero operand through AZM and
+compares the retained prefix with every production compiler image in which it
+is resident. The same test rejects an unmarked hexadecimal `.db` or a numeric
+`.dw` instruction operand in the target backend. Remaining `.dw` directives
+hold actual pointers, bounds, configuration values, or proof data.
+
+The indexed inline-pair table is the largest exception. A prototype that used
+complete mnemonic templates required a four-byte table stride and added 29
+compiler-code bytes. The retained two-byte table saved 25 bytes relative to
+the preceding emitter design. Any future AZM facility for instruction templates
+must preserve that saving before it replaces the checked prefix representation.
+New prefix exceptions require a measured size result and a canonical mnemonic
+comparison before they may enter the compiler.
+
+The sweep also removed a one-byte alias that treated the second opcode byte of
+`LD SP,(nn)` as a standalone `LD A,E`. That saved one resident byte but hid a
+complete instruction behind label arithmetic. The compiler now spells
+`LD A,E` directly; shipping and instrumented compiler code each grow by exactly
+one byte, with no target-artifact or timing change.
+
 ### Remaining fixed diagnostic tails
 
 The fixed diagnostic-tail stage starts from indexed inline-pair checkpoint
@@ -2267,10 +2299,10 @@ displacements between 119 and 127 bytes in magnitude and remain absolute. The
 two retained changes enter `EmitByte` at −47 bytes and `EmitPair` at +77 bytes,
 with the same safe classification in both production images.
 
-Shipping compiler code measures 14,897 bytes. With 393 immutable bytes,
-compiler core is 15,290 bytes and 1,094 bytes remain in the 16 KiB region. The
-instrumented image measures 14,953 code bytes and 15,346 core bytes, leaving
-2,062 bytes in its separate reservation. Workspace remains 3,609 bytes and the
+Shipping compiler code measures 14,898 bytes. With 393 immutable bytes,
+compiler core is 15,291 bytes and 1,093 bytes remain in the 16 KiB region. The
+instrumented image measures 14,954 code bytes and 15,347 core bytes, leaving
+2,061 bytes in its separate reservation. Workspace remains 3,609 bytes and the
 selected runtime remains 574 bytes.
 
 The proof instruction counts are unchanged. Relative jumps take two more

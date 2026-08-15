@@ -34,26 +34,23 @@ NameMain:
 NameWriteOutputByte:
             .db  "writeOutputByte"
 ProgramTemplate:
-            .db  $3E,$00
-            .db  $CD
-            .dw  WriteOutputByte
-            .db  $38,$06
-            .db  $3E,RunSucceeded,$32
-            .dw  RunState
-            .db  $C9
-            .db  $32
-            .dw  TrapError
-            .db  $AF,$32
-            .dw  TrapRoutine
-            .db  $21
-            .dw  FailureOffset
-            .db  $22
-            .dw  TrapOffset
-            .db  $3E,$06,$32
-            .dw  TrapNumber
-            .db  $3E,RunTrapped,$32
-            .dw  RunState
-            .db  $C9
+            LD   A,0
+            CALL WriteOutputByte
+            JR   C,ProgramTemplateFailure
+            LD   A,RunSucceeded
+            LD   (RunState),A
+            RET
+ProgramTemplateFailure:
+            LD   (TrapError),A
+            XOR  A
+            LD   (TrapRoutine),A
+            LD   HL,FailureOffset
+            LD   (TrapOffset),HL
+            LD   A,6
+            LD   (TrapNumber),A
+            LD   A,RunTrapped
+            LD   (RunState),A
+            RET
 CompilerImmutableEnd:
 CompilerCoreEnd:
 

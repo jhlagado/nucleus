@@ -11,6 +11,8 @@ ProofStart:
 NobjAdapterLength:
             .dw NobjAdapterEnd-NobjAdapterLog
 NobjAdapterLog:
+            ; Deliberately serialized NOBJ wire bytes, not assembler source
+            ; for the contained target program.
             ; IMAGE bank 0, $8000: LD A,$5A / LD ($8081),A / HALT
             .db 1,0,$00,$80,6,0,$3E,$5A,$32,$81,$80,$76
             ; IMAGE bank 0, $8080: loaded initialized bytes

@@ -220,7 +220,7 @@ TypedBeginProgramFrame:
 TypedDeclare8:
             CALL NextSemanticByte
             CALL EmitByteInline
-            .db  $3B                      ; DEC SP
+            DEC  SP                       ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare16:
@@ -229,7 +229,7 @@ TypedDeclare16:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $3B
+            DEC  SP                       ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedLiteral16:
@@ -246,7 +246,7 @@ TypedEmitOpcodeWordPushHL:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $E5                      ; PUSH HL
+            PUSH HL                       ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedLoadProgram8:
@@ -290,7 +290,7 @@ TypedEmitIndexed:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedEmitPopHL:
             CALL EmitByteInline
-            .db  $E1                      ; POP HL
+            POP  HL                       ; emitted target instruction
 
 .routine out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 TypedLoadLocalLowIndexed:
@@ -320,7 +320,7 @@ TypedLoadLocal16:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $E5
+            PUSH HL                       ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedPopOperands:
@@ -330,7 +330,7 @@ TypedPopOperands:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedPushHL:
             CALL EmitByteInline
-            .db  $E5
+            PUSH HL                       ; emitted target instruction
 
 .routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitSequence:
@@ -696,12 +696,12 @@ TypedEmitTrapEnding:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $F5                    ; PUSH AF, preserve trap reason
+            PUSH AF                       ; emitted target instruction; preserve trap reason
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $AF                    ; XOR A
+            XOR  A                        ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -716,7 +716,7 @@ TypedEmitTrapEnding:
             RET  C
 .endif
             CALL EmitByteInlineChecked
-            .db  $F1                    ; POP AF
+            POP  AF                       ; emitted target instruction
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -886,7 +886,7 @@ TypedCallScalar:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $E5                      ; PUSH HL result carrier
+            PUSH HL                       ; emitted target instruction; result carrier
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedReturnScalar:
@@ -899,7 +899,7 @@ TypedReturnScalar:
             RET  C
 .endif
             CALL EmitByteInline
-            .db  $C9
+            RET                           ; emitted target instruction
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TypedEndRoutine:
@@ -1050,7 +1050,8 @@ EncodeSegmentedEntry:
 .endif
 EncodeProgramEntry:
             CALL EmitByteInlineChecked
-            .db  $C3
+EncodeProgramEntryJumpOpcode:
+            .db  $C3                      ; opcode-template prefix: JP 0
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1075,7 +1076,8 @@ TypedBackendEnd:
 .endif
 
 .if AggregateCallSlices
-SegmentedCopyBytes: .db $ED,$B0           ; LDIR
+SegmentedCopyBytes:
+            LDIR
 .endif
 
             .include "structured-control-z80.asm"
@@ -1084,45 +1086,139 @@ SegmentedCopyBytes: .db $ED,$B0           ; LDIR
 .endif
 
 .if AggregateCallSlices
-Stage7LoadIndirect8Prefix: .db $E1,$7E
+Stage7LoadIndirect8Prefix:
+            POP  HL
+            LD   A,(HL)
 .endif
-TypedAtoHL:             .db $6F,$26,$00,$E5
-TypedStoreSPPrefix:     .db $ED,$73
-TypedStoreIXPrefix:     .db $DD,$22
-TypedLoadSPPrefix:      .db $ED,$7B
-TypedLoadIXPrefix:      .db $DD,$2A
-TypedParameter16Bytes:  .db $3B,$3B,$DD,$75,$FF,$DD,$74,$FE
-TypedParameter8Bytes    .equ TypedParameter16Bytes+1
-TypedLoadLocalLow:      .db $DD,$6E
-TypedLoadLocalHigh:     .db $DD,$66
-TypedStoreLocalLow       .equ TypedParameter16Bytes+2
-TypedStoreLocalHigh      .equ TypedParameter16Bytes+5
-TypedZeroHighPush       .equ TypedAtoHL+1
-TypedZeroHigh           .equ TypedAtoHL+1
-TypedPopOperandsBytes:  .db $D1,$E1
+TypedAtoHL:
+            LD   L,A
+TypedZeroHighPush:
+TypedZeroHigh:
+            LD   H,0
+            PUSH HL
+TypedStoreSPPrefix:     .db $ED,$73       ; opcode-template prefix: LD (0),SP
+TypedStoreIXPrefix:     .db $DD,$22       ; opcode-template prefix: LD (0),IX
+TypedLoadSPPrefix:      .db $ED,$7B       ; opcode-template prefix: LD SP,(0)
+TypedLoadIXPrefix:      .db $DD,$2A       ; opcode-template prefix: LD IX,(0)
+TypedParameter16Bytes:
+            DEC  SP
+TypedParameter8Bytes:
+            DEC  SP
+TypedStoreLocalLow:
+            LD   (IX-1),L
+TypedStoreLocalHigh:
+            LD   (IX-2),H
+TypedLoadLocalLow:      .db $DD,$6E       ; opcode-template prefix: LD L,(IX+0)
+TypedLoadLocalHigh:     .db $DD,$66       ; opcode-template prefix: LD H,(IX+0)
+TypedPopOperandsBytes:
+            POP  DE
+            POP  HL
 .if AggregateCallSlices
-                          .db $E5,$D5
+TypedPushHLDEBytes:
+            PUSH HL
+            PUSH DE
 .endif
-TypedAdd8Bytes:         .db $7D,$83,$6F,$26,$00
+TypedAdd8Bytes:
+            LD   A,L
+            ADD  A,E
+            LD   L,A
+            LD   H,0
 .if AggregateCallSlices
-TypedAdd16Bytes          .equ Stage7OffsetAddress+3
+TypedAdd16Bytes          .equ Stage7AddDEPush
 .else
-TypedAdd16Bytes:        .db $19
+TypedAdd16Bytes:
+            ADD  HL,DE
 .endif
-TypedSubtract8Bytes:    .db $7D,$93,$6F,$26,$00
-TypedSubtract16Bytes:   .db $AF,$ED,$52
-TypedNegate8Bytes:      .db $E1,$AF,$95,$6F,$26,$00
-TypedNegate16Bytes:     .db $E1,$AF,$95,$6F,$3E,$00,$9C,$67
-TypedNot8Bytes:         .db $E1,$7D,$2F,$6F,$26,$00
-TypedPopHLtoA           .equ TypedNot8Bytes
-TypedNot16Bytes:        .db $E1,$7D,$2F,$6F,$7C,$2F,$67
-TypedNotBooleanBytes:   .db $E1,$7D,$EE,$01,$6F,$26,$00
-TypedAnd8Bytes:         .db $7D,$A3,$6F,$26,$00
-TypedAnd16Bytes:        .db $7D,$A3,$6F,$7C,$A2,$67
-TypedOr8Bytes:          .db $7D,$B3,$6F,$26,$00
-TypedOr16Bytes:         .db $7D,$B3,$6F,$7C,$B2,$67
-TypedXor8Bytes:         .db $7D,$AB,$6F,$26,$00
-TypedXor16Bytes:        .db $7D,$AB,$6F,$7C,$AA,$67
-; POP HL; LD A,L; OR A; JR NZ/Z,+3; PUSH HL
-TypedBeginAndBytes:     .db $E1,$7D,$B7,$20,$03,$E5
-TypedBeginOrBytes:      .db $E1,$7D,$B7,$28,$03,$E5
+TypedSubtract8Bytes:
+            LD   A,L
+            SUB  E
+            LD   L,A
+            LD   H,0
+TypedSubtract16Bytes:
+            XOR  A
+            SBC  HL,DE
+TypedNegate8Bytes:
+            POP  HL
+            XOR  A
+            SUB  L
+            LD   L,A
+            LD   H,0
+TypedNegate16Bytes:
+            POP  HL
+            XOR  A
+            SUB  L
+            LD   L,A
+            LD   A,0
+            SBC  A,H
+            LD   H,A
+TypedNot8Bytes:
+TypedPopHLtoA:
+            POP  HL
+            LD   A,L
+            CPL
+            LD   L,A
+            LD   H,0
+TypedNot16Bytes:
+            POP  HL
+            LD   A,L
+            CPL
+            LD   L,A
+            LD   A,H
+            CPL
+            LD   H,A
+TypedNotBooleanBytes:
+            POP  HL
+            LD   A,L
+            XOR  1
+            LD   L,A
+            LD   H,0
+TypedAnd8Bytes:
+            LD   A,L
+            AND  E
+            LD   L,A
+            LD   H,0
+TypedAnd16Bytes:
+            LD   A,L
+            AND  E
+            LD   L,A
+            LD   A,H
+            AND  D
+            LD   H,A
+TypedOr8Bytes:
+            LD   A,L
+            OR   E
+            LD   L,A
+            LD   H,0
+TypedOr16Bytes:
+            LD   A,L
+            OR   E
+            LD   L,A
+            LD   A,H
+            OR   D
+            LD   H,A
+TypedXor8Bytes:
+            LD   A,L
+            XOR  E
+            LD   L,A
+            LD   H,0
+TypedXor16Bytes:
+            LD   A,L
+            XOR  E
+            LD   L,A
+            LD   A,H
+            XOR  D
+            LD   H,A
+TypedBeginAndBytes:
+            POP  HL
+TypedBeginAndTest:
+            LD   A,L
+            OR   A
+TypedBeginAndBranch:
+            JR   NZ,TypedBeginAndBytes+8
+            PUSH HL
+TypedBeginOrBytes:
+            POP  HL
+            LD   A,L
+            OR   A
+            JR   Z,TypedBeginOrBytes+8
+            PUSH HL
