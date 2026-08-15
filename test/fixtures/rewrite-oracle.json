@@ -1,0 +1,803 @@
+{
+  "format": "nucleus-rewrite-oracle",
+  "version": 1,
+  "baseline": {
+    "tag": "rewrite-baseline-2026-08-16",
+    "commit": "0382f73fe3bc29e86496b92334287139c2de92f1",
+    "normalImageSha256": "6d0731c73073cd356d537fda326082eb8a3fcfa3a60dc3d17e657032487e012b",
+    "debugImageSha256": "4998a7b176dad368ffc2638a4bf861f634f89df76e9138e43e29ad65a97c5d7c"
+  },
+  "publicContract": {
+    "hostApiVersion": 1,
+    "languageVersion": "0.1",
+    "runtimeIdentity": 8,
+    "capacities": {
+      "sourceParts": 8,
+      "sourceWindowBytes": 2048,
+      "sourceDescriptorBytesPerPart": 5,
+      "targetBanks": 4,
+      "instructionLimit": 5000000,
+      "cycleLimit": 50000000
+    },
+    "targets": {
+      "flat": true,
+      "banked": true,
+      "maxBanks": 4
+    }
+  },
+  "capacityLedger": [
+    {
+      "account": "source part count",
+      "limit": "8",
+      "evidence": "accepted 1- and 8-part units; rejected ninth part"
+    },
+    {
+      "account": "host source window bytes",
+      "limit": "2,048",
+      "evidence": "exact published Host API capacity and first-overflow test"
+    },
+    {
+      "account": "diagnostic-name bytes",
+      "limit": "external",
+      "evidence": "exact `model.nu` and `main.nu` mapping"
+    },
+    {
+      "account": "identifier bytes",
+      "limit": "255",
+      "evidence": "scanner wrap guard"
+    },
+    {
+      "account": "ordinary binding symbols",
+      "limit": "16",
+      "evidence": "accepted sixteen aggregate variables; rejected seventeenth binding"
+    },
+    {
+      "account": "non-main routine entries",
+      "limit": "4",
+      "evidence": "direct, forward, mutual-recursion, and rejected fifth-entry proofs"
+    },
+    {
+      "account": "retained parameter entries",
+      "limit": "16",
+      "evidence": "accepted sixteen total entries; rejected seventeenth across routines"
+    },
+    {
+      "account": "nested compiler call frames",
+      "limit": "4",
+      "evidence": "rejected fifth nested call"
+    },
+    {
+      "account": "LL(1) grammar symbols",
+      "limit": "64",
+      "evidence": "exact-fill and atomic internal-overflow engine proof"
+    },
+    {
+      "account": "dynamic types, records, and fields",
+      "limit": "8 / 5 / 12",
+      "evidence": "shared nested-row interning, exact-fill, and first-overflow proofs"
+    },
+    {
+      "account": "concrete array suffixes per type",
+      "limit": "4",
+      "evidence": "accepted four-dimensional type and rejected fifth suffix"
+    },
+    {
+      "account": "fixed-array element count",
+      "limit": "65,535",
+      "evidence": "accepted and indexed `u8[1024]`; rejected allocated `u8[1025]`"
+    },
+    {
+      "account": "bounded-string capacity",
+      "limit": "253",
+      "evidence": "accepted 253 and rejected 254/255; construction, zero-tail, and sealed-byte proof"
+    },
+    {
+      "account": "complete aggregate type extent",
+      "limit": "65,535",
+      "evidence": "501-byte nested record; exact 1,024-byte object; rejected 1,025-byte object"
+    },
+    {
+      "account": "expression nesting",
+      "limit": "16",
+      "evidence": "seventeen-deep pending-expression proof"
+    },
+    {
+      "account": "semantic transcript payload bytes",
+      "limit": "511",
+      "evidence": "scalar-assignment exact-fill and first-overflow proof"
+    },
+    {
+      "account": "semantic transcript operations",
+      "limit": "255",
+      "evidence": "pre-append operation-count guard"
+    },
+    {
+      "account": "Boolean fixups",
+      "limit": "16",
+      "evidence": "exhaustion and underflow boundary proofs"
+    },
+    {
+      "account": "active control frames",
+      "limit": "8",
+      "evidence": "nested structured-control proofs"
+    },
+    {
+      "account": "dynamic labels",
+      "limit": "27",
+      "evidence": "exact allocation boundary and callable-main proofs"
+    },
+    {
+      "account": "branch fixups",
+      "limit": "32",
+      "evidence": "bounded resolver and generated branch proofs"
+    },
+    {
+      "account": "object-stream total records",
+      "limit": "65,535",
+      "evidence": "accepted exactly 65,535 records; rejected first additional data record atomically"
+    },
+    {
+      "account": "object-stream patch records",
+      "limit": "65,531",
+      "evidence": "resolution-order submission, image-before-patch serialization, and count boundary"
+    },
+    {
+      "account": "object-stream image or patch bytes",
+      "limit": "65,532",
+      "evidence": "accepted 1 and 65,532 bytes; rejected 65,533 before append"
+    },
+    {
+      "account": "committed object generations",
+      "limit": "1",
+      "evidence": "A retained after divergent image-plus-patch B failure; C committed and executed"
+    },
+    {
+      "account": "structured-initializer depth",
+      "limit": "4",
+      "evidence": "nested record/array boundary and wide 256-element initializer"
+    },
+    {
+      "account": "initialized program-data bytes",
+      "limit": "1,024",
+      "evidence": "exact four-string-plus-tail image and rejected following byte"
+    },
+    {
+      "account": "aggregate-constant bytes",
+      "limit": "1,024",
+      "evidence": "record/array/string constants; exact 1,024-byte suffix and rejected next byte"
+    },
+    {
+      "account": "total generated read-only-data bytes",
+      "limit": "1,024",
+      "evidence": "mixed data/constant shifting and exact separate boundary proofs"
+    },
+    {
+      "account": "zero-initialized program-data bytes",
+      "limit": "1,024",
+      "evidence": "exact four-string-plus-tail BSS and rejected following byte"
+    },
+    {
+      "account": "emitted Z80 image bytes per bank",
+      "limit": "4,096",
+      "evidence": "flat 881 bytes; banked 1,138/914 bytes; per-bank and entry-bank overflow proofs"
+    },
+    {
+      "account": "physical target banks",
+      "limit": "4",
+      "evidence": "accepted four-bank profiles; rejected fifth bank"
+    },
+    {
+      "account": "activation bytes",
+      "limit": "3,840",
+      "evidence": "memory-map proof, sixteen-position call, and depth boundary"
+    },
+    {
+      "account": "activation depth",
+      "limit": "8",
+      "evidence": "recursive handler-bypass and root-frame trap proof"
+    },
+    {
+      "account": "service stream and bulk-storage extents",
+      "limit": "4",
+      "evidence": "success, end, configured failure, overwrite, append, rewind, and seek proofs"
+    }
+  ],
+  "measuredCompiler": {
+    "code": 16270,
+    "immutable": 410,
+    "core": 16680,
+    "workspace": 3639
+  },
+  "successes": [
+    {
+      "name": "flat-current-language",
+      "expectation": {
+        "nobjLength": 8068,
+        "nobjSha256": "a2ac3e3a8359f9b4d7c0eaa4764873c279086e14cfd8e3b3cb3ad61c1a62c0bf",
+        "begin": {
+          "banked": false,
+          "runtimeIdentity": 8,
+          "bankCount": 1,
+          "imageFill": 255,
+          "imageBase": 32768,
+          "imageCapacity": 4096
+        },
+        "map": {
+          "romMode": true,
+          "establishedStack": true,
+          "entryBank": 0,
+          "entryAddress": 32768,
+          "writableBase": 16384,
+          "writableCapacity": 4096,
+          "vectorBase": 16384,
+          "vectorLength": 33,
+          "initializedRunBase": 16384,
+          "initializedRunLength": 78,
+          "bssBase": 16462,
+          "bssLength": 2,
+          "stackRequirement": 3840,
+          "dataLoadBank": 0,
+          "dataLoadAddress": 33519,
+          "dataLoadLength": 78,
+          "partBanks": [
+            0
+          ],
+          "banks": [
+            {
+              "usedLength": 1770,
+              "readOnlyBase": 33519,
+              "readOnlyLength": 88,
+              "aggregateConstantBase": 33597,
+              "aggregateConstantLength": 10
+            }
+          ]
+        },
+        "flatImage": {
+          "length": 4096,
+          "sha256": "68382ae3ceb5d4ec4b4e960ea99c90a5f6fd82f8676d16983bc4f174f481118e",
+          "hexSha256": "9a063b35db30c1795472e9f52cf429d88e359d84d194ef98dc31ab7bfaff6cfb"
+        },
+        "banks": [
+          {
+            "bank": 0,
+            "length": 4096,
+            "sha256": "68382ae3ceb5d4ec4b4e960ea99c90a5f6fd82f8676d16983bc4f174f481118e"
+          }
+        ],
+        "d8": [
+          {
+            "bank": 0,
+            "sha256": "4b603f37ae3ea13a5e54055f477085853cafd814da4aea7d764a1089b9f0befb"
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 199274,
+          "cycles": 1949398
+        },
+        "debug": {
+          "instructions": 200379,
+          "cycles": 1961561
+        }
+      }
+    },
+    {
+      "name": "banked-multipart-open-views",
+      "expectation": {
+        "nobjLength": 6013,
+        "nobjSha256": "f67459c0cb1ff210da926ab877b7600068c2f91c1bdf5f41d2c966c3abf4806b",
+        "begin": {
+          "banked": true,
+          "runtimeIdentity": 8,
+          "bankCount": 2,
+          "imageFill": 255,
+          "imageBase": 32768,
+          "imageCapacity": 4096
+        },
+        "map": {
+          "romMode": true,
+          "establishedStack": true,
+          "entryBank": 0,
+          "entryAddress": 32768,
+          "writableBase": 16384,
+          "writableCapacity": 4096,
+          "vectorBase": 16384,
+          "vectorLength": 33,
+          "initializedRunBase": 16384,
+          "initializedRunLength": 81,
+          "bssBase": 16465,
+          "bssLength": 1,
+          "stackRequirement": 3840,
+          "dataLoadBank": 0,
+          "dataLoadAddress": 33519,
+          "dataLoadLength": 81,
+          "partBanks": [
+            1,
+            0
+          ],
+          "banks": [
+            {
+              "usedLength": 1017,
+              "readOnlyBase": 33519,
+              "readOnlyLength": 81,
+              "aggregateConstantBase": 0,
+              "aggregateConstantLength": 0
+            },
+            {
+              "usedLength": 1060,
+              "readOnlyBase": 0,
+              "readOnlyLength": 0,
+              "aggregateConstantBase": 0,
+              "aggregateConstantLength": 0
+            }
+          ]
+        },
+        "banks": [
+          {
+            "bank": 0,
+            "length": 4096,
+            "sha256": "4008af4e9d8b427b7f012e69ff106841e9044a5c673a2f4f58a9339ecfd3dceb"
+          },
+          {
+            "bank": 1,
+            "length": 4096,
+            "sha256": "200f8528b5cc5f861b6488229fc8f134622df46a432b47aa12478662c1166da8"
+          }
+        ],
+        "d8": [
+          {
+            "bank": 0,
+            "sha256": "8585847d366b08a5b96d4470f8e107009d42f3d1a3600ed19dda5f90f2760af0"
+          },
+          {
+            "bank": 1,
+            "sha256": "17e95897161d85db8036be60872aa3b73aa64279f4341ce5138587c3ccdfd1c8"
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 113888,
+          "cycles": 1121572
+        },
+        "debug": {
+          "instructions": 114560,
+          "cycles": 1128972
+        }
+      }
+    },
+    {
+      "name": "multipart-crlf-and-synthesized-final-newline",
+      "expectation": {
+        "nobjLength": 2164,
+        "nobjSha256": "15812e02feeb50e70a034335d2f1456b82d896ed4004e9b01012c188d56be8d3",
+        "begin": {
+          "banked": false,
+          "runtimeIdentity": 8,
+          "bankCount": 1,
+          "imageFill": 255,
+          "imageBase": 32768,
+          "imageCapacity": 4096
+        },
+        "map": {
+          "romMode": true,
+          "establishedStack": true,
+          "entryBank": 0,
+          "entryAddress": 32768,
+          "writableBase": 16384,
+          "writableCapacity": 4096,
+          "vectorBase": 16384,
+          "vectorLength": 33,
+          "initializedRunBase": 16384,
+          "initializedRunLength": 70,
+          "bssBase": 16454,
+          "bssLength": 1,
+          "stackRequirement": 3840,
+          "dataLoadBank": 0,
+          "dataLoadAddress": 33519,
+          "dataLoadLength": 70,
+          "partBanks": [
+            0,
+            0
+          ],
+          "banks": [
+            {
+              "usedLength": 942,
+              "readOnlyBase": 33519,
+              "readOnlyLength": 70,
+              "aggregateConstantBase": 0,
+              "aggregateConstantLength": 0
+            }
+          ]
+        },
+        "flatImage": {
+          "length": 4096,
+          "sha256": "3b772c1a48e32d88e8989abae974510144196bba7f386ac0bcb12033ac62adad",
+          "hexSha256": "301d94f59fd6a3d1b2a5ae6ff88cbe5e49d7fa3503ad98d95d344440be79cd8d"
+        },
+        "banks": [
+          {
+            "bank": 0,
+            "length": 4096,
+            "sha256": "3b772c1a48e32d88e8989abae974510144196bba7f386ac0bcb12033ac62adad"
+          }
+        ],
+        "d8": [
+          {
+            "bank": 0,
+            "sha256": "5ce62627ccbffaa28959bd9e5b1f9206cc88de8467ada5d9b082186a54d6de00"
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 35586,
+          "cycles": 349662
+        },
+        "debug": {
+          "instructions": 35787,
+          "cycles": 351881
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "name": "lexical",
+      "expectation": {
+        "code": 1,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 808,
+          "cycles": 7396
+        },
+        "debug": {
+          "instructions": 808,
+          "cycles": 7396
+        }
+      }
+    },
+    {
+      "name": "predictive-grammar",
+      "expectation": {
+        "code": 37,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 1625,
+          "cycles": 14646
+        },
+        "debug": {
+          "instructions": 1625,
+          "cycles": 14646
+        }
+      }
+    },
+    {
+      "name": "duplicate-name",
+      "expectation": {
+        "code": 55,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 20,
+        "line": 2,
+        "column": 5
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 7867,
+          "cycles": 72246
+        },
+        "debug": {
+          "instructions": 7869,
+          "cycles": 72268
+        }
+      }
+    },
+    {
+      "name": "unknown-name",
+      "expectation": {
+        "code": 57,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 11,
+        "line": 2,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 5319,
+          "cycles": 47822
+        },
+        "debug": {
+          "instructions": 5321,
+          "cycles": 47844
+        }
+      }
+    },
+    {
+      "name": "type-mismatch",
+      "expectation": {
+        "code": 60,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 41,
+        "line": 3,
+        "column": 10
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 9993,
+          "cycles": 91789
+        },
+        "debug": {
+          "instructions": 9996,
+          "cycles": 91822
+        }
+      }
+    },
+    {
+      "name": "integer-range",
+      "expectation": {
+        "code": 61,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 18,
+        "line": 1,
+        "column": 19
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 4952,
+          "cycles": 46218
+        },
+        "debug": {
+          "instructions": 4952,
+          "cycles": 46218
+        }
+      }
+    },
+    {
+      "name": "constant-division-zero",
+      "expectation": {
+        "code": 62,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 16,
+        "line": 1,
+        "column": 17
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 3940,
+          "cycles": 37312
+        },
+        "debug": {
+          "instructions": 3940,
+          "cycles": 37312
+        }
+      }
+    },
+    {
+      "name": "comparison-chain",
+      "expectation": {
+        "code": 64,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 20,
+        "line": 2,
+        "column": 10
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 6735,
+          "cycles": 61926
+        },
+        "debug": {
+          "instructions": 6738,
+          "cycles": 61959
+        }
+      }
+    },
+    {
+      "name": "loop-context",
+      "expectation": {
+        "code": 72,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 11,
+        "line": 2,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 5100,
+          "cycles": 45769
+        },
+        "debug": {
+          "instructions": 5102,
+          "cycles": 45791
+        }
+      }
+    },
+    {
+      "name": "routine-flow",
+      "expectation": {
+        "code": 75,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 21,
+        "line": 2,
+        "column": 4
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 6337,
+          "cycles": 57559
+        },
+        "debug": {
+          "instructions": 6338,
+          "cycles": 57570
+        }
+      }
+    },
+    {
+      "name": "initializer-shape",
+      "expectation": {
+        "code": 79,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 24,
+        "line": 1,
+        "column": 25
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 6325,
+          "cycles": 58995
+        },
+        "debug": {
+          "instructions": 6325,
+          "cycles": 58995
+        }
+      }
+    },
+    {
+      "name": "open-view-placement",
+      "expectation": {
+        "code": 83,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 17,
+        "line": 1,
+        "column": 18
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 4632,
+          "cycles": 42552
+        },
+        "debug": {
+          "instructions": 4632,
+          "cycles": 42552
+        }
+      }
+    },
+    {
+      "name": "failure-context",
+      "expectation": {
+        "code": 87,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 38,
+        "line": 4,
+        "column": 7
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 10766,
+          "cycles": 97701
+        },
+        "debug": {
+          "instructions": 10770,
+          "cycles": 97745
+        }
+      }
+    },
+    {
+      "name": "compile-time-assertion",
+      "expectation": {
+        "code": 91,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 2814,
+          "cycles": 26698
+        },
+        "debug": {
+          "instructions": 2814,
+          "cycles": 26698
+        }
+      }
+    },
+    {
+      "name": "read-only-assignment",
+      "expectation": {
+        "code": 94,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 42,
+        "line": 3,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 12217,
+          "cycles": 113115
+        },
+        "debug": {
+          "instructions": 12220,
+          "cycles": 113148
+        }
+      }
+    },
+    {
+      "name": "target-image-capacity",
+      "expectation": {
+        "code": 96,
+        "sourcePart": 1,
+        "sourceName": "diagnostic.nu",
+        "offset": 15,
+        "line": 3,
+        "column": 1
+      },
+      "baselineMetrics": {
+        "normal": {
+          "instructions": 5248,
+          "cycles": 47791
+        },
+        "debug": {
+          "instructions": 5250,
+          "cycles": 47813
+        }
+      }
+    }
+  ],
+  "coverage": {
+    "languageAndDiagnostics": [
+      "test/language-specification.test.ts",
+      "test/compiler.test.ts",
+      "test/ll1-stage7.test.ts",
+      "test/signed-integers.test.ts",
+      "test/nested-arrays.test.ts",
+      "test/open-array-parameters.test.ts",
+      "test/open-string-parameters.test.ts",
+      "test/string-construction.test.ts"
+    ],
+    "targetsAndArtifacts": [
+      "test/proof-harness.test.ts",
+      "test/compiler-relocation.test.ts",
+      "test/nobj.test.ts",
+      "test/d8.test.ts",
+      "test/host.test.ts"
+    ],
+    "publishedCapacities": "docs/implementation-plan.md#capacity-ledger"
+  }
+}

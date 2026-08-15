@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+import { createZ80Runtime } from "@jhlagado/debug80-runtime";
 
+import { normalCompilerSymbols } from "./generated-compiler-images.js";
 import {
-  debugCompilerHex,
-  debugCompilerSymbols,
-  normalCompilerHex,
-  normalCompilerSymbols,
-} from "./generated-compiler-images.js";
+  loadNucleusCompilerImage,
+  nucleusCompilerImages,
+  productionCompilerImages,
+  type LoadedNucleusCompilerImage,
+  type NucleusCompilerImageSelection,
+} from "./compiler-image-internal.js";
 
 import {
   materializeNobj,
@@ -164,13 +166,6 @@ export const writeNucleusIntelHex = (result: NucleusCompileSuccess): string => {
   return `${lines.join("\n")}\n`;
 };
 
-interface CompilerImage {
-  readonly program: ReturnType<typeof parseIntelHex>;
-  readonly symbols: Readonly<Record<string, number>>;
-}
-
-const compilerImages = new Map<boolean, Promise<CompilerImage>>();
-
 const symbol = (
   symbols: Readonly<Record<string, number>>,
   name: string,
@@ -182,22 +177,9 @@ const symbol = (
   throw new Error(`Nucleus compiler image is missing symbol ${name}`);
 };
 
-const loadCompilerImage = async (
-  debugHooks: boolean,
-): Promise<CompilerImage> => {
-  let pending = compilerImages.get(debugHooks);
-  if (pending === undefined) {
-    pending = (async () => {
-      const hex = debugHooks ? debugCompilerHex : normalCompilerHex;
-      const symbols = debugHooks ? debugCompilerSymbols : normalCompilerSymbols;
-      return { program: parseIntelHex(hex), symbols };
-    })();
-    compilerImages.set(debugHooks, pending);
-  }
-  return pending;
-};
-
-const compilerImageFingerprint = (image: CompilerImage): string => {
+const compilerImageFingerprint = (
+  image: LoadedNucleusCompilerImage,
+): string => {
   const hash = createHash("sha256");
   hash.update(image.program.memory);
   hash.update(
@@ -224,8 +206,8 @@ export const nucleusCompilerInfo = async (): Promise<{
   };
 }> => {
   const [normal, debug] = await Promise.all([
-    loadCompilerImage(false),
-    loadCompilerImage(true),
+    loadNucleusCompilerImage(productionCompilerImages, false),
+    loadNucleusCompilerImage(productionCompilerImages, true),
   ]);
   return {
     hostApiVersion: 1,
@@ -503,7 +485,11 @@ export const compileNucleus = async (
   options: NucleusCompileOptions = {},
 ): Promise<NucleusCompileResult> => {
   const debugHooks = options.debugMap === true;
-  const image = await loadCompilerImage(debugHooks);
+  const imagePair =
+    (options as NucleusCompileOptions & NucleusCompilerImageSelection)[
+      nucleusCompilerImages
+    ] ?? productionCompilerImages;
+  const image = await loadNucleusCompilerImage(imagePair, debugHooks);
   let debugCollectionActive = debugHooks;
   let collector: NucleusDebugCollector | undefined;
   const runtime = createZ80Runtime(

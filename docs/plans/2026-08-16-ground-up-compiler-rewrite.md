@@ -427,6 +427,25 @@ Exit gate:
 - the four-origin relocation proof passes; and
 - all baseline accounts reconcile with assembled symbols.
 
+Checkpoint result, measured on 16 August 2026:
+
+- the oracle fixture records the annotated baseline tag and commit, combined
+  image-and-symbol fingerprints, published Host API capacities, representative
+  flat and banked artifacts, multipart newline cases, D8 maps, exact diagnostic
+  records, and the test files that prove every row in the capacity ledger;
+- the internal image selector is absent from the package export map and requires
+  an explicit image-and-symbol pair, so the public Host API and CLI remain bound
+  to the production images;
+- `npm test` passed 24 files and 253 tests in serial execution, and the focused
+  proof harness passed all 23 target proofs;
+- the AZM capability gate, generated-image check, TypeScript check, build, and
+  relocation proof at `$0000`, `$0100`, `$8000`, and the highest fitting origin
+  passed; and
+- the build corrected a stale distribution image whose core was 16,667 bytes.
+  Source generation and the distribution build now produce the same measured
+  16,270-byte code region, 410-byte immutable region, 16,680-byte core, and
+  3,639-byte peak workspace.
+
 ### R1 — Replacement shell and source contract
 
 Create the new composition, workspace map, public entry, diagnostic unwind,
@@ -588,9 +607,10 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
   old compiler is an oracle; the rewrite is the opportunity to remove its
   construction history from the architecture.
 
-## First implementation move
+## Next implementation move
 
-R0 comes next. Add the oracle manifest and a test-only compiler-image selector,
-but no replacement compiler logic. That checkpoint makes every later rewrite
-stage compare against one frozen, reproducible baseline and prevents a new
-internal format from quietly changing language or target behaviour.
+R0 is complete. R1 begins with a new `asm/rewrite/` composition, workspace map,
+public entry, and armed diagnostic exit. The first executable slice will load
+ordered source parts and publish exact token records without including any old
+compiler implementation file. The replacement remains test-selected until the
+complete cutover gate passes.

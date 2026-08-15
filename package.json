@@ -36,6 +36,8 @@
     "check:compiler-relocation": "vitest run test/compiler-relocation.test.ts --reporter=verbose",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
+    "generate:rewrite-oracle": "NUCLEUS_UPDATE_REWRITE_ORACLE=1 vitest run test/rewrite-oracle.test.ts --reporter=verbose",
+    "check:rewrite-oracle": "vitest run test/rewrite-oracle.test.ts --reporter=verbose",
     "prebuild": "npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
