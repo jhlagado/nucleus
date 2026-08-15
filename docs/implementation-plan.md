@@ -2456,6 +2456,78 @@ establishment disabled, concrete `u8[255]`, `u8[256]`, and `u8[1024]` objects
 compile. The default target reserves most writable memory for its stack, so its
 available object capacity is correspondingly smaller.
 
+### Recovery sequence after complete-array views
+
+The recovery work starts at `ec4724bce90344a8737e5fde29b898b4cceacded`.
+Measured production assembly is 15,493 compiler-code bytes plus 401 immutable
+bytes, or 15,894 compiler-core bytes, leaving 490 bytes below 16 KiB.
+Workspace is 3,611 bytes. The target-enabled proof uses the 600-byte selected
+runtime, occupies 2,487 proof code/data bytes, and executes 1,052,746
+instructions in 10,364,340 T-states. The instrumented compiler measures
+15,549 code bytes plus 401 immutable bytes.
+
+Recovery is divided into checkpoints so that a large projected total cannot
+hide an unsafe or unproductive individual change:
+
+1. Mechanical shortening and small shared tails were initially projected to
+   recover 110--125 compiler-core bytes. A fresh source-and-listing census found
+   that estimate included changes already retained, earlier rejected
+   experiments, proof-only code, and branches that fit only the production
+   layout. Each remaining family is therefore assembled and measured on its
+   own. A family is retained only when it saves resident bytes without changing
+   accepted source, diagnostics, semantic bytes, generated target artifacts,
+   or runtime selection. Conditional branches must remain in range in the
+   normal, instrumented, and retained historical layouts.
+2. Unifying the parallel open-string and open-array paths is a 40--90-byte
+   hypothesis. This follows the mechanical checkpoint because it changes
+   shared parser and backend control flow and therefore needs a separate ABI,
+   stack, and diagnostic-order review.
+3. Dispatcher-side operand prefetch is a 120--170-byte hypothesis, not a
+   committed design. It changes how semantic operands reach many handlers and
+   must first prove every operation width, operation 110's mode-dependent
+   forms, the exact semantic-start keys used by D8, and both flat and banked
+   target output. It will be prototyped and accepted or rejected as one isolated
+   checkpoint rather than mixed into local compression.
+
+High-bit keyword packing is not part of this sequence. The previous measured
+prototype saved 25 compiler-core bytes but added 120,085 compiler instructions
+and 1,245,777 T-states to the target-enabled proof. It remains rejected unless
+a new representation changes that measured trade.
+
+Every checkpoint strictly assembles the shipping and instrumented compilers and
+all retained proof layouts, reproduces the compiler census, and runs exact
+diagnostic, semantic-transcript, NOBJ, HEX, D8, runtime, and generated-program
+identity gates. Nested arrays remain a 50--100-byte hypothesis and signed
+integer core support remains a 250--400-byte hypothesis; neither estimate is
+treated as available headroom until the corresponding feature is implemented
+and measured.
+
+The mechanical checkpoint retains two changes. Seven handlers now share the
+seven-byte sequence that reads one semantic operand into
+`Stage7ArgumentCount`; replacing seven six-byte sequences with seven calls
+saves 14 compiler-code bytes. Two absolute conditional branches in the
+aggregate index parser have relative displacements of 116 and 97 bytes in both
+shipping layouts and remain in range in every retained historical layout.
+Their relative encodings save two more bytes. No instruction is represented as
+raw `.db` or `.dw` data by this checkpoint.
+
+Measured production code is 15,477 bytes plus 401 immutable bytes, or 15,878
+compiler-core bytes, leaving 506 bytes below 16 KiB. The measured reduction is
+16 code bytes. The instrumented compiler is 15,533 code bytes plus 401
+immutable bytes. Workspace remains 3,611 bytes and the selected runtime remains
+600 bytes. The shipping proof executes 1,052,768 instructions in 10,364,607
+T-states; the instrumented proof executes 1,057,345 instructions in 10,415,046
+T-states. The shared read adds 22 instructions and 267 T-states to each proof.
+
+Three broader mechanical candidates were measured and rejected. A shared
+semantic-byte-to-`C` helper recovered only six production bytes, added 146 more
+shipping-proof instructions, and enlarged small historical layouts that had too
+few callers to amortize it. Two additional relative branches fit the shipping
+images but exceeded the signed displacement range by 6 and 12 bytes in the
+historical Stage 8 and Stage 9 layouts. High-bit keyword packing remains the
+separately measured rejection recorded above. The next recovery checkpoint is
+therefore open-view unification, not another undifferentiated peephole sweep.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

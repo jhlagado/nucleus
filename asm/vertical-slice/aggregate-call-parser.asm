@@ -1259,13 +1259,13 @@ Stage7PathIndex:
             JP   C,TypedTypeFailure
             PUSH AF
             CP   AggregateOpenStringTypeId
-            JP   Z,Stage7PathOpenStringIndex
+            JR   Z,Stage7PathOpenStringIndex
             CP   AggregateOpenArrayTypeMask
             JR   NC,Stage7PathOpenArrayIndex
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
-            JP   Z,Stage7PathStringIndex
+            JR   Z,Stage7PathStringIndex
             CP   AggregateTypeKindArray
             JP   NZ,Stage7PathFieldTypeFailure
             INC  HL

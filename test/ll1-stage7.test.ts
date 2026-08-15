@@ -228,9 +228,9 @@ describe("Stage 7 packed LL(1)", () => {
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
-    expect(outcome.instructions).toBe(2_182_230);
-    expect(outcome.cycles).toBe(20_212_189);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_364 });
+    expect(outcome.instructions).toBe(2_182_280);
+    expect(outcome.cycles).toBe(20_212_695);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_362 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 229,
@@ -245,11 +245,11 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 15_011,
+      bytes: 14_995,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_610,
+      bytes: 14_594,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
@@ -268,7 +268,7 @@ describe("Stage 7 packed LL(1)", () => {
         (extents.get("ll1-engine") ?? -1) -
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
-    ).toBe(5_763);
+    ).toBe(5_761);
   }, 30_000);
 
   it("executes every retained Stage 7 action family", async () => {

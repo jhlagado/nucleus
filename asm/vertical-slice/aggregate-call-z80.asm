@@ -199,14 +199,19 @@ Stage8EmitFailureOffset:
             LD   A,$22                    ; LD (nn),HL
             JP   EmitOpcodeWord
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
+Stage8ReadArgumentCount:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            RET
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7Call:
             CALL NextSemanticByte
             LD   (Stage7CallLabel),A
             AND  Stage8CallableServiceFlag
             JR   NZ,Stage8ReadServiceCall
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             CALL NextSemanticByte
             LD   (Stage7CallResultType),A
             CALL NextSemanticByte
@@ -722,8 +727,7 @@ Stage7SelectIndex:
 ; concrete element extent in the semantic stream for ordinary scaling.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7OpenArrayIndex:
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             CALL Stage7ReadExtentAndOffset
             CALL EmitPairIndexedInline
             .db  EmitPairPopDEHL
@@ -926,8 +930,7 @@ Stage7EmitRegionInvoke:
 
 .routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
 Stage7ReadStringExtent:
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             LD   L,A
             LD   H,0
             INC  HL
@@ -990,8 +993,7 @@ Stage7EmitStringIndexPrefix:
 ; hidden activation byte. The ordinary source value remains one address path.
 .routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
 Stage7ReadOpenStringOffset:
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             JP   Stage7ReadCallOffset
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -1128,8 +1130,7 @@ Stage7PrepareOpenArgument:
             LD   (Stage7ArgumentIndex),A
             CP   2
             JR   NC,Stage7ReadOpenArrayArgument
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             JR   Stage7PrepareOpenArgumentPayloadReady
 Stage7ReadOpenArrayArgument:
             CALL ReadSemanticWord
@@ -1209,8 +1210,7 @@ Stage7EmitStringCheck:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitStringCapacityValue:
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             CALL TypedEmitPopHL
 .if CompilerDiagnosticReturns
             RET  C
@@ -1228,8 +1228,7 @@ Stage7EmitStringCapacityValue:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7StringResize:
-            CALL NextSemanticByte
-            LD   (Stage7ArgumentCount),A
+            CALL Stage8ReadArgumentCount
             CALL Stage7ReadCallOffset
             CALL EmitPairIndexedInline
             .db  EmitPairPopDEHL           ; new length, carrier
