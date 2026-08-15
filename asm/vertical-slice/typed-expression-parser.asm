@@ -417,9 +417,17 @@ TypedReduceIntegerBinary:
             CP   TokenStar
             JR   Z,TypedReduceMultiply
             CP   TokenSlash
+.if TargetStreamingOutput
+            JR   Z,TypedReduceDivide
+.else
             JP   Z,TypedReduceDivide
+.endif
             CP   TokenMod
+.if TargetStreamingOutput
+            JR   Z,TypedReduceModulo
+.else
             JP   Z,TypedReduceModulo
+.endif
             CP   TokenAnd
             JR   Z,TypedReduceAnd
             CP   TokenXor

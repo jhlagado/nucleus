@@ -924,6 +924,25 @@ Stage7EmitWord:
             LD   A,H
             JP   SemanticSinkPut
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+Stage7EmitExtentAndCallOffset:
+            LD   HL,(Stage7PathExtent)
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(Stage7CallOffset)
+            JP   Stage7EmitWord
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+Stage7EmitOperationAndPathOffset:
+            CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(Stage7PathOffset)
+            JP   Stage7EmitWord
+
 ; D is the symbol class and BC its byte offset. Emit its opaque root carrier
 ; and return the exact aggregate type in A.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -1117,12 +1136,7 @@ Stage7PathArrayField:
             LD   D,(HL)
             LD   (Stage7PathOffset),DE
             LD   A,SemanticArrayLength
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticBranches
-            JP   C,Stage7PathSuffixFailure
-.endif
-            LD   HL,(Stage7PathOffset)
-            CALL Stage7EmitWord
+            CALL Stage7EmitOperationAndPathOffset
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
 .endif
@@ -1152,11 +1166,7 @@ Stage7PathRecordField:
             JP   NZ,TypedTypeFailure
             INC  HL
             LD   A,(HL)
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateRecordTableBase
-            ADD  HL,DE
+            CALL AggregateRecordTableEntry
             LD   B,(HL)
             INC  HL
             LD   D,(HL)
@@ -1187,12 +1197,7 @@ Stage7PathRecordFieldFound:
             PUSH AF
             LD   (Stage7PathOffset),DE
             LD   A,SemanticSelectField
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticBranches
-            JP   C,Stage7PathSuffixFailure
-.endif
-            LD   HL,(Stage7PathOffset)
-            CALL Stage7EmitWord
+            CALL Stage7EmitOperationAndPathOffset
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
 .endif
@@ -1281,19 +1286,18 @@ Stage7PathIndex:
             LD   HL,(ExpressionRightValue)
             OR   A
             SBC  HL,BC
+.if TargetStreamingOutput
+            JR   NC,Stage7PathIndexRangeFailure
+.else
             JP   NC,Stage7PathIndexRangeFailure
+.endif
 Stage7PathIndexDynamic:
             LD   (Stage7PathOffset),BC
             LD   A,(Stage7PathType)
             CALL AggregateGetExtent
             LD   (Stage7PathExtent),HL
             LD   A,SemanticSelectIndex
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticBranches
-            JR   C,Stage7PathSuffixFailure
-.endif
-            LD   HL,(Stage7PathOffset)
-            CALL Stage7EmitWord
+            CALL Stage7EmitOperationAndPathOffset
 .if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
 .endif
@@ -1314,13 +1318,7 @@ Stage7PathOpenArrayIndex:
             JR   C,Stage7PathSuffixFailure
 .endif
 Stage7PathArrayIndexTail:
-            LD   HL,(Stage7PathExtent)
-            CALL Stage7EmitWord
-.if CompilerDiagnosticBranches
-            JR   C,Stage7PathSuffixFailure
-.endif
-            LD   HL,(Stage7CallOffset)
-            CALL Stage7EmitWord
+            CALL Stage7EmitExtentAndCallOffset
 .if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
 .endif
@@ -2094,7 +2092,11 @@ Stage7TypedPrimaryAggregateSymbol:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if TargetStreamingOutput
+            JR   Stage7TypedPrimaryRoutineAggregate
+.else
             JP   Stage7TypedPrimaryRoutineAggregate
+.endif
 
 ; Current routine name has already been consumed as a complete statement.
 .if HybridLL1Full
@@ -2194,9 +2196,7 @@ Stage7AggregateAssignmentWritable:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,1
-            LD   (Stage8RetainedCarriers),A
-            CALL Stage8SelectFailureConsumer
+            CALL Stage8RetainOneAndSelectFailure
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2229,9 +2229,7 @@ Stage7AggregateCopyAssignment:
             JP   NZ,TypedTypeFailure
             CALL AggregateGetExtent
             LD   (Stage7PathExtent),HL
-            LD   A,1
-            LD   (Stage8RetainedCarriers),A
-            CALL Stage8SelectFailureConsumer
+            CALL Stage8RetainOneAndSelectFailure
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2240,13 +2238,7 @@ Stage7AggregateCopyAssignment:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(Stage7PathExtent)
-            CALL Stage7EmitWord
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   HL,(Stage7CallOffset)
-            CALL Stage7EmitWord
+            CALL Stage7EmitExtentAndCallOffset
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2271,9 +2263,7 @@ Stage7StringResizeAssignment:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,1
-            LD   (Stage8RetainedCarriers),A
-            CALL Stage8SelectFailureConsumer
+            CALL Stage8RetainOneAndSelectFailure
 .if CompilerDiagnosticReturns
             RET  C
 .endif

@@ -2620,6 +2620,66 @@ maps. The NOBJ SHA-256 was
 the materialized-image SHA-256 was
 `6a4a1acac3434c1d60d4752ccad371af177b011b722b9f395f3da1e2d716d381`.
 
+The following local-recovery pass starts from the later dispatcher checkpoint
+`e3637574991d951db774f2a9b623cbbe9d420ae7`. This distinction matters because
+the proposed work sheet used the earlier 15,469-byte open-view checkpoint as
+its baseline. At `e3637574`, measured shipping code was 15,453 bytes and the
+dispatcher experiment had already recovered the intervening sixteen bytes.
+
+Each family was assembled under strict register contracts and retained only
+after the shipping extent decreased. The complete proof harness and 191-test
+suite passed after every retained family. The measured progression was:
+
+| Retained family                              | Code bytes | Family delta | Instructions |   T-states |
+| -------------------------------------------- | ---------: | -----------: | -----------: | ---------: |
+| `e3637574` baseline                          |     15,453 |            - |    1,062,343 | 10,425,959 |
+| streaming-only relative branches             |     15,447 |           -6 |    1,062,343 | 10,425,957 |
+| shared writable-capacity subtraction         |     15,439 |           -8 |    1,062,439 | 10,427,253 |
+| shared record-table indexing                 |     15,433 |           -6 |    1,062,487 | 10,427,901 |
+| open-view and nested-array rejection helpers |     15,414 |          -19 |    1,062,672 | 10,429,835 |
+| shared extent emission and local-width tail  |     15,401 |          -13 |    1,062,685 | 10,429,965 |
+| retained-carrier and path-offset helpers     |     15,385 |          -16 |    1,062,701 | 10,430,125 |
+
+The first family required one correction to the proposed site classification.
+The `Stage7PathIndexRangeFailure` relative displacement is valid in both
+streaming compilers but is +134 in the current Stage 8 and Stage 9 layouts. It
+therefore uses the same `TargetStreamingOutput`-guarded `JR`/`JP` form as the
+other layout-sensitive sites. No relative branch in this pass relies only on
+the shipping placement.
+
+The measured total reduction is 68 shipping code bytes. The final normal
+compiler is 15,385 code bytes plus 401 immutable bytes, or 15,786
+compiler-core bytes, leaving 598 bytes below 16 KiB. The instrumented compiler
+is 15,441 code bytes plus 401 immutable bytes, leaving 1,566 bytes in its
+separate reservation. Workspace remains 3,611 bytes and the selected proof
+runtime remains 600 bytes. The shipping and instrumented proofs each add 358
+compiler instructions and 4,166 T-states, or about 61 T-states per recovered
+byte.
+
+The current historical accounts are 14,514 code plus 401 immutable bytes for
+both the Stage 8 and Stage 9 compositions. Stage 9 executes 1,684,890
+instructions in 15,795,811 T-states; Stage 8 executes 2,066,406 instructions in
+19,165,762 T-states. The complete packed-grammar proof executes 2,203,194
+instructions in 20,349,926 T-states, with 9,298 parser bytes and 2,556 action
+bytes. The legacy aggregate-only composition remains 9,353 code plus 254
+immutable bytes and executes 377,231 instructions in 3,544,851 T-states.
+
+A detached comparison against `e3637574` compiled a two-part program with an
+open `u16[]` parameter, a counted loop, indexing, local `u16` values, and a
+source routine call. Both versions produced the same 3,653-byte NOBJ stream,
+4,096-byte materialized image, Intel HEX, D8 map, and 35-operation semantic
+transcript. The NOBJ SHA-256 was
+`b547d35a4b79a4d50219669e15cf1f20c5d94430e4652b2b72b42157807fce94`;
+the image SHA-256 was
+`ac1268639d85102280480d673f43869209b2cd16d77f24e7523fc2e9e3838848`;
+the HEX SHA-256 was
+`5b98477da59a228da901e29c5704dd5287b0699dfe63d9d66cd656bdb5861887`;
+and the D8 SHA-256 was
+`3a80f459dd0fc60f4fe3ee4822ce2cf22e09d72f22fe1a48f61ad8d35fd622b2`.
+Normal and instrumented builds also produced identical NOBJ bytes. This pass
+adds no raw instruction encodings, pointer tags, address truncation, workspace,
+runtime support, or generated-program bytes.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

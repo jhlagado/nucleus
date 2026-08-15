@@ -150,34 +150,32 @@ HybridLL1MakeOpenStringType:
 ; the exact concrete element type without consuming an aggregate-type entry.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 HybridLL1MakeOpenArrayType:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             CP   AggregateFirstDynamicTypeId
             JR   C,HybridLL1OpenArrayElementReady
-            PUSH AF
-            CALL AggregateTypeAddress
-            LD   A,(HL)
-            CP   AggregateTypeKindArray
-            JP   Z,AggregateNestedArrayFailure
-            POP  AF
+            CALL AggregateRejectIfArrayKind
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
 HybridLL1OpenArrayElementReady:
             OR   AggregateOpenArrayTypeMask
             JR   HybridLL1SetCurrentType
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1MakeArrayType:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             CP   AggregateFirstDynamicTypeId
             JR   C,HybridLL1ArrayElementReady
-            PUSH AF
-            CALL AggregateTypeAddress
-            LD   A,(HL)
-            CP   AggregateTypeKindArray
-            JP   Z,AggregateNestedArrayFailure
-            POP  AF
+            CALL AggregateRejectIfArrayKind
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
 HybridLL1ArrayElementReady:
             LD   (AggregateCandidateAux),A
             CALL HybridLL1CheckedBound
@@ -207,6 +205,24 @@ HybridLL1ArrayExtentLoop:
             LD   A,AggregateTypeKindArray
             LD   (AggregateCandidateKind),A
             JR   HybridLL1InternCurrentType
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+AggregateRejectOpenViewCurrent:
+            LD   A,(AggregateCurrentTypeId)
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
+            OR   A
+            RET
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+AggregateRejectIfArrayKind:
+            PUSH AF
+            CALL AggregateTypeAddress
+            LD   A,(HL)
+            CP   AggregateTypeKindArray
+            JP   Z,AggregateNestedArrayFailure
+            POP  AF
+            RET
 
 ; --------------------------------------------------------- scalar constants
 
@@ -331,10 +347,11 @@ HybridLL1AssertTypeFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1SaveProgramType:
-            LD   A,(AggregateCurrentTypeId)
 HybridLL1SaveObjectType:
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             LD   (DeclarationInfo),A
             CALL AggregateGetExtent
             LD   (AggregateCurrentObjectExtent),HL
@@ -477,7 +494,11 @@ HybridLL1AllocateBssObject:
             LD   C,L
 .endif
             OR   A
+.if TargetStreamingOutput
+            JR   HybridLL1CommitObjectReady
+.else
             JP   HybridLL1CommitObjectReady
+.endif
 
 ; Add the current object extent to the selected segment length in DE. Return
 ; the old offset in DE and the checked mathematical end in HL.
@@ -537,9 +558,10 @@ HybridLL1BeginRecordField:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitRecordField:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             LD   A,(AggregateFieldCount)
             LD   B,A
             LD   A,(AggregateCurrentFieldCount)
@@ -590,11 +612,7 @@ HybridLL1CommitRecord:
 .endif
             LD   (AggregateCurrentTypeId),A
             LD   A,(AggregateRecordCount)
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateRecordTableBase
-            ADD  HL,DE
+            CALL AggregateRecordTableEntry
             LD   A,(AggregateCurrentFieldStart)
             LD   (HL),A
             INC  HL
@@ -810,9 +828,10 @@ HybridLL1AllowSubResult:
             RET
 
 HybridLL1SaveSubResult:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+            CALL AggregateRejectOpenViewCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             LD   (Stage7CurrentResultType),A
             OR   A
             RET
@@ -1259,6 +1278,12 @@ Stage8SelectPendingFailure:
             LD   (HL),A
             JR   Stage8ClearPendingFailure
 
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+Stage8RetainOneAndSelectFailure:
+            LD   A,1
+            LD   (Stage8RetainedCarriers),A
+            JP   Stage8SelectFailureConsumer
+
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1LookupDeclaration:
             CALL SymbolLookupCurrent
@@ -1470,12 +1495,7 @@ HybridLL1CommitLocal:
             RET  C
 .endif
             CALL TypedDeclarationScalarType
-            CALL TypedTypeWidth
-            LD   HL,NextLocalSlot
-            ADD  A,(HL)
-            LD   (HL),A
-            OR   A
-            RET
+            JP   Stage7InstallScalarParameterWidth
 
 ; ------------------------------------------------------------ simple statements
 

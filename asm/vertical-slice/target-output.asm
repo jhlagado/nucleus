@@ -102,9 +102,7 @@ TargetStartupStack:
             LD   DE,TargetStackRequirement+2
             ADD  HL,DE
             JR   C,TargetStartupStackFailure
-            LD   DE,(TargetWritableCapacity)
-            OR   A
-            SBC  HL,DE
+            CALL TargetSubtractWritableCapacity
             JR   C,TargetStartupStackFits
             JR   Z,TargetStartupStackFits
 TargetStartupStackFailure:
@@ -445,6 +443,13 @@ TargetRegionReady:
 ; Classify two checked nonempty regions without storing an exclusive $10000
 ; end in a word. Loaded means writable is wholly inside image; ROM means the
 ; half-open regions are disjoint. Every partial overlap is rejected.
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSubtractWritableCapacity:
+            LD   DE,(TargetWritableCapacity)
+            OR   A
+            SBC  HL,DE
+            RET
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TargetClassifyFlatLayout:
             LD   HL,(TargetWritableBase)
@@ -461,9 +466,7 @@ TargetClassifyFlatLayout:
             LD   HL,(TargetImageCapacity)
             OR   A
             SBC  HL,BC                    ; remaining image capacity
-            LD   DE,(TargetWritableCapacity)
-            OR   A
-            SBC  HL,DE
+            CALL TargetSubtractWritableCapacity
             JP   C,TargetConfigurationFailure
             XOR  A
             LD   (TargetLayoutMode),A
@@ -473,9 +476,7 @@ TargetWritableBeforeImage:
             LD   DE,(TargetWritableBase)
             OR   A
             SBC  HL,DE                    ; distance to image start
-            LD   DE,(TargetWritableCapacity)
-            OR   A
-            SBC  HL,DE
+            CALL TargetSubtractWritableCapacity
             JP   C,TargetConfigurationFailure
 TargetFlatRomReady:
             LD   A,TargetLayoutRom
@@ -542,9 +543,7 @@ TargetContextRoDataFinished:
             LD   DE,(ProgramBssLength)
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
-            LD   DE,(TargetWritableCapacity)
-            OR   A
-            SBC  HL,DE
+            CALL TargetSubtractWritableCapacity
             JR   C,TargetWritableAllocationReady
             JR   Z,TargetWritableAllocationReady
 TargetPrepareCapacityFailure:

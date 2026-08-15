@@ -17,6 +17,15 @@ AggregateTypeAddress:
             ADD  HL,DE
             RET
 
+.routine in A out A,DE,HL clobbers carry,zero,sign,parity,halfCarry
+AggregateRecordTableEntry:
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,AggregateRecordTableBase
+            ADD  HL,DE
+            RET
+
 .routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
 AggregateExtentAddress:
             SUB  AggregateFirstDynamicTypeId
@@ -511,11 +520,7 @@ AggregateRecordFinish:
 .endif
             LD   (AggregateCurrentTypeId),A
             LD   A,(AggregateRecordCount)
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateRecordTableBase
-            ADD  HL,DE
+            CALL AggregateRecordTableEntry
             LD   A,(AggregateCurrentFieldStart)
             LD   (HL),A
             INC  HL
@@ -771,7 +776,11 @@ AggregateBeginCompositeInitializer:
             RET  C
 .endif
             CP   D
+.if TargetStreamingOutput
+            JR   NZ,AggregateInitializerShapeFailure
+.else
             JP   NZ,AggregateInitializerShapeFailure
+.endif
             CALL AggregateTakePreserveBC
 .if CompilerDiagnosticReturns
             RET  C
@@ -790,11 +799,7 @@ AggregateParseRecordInitializer:
             CALL AggregateTypeAddress
             INC  HL
             LD   A,(HL)
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateRecordTableBase
-            ADD  HL,DE
+            CALL AggregateRecordTableEntry
             LD   B,(HL)
             INC  HL
             LD   C,(HL)
