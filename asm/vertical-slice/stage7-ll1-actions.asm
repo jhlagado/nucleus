@@ -845,7 +845,9 @@ HybridLL1BeginForwardBody:
             PUSH AF
             PUSH HL
             CALL TargetRequireCurrentBank
+.if CompilerDiagnosticBranches
             JR   C,HybridLL1ForwardBankFailure
+.endif
             POP  HL
             POP  AF
 .endif

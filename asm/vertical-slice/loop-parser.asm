@@ -24,8 +24,10 @@ CompilerNonlocalDiagnostics .equ 0
 
 .if CompilerNonlocalDiagnostics
 CompilerDiagnosticReturns .equ 0
+CompilerDiagnosticBranches .equ 0
 .else
 CompilerDiagnosticReturns .equ 1
+CompilerDiagnosticBranches .equ 1
 .endif
 
 .if CompilerNonlocalDiagnostics
@@ -710,10 +712,14 @@ ParserParseScalarProgramDeclarationAfterU8:
             PUSH BC
             LD   A,SemanticDefineProgramU8
             CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarProgramOperandFailure
+.endif
             LD   A,(NextProgramSlot)
             CALL SemanticSinkPut
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarProgramOperandFailure
+.endif
             POP  BC
             LD   A,C
             CALL SemanticSinkPut
@@ -792,9 +798,13 @@ ParserParseScalarAssignment:
             LD   B,A
             PUSH BC
             CALL ParserExpectEqual
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarAssignmentFailure
+.endif
             CALL ParserParseScalarExpression
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarAssignmentFailure
+.endif
             POP  BC
             LD   A,B
             CALL ParserEmitSymbolStore
@@ -811,14 +821,22 @@ ParserParseScalarWrite:
             LD   HL,(TokenStartOffset)
             PUSH HL
             CALL ParserExpectLeft
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
+.endif
             CALL ParserParseScalarExpression
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
+.endif
             CALL ParserExpectRight
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
+.endif
             LD   A,SemanticWriteValueU8
             CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
+.endif
             POP  HL
             LD   A,L
             PUSH HL

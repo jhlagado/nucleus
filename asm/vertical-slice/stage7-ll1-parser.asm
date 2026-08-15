@@ -92,7 +92,9 @@ HybridLL1Nonterminal:
             PUSH HL
             CALL ParserPeek
             POP  HL
+.if CompilerDiagnosticBranches
             JR   C,HybridLL1PredictionPeekFailure
+.endif
             LD   C,A
 HybridLL1PredictionNext:
             LD   B,(HL)

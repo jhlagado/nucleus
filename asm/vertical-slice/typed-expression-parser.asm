@@ -635,7 +635,9 @@ TypedPrimaryEmitTypedConstant:
             LD   A,SemanticLiteral16
             CALL TypedEmitOperation
             POP  HL
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryEmitTypedConstantFailure
+.endif
             PUSH HL
             CALL TypedEmitWord
             POP  HL
@@ -773,7 +775,9 @@ TypedPrimaryScalarCall:
             LD   HL,(TokenStartOffset)
             PUSH HL
             CALL ParserExpectLeft
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallFailure
+.endif
             LD   A,(ExpressionExpectedType)
             LD   B,A
             LD   A,(ForwardParameterType)
@@ -781,12 +785,16 @@ TypedPrimaryScalarCall:
             PUSH BC
             LD   (ExpressionExpectedType),A
             CALL TypedParseOr
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallContextFailure
+.endif
             LD   D,A
             PUSH DE
             PUSH HL
             CALL ParserExpectRight
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallRightFailure
+.endif
             POP  HL
             POP  DE
             POP  BC
@@ -796,22 +804,32 @@ TypedPrimaryScalarCall:
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallFailure
+.endif
             POP  HL
             PUSH HL
             LD   A,SemanticCallScalar
             CALL TypedEmitOperation
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallEmitFailure
+.endif
             LD   A,(ForwardOrdinal)
             CALL TypedEmitByte
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallEmitFailure
+.endif
             LD   A,(ForwardResultType)
             CALL TypedEmitByte
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallEmitFailure
+.endif
             POP  HL
             PUSH HL
             CALL TypedEmitWord
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryCallEmitFailure
+.endif
             POP  HL
             LD   A,(ForwardResultType)
             OR   A
@@ -869,7 +887,9 @@ TypedPrimaryParen:
             PUSH AF
             PUSH HL
             CALL ParserExpectRight
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryParenFailure
+.endif
             POP  HL
             POP  AF
 .if AggregateCallSlices
@@ -895,14 +915,20 @@ TypedParseConversionOperand:
             LD   A,C
             LD   (ExpressionExpectedType),A
             CALL ParserExpectLeft
+.if CompilerDiagnosticBranches
             JR   C,TypedParseConversionFailure
+.endif
             CALL TypedParseOr
+.if CompilerDiagnosticBranches
             JR   C,TypedParseConversionFailure
+.endif
             LD   D,A
             PUSH DE
             PUSH HL
             CALL ParserExpectRight
+.if CompilerDiagnosticBranches
             JR   C,TypedParseConversionRightFailure
+.endif
             POP  HL
             POP  DE
             POP  BC
@@ -933,7 +959,9 @@ TypedPrimaryNarrow:
             PUSH HL                       ; this conversion's trap position
             LD   A,ScalarTypeU8
             CALL TypedParseConversionOperand
+.if CompilerDiagnosticBranches
             JR   C,TypedPrimaryNarrowContextFailure
+.endif
             ; Restore the enclosing context while keeping this conversion's
             ; value and source offset live for the checked narrowing below.
             LD   D,A
@@ -1110,7 +1138,9 @@ TypedMultiplicativeLoop:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JR   C,TypedMultiplicativePeekFailure
+.endif
             CP   TokenStar
             JR   Z,TypedMultiplicativeOperator
             CP   TokenSlash
@@ -1120,7 +1150,9 @@ TypedMultiplicativeLoop:
 TypedMultiplicativeOperator:
             LD   (ExpressionOperator),A
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JR   C,TypedMultiplicativePeekFailure
+.endif
             LD   HL,(TokenStartOffset)
             LD   (ExpressionOperatorOffset),HL
             POP  HL
@@ -1170,7 +1202,9 @@ TypedAdditiveLoop:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
+.endif
             CP   TokenPlus
             JR   Z,TypedAdditiveOperator
             CP   TokenMinus
@@ -1178,7 +1212,9 @@ TypedAdditiveLoop:
 TypedAdditiveOperator:
             LD   (ExpressionOperator),A
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
+.endif
             POP  HL
             POP  AF
 .if AggregateCallSlices
@@ -1249,13 +1285,17 @@ TypedParseComparison:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
+.endif
             CALL TypedComparisonToken
             JR   NC,TypedComparisonNone
             LD   A,C
             LD   (ExpressionOperator),A
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
+.endif
             POP  HL
             POP  AF
 .if AggregateCallSlices
@@ -1285,7 +1325,9 @@ TypedParseComparison:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
+.endif
             CALL TypedComparisonToken
             JR   C,TypedComparisonChained
             POP  HL
@@ -1516,12 +1558,16 @@ TypedAndLoop:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
+.endif
             CP   TokenAnd
             JP   NZ,TypedBooleanDone
             LD   (ExpressionOperator),A
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
+.endif
             POP  HL
             POP  AF
 .if AggregateCallSlices
@@ -1578,7 +1624,9 @@ TypedOrLoop:
             PUSH AF
             PUSH HL
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
+.endif
             CP   TokenXor
             JR   Z,TypedOrOperator
             CP   TokenOr
@@ -1592,7 +1640,9 @@ TypedOrLoop:
 TypedOrOperator:
             LD   (ExpressionOperator),A
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
+.endif
             POP  HL
             POP  AF
             CALL TypedSaveLeft
@@ -2425,7 +2475,9 @@ TypedStatementIf:
             LD   A,(ControlSequenceFallsThrough)
             PUSH AF
             CALL StructuredParseIf
+.if CompilerDiagnosticBranches
             JR   C,TypedStatementControlFailure
+.endif
             LD   C,A
             POP  AF
             AND  C
@@ -2449,7 +2501,9 @@ TypedStatementFor:
             PUSH AF
             CALL StructuredParseFor
 TypedStatementLoopComplete:
+.if CompilerDiagnosticBranches
             JR   C,TypedStatementControlFailure
+.endif
             POP  AF
             LD   (ControlSequenceFallsThrough),A
             JP   TypedParseStatementsContinue

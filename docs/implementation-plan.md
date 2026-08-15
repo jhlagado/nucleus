@@ -2016,6 +2016,32 @@ CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes. This stage removes
 diagnostic-return instructions only; conditional diagnostic branches and their
 cleanup shims remain candidates for later, separately measured work.
 
+### Parser conditional diagnostic-branch removal
+
+The next stage starts from parser-return checkpoint
+`f43235243bf9341e6cb43176b1a26d0de497db38`. It classifies conditional carry
+branches in the typed-expression parser, aggregate-call parser, common scalar
+parser, aggregate parser, and LL(1) parser and actions. Production layouts omit
+72 branches whose preceding call either raises a diagnostic through
+`CompilerSetDiagnostic` or succeeds. Historical layouts retain them. Carry
+branches that report tokenizer EOF, symbol lookup, name comparison, arithmetic
+or capacity results, and LL(1) terminal classification remain active.
+
+Shipping compiler code now measures 15,068 bytes. Immutable data remains 393
+bytes, so compiler core is 15,461 bytes with 923 bytes of 16 KiB headroom. This
+is a measured 122-byte core reduction from the parser-return checkpoint. The
+instrumented compiler measures 15,124 code bytes plus 393 immutable bytes, or
+15,517 core bytes, leaving 1,891 bytes in its 17 KiB reservation. Workspace
+remains 3,609 bytes and the selected runtime remains 574 bytes.
+
+The expanded shipping proof executes 1,056,478 instructions in 10,402,378
+T-states, reductions of 1,886 instructions and 13,883 T-states. The
+instrumented proof executes 1,061,107 instructions in 10,453,389 T-states,
+with the same reductions. Proof code and data remain 2,487 and 2,489 bytes.
+Fresh CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes. The cleanup
+labels reached only by these historical branches remain in this checkpoint;
+their removal is the next separately measured stage.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

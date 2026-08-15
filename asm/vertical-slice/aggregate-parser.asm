@@ -970,7 +970,9 @@ AggregateParseProgramAfterVar:
             LD   B,A
             PUSH BC
             CALL AggregateParseInitializer
+.if CompilerDiagnosticBranches
             JR   C,AggregateProgramInitializerFailure
+.endif
             POP  BC
             LD   A,1
             LD   (AggregateHasInitializer),A

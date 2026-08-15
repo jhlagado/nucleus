@@ -957,7 +957,9 @@ Stage7ParsePathSuffix:
 Stage7PathSuffixLoop:
             PUSH AF
             CALL ParserPeek
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             CP   TokenDot
             JR   Z,Stage7PathFieldComposition
             CP   TokenLeftBracket
@@ -977,14 +979,20 @@ Stage7PathFieldComposition:
             PUSH AF
 Stage7PathField:
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             POP  AF
             PUSH AF
             CP   AggregateFirstDynamicTypeId
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathFieldTypeFailure
+.endif
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7PathStringField
             CALL AggregateTypeAddress
@@ -1010,10 +1018,14 @@ Stage7PathOpenStringField:
             LD   A,SemanticOpenStringLength
 Stage7PathStringLengthReady:
             CALL ParserEmitOperationC
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(TokenStartOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             POP  AF
             LD   A,ScalarTypeU8
             LD   D,1
@@ -1066,10 +1078,14 @@ Stage7PathRecordFieldFound:
             LD   (Stage7PathOffset),DE
             LD   A,SemanticSelectField
             CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(Stage7PathOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
+.endif
             POP  AF
             JP   Stage7PathSuffixLoop
 Stage7PathIndexComposition:
@@ -1087,7 +1103,9 @@ Stage7PathIndex:
             LD   HL,(TokenStartOffset)
             PUSH HL
             CALL ParserTake
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexFailure
+.endif
             LD   A,(ExpressionExpectedType)
             PUSH AF
             LD   A,(ExpressionEmitEnabled)
@@ -1097,9 +1115,13 @@ Stage7PathIndex:
             LD   A,ScalarTypeU16
             LD   (ExpressionExpectedType),A
             CALL TypedParseOr
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexExpressionFailure
+.endif
             CALL TypedRequireComposable
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexExpressionFailure
+.endif
             LD   (ExpressionRightMeta),A
             LD   (ExpressionRightValue),HL
             POP  AF
@@ -1112,7 +1134,9 @@ Stage7PathIndex:
             JP   Z,Stage7PathIndexTypeFailure
             LD   E,TokenRightBracket
             CALL ParserExpect
+.if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexFailure
+.endif
             POP  HL
             LD   (Stage7CallOffset),HL
             POP  AF
@@ -1153,16 +1177,24 @@ Stage7PathIndexDynamic:
             LD   (Stage7PathExtent),HL
             LD   A,SemanticSelectIndex
             CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(Stage7PathOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(Stage7PathExtent)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(Stage7CallOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             POP  AF
             CALL AggregateTypeAddress
             INC  HL
@@ -1179,10 +1211,14 @@ Stage7PathOpenStringIndex:
             LD   A,SemanticOpenStringIndex
 Stage7PathStringIndexReady:
             CALL ParserEmitOperationC
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             LD   HL,(Stage7CallOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
+.endif
             POP  AF
             LD   A,ScalarTypeU8
             JP   Stage7PathSuffixLoop
@@ -1258,7 +1294,9 @@ Stage7ParseScalarArgument:
             LD   A,1
             LD   (ExpressionEmitEnabled),A
             CALL TypedParseOr
+.if CompilerDiagnosticBranches
             JR   C,Stage7ScalarArgumentFailure
+.endif
             LD   (Stage7PathType),A
             LD   (ExpressionRightValue),HL
             POP  DE
@@ -1352,7 +1390,9 @@ Stage7PushCallFrameLabelReady:
             LD   HL,Stage7CallDepth
             INC  (HL)
             CALL ParserExpectLeft
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 Stage7CallArgumentLoop:
             CALL Stage7CurrentCallFrame
             INC  HL
@@ -1375,11 +1415,15 @@ Stage7CallArgumentLoop:
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7CallAggregateArgument
             CALL Stage7ParseScalarArgument
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
             JR   Stage7CallArgumentReady
 Stage7CallAggregateArgument:
             CALL Stage7ParseAggregateValue
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
             PUSH AF
             CALL Stage7CurrentCallFrame
             INC  HL
@@ -1405,7 +1449,9 @@ Stage7CallOpenStringType:
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7CallAggregateTypeReady
             CALL Stage7StringCapacity
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 Stage7CallAggregateTypeReady:
 .if TargetStreamingOutput
             ; A cross-bank aggregate parameter must originate at a direct
@@ -1425,12 +1471,16 @@ Stage7CallAggregateTypeReady:
 Stage7CallAggregateBankReady:
 .endif
             CALL Stage8RequireNoPendingFailure
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
             LD   A,(Stage7CallResultType)
             CP   AggregateOpenStringTypeId
             JR   NZ,Stage7CallArgumentReady
             CALL Stage7PrepareOpenStringArgument
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 Stage7CallArgumentReady:
             CALL Stage7CurrentCallFrame
             INC  HL
@@ -1442,9 +1492,13 @@ Stage7CallArgumentReady:
             LD   E,TokenComma
             CALL ParserExpect
 .if TargetStreamingOutput
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 .else
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 .endif
             JP   Stage7CallArgumentLoop
 
@@ -1487,9 +1541,13 @@ Stage7PrepareOpenStringReady:
 Stage7CallArgumentsDone:
             CALL ParserExpectRight
 .if TargetStreamingOutput
+.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 .else
+.if CompilerDiagnosticBranches
             JR   C,Stage7CallFailure
+.endif
 .endif
             CALL Stage7CurrentCallFrame
             LD   A,(HL)
@@ -1632,7 +1690,9 @@ Stage7AggregateValueSymbol:
 Stage7AggregateValueRootReady:
             PUSH BC
             CALL Stage7EmitAggregateSymbolRoot
+.if CompilerDiagnosticBranches
             JR   C,Stage7AggregateValueRootFailure
+.endif
             POP  BC
             LD   A,(Stage7PathType)
             JR   Stage7AggregateValueSuffix
@@ -1650,7 +1710,9 @@ Stage7AggregateValueSuffix:
 .if TargetStreamingOutput
             PUSH BC
             CALL Stage7ParsePathSuffix
+.if CompilerDiagnosticBranches
             JR   C,Stage7AggregateValueSuffixFailure
+.endif
             POP  BC
 .else
             CALL Stage7ParsePathSuffix
@@ -1691,7 +1753,9 @@ Stage7FinishScalarPath:
             LD   A,SemanticLoadIndirect16
 Stage7ScalarPathEmit:
             CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
             JR   C,Stage7ScalarPathFailure
+.endif
 Stage7ScalarPathReady:
             LD   A,(Stage7PathType)
             OR   A
@@ -1840,7 +1904,9 @@ Stage7ParseAggregateReturn:
             LD   A,(Stage7CurrentResultType)
             PUSH AF
             CALL Stage7ParseAggregateValue
+.if CompilerDiagnosticBranches
             JR   C,Stage7AggregateReturnFailure
+.endif
             LD   D,A
             POP  AF
             CP   D
@@ -1931,7 +1997,9 @@ Stage7ScalarAssignmentEmit:
 Stage7AggregateCopyAssignment:
             PUSH AF
             CALL Stage7ParseAggregateValue
+.if CompilerDiagnosticBranches
             JR   C,Stage7AggregateCopyFailure
+.endif
             LD   D,A
             POP  AF
             CP   AggregateOpenStringTypeId
