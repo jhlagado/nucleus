@@ -151,7 +151,7 @@ Nucleus 0.1 is one language. Measurements may change the draft before it is froz
 
 ### 2.2 Language-shaping constraints
 
-Nucleus is a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems. Its minimum programming model includes `u8`, `u16`, and Boolean values; scalar and aggregate constants; formal arguments, including capacity-polymorphic bounded-string parameters; named scalar local variables; routines with no result or one typed result; fixed-layout records; checked fixed arrays; bounded strings with length and checked byte indexing; complete positional static initializers; assignment and calls; `if`/`elseif`/`else`; `while`; counted `for`; `return`; and the unlabeled, innermost-loop forms of `exit` and `continue`. Silently removing one of these requirements does not make an oversized compiler acceptable. If a faithful implementation cannot fit, that result requires compiler-architecture redesign or rejection of the architecture hypothesis.
+Nucleus is a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems. Its minimum programming model includes `u8`, `u16`, `i8`, `i16`, and Boolean values; scalar and aggregate constants; formal arguments, including capacity-polymorphic bounded-string parameters; named scalar local variables; routines with no result or one typed result; fixed-layout records; checked fixed arrays; bounded strings with length and checked byte indexing; complete positional static initializers; assignment and calls; `if`/`elseif`/`else`; `while`; counted `for`; `return`; and the unlabeled, innermost-loop forms of `exit` and `continue`. Silently removing one of these requirements does not make an oversized compiler acceptable. If a faithful implementation cannot fit, that result requires compiler-architecture redesign or rejection of the architecture hypothesis.
 
 The language design uses deterministic parsing with canonical forms, minimal lookahead, and no backtracking. A smaller production count is useful only when it preserves the required programming model. Grammar terseness is not an independent design goal.
 
@@ -325,7 +325,7 @@ elseif
 end      exit     fail      fails     false    for      forward
 handle   if       mod      not       or        record
 return
-step     string   sub      to        true      u16      u8
+step     string   sub      to        true      i16      i8       u16      u8
 until    var      while    xor
 ```
 
@@ -337,7 +337,7 @@ Nucleus uses name-led routine invocation and has no `call` keyword. `call` remai
 
 ### 3.6 Numeric literals
 
-Nucleus admits unsigned decimal, hexadecimal, and binary integer literals:
+Nucleus admits nonnegative decimal, hexadecimal, and binary integer literals:
 
 ```text
 decimal-literal ::= decimal-digit+
@@ -350,9 +350,9 @@ integer-literal ::= decimal-literal
 
 Hexadecimal digits may use either letter case. The `$` and `%` prefixes are part of the literal and do not form separate punctuation tokens. A prefix must be followed by at least one digit of its base.
 
-The tokenizer computes an exact unsigned value from zero through 65,535. A decimal literal whose value exceeds 65,535 is a lexical error. A hexadecimal literal may contain at most four digits, and a binary literal may contain at most sixteen digits; an additional digit is an overflow even when it is a leading or trailing zero. Later type checking decides whether the value fits its context, including `u8`, `u16`, an array bound, or a counted-loop parameter.
+The tokenizer computes an exact nonnegative value from zero through 65,535. A decimal literal whose value exceeds 65,535 is a lexical error. A hexadecimal literal may contain at most four digits, and a binary literal may contain at most sixteen digits; an additional digit is an overflow even when it is a leading or trailing zero. Later type checking decides whether the value fits its context, including `u8`, `u16`, `i8`, `i16`, an array bound, or a counted-loop parameter.
 
-A leading `+` or `-` is a separate punctuation token and is never part of the literal. Thus `-32768` begins with `-` followed by the literal `32768`; expression and constant rules determine whether that combination is valid.
+A leading `+` or `-` is a separate punctuation token and is never part of the literal. Thus `-32768` begins with `-` followed by the literal `32768`. In an exact constant expression, unary minus preserves the mathematical sign separately from the payload bits. Exact negative values are admitted down to -32,768. Hexadecimal and binary literals are always nonnegative: `$FFFF` is 65,535, not -1.
 
 A letter or underscore immediately following any integer literal makes the numeric token malformed instead of beginning an adjacent identifier. This rejects forms such as `0x2a`, `12u8`, `$ffu8`, and `%10value` with one diagnostic. A decimal digit other than zero or one inside a binary literal is likewise malformed rather than the start of a following decimal token.
 
@@ -885,12 +885,12 @@ The type system supports local checking during one streaming source pass. A comp
 
 ### 6.2 Type set
 
-Nucleus 0.1 has three scalar types, three owned aggregate forms, and two
+Nucleus 0.1 has five scalar types, three owned aggregate forms, and two
 parameter-only aggregate-view families:
 
 | Category        | Types or forms                       |
 | --------------- | ------------------------------------ |
-| Scalar          | `u8`, `u16`, `boolean`               |
+| Scalar          | `u8`, `u16`, `i8`, `i16`, `boolean`  |
 | Owned aggregate | nominal records, `T[N]`, `string[N]` |
 | Parameter view  | `string[]`, `T[]`                    |
 
@@ -902,7 +902,7 @@ type             ::= scalar-type
                    | fixed-array-type
                    | open-array-type
                    | bounded-string-type
-scalar-type      ::= "u8" | "u16" | "boolean"
+scalar-type      ::= "u8" | "u16" | "i8" | "i16" | "boolean"
 fixed-array-type ::= element-type "[" array-length "]"
 open-array-type  ::= element-type "[" "]"
 element-type     ::= scalar-type | record-type-name | bounded-string-type
@@ -919,23 +919,23 @@ added by this chapter.
 
 ### 6.3 Scalar types
 
-`u8` is the unsigned integer type whose values range from 0 through 255. `u16` is the unsigned integer type whose values range from 0 through 65,535. Their widths and ranges do not vary by target.
+`u8` is the unsigned integer type whose values range from 0 through 255. `u16` is the unsigned integer type whose values range from 0 through 65,535. `i8` is the signed integer type whose values range from -128 through 127. `i16` is the signed integer type whose values range from -32,768 through 32,767. Their widths, ranges, and two's-complement representation do not vary by target.
 
-`boolean` has exactly the values `false` and `true`. It is distinct from both integer types. An integer is not a condition, a Boolean value is not an integer, and Nucleus 0.1 provides no Boolean-to-integer or integer-to-Boolean conversion.
+`boolean` has exactly the values `false` and `true`. It is distinct from all four integer types. An integer is not a condition, a Boolean value is not an integer, and Nucleus 0.1 provides no Boolean-to-integer or integer-to-Boolean conversion.
 
 A scalar variable, parameter, field, array element, or routine result holds a scalar value. Scalar assignment and scalar argument passing copy the value. A compiler may use any private register or memory representation that preserves the type and value; that representation does not alter source compatibility.
 
 ### 6.4 Literals and scalar conversion
 
-An integer literal is exact and has no fixed integer type until an expected integer type or an expression rule supplies one. In a declaration initializer, scalar argument, assignment, return, array index, or other expected-type position, a literal may take type `u8` or `u16` when its value lies in that type's range. A literal outside the expected range is invalid; it is not truncated or wrapped.
+An integer literal or exact integer constant has no fixed integer type until an expected integer type or an expression rule supplies one. A nonnegative exact value may adopt any of `u8`, `u16`, `i8`, or `i16` when it lies in the selected type's range. A negative exact value may adopt `i8` or `i16`, but never an unsigned type. A literal outside the expected range is invalid; it is not truncated or wrapped. An otherwise uncontexted negative exact value defaults to `i16`.
 
 Chapter 9 defines the treatment of an integer literal with no expected type and the result types of operators. This chapter does not assign an expression-wide default type.
 
 A character literal has type `u8` and its value is the decoded byte from Chapter 3. Nucleus has no separate character type. The ordinary `u8`-to-`u16` widening rule permits a character literal where a `u16` value is expected.
 
-The only implicit conversion between declared scalar types is `u8` to `u16`. It preserves every source value and zero-extends in representations where extension is required. The same conversion applies to assignment, initialization, scalar arguments, scalar results, and operands when Chapter 9 admits a mixed-width operation.
+The implicit integer conversions are `u8` to `u16`, `u8` to `i16`, and `i8` to `i16`. Each preserves every source value. The same rules apply to assignment, initialization, scalar arguments, scalar results, and operands when Chapter 9 admits a mixed-type operation.
 
-Conversion from `u16` to `u8` requires an explicit checked narrowing operation. Chapter 9 defines its expression spelling. When the source value is known and exceeds 255, the compiler must issue a diagnostic. When the value is not known until execution, the generated program must trap before producing or storing a `u8` result if the value exceeds 255. Checked narrowing never means low-byte extraction, modulo reduction, or reinterpretation.
+Every other integer conversion requires an explicit checked conversion from Chapter 9. When the source value is known and does not fit the destination range, the compiler issues a diagnostic. When the value is not known until execution, the generated program performs the `narrowing` trap before producing or storing a result that does not fit. A checked conversion never means low-byte extraction, modulo reduction, sign reinterpretation, or arbitrary bit casting.
 
 No implicit or explicit scalar conversion changes `boolean` into an integer or an integer into `boolean`. Nucleus 0.1 also has no arbitrary cast or same-width reinterpretation operation.
 
@@ -943,11 +943,11 @@ No implicit or explicit scalar conversion changes `boolean` into an integer or a
 
 The source type and the way a source occurrence denotes data are separate properties:
 
-| Category                | Meaning                                                                                            |
-| ----------------------- | -------------------------------------------------------------------------------------------------- |
-| Scalar value            | A `u8`, `u16`, or `boolean` value that can be copied by assignment, argument passing, or return.   |
-| Owned aggregate storage | Storage containing one record, fixed array, or bounded string for a lifetime defined in Chapter 7. |
-| Aggregate alias         | A typed, non-owning binding to existing aggregate storage.                                         |
+| Category                | Meaning                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Scalar value            | A `u8`, `u16`, `i8`, `i16`, or `boolean` value that can be copied by assignment, argument passing, or return. |
+| Owned aggregate storage | Storage containing one record, fixed array, or bounded string for a lifetime defined in Chapter 7.            |
+| Aggregate alias         | A typed, non-owning binding to existing aggregate storage.                                                    |
 
 A scalar named constant has either an exact integer type inferred from its initializer or type `boolean`. A record, fixed array, or bounded-string constant has an explicit aggregate type and complete static initializer under Chapter 8.
 
@@ -979,7 +979,7 @@ The index domain is always zero through `N - 1`. Nucleus has no arbitrary lower 
 
 Two fixed-array types are identical when their element types are identical and their lengths are equal. Thus `u8[16]` and `u8[16]` are the same type, while `u8[16]`, `u8[32]`, and `u16[16]` are three different types.
 
-An array index must have type `u8` or `u16`; `u8` widens to `u16` when the checking operation requires it. A constant index outside the array domain is invalid. A dynamic index must be checked before the access unless the compiler proves from information already available at that point that it lies in the domain. A failed dynamic check performs the bounds trap specified by Chapter 15 before any element load, store, or alias formation.
+An array index may have any integer type. A constant negative index or one outside the array domain is invalid. A dynamic signed index is checked for negativity before the ordinary unsigned upper-bound and region checks. A failed dynamic check performs the bounds trap specified by Chapter 15 before any element load, store, or alias formation.
 
 Indexing an array of scalars produces a scalar occurrence with the element type. Indexing an array of records or bounded strings produces a storage path or aggregate alias with the element type. The index operation never produces an untyped address.
 
@@ -1000,7 +1000,7 @@ Two concrete bounded-string types are identical only when their capacities are e
 A bounded string is an aggregate, not a `u8` array. It has no source-level header field, payload field, or terminator field. Nucleus 0.1 provides intrinsic postfix operations without exposing that representation:
 
 - `text.length` is a `u8` value equal to the current logical byte length.
-- `text[index]` selects one existing byte as a `u8` storage path. The index must have type `u8` or `u16` and must be less than the current length. A failed check performs the `bounds` trap before a read or write.
+- `text[index]` selects one existing byte as a `u8` storage path. The index may have any integer type and must be nonnegative and less than the current length. A failed check performs the `bounds` trap before a read or write.
 
 A concrete `string[N]` path may read `.length`, but it cannot assign to that
 property or read `.capacity` directly. An open `string[]` parameter may also
@@ -1068,6 +1068,8 @@ Type identity is determined as follows:
 | --------------- | ------------------------------------------------------------------ |
 | `u8`            | The predefined `u8` type.                                          |
 | `u16`           | The predefined `u16` type.                                         |
+| `i8`            | The predefined `i8` type.                                          |
+| `i16`           | The predefined `i16` type.                                         |
 | `boolean`       | The predefined Boolean type.                                       |
 | Record          | The single declaration that introduced the record.                 |
 | Fixed array     | Identical element type and identical fixed length.                 |
@@ -1080,14 +1082,14 @@ The compiler applies these compatibility rules:
 
 | Context                                                | Required compatibility                                                                                          |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Scalar assignment, initialization, argument, or result | Exact scalar type, fitting exact integer literal or named constant, or implicit `u8`-to-`u16` widening.         |
-| Checked narrowing to `u8`                              | Explicit operation and successful range check.                                                                  |
+| Scalar assignment, initialization, argument, or result | Exact scalar type, a fitting exact integer value, or one of the value-preserving implicit integer conversions.  |
+| Explicit integer conversion                            | `u8(...)`, `u16(...)`, `i8(...)`, or `i16(...)` and a successful range check.                                   |
 | Boolean condition or destination                       | `boolean` only.                                                                                                 |
 | Record field selection                                 | The field's declared type.                                                                                      |
-| Fixed-array index                                      | `u8` or `u16` index; result has the exact element type.                                                         |
+| Fixed-array index                                      | Any nonnegative integer index in range; result has the exact element type.                                      |
 | Array `.length`                                        | Read-only `u16`; fixed `N` or the open view's retained actual count.                                            |
 | Bounded-string `.length`                               | Read-only `u8` value equal to the current logical length.                                                       |
-| Bounded-string index                                   | `u8` or `u16` index below the current length; result is a writable `u8` path.                                   |
+| Bounded-string index                                   | Any nonnegative integer index below the current length; result is a writable `u8` path.                         |
 | Concrete aggregate parameter                           | Exact referent-type identity.                                                                                   |
 | `T[]` parameter                                        | Complete concrete `T[N]` path or transient alias, or another `T[]`; exact element type and retained count.      |
 | `string[]` parameter                                   | Any concrete bounded-string storage path or transient alias, or another `string[]`; retain the actual capacity. |
@@ -1121,7 +1123,7 @@ An implementation must diagnose a source form that requires one of these mechani
 
 Exact type identity is checked from retained metadata without reconstructing source text. Record declarations require nominal IDs. Predefined scalars, fixed arrays, and bounded strings have compact, bounded structural descriptions: kind, element type when applicable, and length or capacity. A compiler may store those descriptions directly in symbols and signatures or intern them behind compact ordinals. Measurements of compiler-core bytes, immutable data, writable workspace, and comparison code determine the representation used by the first implementation.
 
-One direct representation fits every admitted type in four bytes. Its kind byte distinguishes the three scalars, records, bounded strings, and the five permitted array-element families. A second byte carries a record ordinal or string capacity where needed, and two bytes carry an array length. Folding the element family into the array kind is valid because arrays cannot contain arrays. It does not remove arrays of records, arrays of bounded strings, or aliases to any aggregate type; alias category is stored separately from referent-type identity.
+One direct representation fits every admitted type in four bytes. Its kind byte distinguishes the five scalars, records, bounded strings, and the permitted array-element families. A second byte carries a record ordinal or string capacity where needed, and two bytes carry an array length. Folding the element family into the array kind is valid because arrays cannot contain arrays. It does not remove arrays of records, arrays of bounded strings, or aliases to any aggregate type; alias category is stored separately from referent-type identity.
 
 Four inline bytes are not automatically cheaper than one ordinal per symbol. With mostly distinct types, direct descriptors avoid an interning table; with many repeated types, ordinals reduce writable symbol storage. The measurement package reports both retained-data totals for representative symbol populations. The first compiler also counts the code and scratch state for descriptor construction, interning, exhaustion checks, and equality before selecting either form.
 
@@ -1190,7 +1192,7 @@ Nucleus distinguishes four related concepts:
 
 | Concept               | Source meaning                                                                                                                         |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Scalar value          | One `u8`, `u16`, or `boolean` value. Scalar values can be copied.                                                                      |
+| Scalar value          | One `u8`, `u16`, `i8`, `i16`, or `boolean` value. Scalar values can be copied.                                                         |
 | Object                | Storage associated with a program variable.                                                                                            |
 | Subobject             | A record field, fixed-array element, or existing bounded-string byte. A bounded string may itself be an object or aggregate subobject. |
 | Typed aggregate alias | A non-owning, fixed binding to an existing record, fixed-array, or bounded-string object or subobject of one of those types.           |
@@ -1213,13 +1215,13 @@ Program-lifetime objects exist before the designated entry routine begins. Their
 
 The zero value of each admitted type is:
 
-| Type        | Zero value                                                  |
-| ----------- | ----------------------------------------------------------- |
-| `u8`, `u16` | integer zero                                                |
-| `boolean`   | `false`                                                     |
-| record      | the record whose fields recursively have their zero values  |
-| `T[N]`      | the array whose elements recursively have their zero values |
-| `string[N]` | the empty byte sequence                                     |
+| Type                     | Zero value                                                  |
+| ------------------------ | ----------------------------------------------------------- |
+| `u8`, `u16`, `i8`, `i16` | integer zero                                                |
+| `boolean`                | `false`                                                     |
+| record                   | the record whose fields recursively have their zero values  |
+| `T[N]`                   | the array whose elements recursively have their zero values |
+| `string[N]`              | the empty byte sequence                                     |
 
 This table defines values, not a byte layout or a universal initialization rule. Chapter 8 specifies which declarations receive a zero value and which require an explicit initializer. An implementation must establish the required semantic value without exposing padding, headers, addresses, or backend-specific representations.
 
@@ -1478,9 +1480,9 @@ const readyMask = 128
 const enabled = true
 ```
 
-The initializer determines the constant's type. A Boolean-valued initializer gives the constant type `boolean`. An integer-valued initializer gives it an exact integer type: the value has no fixed `u8` or `u16` type until each use supplies an expected integer type or an expression rule selects one.
+The initializer determines the constant's type. A Boolean-valued initializer gives the constant type `boolean`. An integer-valued initializer gives it an exact integer type: the mathematical value, including whether it is negative, remains exact until each use supplies an expected integer type or an expression rule selects one.
 
-An exact named integer constant behaves like an exact integer literal at every use. The same constant may adopt `u8` in one context and `u16` in another when its value fits both. A declaration such as `const Big = 300` is valid; a later use of `Big` where `u8` is required is invalid at that use, while a use where `u16` is required is valid. The compiler reports the position of the incompatible use rather than the constant declaration.
+An exact named integer constant behaves like an exact integer literal at every use. A nonnegative value may adopt any signed or unsigned integer type that contains it. A negative value may adopt only `i8` or `i16`. Thus `const Big = 300` is valid for `u16` or `i16` but not `u8` or `i8`, while `const Below = -1` is valid for `i8` or `i16` and invalid for both unsigned types. The compiler reports the incompatible use rather than the constant declaration.
 
 A scalar named constant denotes its compile-time scalar value. It does not declare storage and need not occupy runtime storage. The compiler may materialize the value in generated code or immutable implementation data, but no source operation exposes object identity for it.
 
@@ -1517,7 +1519,7 @@ It cannot read a variable, field, array element, or bounded string; call a routi
 
 The compiler evaluates a constant expression at compile time with the operand types, result type, overflow rule, and fault rule that Chapter 9 assigns to each admitted operator. It must not substitute host-language overflow, silently widen a typed operation, or fold an expression differently from the corresponding runtime operation. If Chapter 9 assigns no constant-expression rule to an operator, that operator is unavailable in this context.
 
-An exact integer literal or earlier exact named integer constant remains exact until an operator rule or conversion supplies its type. The completed integer value of a named constant returns to the exact category for later uses. The implicit `u8`-to-`u16` conversion from Chapter 6 is permitted. A checked `u16`-to-`u8` conversion is valid at compile time only when its value lies from 0 through 255; otherwise the declaration is invalid. A constant operation that Chapter 9 defines to trap at runtime makes the constant expression invalid when the compiler proves that condition during evaluation.
+An exact integer literal or earlier exact named integer constant remains exact until an operator rule or conversion supplies its type. The completed integer value of a named constant returns to the exact category for later uses. Chapter 6's implicit conversions are permitted. An explicit integer conversion is valid at compile time only when the mathematical value lies in the destination range; otherwise the declaration is invalid. A constant operation that Chapter 9 defines to trap at runtime makes the constant expression invalid when the compiler proves that condition during evaluation.
 
 An array length is a scalar constant expression whose value must lie from 1 through 65,535. A `string[N]` capacity is a scalar constant expression whose value must lie from 1 through 253. The compiler evaluates the bound before constructing the type identity. A later constant, a variable, or a cyclic dependency cannot supply a bound.
 
@@ -1567,12 +1569,12 @@ Every program variable has an initial value. With no initializer, the compiler e
 
 An explicit program initializer is permitted only in these forms:
 
-| Declared type             | Permitted initializer                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------- |
-| `u8`, `u16`, or `boolean` | One compatible scalar constant expression                                          |
-| `string[N]`               | One fitting string literal                                                         |
-| Record                    | One positional record initializer with exactly one initializer per field           |
-| Fixed array               | One array initializer with exactly one compatible initializer per declared element |
+| Declared type   | Permitted initializer                                                              |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Any scalar type | One compatible scalar constant expression                                          |
+| `string[N]`     | One fitting string literal                                                         |
+| Record          | One positional record initializer with exactly one initializer per field           |
+| Fixed array     | One array initializer with exactly one compatible initializer per declared element |
 
 Program initialization does not evaluate an ordinary runtime expression or read another variable. A string literal establishes both the decoded bytes and their logical length; embedded zero bytes count toward that length. A literal shorter than its capacity is valid, while one that exceeds the capacity is invalid and is never truncated.
 
@@ -1596,9 +1598,9 @@ A routine definition without an earlier forward makes its checked signature visi
 
 After parameter binding, scalar local declarations take effect in source order before the first statement. All local declarations remain in one contiguous prefix.
 
-A scalar local owns one per-invocation scalar value. Its initializer is an ordinary expression or a direct failable call followed by `else fail` under Chapter 14, evaluated once when execution reaches the declaration. The successful result must be compatible with the declared scalar type. If the initializer is omitted, the compiler establishes zero for `u8` or `u16` and `false` for `boolean` at that point.
+A scalar local owns one per-invocation scalar value. Its initializer is an ordinary expression or a direct failable call followed by `else fail` under Chapter 14, evaluated once when execution reaches the declaration. The successful result must be compatible with the declared scalar type. If the initializer is omitted, the compiler establishes integer zero for `u8`, `u16`, `i8`, or `i16`, and `false` for `boolean` at that point.
 
-The declared local type must be `u8`, `u16`, or `boolean`. A record, fixed array, or bounded string is invalid in a local declaration whether or not an initializer is written. Routines receive aggregates only through formal parameters, reach aggregate subobjects through field and index paths, and may return transient aggregate aliases under Chapters 7 and 13.
+The declared local type must be `u8`, `u16`, `i8`, `i16`, or `boolean`. A record, fixed array, or bounded string is invalid in a local declaration whether or not an initializer is written. Routines receive aggregates only through formal parameters, reach aggregate subobjects through field and index paths, and may return transient aggregate aliases under Chapters 7 and 13.
 
 A local becomes visible only after its complete declaration and initializer have been checked. Its initializer may name parameters, visible program declarations, and earlier locals. It cannot name itself or a later local. A local declaration inside a statement block or after the first statement is invalid.
 
@@ -1759,7 +1761,8 @@ unary                  ::= ( "+" | "-" ) unary | postfix-expression
 postfix-expression     ::= primary { postfix-suffix }
 primary                ::= NUMBER | CHARACTER | "true" | "false"
                          | NAME | conversion | "(" expression ")"
-conversion             ::= ( "u8" | "u16" ) "(" expression ")"
+conversion             ::= ( "u8" | "u16" | "i8" | "i16" )
+                           "(" expression ")"
 postfix-suffix         ::= argument-list | "[" expression "]" | "." NAME
 argument-list          ::= "(" [ expression { "," expression } ] ")"
 ```
@@ -1774,7 +1777,7 @@ The compiler resolves each `NAME` before interpreting its postfix suffixes. A vi
 
 An argument-list suffix in an ordinary expression invokes only an infallible source routine named by the primary. Nucleus has no routine values, indirect calls, callable results, overload resolution, or invocation of an arbitrary parenthesized expression. A second argument-list suffix is invalid. Chapter 13 defines argument and result compatibility, and Chapter 14 gives failable calls their restricted statement, initializer, and assignment positions.
 
-An index suffix requires a concrete or open array, or a concrete or open bounded-string storage path or typed alias. Its expression must have type `u8` or `u16`. For an array, the result has the exact element type; a concrete array uses its fixed bound and an open array uses its retained actual count. The compiler diagnoses a statically out-of-range concrete index and emits a checked access for a dynamic index unless it proves the index is in range. For a bounded string, the result is a `u8` storage path and the implementation checks the index against the current logical length before every access unless it proves that access safe. A failed check occurs before an element, byte, or aggregate alias is produced, read, or written.
+An index suffix requires a concrete or open array, or a concrete or open bounded-string storage path or typed alias. Its expression may have any integer type. A signed value is checked for negativity before the ordinary upper-bound and region checks. For an array, the result has the exact element type; a concrete array uses its fixed bound and an open array uses its retained actual count. The compiler diagnoses a statically out-of-range concrete index and emits a checked access for a dynamic index unless it proves the index is in range. For a bounded string, the result is a `u8` storage path and the implementation checks the index against the current logical length before every access unless it proves that access safe. A failed check occurs before an element, byte, or aggregate alias is produced, read, or written.
 
 A field suffix on a record storage path or typed record alias resolves the field name only in that record's field scope and produces the field's declared type. A `.length` suffix on a concrete or open bounded-string path produces its `u8` logical length. A `.length` suffix on a concrete or open array produces its read-only `u16` element count. A `.capacity` suffix on an open `string[]` parameter produces its read-only actual capacity. Other field suffixes on bounded strings and arrays are invalid. Selection does not expose an offset, header, or address to source code.
 
@@ -1799,13 +1802,11 @@ A bare aggregate storage path is valid where a rule requires compatible aggregat
 
 ### 9.5 Explicit integer conversions
 
-`u16(expression)` performs the explicit form of the `u8`-to-`u16` conversion. Its operand must have type `u8` or `u16`. A `u8` operand is widened without changing its value; a `u16` operand is unchanged.
+`u8(expression)`, `u16(expression)`, `i8(expression)`, and `i16(expression)` convert among the four integer types. The operand is evaluated once as its mathematical signed or unsigned value. The result is valid only when that value lies in the destination range. A statically known failure is a source diagnostic; a dynamic failure performs the Chapter 15 `narrowing` trap before producing or storing a result.
 
-`u8(expression)` performs checked narrowing. Its operand must have type `u8` or `u16`. A `u8` operand is unchanged. A known `u16` value outside 0 through 255 makes the source invalid. For a value known only at runtime, the generated program checks the range and performs the Chapter 15 narrowing trap before producing a result when the value is outside that range.
+The conversions are numeric. They do not reinterpret sign bits, extract a low byte, wrap, or expose a machine representation. For example, `i16(i8Value)` sign-extends, `i16(u8Value)` zero-extends, and `u8(i8Value)` fails when the value is negative. `i8($FF)` is invalid because `$FF` is the nonnegative value 255; `i8(-1)` is valid.
 
-Both forms evaluate their operand once. They do not reinterpret bits, extract a low byte, wrap, or expose a machine representation. `boolean(expression)`, record conversions, array conversions, string-capacity conversions, and conversions between `u16` and an aggregate-alias carrier are absent.
-
-The type words in these two forms are fixed tokens, not routine names. A user declaration cannot override them, and conversion syntax does not participate in routine lookup.
+`boolean(expression)`, record conversions, array conversions, string-capacity conversions, and conversions between an integer and an aggregate-alias carrier are absent. The four integer type words are fixed tokens, not routine names. A user declaration cannot override them, and conversion syntax does not participate in routine lookup.
 
 ### 9.6 Precedence and associativity
 
@@ -1828,14 +1829,23 @@ The repeated forms in Section 9.2 preserve left association without a left-recur
 
 ### 9.7 Exact-integer resolution
 
-An exact integer literal or exact named integer constant adopts an expected `u8` or `u16` type when its value fits. The expected type may come from a declaration initializer, scalar destination, parameter, result, conversion operand, or a typed operand in the same arithmetic operation. An expected type never narrows an already typed operand implicitly.
+An exact integer literal or exact named integer constant adopts an expected integer type when its mathematical value fits. Negative exact values may adopt only `i8` or `i16`. The expected type may come from a declaration initializer, scalar destination, parameter, result, conversion operand, or a typed operand in the same arithmetic operation. An expected type never narrows an already typed operand implicitly.
 
 For an integer operation:
 
 - when one operand has integer type and the other is an exact integer constant, the constant adopts that type when it fits;
-- when the operands have types `u8` and `u16`, the `u8` operand widens and the operation uses `u16`;
-- when both operands are exact integer constants, an expected integer result type applies when both operands fit; otherwise the operation uses `u16`; and
-- when a standalone exact integer literal has no expected type, it uses `u16`.
+- when both operands are typed, the common type is selected by the table below;
+- when both operands are exact integer constants, an expected integer result type applies when both operands fit; otherwise the operation uses `i16` when either operand is negative and `u16` when both operands are nonnegative; and
+- when a standalone exact integer value has no expected type, a negative value uses `i16` and a nonnegative value uses `u16`.
+
+| Operand types | Common type |
+| ------------- | ----------- |
+| `u8`, `u16`   | `u16`       |
+| `i8`, `i16`   | `i16`       |
+| `u8`, `i16`   | `i16`       |
+| `u8`, `i8`    | `i16`       |
+
+The combinations `u16` with `i8`, `u16` with `i16`, and `i16` with `u16` have no implicit common type. Source must perform an explicit checked conversion before applying the operator. Nucleus does not use C-style unsigned dominance.
 
 An exact value that does not fit the selected type makes the source invalid. The compiler does not truncate the literal or select a wider intermediate type after the context has fixed a narrower operation.
 
@@ -1843,17 +1853,17 @@ A character literal has type `u8`. It follows the ordinary implicit widening rul
 
 ### 9.8 Integer arithmetic
 
-`+`, `-`, `*`, `/`, and `mod` accept integer operands. After literal resolution and implicit widening, both operands have the same type and the result has that type.
+`+`, `-`, `*`, `/`, and `mod` accept integer operands. After literal resolution and implicit conversion, both operands have the same type and the result has that type.
 
-Addition, subtraction, multiplication, and unary minus use arithmetic modulo 256 for `u8` and modulo 65,536 for `u16`. Unary minus is subtraction from zero in the selected width. Unary plus preserves the operand and its type. These rules define wraparound; overflow is neither undefined nor a narrowing conversion.
+Addition, subtraction, multiplication, and unary minus use arithmetic modulo 256 for byte types and modulo 65,536 for word types. Unary minus is subtraction from zero in the selected width, including for typed unsigned operands. Unary plus preserves the operand and its type. These rules define wraparound; overflow is neither undefined nor a narrowing conversion. An exact negative initializer is different: `var x as u8 = -1` is invalid, while `x = -x` remains modular unsigned arithmetic.
 
-Division produces the unsigned integer quotient with any remainder discarded. Modulo produces the unsigned remainder from the same division. A zero divisor for either operation performs the `division-by-zero` trap specified by Chapter 15 at the divisor. When the divisor is a compile-time constant zero, the source is invalid and the compiler issues the same diagnostic at that divisor instead of emitting a guaranteed trap.
+Unsigned division produces the unsigned quotient and remainder. Signed division truncates toward zero; signed modulo has the dividend's sign and satisfies `a = (a / b) * b + (a mod b)`. A zero divisor for either operation performs the `division-by-zero` trap specified by Chapter 15 at the divisor. When the divisor is a compile-time constant zero, the source is invalid and the compiler issues the same diagnostic at that divisor instead of emitting a guaranteed trap. The minimum signed value divided by -1 wraps to that same minimum value, with remainder zero; there is no division-overflow trap.
 
-The result width is determined before evaluation. Arithmetic does not widen merely because a mathematical result would exceed that width. A program that requires a wider result widens an operand explicitly or supplies a `u16` operand before the operation.
+The result width is determined before evaluation. Arithmetic does not widen merely because a mathematical result would exceed that width. A program that requires a wider result widens an operand explicitly or supplies a compatible `u16` or `i16` operand before the operation.
 
 ### 9.9 Comparison
 
-The six comparison operators accept compatible integer operands and produce `boolean`. Literal resolution and `u8`-to-`u16` widening follow Section 9.7. Integer comparison uses unsigned ordering.
+The six comparison operators accept compatible integer operands and produce `boolean`. Literal resolution and common-type selection follow Section 9.7. Equality and inequality compare the selected-width bit patterns. Ordering is signed when the common type is signed and unsigned otherwise.
 
 Boolean operands support only `=` and `<>`. Both operands must have type `boolean`. Boolean ordering is invalid.
 
@@ -1863,7 +1873,7 @@ Comparison chaining is invalid. `minimum <= value <= maximum` is not two compari
 
 ### 9.10 `not`, `and`, `or`, and `xor`
 
-`not` accepts one `boolean`, `u8`, or `u16` operand. For `boolean`, it exchanges `true` and `false`. For an integer, it complements every bit in the operand's declared width and produces the same integer type.
+`not` accepts one `boolean` or integer operand. For `boolean`, it exchanges `true` and `false`. For an integer, it complements every bit in the operand's declared width and produces the same integer type.
 
 `and` and `or` accept either two Boolean operands or two compatible integer operands. Mixed Boolean and integer operands are invalid. Integer operands use literal resolution and widening from Section 9.7, combine corresponding bits, evaluate both operands, and produce the resolved integer type.
 
@@ -1901,7 +1911,7 @@ A backend may reorder operations only when it proves that no result, call, mutat
 
 The scalar operators and conversions in this chapter are available to the scalar constant expressions defined by Chapter 8. The compiler applies the same literal resolution, width, wraparound, comparison, and short-circuit rules used at runtime.
 
-A constant division by zero is invalid. A checked `u8` conversion of a known value outside 0 through 255 is invalid. A short-circuited constant operand is not evaluated and therefore cannot contribute a fault.
+A constant division by zero is invalid. An explicit integer conversion of a known value outside its destination range is invalid. A short-circuited constant operand is not evaluated and therefore cannot contribute a fault.
 
 Routine calls and storage paths remain unavailable in constant expressions. The presence of a pure-looking routine or a program variable with a constant initializer does not extend the constant-expression grammar.
 
@@ -2249,7 +2259,7 @@ step-constant         ::= [ "+" | "-" ] step-magnitude
 step-magnitude        ::= NUMBER | NAME
 ```
 
-A `NAME` used as a step magnitude must denote an earlier `u8` or `u16` named constant. The optional sign belongs to the counted-loop header and is not a runtime signed value. A written numeric magnitude follows Chapter 3's admitted integer-literal forms.
+A `NAME` used as a step magnitude must denote an earlier nonnegative integer named constant. The optional sign belongs to the counted-loop header. A written numeric magnitude follows Chapter 3's admitted integer-literal forms.
 
 Each loop body is a statement sequence and may be empty. A loop opens no name scope, and its `end` closes only that loop.
 
@@ -2263,15 +2273,15 @@ An indefinite loop uses `while true`. Nucleus has no separate unconditional-loop
 
 ### 12.4 Counted-loop counter and operands
 
-The counter name must resolve to a scalar local of type `u8` or `u16`. A program variable, parameter, constant, Boolean, aggregate, alias, routine, field path, or indexed path is invalid. The loop introduces no declaration, so the local must appear in the routine's declaration prefix.
+The counter name must resolve to a scalar local of type `u8`, `u16`, `i8`, or `i16`. The programmer chooses the counter type when declaring that local. A program variable, parameter, constant, Boolean, aggregate, alias, routine, field path, or indexed path is invalid. The loop introduces no declaration, so the local must appear in the routine's declaration prefix.
 
 The counter becomes read-only to source statements from the beginning of the loop body through its closing `end`. The body may read it and pass its scalar value, but it cannot assign to it. A nested counted loop cannot reuse the same local as its counter because its initialization would be another write. The compiler enforces both restrictions by comparing the resolved local binding with the counters in its active loop contexts; it needs no call-graph analysis because another routine cannot name a caller's local.
 
-The start expression must be assignment-compatible with the counter type. The bound must be an integer expression. A typed `u8` counter may be compared with a `u16` bound through the ordinary widening rule. An exact bound remains mathematical for the loop comparison and need not fit the counter because the bound is never stored in it.
+The start and bound expressions must be assignment-compatible with the counter under Chapter 9's integer rules. An exact start or bound may adopt the counter type when representable, and an admitted value-preserving conversion may convert a typed expression to that type. A wider typed value is not narrowed merely because another loop operand has the counter type; source must use an explicit checked conversion.
 
 The compiler evaluates the start expression and then the bound expression exactly once when the loop begins. It performs both evaluations before storing the converted start in the counter. A bound expression that reads the counter therefore reads its pre-loop value. If either evaluation or the start conversion traps, the counter is not initialized by the loop and the body does not begin.
 
-`step` defaults to mathematical `+1`. A written step is a compile-time signed constant. The compiler resolves a named magnitude under Chapter 5, applies the optional sign, and requires a nonzero magnitude from 1 through 65,535. `step 0` and `step -0` are invalid. The signed step is loop-control metadata; Nucleus does not acquire a signed runtime scalar type.
+`step` defaults to mathematical `+1`. A written step is a compile-time signed constant. The compiler resolves a named magnitude under Chapter 5, applies the optional sign, and requires a nonzero magnitude from 1 through 65,535. `step 0` and `step -0` are invalid. The step is loop-control metadata and need not have the counter's storage type.
 
 ### 12.5 Counted-loop tests
 
@@ -2286,7 +2296,7 @@ The compiler stores the converted start in the counter and performs this test be
 
 After normal body completion, and after `continue`, the implementation computes the next counter value mathematically and tests it against the bound before storing it. A value that fails the next test ends the loop without being stored. A value that would continue must fit the counter type. Every such overflow is the runtime `loop-range` trap defined by Chapter 15, even when the compiler can prove it from source constants. The trap occurs only if execution reaches the increment path; an earlier `exit`, `return`, `fail`, or other terminating transfer from the body prevents that increment and its trap.
 
-This order prevents the loop machinery from wrapping an unsigned counter at its terminal boundary. Because the body cannot change the counter, the value reaching the increment still satisfies the comparison that admitted the current iteration. The implementation may use that invariant when comparing the remaining distance with the constant step.
+This order prevents the loop machinery from wrapping a counter at either terminal boundary. Signed loops use signed ordering and work across zero in both directions. Because the body cannot change the counter, the value reaching the increment still satisfies the comparison that admitted the current iteration. The implementation may use that invariant when comparing the remaining distance with the constant step.
 
 After the loop, the counter retains the last value stored. A zero-iteration loop leaves the converted start. `exit` also leaves the current counter value unchanged.
 
@@ -2339,7 +2349,7 @@ These omissions leave `while` for condition-controlled iteration and one mechani
 
 ### 12.10 Invalid loops and capacity limits
 
-The compiler must diagnose a non-Boolean `while` condition, a counter that is not a scalar local of type `u8` or `u16`, assignment to an active counter, reuse of an active counter by a nested loop, an incompatible start or bound, an unavailable or nonconstant step magnitude, a zero step, a missing header `NEWLINE` or closing `end`, and `exit` or `continue` outside a loop.
+The compiler must diagnose a non-Boolean `while` condition, a counter that is not an integer scalar local, assignment to an active counter, reuse of an active counter by a nested loop, an incompatible start or bound, an unavailable or nonconstant step magnitude, a zero step, a missing header `NEWLINE` or closing `end`, and `exit` or `continue` outside a loop.
 
 An implementation may bound loop nesting, retained saved bounds, active counter bindings, active branch targets, and fixup state. It must publish each limit and issue a capacity diagnostic before overflow changes a loop's bound, direction, target, or counter update.
 
@@ -2453,7 +2463,7 @@ Arguments are evaluated from left to right. Each scalar argument is evaluated an
 
 If argument evaluation traps, no later argument is evaluated and the routine body does not begin. Effects from earlier arguments remain observable.
 
-A scalar argument must have the exact parameter type, be an exact literal that fits it, or use the implicit `u8`-to-`u16` widening. Passing `u16` to `u8` requires explicit checked `u8(...)`. Boolean and integer arguments do not convert between each other.
+A scalar argument must have the exact parameter type, be an exact integer value that fits it, or use one of the value-preserving implicit conversions: `u8` to `u16`, `u8` to `i16`, or `i8` to `i16`. Every other integer conversion requires the explicit destination-type form `u8(...)`, `u16(...)`, `i8(...)`, or `i16(...)`, which traps when the mathematical source value lies outside the destination range. Boolean and integer arguments do not convert between each other.
 
 An argument for a concrete aggregate parameter must be an aggregate storage path or transient alias with exact referent-type identity. An argument for `string[]` may instead have any concrete bounded-string capacity or be another `string[]` parameter. An argument for `T[]` may be any complete concrete `T[N]` storage path or transient alias, or another `T[]` parameter; its element type must match exactly. In every case the call transfers an alias rather than copying the object. An open binding also retains the actual capacity or count used by its postfix operations. Scalar-leaf mutation through the parameter is visible through every other path to the same storage.
 
@@ -2475,7 +2485,7 @@ A result-free routine uses bare `return`, or reaches its closing `end`. Every `r
 
 A result-bearing routine uses `return expression`. Bare `return` is invalid. The expression is evaluated once before the activation ends and must be compatible with the declared result type. It cannot be a failable invocation: failure must be propagated or handled by an earlier statement, and `return` represents success only.
 
-A scalar result follows the scalar destination rules: exact type, fitting exact literal, or implicit `u8`-to-`u16` widening. Checked narrowing must be written explicitly. The caller receives a copied scalar value.
+A scalar result follows the scalar destination rules: exact type, fitting exact integer value, or an admitted value-preserving implicit conversion. Every other integer conversion must be written explicitly and checked. The caller receives a copied scalar value.
 
 An aggregate result must be an aggregate storage path or transient aggregate-alias result with exact referent-type identity. The storage path is rooted in a visible program variable, aggregate constant, or aggregate parameter. The caller receives a transient alias to the same existing program-lifetime object, not a copy. Section 7.9 establishes the lifetime of every admitted aggregate result without another result check.
 
@@ -2699,7 +2709,7 @@ The statement
 fail-statement ::= "fail" expression
 ```
 
-ends the current failable routine with failure. The expression is evaluated once and must be compatible with `u8`; an exact literal must fit, and `u16` requires explicit checked narrowing. The activation ends after the code is obtained. No later statement in that routine executes.
+ends the current failable routine with failure. The expression is evaluated once and must be compatible with `u8`; an exact integer must fit, and a typed value of any other integer type requires explicit checked `u8(...)` conversion. The activation ends after the code is obtained. No later statement in that routine executes.
 
 `fail` in an infallible routine is invalid. A trap while evaluating the code remains a trap and does not become a recoverable error.
 
@@ -2828,7 +2838,7 @@ Nucleus 0.1 defines these trap reasons:
 | Reason                | Condition and point                                                                                                                                                       |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bounds`              | A dynamic concrete/open-array index or bounded-string byte index is outside zero through current length minus one. The trap precedes the read, write, or alias formation. |
-| `narrowing`           | A dynamic checked `u8(...)` operand exceeds 255. The trap precedes production or storage of the narrowed result.                                                          |
+| `narrowing`           | A dynamic explicit integer conversion is outside its destination range. The trap precedes production or storage of the converted result.                                  |
 | `division-by-zero`    | A runtime divisor for `/` or `mod` is zero. The trap precedes production of a quotient or remainder.                                                                      |
 | `loop-range`          | A counted-loop next value would continue but does not fit the counter type. The trap precedes the counter store.                                                          |
 | `activation-capacity` | A call would exceed a published activation-depth or activation-storage limit. The trap occurs after argument evaluation and before the new activation begins.             |
@@ -3023,7 +3033,7 @@ type
 type-atom
     ::= scalar-type | NAME | bounded-string-type
 scalar-type
-    ::= "u8" | "u16" | "boolean"
+    ::= "u8" | "u16" | "i8" | "i16" | "boolean"
 bounded-string-type
     ::= "string" "[" [ expression ] "]"
 
@@ -3117,7 +3127,7 @@ primary
     ::= NUMBER | CHARACTER | "true" | "false"
       | NAME | conversion | "(" expression ")"
 conversion
-    ::= ("u8" | "u16") "(" expression ")"
+    ::= ("u8" | "u16" | "i8" | "i16") "(" expression ")"
 postfix-suffix
     ::= argument-list | index-suffix | field-suffix
 argument-list
@@ -3141,14 +3151,14 @@ The grammar uses these declared semantic predicates:
 | `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                                     |
 | `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.           |
 | `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                         |
-| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier `u8` or `u16` constant.                                                                            |
+| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier nonnegative integer constant.                                                                      |
 | `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.              |
 
 Field lookup after `.` uses the selected record type. A concrete bounded-string base admits `.length`; an open `string[]` base admits `.length` and `.capacity`, with writable `.length` restricted to an assignment target. A concrete or open array base admits read-only `.length`. Index selection uses a concrete fixed bound, an open array's retained actual count, or a bounded string's current logical length according to the base type; these distinctions need no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 175 BNF rules over 96 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 179 BNF rules over 96 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
 | Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Lookahead | Conflict                                           | Resolution                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
@@ -3176,9 +3186,9 @@ The standard service names and error constants from Chapter 16 are visible befor
 
 ### 18.3 Types and compatibility
 
-Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Concrete bounded-string identity consists of exact capacity. `string[]` is admitted only for parameters and retains the argument's actual capacity. `T[]` is also parameter-only and retains the complete concrete array's actual element count while preserving exact element-type identity.
+Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, `i8`, `i16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Concrete bounded-string identity consists of exact capacity. `string[]` is admitted only for parameters and retains the argument's actual capacity. `T[]` is also parameter-only and retains the complete concrete array's actual element count while preserving exact element-type identity.
 
-Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and implicit `u8`-to-`u16` widening. Checked `u8(...)` is the only `u16`-to-`u8` conversion. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity or another open-string parameter. A `T[]` parameter admits any complete concrete `T[N]` path or transient alias, or another `T[]`, with exact element invariance. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
+Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and the value-preserving implicit conversions `u8` to `u16`, `u8` to `i16`, and `i8` to `i16`. Every other conversion among `u8`, `u16`, `i8`, and `i16` requires the explicit checked destination-type form. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity or another open-string parameter. A `T[]` parameter admits any complete concrete `T[N]` path or transient alias, or another `T[]`, with exact element invariance. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
 
 The compiler checks every operator, condition, assignment, argument, result, field, index, initializer, and failure code locally. A failable invocation supplies no ordinary expression value until its failure has been consumed under Chapter 14.
 
@@ -3206,7 +3216,7 @@ A result-bearing routine is invalid if its closing `end` is reachable without `r
 
 ### 18.7 Control contexts
 
-An `if` or `elseif` condition and a `while` condition must be Boolean. A counted-loop counter must be a scalar local of type `u8` or `u16`. It is read-only to source statements while that loop is active and cannot be reused as a nested counted-loop counter. Its step is a nonzero signed compile-time constant. A provable counted-loop increment overflow remains valid source and traps only if execution reaches that increment. `exit` and `continue` require an enclosing loop and target the innermost one.
+An `if` or `elseif` condition and a `while` condition must be Boolean. A counted-loop counter must be an integer scalar local; its declared type may be `u8`, `u16`, `i8`, or `i16`. It is read-only to source statements while that loop is active and cannot be reused as a nested counted-loop counter. Its step is a nonzero signed compile-time constant. After the step produces the mathematical next value, an overshoot ends without storing or trapping. A next value that remains within the loop bound but lies outside the counter type performs `loop-range` if execution reaches that increment. `exit` and `continue` require an enclosing loop and target the innermost one.
 
 No label, goto, exception region, or hidden cleanup edge changes these contexts. The compiler may summarize active loops and fallthrough with bounded stacks, but capacity exhaustion must produce a diagnostic before it changes a target or validity result.
 
@@ -3228,7 +3238,7 @@ Normal return from `main` terminates successfully. Failure from `main` and a saf
 
 Expressions evaluate in the order specified by Section 9.11. Binary operands are left-to-right except for Boolean short-circuit suppression. Postfix suffixes apply left-to-right, and each index is checked when reached. Arguments evaluate left-to-right before a call begins.
 
-Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Comparisons use unsigned integer order or Boolean equality. Checked narrowing, division, indexing, and counted-loop increment perform their required checks before producing or storing a result.
+Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Ordering uses the signedness of the resolved common type; equality remains bitwise at the resolved width. Checked conversion, division, indexing, and counted-loop increment perform their required checks before producing or storing a result.
 
 Scalar assignment evaluates and checks the complete target path, then evaluates the right side, then converts and stores. Aggregate assignment evaluates its complete destination path first and its source second, then validates both complete extents before changing the destination. It copies the common exact-type representation. Self-assignment has no effect. The type rules make two distinct assignment-compatible aggregate subobjects disjoint, so partial overlap cannot arise in Nucleus 0.1.
 
@@ -3280,7 +3290,7 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source       | Ordered multipart compilation input with stable part identities and part-relative diagnostics; flat ordered build manifest; ASCII-compatible bytes, `//` comments, logical newlines, case-sensitive preserved names, lowercase keywords, decimal, hexadecimal, and binary integers, byte characters, bounded string literals, fixed punctuation. |
 | Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
-| Types        | `u8`, `u16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                                                                                      |
+| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked fixed arrays, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                                                                         |
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
 | Expressions  | Calls, checked concrete/open-array and bounded-string indexing, field selection, array and string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                           |
 | Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
@@ -3515,19 +3525,19 @@ end
 
 The conformance output begins empty with its cursor at zero. The first two calls append `AB`; the seek returns to zero; the final call overwrites the first byte without inserting or truncating. The expected bulk output is `ZB`, with its cursor at offset one.
 
-### 21.8 Runtime loop-range reachability
+### 21.8 Counted-loop overshoot before storage
 
 ```nucleus
 sub main()
     var index as u8
 
-    for index = 250 to 300 step 10
+    for index = 250 to 255 step 10
         exit
     end
 end
 ```
 
-This program is valid and terminates normally with `index` equal to 250. Without the `exit`, the first increment would store 260 if it fit and the loop would continue, so execution would perform `loop-range`; the compiler must not reject the source merely because it can prove that possible runtime path.
+This program is valid and terminates normally with `index` equal to 250. Without the `exit`, the mathematical next value is 260. It fails the `to 255` next-bound test, so the loop ends without storing it and without a `loop-range` trap.
 
 ### 21.9 Specified trap cases
 

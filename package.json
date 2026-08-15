@@ -39,7 +39,7 @@
     "prebuild": "npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --dir test",
+    "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build"

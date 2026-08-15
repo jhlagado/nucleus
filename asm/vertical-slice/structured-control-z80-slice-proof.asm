@@ -87,12 +87,13 @@ StructuredAcceptedSourceEnd:
 
 StructuredRangeSource:
             .db "var out as u8 = 0",10
-            .db "var snapshot as u8 = 0",10
+            .db "var snapshot as i8 = 0",10
+            .db "var limit as i8 = 127",10
             .db "sub main() fails",10
-            .db "    var i as u8 = 0",10
+            .db "    var i as i8 = 0",10
             .db "    for "
 StructuredRangeCounter:
-            .db "i = 250 to 300 step 10",10
+            .db "i = 120 to limit step 10",10
             .db "        out = out + 1",10
             .db "        snapshot = i",10
             .db "    end",10
@@ -328,20 +329,19 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailRangeFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RunSucceeded
             JP   NZ,ProofFailRangeState
-            LD   A,(TrapNumber)
-            CP   4
-            JP   NZ,ProofFailRangeNumber
-            LD   HL,(TrapOffset)
-            LD   DE,StructuredRangeCounter-StructuredRangeSource
+            LD   A,(ActivationDepth)
             OR   A
-            SBC  HL,DE
             JP   NZ,ProofFailRangeOffset
             LD   A,(GeneratedBase+3)
             LD   (RangeObservedEffect),A
+            CP   1
+            JP   NZ,ProofFailRangeEffect
             LD   A,(GeneratedBase+4)
             LD   (RangeObservedAtomic),A
+            CP   120
+            JP   NZ,ProofFailRangeAtomic
 
             LD   A,112
             LD   HL,StructuredActiveCounterSource

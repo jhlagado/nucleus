@@ -596,8 +596,8 @@ describe("NOBJ 0.1", () => {
 
   it("assembles the canonical provider from the exact selected runtime source", async () => {
     const runtime = await loadCanonicalRuntimeImage();
-    expect(runtime.identity).toBe(5);
-    expect(runtime.bytes).toHaveLength(390);
+    expect(runtime.identity).toBe(8);
+    expect(runtime.bytes).toHaveLength(689);
     expect(runtime.vectorBytes).toHaveLength(33);
     expect(runtime.initialBytes).toHaveLength(70);
     expect(runtime.initialBytes[33]).toBe(1);
@@ -620,7 +620,7 @@ describe("NOBJ 0.1", () => {
       vectorBase: 0x5000,
       programDataBase: 0x5046,
       programDataCapacity: 0x0800,
-      readOnlyBase: 0x8200,
+      readOnlyBase: 0x8300,
       readOnlyCapacity: 0x1000,
       services: Object.fromEntries(
         Object.entries(defaultRuntimeLinkContext.services).map(

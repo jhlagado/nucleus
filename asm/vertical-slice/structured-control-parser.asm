@@ -549,6 +549,9 @@ StructuredStepSourceConstant:
             AND  ScalarMetaTypeMask
             CP   ScalarTypeBoolean
             JR   Z,StructuredStepFailure
+            LD   A,D
+            AND  ScalarMetaNegative
+            JR   NZ,StructuredStepFailure
 StructuredStepNumber:
             LD   D,B
             LD   E,C
@@ -625,14 +628,19 @@ StructuredParseFor:
             LD   B,0
 StructuredForBound:
             PUSH BC
-            LD   A,ScalarTypeU16
+            LD   A,(DeclarationInfo)
+            AND  ScalarMetaTypeMask
             CALL TypedExpressionBeginRuntime
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   D,A
             PUSH BC
-            LD   E,ScalarTypeU16
+            LD   A,(DeclarationInfo)
+            AND  ScalarMetaTypeMask
+            LD   E,A
+            LD   A,D
             CALL TypedCheckAssignable
             POP  BC
 .if CompilerDiagnosticReturns
@@ -722,11 +730,16 @@ StructuredForStepReady:
             INC  HL
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
-            CP   ScalarTypeU16
-            LD   A,B
-            JR   NZ,StructuredForModeReady
-            SET  2,A
+            LD   C,A
+            BIT  4,C
+            JR   Z,StructuredForUnsignedMode
+            SET  3,B
+StructuredForUnsignedMode:
+            BIT  1,A
+            JR   Z,StructuredForModeReady
+            SET  2,B
 StructuredForModeReady:
+            LD   A,B
             LD   (HL),A
             INC  HL
             LD   (HL),E

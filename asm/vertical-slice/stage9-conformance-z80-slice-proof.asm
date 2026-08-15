@@ -223,7 +223,7 @@ Chapter21_8Source:
             .db "sub main()",10
             .db "    var index as u8",10
             .db 10
-            .db "    for index = 250 to 300 step 10",10
+            .db "    for index = 250 to 255 step 10",10
             .db "        exit",10
             .db "    end",10
             .db "end",10

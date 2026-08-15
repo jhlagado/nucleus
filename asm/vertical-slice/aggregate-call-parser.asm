@@ -1247,6 +1247,10 @@ Stage7PathIndex:
             AND  ScalarMetaTypeMask
             CP   ScalarTypeBoolean
             JP   Z,Stage7PathIndexTypeFailure
+            CALL Stage7PrepareIntegerIndex
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             LD   E,TokenRightBracket
             CALL ParserExpect
 .if CompilerDiagnosticBranches
@@ -1286,11 +1290,7 @@ Stage7PathIndex:
             LD   HL,(ExpressionRightValue)
             OR   A
             SBC  HL,BC
-.if TargetStreamingOutput
-            JR   NC,Stage7PathIndexRangeFailure
-.else
             JP   NC,Stage7PathIndexRangeFailure
-.endif
 Stage7PathIndexDynamic:
             LD   (Stage7PathOffset),BC
             LD   A,(Stage7PathType)
@@ -1358,6 +1358,29 @@ Stage7PathIndexTypeFailure:
             POP  AF
             POP  BC
             JP   TypedTypeFailure
+
+; Convert a signed dynamic index to checked u16 before the existing unsigned
+; upper-bound operation. Exact negatives are diagnosed at the index value.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+Stage7PrepareIntegerIndex:
+            LD   C,ScalarTypeU16
+            LD   A,(ExpressionRightMeta)
+            LD   D,A
+            AND  ScalarMetaConstant
+            JR   NZ,Stage7PrepareExactIndex
+            LD   A,D
+            AND  ScalarTypeSignedFlag
+            RET  Z
+            SET  7,C                     ; range failure is an index bounds trap
+            LD   HL,(ExpressionValuePosition)
+            JP   TypedEmitIntegerConversionOperation
+Stage7PrepareExactIndex:
+            LD   HL,(ExpressionRightValue)
+            LD   A,D
+            CALL TypedConvertConstant
+            JP   C,TypedValueRangeFailure
+            OR   A
+            RET
 .if CompilerDiagnosticBranches
 Stage7PathIndexFailure:
             POP  HL
@@ -1955,9 +1978,9 @@ Stage7FinishScalarPath:
             OR   A
             JR   NZ,Stage7ScalarPathReady
             LD   A,(Stage7PathType)
-            CP   ScalarTypeU16
+            BIT  1,A
             LD   A,SemanticLoadIndirect8
-            JR   NZ,Stage7ScalarPathEmit
+            JR   Z,Stage7ScalarPathEmit
             LD   A,SemanticLoadIndirect16
 Stage7ScalarPathEmit:
             CALL SemanticSinkOperation
@@ -2201,9 +2224,9 @@ Stage7AggregateAssignmentWritable:
             RET  C
 .endif
             LD   A,(Stage7PathType)
-            CP   ScalarTypeU16
+            BIT  1,A
             LD   A,SemanticStoreIndirect8
-            JR   NZ,Stage7ScalarAssignmentEmit
+            JR   Z,Stage7ScalarAssignmentEmit
             LD   A,SemanticStoreIndirect16
 Stage7ScalarAssignmentEmit:
             CALL SemanticSinkOperation

@@ -8,28 +8,38 @@ CompilerCoreBase    .equ $0000
 
 .if DebugHooks
 ; The debug compiler is a host-only instrumented image and has its own symbol
-; map. Its trace instructions may extend beyond the shipping 16 KiB boundary.
-CompilerCoreLimit   .equ $4400
-CompilerWorkBase    .equ $4400
-CompilerWorkLimit   .equ $5400
-SourceBase          .equ $5400
-SourceLimit         .equ $5C00
-ReleasedGeneratedStagingBase  .equ $5C00
+; map. Its trace instructions may extend beyond the historical 16 KiB size.
+CompilerCoreLimit   .equ $6000
 .else
-CompilerCoreLimit   .equ $4000
-CompilerWorkBase    .equ $4000
-CompilerWorkLimit   .equ $5000
-SourceBase          .equ $5000
-SourceLimit         .equ $5800
-ReleasedGeneratedStagingBase  .equ $5800
+CompilerCoreLimit   .equ $6000
 .endif
-ReleasedGeneratedStagingLimit .equ $6800
 
-TargetRuntimeBase   .equ $6800
-TargetRuntimeLimit  .equ $7800
+; These addresses are one hosted deployment policy, not properties of the
+; compiler code. CompilerCoreBase may be relocated independently; a deployment
+; must choose non-overlapping code, workspace, source, target and stack ranges.
+; Keep the mutable compiler workspace well above the current hosted image so a
+; feature cannot silently turn a small size increase into state corruption.
+CompilerWorkBase    .equ $6000
+CompilerWorkLimit   .equ $7000
+SourceBase          .equ $7000
+SourceLimit         .equ $7800
 
-ExecutionBase       .equ $7800
-ExecutionLimit      .equ $8800
+ReleasedGeneratedStagingBase  .equ SourceLimit
+ReleasedGeneratedStagingLimit .equ SourceLimit
+
+; These proof-only fixtures are not one simultaneously loaded source window.
+; Each compile still observes SourceLimit-SourceBase; this retained corpus only
+; lets one proof exercise several independent projects without self-modifying.
+ProofSourceCorpusBase  .equ $7800
+ProofSourceCorpusLimit .equ $7B00
+
+; The proof driver follows the selected proof runtime in this reservation.
+; Neither range is part of the compiler's deployment ABI.
+TargetRuntimeBase   .equ ProofSourceCorpusLimit
+TargetRuntimeLimit  .equ $8900
+
+ExecutionBase       .equ $8900
+ExecutionLimit      .equ $9900
 
 ProgramDataBase           .equ ExecutionBase+$0100
 ProgramDataLimit          .equ ProgramDataBase+$0400
@@ -39,15 +49,16 @@ ProgramDataRegionLimit    .equ ProgramBssLimit
 ProgramDataRegionCapacity .equ ProgramDataRegionLimit-ProgramDataBase
 GeneratedRoDataCapacity   .equ $0400
 
-ServiceBase         .equ $8800
-ServiceLimit        .equ $9000
+ServiceBase         .equ $9900
+ServiceLimit        .equ $A000
 
-ProofBase           .equ $9000
-ProofLimit          .equ $9800
-
-SpareBase           .equ $9800
-ReleasedRollbackStagingBase  .equ $A000
-ReleasedRollbackStagingLimit .equ $B000
+; Proof-state and spare describe the high proof adapter/log policy. The actual
+; driver follows RuntimeCodeEnd because the saved logs occupy this range.
+ProofBase           .equ $A000
+ProofLimit          .equ $A800
+SpareBase           .equ $A800
+ReleasedRollbackStagingBase  .equ $B000
+ReleasedRollbackStagingLimit .equ $C000
 SpareLimit          .equ $F000
 
 StackFloor          .equ $F000

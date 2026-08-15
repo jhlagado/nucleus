@@ -7,6 +7,7 @@
 ; dedicated storage or a new liveness proof.
 EmitTypedTrapPosition .equ EmitLoopHead
 EmitTypedWidth        .equ EmitCodeStart
+EmitTypedDestination  .equ EmitCodeStart+1
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDispatch:
@@ -90,7 +91,7 @@ TypedBooleanFixupCapacity:
             .db  DiagnosticBooleanFixupCapacity
 
 TypedPrefetchBits:
-            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04
+            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$04
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
@@ -190,7 +191,10 @@ TypedOperationTable:
             .dw Stage7ArrayLength    ; 113
             .dw Stage7OpenArrayLength ; 114
             .dw Stage7OpenArrayIndex ; 115
-TypedOperationCount .equ 96
+            .dw TypedConvertInteger  ; 116
+            .dw TypedDivideSigned    ; 117
+            .dw TypedPromoteI8Pair   ; 118
+TypedOperationCount .equ 99
 .else
 TypedOperationCount .equ 62
 .endif
@@ -507,7 +511,7 @@ TypedEmitTrapHead:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDivide8:
-            LD   C,1
+            LD   C,$80
             JR   TypedDivide
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDivide16:
@@ -515,11 +519,15 @@ TypedDivide16:
             JR   TypedDivide
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedModulo8:
-            LD   C,3
+            LD   C,$81
             JR   TypedDivide
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedModulo16:
-            LD   C,2
+            LD   C,1
+            JR   TypedDivide
+TypedDivideSigned:
+            CALL NextSemanticByte
+            LD   C,A
 TypedDivide:
             CALL TypedReadTrapPosition
             LD   A,C
@@ -534,7 +542,9 @@ TypedDivide:
             LD   HL,DivideU16
 .endif
             LD   A,(EmitTypedWidth)
-            BIT  1,A
+            BIT  6,A
+            JR   NZ,TypedDivideSignedCall
+            BIT  0,A
             JR   Z,TypedDivideCall
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeModuloU16Offset
@@ -556,7 +566,7 @@ TypedDivideCall:
             RET  C
 .endif
             LD   A,(EmitTypedWidth)
-            AND  1
+            BIT  7,A
             JR   Z,TypedDividePush
             CALL EmitPairIndexedInline
             .db  EmitPairZeroH
@@ -565,6 +575,48 @@ TypedDivideCall:
 .endif
 TypedDividePush:
             JP   TypedPushHL
+
+TypedDivideSignedCall:
+            LD   A,(EmitTypedWidth)
+            CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeDivideSignedOffset
+.else
+            LD   HL,DivideSigned
+.endif
+            JR   TypedDivideCall
+
+.if AggregateCallSlices
+; Promote the selected i8 operand in an i16 common expression. The production
+; parser emits mode 0 for the right carrier and mode 1 for the left carrier.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedPromoteI8Pair:
+            LD   (EmitTypedWidth),A
+            CALL TypedPopOperands
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(EmitTypedWidth)
+            CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimePromoteI8PairOffset
+            CALL EmitRuntimeCall
+.else
+            LD   HL,RuntimePromoteI8Pair
+            CALL EmitCall
+.endif
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,TypedPushOperandsBytes
+            JP   EmitPair
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedNegate8:
@@ -645,6 +697,60 @@ TypedNarrow8:
             RET  C
 .endif
             LD   A,2
+            CALL TypedEmitCurrentTrap
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JP   TypedPushHL
+
+; Convert one canonical integer carrier. The semantic operands are source
+; type, destination type, and the conversion's trap position.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+TypedConvertInteger:
+            CALL NextSemanticByte
+            LD   (EmitTypedWidth),A
+            CALL NextSemanticByte
+            LD   (EmitTypedDestination),A
+            CALL TypedReadTrapPosition
+            CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(EmitTypedWidth)
+            CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            ; Deliberate partial target instruction: the compiler emits the
+            ; LD C,n opcode now and the dynamic destination-type byte below.
+            ; AZM cannot spell an instruction whose immediate is supplied at
+            ; compiler runtime; this byte is target data, not compiler code.
+            CALL EmitByteInlineChecked
+            .db  $0E                      ; LD C,n
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(EmitTypedDestination)
+            CALL EmitByte
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeConvertIntegerOffset
+            CALL TypedEmitFailableRuntimeCall
+.else
+            LD   HL,ConvertInteger
+            CALL TypedEmitFailableCall
+.endif
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(EmitTypedDestination)
+            RLCA
+            LD   A,2
+            JR   NC,TypedConvertTrapReady
+            DEC  A                        ; signed index conversion uses bounds
+TypedConvertTrapReady:
             CALL TypedEmitCurrentTrap
 .if CompilerDiagnosticReturns
             RET  C
@@ -871,10 +977,10 @@ TypedBeginRoutine:
             RET  C
 .endif
             LD   A,(EmitTypedWidth)
-            CP   ScalarTypeU16
+            BIT  1,A
             LD   HL,TypedParameter8Bytes
             LD   B,4
-            JR   NZ,TypedBeginRoutineParameter
+            JR   Z,TypedBeginRoutineParameter
             LD   HL,TypedParameter16Bytes
             LD   B,8
 TypedBeginRoutineParameter:
@@ -1139,7 +1245,7 @@ TypedZeroHighPush       .equ TypedAtoHL+1
 TypedZeroHigh           .equ TypedAtoHL+1
 TypedPopOperandsBytes:  .db $D1,$E1
 .if AggregateCallSlices
-                          .db $E5,$D5
+TypedPushOperandsBytes: .db $E5,$D5
 .endif
 TypedAdd8Bytes:         .db $7D,$83,$6F,$26,$00
 .if AggregateCallSlices

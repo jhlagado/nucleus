@@ -372,8 +372,10 @@ DivideU16Zero:
 
 ; A selects Comparison*. Both integer widths and booleans use canonical u16
 ; carriers here; the parser has already restricted Boolean relations to =/<>.
-.routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE
+.routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE,IX,IY
 CompareU16:
+            BIT  7,A
+            JP   NZ,CompareSigned
             LD   B,A
             OR   A
             SBC  HL,DE
@@ -463,6 +465,257 @@ ResizeStringCommit:
             OR   A
             RET
 .endif
+
+; Checked numeric conversion among u8, u16, i8 and i16. A is the source type,
+; C is the destination type, and HL is the canonical source carrier. Carry
+; reports an out-of-range value without changing HL.
+RuntimeScalarTypeBaseMask   .equ $03
+RuntimeScalarTypeSignedFlag .equ $10
+RuntimeScalarMetaTypeMask   .equ $13
+RuntimeScalarTypeU16        .equ $02
+RuntimeScalarTypeI8         .equ $11
+RuntimeScalarTypeI16        .equ $12
+.routine in A,C,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,B,C,D,E,IX,IY
+ConvertInteger:
+            LD   D,A
+            AND  RuntimeScalarMetaTypeMask
+            CP   RuntimeScalarTypeI8
+            JR   Z,ConvertIntegerSourceI8
+            CP   RuntimeScalarTypeI16
+            JR   Z,ConvertIntegerSourceI16
+            JR   ConvertIntegerNonnegative
+ConvertIntegerSourceI8:
+            BIT  7,L
+            JR   Z,ConvertIntegerNonnegative
+            LD   H,$FF
+            JR   ConvertIntegerNegative
+ConvertIntegerSourceI16:
+            BIT  7,H
+            JR   Z,ConvertIntegerNonnegative
+ConvertIntegerNegative:
+            BIT  4,C
+            JR   Z,ConvertIntegerFailure
+            BIT  1,C
+            JR   NZ,ConvertIntegerSuccess
+            INC  H
+            JR   NZ,ConvertIntegerFailure
+            BIT  7,L
+            JR   Z,ConvertIntegerFailure
+            JR   ConvertIntegerSuccess
+ConvertIntegerNonnegative:
+            BIT  1,C
+            JR   NZ,ConvertIntegerPositiveWord
+            LD   A,H
+            OR   A
+            JR   NZ,ConvertIntegerFailure
+            BIT  4,C
+            JR   Z,ConvertIntegerSuccess
+            BIT  7,L
+            JR   NZ,ConvertIntegerFailure
+            JR   ConvertIntegerSuccess
+ConvertIntegerPositiveWord:
+            BIT  4,C
+            JR   Z,ConvertIntegerSuccess
+            BIT  7,H
+            JR   NZ,ConvertIntegerFailure
+ConvertIntegerSuccess:
+            OR   A
+            RET
+ConvertIntegerFailure:
+            SCF
+            RET
+
+; A carries the ordinary comparison selector in bits 0..5, the signed marker
+; in bit 7, and byte width in bit 6. Bias the relevant sign bit, then reuse the
+; unsigned comparison core.
+.routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE,IX,IY
+CompareSigned:
+            LD   B,A
+            BIT  6,B
+            JR   Z,CompareSignedWord
+            LD   H,0
+            LD   D,0
+            LD   A,L
+            XOR  $80
+            LD   L,A
+            LD   A,E
+            XOR  $80
+            LD   E,A
+            JR   CompareSignedReady
+CompareSignedWord:
+            LD   A,H
+            XOR  $80
+            LD   H,A
+            LD   A,D
+            XOR  $80
+            LD   D,A
+CompareSignedReady:
+            LD   A,B
+            AND  $3F
+            JP   CompareU16
+
+; Signed quotient/remainder. A bit 0 selects remainder and bit 7 requests a
+; canonical i8 result. Inputs are canonical carriers in HL and DE.
+.routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE
+DivideSigned:
+            LD   C,A
+            BIT  7,A
+            JR   Z,DivideSignedWidthReady
+            BIT  7,L
+            JR   Z,DivideSignedRight8
+            LD   H,$FF
+DivideSignedRight8:
+            BIT  7,E
+            JR   Z,DivideSignedWidthReady
+            LD   D,$FF
+DivideSignedWidthReady:
+            LD   A,C
+            AND  $81
+            LD   C,A
+            BIT  7,H
+            JR   Z,DivideSignedDividendReady
+            SET  1,C                     ; remainder sign
+            SET  2,C                     ; quotient sign, toggled by divisor
+            CALL DivideSignedNegateHL
+DivideSignedDividendReady:
+            BIT  7,D
+            JR   Z,DivideSignedSignsReady
+            LD   A,C
+            XOR  4
+            LD   C,A
+            EX   DE,HL
+            CALL DivideSignedNegateHL
+            EX   DE,HL
+DivideSignedSignsReady:
+            LD   A,C
+            PUSH AF
+            CALL DivideU16Core
+            POP  DE                     ; D=mode without replacing core flags
+            RET  C
+            BIT  0,D
+            JR   NZ,DivideSignedRemainder
+            LD   H,B
+            LD   L,C
+            BIT  2,D
+            JR   Z,DivideSignedResultWidth
+            CALL DivideSignedNegateHL
+            JR   DivideSignedResultWidth
+DivideSignedRemainder:
+            BIT  1,D
+            JR   Z,DivideSignedResultWidth
+            CALL DivideSignedNegateHL
+DivideSignedResultWidth:
+            BIT  7,D
+            JR   Z,DivideSignedSuccess
+            LD   H,0
+DivideSignedSuccess:
+            OR   A
+            RET
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+DivideSignedNegateHL:
+            XOR  A
+            SUB  L
+            LD   L,A
+            LD   A,0
+            SBC  A,H
+            LD   H,A
+            RET
+
+; Advance one signed counted-loop counter. A carries the loop mode: bit 1
+; selects subtraction and bit 2 selects i16 rather than canonical i8. HL is
+; the counter and DE the unsigned positive step magnitude. Check that complete
+; magnitude against the mathematical distance to the selected type boundary;
+; treating E or DE as a signed addend would mis-handle steps 128..65535. Carry
+; reports signed continuation overflow; a successful i8 result retains H=0.
+.routine in A,DE,HL out HL,carry,zero clobbers sign,parity,halfCarry,A,BC,DE,IX,IY
+SignedLoopStep:
+            LD   C,A
+            BIT  2,C
+            JR   NZ,SignedLoopStep16
+            LD   A,D
+            OR   A
+            JR   NZ,SignedLoopStepFailure
+            BIT  1,C
+            LD   A,L
+            JR   NZ,SignedLoopStepLimit8Negative
+            LD   A,$7F
+            SUB  L                       ; positive distance to 127
+            JR   SignedLoopStepCheck8
+SignedLoopStepLimit8Negative:
+            SUB  $80                     ; negative distance to -128
+SignedLoopStepCheck8:
+            CP   E
+            JR   C,SignedLoopStepFailure
+            LD   A,L
+            BIT  1,C
+            JR   NZ,SignedLoopStepSubtract8
+            ADD  A,E
+            JR   SignedLoopStepStore8
+SignedLoopStepSubtract8:
+            SUB  E
+SignedLoopStepStore8:
+            LD   L,A
+            LD   H,0
+            JR   SignedLoopStepSuccess
+SignedLoopStep16:
+            PUSH AF
+            LD   B,H
+            LD   C,L
+            BIT  1,A
+            JR   NZ,SignedLoopStepLimit16Negative
+            LD   A,$FF
+            SUB  C
+            LD   C,A
+            LD   A,$7F
+            SBC  A,B
+            LD   B,A                     ; BC = 32767 - counter
+            JR   SignedLoopStepCheck16
+SignedLoopStepLimit16Negative:
+            LD   A,B
+            SUB  $80
+            LD   B,A                     ; BC = counter - (-32768)
+SignedLoopStepCheck16:
+            LD   A,B
+            CP   D
+            JR   C,SignedLoopStepFailure16
+            JR   NZ,SignedLoopStepApply16
+            LD   A,C
+            CP   E
+            JR   C,SignedLoopStepFailure16
+SignedLoopStepApply16:
+            POP  AF
+            BIT  1,A
+            JR   NZ,SignedLoopStepSubtract16
+            ADD  HL,DE
+            JR   SignedLoopStepSuccess
+SignedLoopStepSubtract16:
+            OR   A
+            SBC  HL,DE
+SignedLoopStepSuccess:
+            OR   A
+            RET
+SignedLoopStepFailure16:
+            POP  AF
+SignedLoopStepFailure:
+            SCF
+            RET
+
+; Promote one canonical i8 carrier within a pending binary pair. A=0 selects
+; DE (the right carrier) and A=1 selects HL (the left carrier).
+.routine in A,DE,HL out DE,HL,carry,zero clobbers sign,parity,halfCarry,A
+RuntimePromoteI8Pair:
+            OR   A
+            JR   Z,RuntimePromoteI8Right
+            BIT  7,L
+            JR   Z,RuntimePromoteI8Ready
+            DEC  H
+RuntimePromoteI8Ready:
+            RET
+RuntimePromoteI8Right:
+            BIT  7,E
+            RET  Z
+            DEC  D
+            RET
 
 .if RuntimeProofServices
 ; Carry returns endOfInput, a configured input failure, or success in A.

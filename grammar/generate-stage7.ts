@@ -69,6 +69,8 @@ const actionFamilies: readonly Stage7ActionFamily[] = [
       { logical: "a:TypeU8", parameter: 1 },
       { logical: "a:TypeU16", parameter: 2 },
       { logical: "a:TypeBoolean", parameter: 3 },
+      { logical: "a:TypeI8", parameter: 4 },
+      { logical: "a:TypeI16", parameter: 5 },
     ],
   },
 ];

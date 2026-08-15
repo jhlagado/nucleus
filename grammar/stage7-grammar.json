@@ -55,6 +55,8 @@
       "TokenLeftParen",
       "TokenU8",
       "TokenU16",
+      "TokenI8",
+      "TokenI16",
       "TokenPlus",
       "TokenMinus",
       "TokenNot"
@@ -68,6 +70,8 @@
       "TokenLeftParen",
       "TokenU8",
       "TokenU16",
+      "TokenI8",
+      "TokenI16",
       "TokenPlus",
       "TokenMinus",
       "TokenNot"
@@ -83,6 +87,8 @@
       "TokenStringLiteral",
       "TokenU8",
       "TokenU16",
+      "TokenI8",
+      "TokenI16",
       "TokenPlus",
       "TokenMinus",
       "TokenNot"
@@ -99,6 +105,8 @@
       "TokenLeftParen",
       "TokenU8",
       "TokenU16",
+      "TokenI8",
+      "TokenI16",
       "TokenPlus",
       "TokenMinus",
       "TokenNot"
@@ -483,6 +491,8 @@
     { "lhs": "type-array-opt", "rhs": [] },
     { "lhs": "scalar-type", "rhs": ["TokenU8", "a:TypeU8"] },
     { "lhs": "scalar-type", "rhs": ["TokenU16", "a:TypeU16"] },
-    { "lhs": "scalar-type", "rhs": ["TokenBoolean", "a:TypeBoolean"] }
+    { "lhs": "scalar-type", "rhs": ["TokenBoolean", "a:TypeBoolean"] },
+    { "lhs": "scalar-type", "rhs": ["TokenI8", "a:TypeI8"] },
+    { "lhs": "scalar-type", "rhs": ["TokenI16", "a:TypeI16"] }
   ]
 }

@@ -281,13 +281,13 @@ ProofStart:
             CP   7
             JP   NZ,ProofFailLayout
             LD   A,(AggregateSymbolTypeBase+2)
-            CP   7
+            CP   AggregateFirstDynamicTypeId+3
             JP   NZ,ProofFailLayout
             LD   A,(AggregateSymbolTypeBase+3)
-            CP   7
+            CP   AggregateFirstDynamicTypeId+3
             JP   NZ,ProofFailLayout
             LD   A,(AggregateSymbolTypeBase+4)
-            CP   8
+            CP   AggregateFirstDynamicTypeId+4
             JP   NZ,ProofFailLayout
             LD   A,(SymbolTableBase+SymbolEntrySize*2+3)
             CP   SymbolInfoAggregateProgram
@@ -373,16 +373,16 @@ AggregateAtomicFailedAsExpected:
             CALL CompileAggregateSlice
             JP   C,ProofFailIdentity
             LD   A,(SymbolTableBase+4)
-            CP   4
+            CP   AggregateFirstDynamicTypeId
             JP   NZ,ProofFailIdentity
             LD   A,(SymbolTableBase+SymbolEntrySize+4)
-            CP   5
+            CP   AggregateFirstDynamicTypeId+1
             JP   NZ,ProofFailIdentity
             LD   A,(AggregateSymbolTypeBase+2)
-            CP   6
+            CP   AggregateFirstDynamicTypeId+2
             JP   NZ,ProofFailIdentity
             LD   A,(AggregateSymbolTypeBase+3)
-            CP   6
+            CP   AggregateFirstDynamicTypeId+2
             JP   NZ,ProofFailIdentity
             LD   A,(AggregateTypeCount)
             CP   3

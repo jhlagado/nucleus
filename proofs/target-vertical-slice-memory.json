@@ -6,7 +6,7 @@
       "name": "compiler-core",
       "start": "CompilerCoreBase",
       "end": "CompilerCoreLimit",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-workspace",
@@ -21,10 +21,10 @@
       "maxBytes": 2048
     },
     {
-      "name": "released-generated-staging",
-      "start": "ReleasedGeneratedStagingBase",
-      "end": "ReleasedGeneratedStagingLimit",
-      "maxBytes": 4096
+      "name": "proof-source-corpus",
+      "start": "ProofSourceCorpusBase",
+      "end": "ProofSourceCorpusLimit",
+      "maxBytes": 768
     },
     {
       "name": "target-runtime",

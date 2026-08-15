@@ -37,7 +37,7 @@ const TARGET_DESCRIPTOR = 0x9e00;
 const PART_BANKS = TARGET_DESCRIPTOR + 0x10;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
-const RUNTIME_IDENTITY = 5;
+const RUNTIME_IDENTITY = 8;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
@@ -213,7 +213,7 @@ const compilerImageFingerprint = (image: CompilerImage): string => {
 export const nucleusCompilerInfo = async (): Promise<{
   readonly hostApiVersion: 1;
   readonly languageVersion: "0.1";
-  readonly runtimeIdentity: 5;
+  readonly runtimeIdentity: 8;
   readonly normalImageSha256: string;
   readonly debugImageSha256: string;
   readonly capacities: typeof nucleusCompilerCapacities;

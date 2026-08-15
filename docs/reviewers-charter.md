@@ -243,12 +243,17 @@ for alternative files or reorder source parts.
 
 ### Scalar types
 
-The scalar types are `u8`, `u16`, and `boolean`. Boolean is distinct from both
-integer types. The language provides no Boolean/integer conversion.
+The scalar types are `u8`, `u16`, `i8`, `i16`, and `boolean`. Boolean is
+distinct from every integer type, and the language provides no
+Boolean/integer conversion. Signed integers use two's-complement representation
+with fixed eight- and sixteen-bit ranges.
 
-The only implicit declared-type conversion is `u8` to `u16`. Narrowing through
-`u8(expression)` is checked. Nucleus has no arbitrary cast, low-byte
-reinterpretation, same-width type punning, or word/address interchange.
+The implicit declared-type conversions are the value-preserving cases `u8` to
+`u16`, `u8` to `i16`, and `i8` to `i16`. Every other integer conversion uses
+the explicit destination-type form. A known out-of-range constant is invalid
+source; a dynamic value outside the destination range traps. Nucleus has no arbitrary cast,
+low-byte reinterpretation, same-width type punning, or word/address
+interchange.
 
 Integer constants have no declared width. Their declarations retain an exact
 integer value, which must fit the type selected by each use. Boolean constants
@@ -336,7 +341,9 @@ Nucleus retains structured conditionals, `while`, counted `for`, constant
 direct and mutual recursion. Do not remove one of these forms merely to shrink
 the first compiler.
 
-A counted-loop counter is a predeclared scalar local and is read-only to source
+A counted-loop counter is a predeclared `u8`, `u16`, `i8`, or `i16` local. The
+programmer's declaration selects its width and signedness; the compiler does
+not impose a universal counter type. The counter is read-only to source
 statements while its loop is active. A nested counted loop cannot reuse that
 local as its counter. Program variables and parameters are not counted-loop
 counters. This rule keeps calls from changing loop progress without effect
@@ -412,8 +419,10 @@ timing effects. The source-visible copy and failure ordering do not change.
 The implementation may share arithmetic tails or helpers when complete
 width-specific behavior remains identical. Byte addition, subtraction,
 multiplication, negation, and complement retain modulo-256 behavior; word forms
-retain modulo-65,536 behavior. An economy is measured against the complete
-direct compiler and runtime path, not against an isolated instruction sketch.
+retain modulo-65,536 behavior. Ordering uses the signedness of the resolved
+common type. Signed division truncates toward zero, and its remainder has the
+dividend's sign. An economy is measured against the complete direct compiler
+and runtime path, not against an isolated instruction sketch.
 
 ## Selected baseline and future experiments
 

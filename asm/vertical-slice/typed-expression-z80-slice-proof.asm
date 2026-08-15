@@ -975,7 +975,7 @@ TypedCoverageSource:
             .db "sub main() fails",10
             .db "    var value as u8 = +1",10
             .db "    out = not 255",10
-            .db "    out = -255",10
+            .db "    out = -u8(255)",10
             .db "    out = value or byteMask",10
             .db "    flag = truth",10
             .db "    flag = (value < quotient) and (flag = truth) and (flag <> false)",10

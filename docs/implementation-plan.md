@@ -2680,6 +2680,75 @@ Normal and instrumented builds also produced identical NOBJ bytes. This pass
 adds no raw instruction encodings, pointer tags, address truncation, workspace,
 runtime support, or generated-program bytes.
 
+### Signed integers and programmer-selected counted-loop types
+
+The signed-integer milestone adds `i8` and `i16` as ordinary scalar types. It
+uses exact negative constants, two's-complement storage, signed ordering,
+truncating signed division, a remainder with the dividend's sign, checked
+conversion among all four integer types, and signed indexes for concrete
+arrays, open arrays, and bounded strings. Semantic operations 116, 117, and
+118 carry checked conversion, signed division or modulo, and mixed `u8`/`i8`
+pair promotion. The D8 semantic decoder uses the same operation widths as the
+compiler dispatcher.
+
+Counted loops retain the type declared by the programmer. A predeclared
+counter may be `u8`, `u16`, `i8`, or `i16`; the compiler neither forces `i16`
+nor silently widens a smaller counter. The start and bound must be compatible
+with that declaration. The generated continuation check uses the declared
+width and signedness. It computes the mathematical next value, then tests that
+value against the loop bound before storing it. An overshoot ends the loop without a store; a
+value that would continue must fit the counter type; otherwise it performs
+`loop-range`.
+The execution proof covers all four counter types, including `i16` from -100
+through 100, traversal across zero, exact opposite endpoints, and positive and
+negative overshoot at both signed widths.
+
+The contemporaneous pre-feature record was 15,972 compiler-code bytes plus 410
+immutable bytes, or 16,382 core bytes; workspace was 3,611 bytes. The selected
+proof runtime was 837 bytes and used runtime identity 7. This checkpoint existed
+only in the working feature branch: it has no detached revision or retained
+proof lock and is not independently reproducible from the current tree.
+
+The measured signed result is 16,110 compiler-code bytes plus 410 immutable
+bytes, or 16,520 core bytes. It is 136 bytes above the 16,384-byte project gate.
+The project owner explicitly selected language correctness before another
+compression and organization pass, so the overrun is recorded rather than
+hidden in another account. Workspace measures 3,613 bytes. The proof layout
+places its workspace at `$6000`; that address is proof and deployment policy,
+not part of the compiler ABI.
+
+The measured selected proof runtime is 899 bytes. Canonical runtime identity 8
+measures 689 bytes under the default link context; the historical Stage 8 and
+Stage 9 proof context measures 921 bytes. The runtime revision adds checked
+conversion, signed comparison, signed division and modulo, signed loop
+continuation, and mixed-byte promotion. The ordinary target-enabled proof
+publishes a 1,721-byte NOBJ with 881 used image bytes. The Chapter 21 proof
+publishes an 8,238-byte NOBJ with 1,786 used image bytes. Its maximum generated
+program remains 1,040 bytes.
+
+The measured shipping proof executes 1,019,079 compiler instructions in
+9,924,743 T-states. The instrumented compiler measures 16,166 code bytes plus
+410 immutable bytes, or 16,576 core bytes, and executes 1,022,870 instructions
+in 9,966,534 T-states. Both layouts use 3,613 workspace bytes and the same
+899-byte selected proof runtime. Normal and instrumented compilation produce
+identical target artifacts for the same signed source.
+
+Runtime identity 8 changes the linked runtime length and helper offsets, so an
+otherwise unaffected program is not byte-identical to its runtime-7 NOBJ, HEX,
+or materialized image. Its source-level behavior and generated instruction
+topology remain the regression boundary; absolute helper operands and later
+target addresses relocate with the new runtime. Signed programs add generated
+operations only where the new types require them.
+
+The relocation gate assembles the complete compiler at `$0000`, `$0100`,
+`$8000`, and the highest origin at which the image fits. It executes the public
+compiler entry at every origin through a fixed external trampoline and checks
+the same exact diagnostic, restored stack pointer, and relocated full-width
+handler directories. A deployment may place the compiler anywhere in the Z80
+address space where its code, immutable data, workspace, source, stack, and
+target regions do not overlap. No compiler pointer may donate address bits to
+metadata or depend on a repository proof origin.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -2716,7 +2785,7 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | aggregate-constant bytes                |      1,024 | private-image suffix, one shared length word, and relative-offset symbol payloads     | read-only-data capacity diagnostic                                               | record/array/string constants; exact 1,024-byte suffix and rejected next byte     |
 | total generated read-only-data bytes    |      1,024 | initialized-data prefix followed by aggregate-constant suffix                         | diagnostic for the declaration class that first exceeds the combined region      | mixed data/constant shifting and exact separate boundary proofs                   |
 | zero-initialized program-data bytes     |      1,024 | retained word length; no stored image bytes                                           | capacity diagnostic                                                              | exact four-string-plus-tail BSS and rejected following byte                       |
-| emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 582 bytes; banked 839/615 bytes; per-bank and entry-bank overflow proofs     |
+| emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 881 bytes; banked 1,138/914 bytes; per-bank and entry-bank overflow proofs   |
 | physical target banks                   |          4 | target descriptor and four per-bank cursor/remaining entries                          | target-configuration diagnostic                                                  | accepted four-bank profiles; rejected fifth bank                                  |
 | activation bytes                        |      3,840 | reserved machine-stack region; frame size is bounded by retained declarations         | `activation-capacity` or fixed memory-map rejection                              | memory-map proof, sixteen-position call, and depth boundary                       |
 | activation depth                        |          8 | counter plus generated hardware-stack frames                                          | `activation-capacity`                                                            | recursive handler-bypass and root-frame trap proof                                |

@@ -6,8 +6,7 @@
 ; the for/flow action scratch safely reuses its first thirteen bytes.
 HybridLL1ForMode       .equ AggregateInitializerBase
 HybridLL1ForStep       .equ HybridLL1ForMode+1
-HybridLL1ForOffset     .equ HybridLL1ForStep+2
-HybridLL1FlowStackBase .equ HybridLL1ForOffset+2
+HybridLL1FlowStackBase .equ HybridLL1ForStep+2
 HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+ControlFrameCapacity
 
 ; --------------------------------------------------------- retained parsers
@@ -70,6 +69,9 @@ HybridLL1StrayClause:
 ; A is the logical action ordinal for the contiguous u8/u16/Boolean family.
 HybridLL1SetScalarTypeAction:
             SUB  HybridLL1ActionOrdinalTypeU8-1
+            CP   3
+            JR   C,HybridLL1SetCurrentType
+            ADD  A,13
 HybridLL1SetCurrentType:
             LD   (AggregateCurrentTypeId),A
             OR   A
@@ -241,11 +243,7 @@ HybridLL1FinishConstantExpression:
             AND  ScalarMetaConstant
             JP   Z,TypedTypeFailure
             LD   A,D
-            AND  ScalarMetaTypeMask
-            CP   ScalarTypeBoolean
-            LD   A,ScalarTypeExact
-            JR   NZ,HybridLL1ConstantTypeReady
-            LD   A,ScalarTypeBoolean
+            CALL TypedInferredConstantType
 HybridLL1ConstantTypeReady:
             LD   (DeclarationInfo),A
             LD   HL,(ExpressionRightValue)
@@ -1977,8 +1975,24 @@ HybridLL1BeginFor:
             OUT  (DebugTraceContextPushPort),A
 .endif
 .endif
+            ; The streaming parser has consumed the counter name before this
+            ; action. Convert its retained source pointer through the current
+            ; multipart descriptor; parser lookahead may advance part-local
+            ; cursor metadata beyond the token whose action is now running.
+.if TargetStreamingOutput
+            LD   HL,(SourcePartDescriptorCursor)
+            LD   DE,-4                  ; current descriptor's source start
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   HL,(TokenLexemePointer)
+            OR   A
+            SBC  HL,DE
+.else
             LD   HL,(TokenStartOffset)
-            LD   (HybridLL1ForOffset),HL
+.endif
+            LD   (Stage7ForOffset),HL
             CALL HybridLL1LookupDeclaration
 .if CompilerDiagnosticReturns
             RET  C
@@ -2009,11 +2023,13 @@ HybridLL1ForBoundSelected:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JP   HybridLL1ExpectU16
+HybridLL1ExpectForBound:
+            JP   HybridLL1SetLocalExpectedType
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
 HybridLL1CheckForBound:
-            LD   E,ScalarTypeU16
+            CALL TypedDeclarationScalarType
+            LD   E,A
             JP   HybridLL1CheckTypedResult
 
 HybridLL1SaveForStep .equ HybridLL1CheckForBound
@@ -2050,9 +2066,17 @@ HybridLL1BeginForBody:
             LD   (HL),A
             INC  HL
             CALL TypedDeclarationScalarType
-            CP   ScalarTypeU16
+            LD   D,A
+            AND  ScalarTypeSignedFlag
             LD   A,(HybridLL1ForMode)
-            JR   NZ,HybridLL1ForModeReady
+            JR   Z,HybridLL1ForUnsignedMode
+            SET  3,A
+HybridLL1ForUnsignedMode:
+            LD   E,A
+            LD   A,D
+            BIT  1,A
+            LD   A,E
+            JR   Z,HybridLL1ForModeReady
             SET  2,A
 HybridLL1ForModeReady:
             LD   (HL),A
@@ -2062,7 +2086,7 @@ HybridLL1ForModeReady:
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   DE,(HybridLL1ForOffset)
+            LD   DE,(Stage7ForOffset)
             LD   (HL),E
             INC  HL
             LD   (HL),D

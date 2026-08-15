@@ -346,6 +346,8 @@ TokenHandle             .equ 51
 TokenXor                .equ 53
 TokenMod                .equ 54
 TokenAssert             .equ 55
+TokenI8                 .equ 56
+TokenI16                .equ 57
 
 DiagnosticNone          .equ 0
 DiagnosticLexical       .equ 1
@@ -435,8 +437,13 @@ DiagnosticExpectedStringLiteral .equ DiagnosticExpectedTokenBase+TokenStringLite
 ScalarTypeExact         .equ 0
 ScalarTypeU8            .equ 1
 ScalarTypeU16           .equ 2
-ScalarTypeBoolean       .equ 3
-ScalarMetaTypeMask      .equ $03
+ScalarTypeBoolean       .equ $10
+ScalarTypeI8            .equ $11
+ScalarTypeI16           .equ $12
+ScalarTypeBaseMask      .equ $03
+ScalarTypeSignedFlag    .equ $10
+ScalarMetaTypeMask      .equ $13
+ScalarMetaNegative      .equ $20
 ScalarMetaConstant      .equ $80
 SymbolClassConstant     .equ $00
 SymbolClassProgram      .equ $04
@@ -451,7 +458,9 @@ SymbolInfoAggregateProgram .equ SymbolAggregateFlag+SymbolClassProgram
 AggregateTypeIdU8       .equ ScalarTypeU8
 AggregateTypeIdU16      .equ ScalarTypeU16
 AggregateTypeIdBoolean  .equ ScalarTypeBoolean
-AggregateFirstDynamicTypeId .equ 4
+AggregateTypeIdI8       .equ ScalarTypeI8
+AggregateTypeIdI16      .equ ScalarTypeI16
+AggregateFirstDynamicTypeId .equ $40
 AggregateTypeKindRecord .equ 4
 AggregateTypeKindString .equ 5
 AggregateTypeKindArray  .equ 6
@@ -468,12 +477,18 @@ AggregateFirstOpenViewTypeId .equ AggregateOpenStringTypeId
 SymbolInfoConstantU8    .equ SymbolClassConstant+ScalarTypeU8
 SymbolInfoConstantU16   .equ SymbolClassConstant+ScalarTypeU16
 SymbolInfoConstantBoolean .equ SymbolClassConstant+ScalarTypeBoolean
+SymbolInfoConstantI8    .equ SymbolClassConstant+ScalarTypeI8
+SymbolInfoConstantI16   .equ SymbolClassConstant+ScalarTypeI16
 SymbolInfoProgramU8     .equ SymbolClassProgram+ScalarTypeU8
 SymbolInfoProgramU16    .equ SymbolClassProgram+ScalarTypeU16
 SymbolInfoProgramBoolean .equ SymbolClassProgram+ScalarTypeBoolean
+SymbolInfoProgramI8     .equ SymbolClassProgram+ScalarTypeI8
+SymbolInfoProgramI16    .equ SymbolClassProgram+ScalarTypeI16
 SymbolInfoLocalU8       .equ SymbolClassLocal+ScalarTypeU8
 SymbolInfoLocalU16      .equ SymbolClassLocal+ScalarTypeU16
 SymbolInfoLocalBoolean  .equ SymbolClassLocal+ScalarTypeBoolean
+SymbolInfoLocalI8       .equ SymbolClassLocal+ScalarTypeI8
+SymbolInfoLocalI16      .equ SymbolClassLocal+ScalarTypeI16
 
 SemanticDeclareU8       .equ 1
 SemanticForUntilU8      .equ 2
@@ -556,6 +571,11 @@ SemanticReturnScalar    .equ 78
 SemanticStoreParameter8 .equ 79
 SemanticStoreParameter16 .equ 80
 SemanticEndTypedRoutine .equ 81
+; Production-only extensions retain global ordinals so every historical
+; conditional layout can still assemble the shared expression parser.
+SemanticConvertInteger  .equ 116
+SemanticDivideSigned    .equ 117
+SemanticPromoteI8Pair   .equ 118
 
 ComparisonEqual         .equ 0
 ComparisonNotEqual      .equ 1

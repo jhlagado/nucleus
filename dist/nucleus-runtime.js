@@ -22,6 +22,11 @@ const helperIdentitySymbols = {
     ModuloU16: "NucleusRuntimeModuloU16Offset",
     CompareU16: "NucleusRuntimeCompareU16Offset",
     ResizeString: "NucleusRuntimeResizeStringOffset",
+    ConvertInteger: "NucleusRuntimeConvertIntegerOffset",
+    CompareSigned: "NucleusRuntimeCompareSignedOffset",
+    DivideSigned: "NucleusRuntimeDivideSignedOffset",
+    SignedLoopStep: "NucleusRuntimeSignedLoopStepOffset",
+    RuntimePromoteI8Pair: "NucleusRuntimePromoteI8PairOffset",
 };
 const serviceOrder = [
     "readInputByte",
@@ -44,7 +49,7 @@ export const defaultRuntimeLinkContext = {
     vectorBase: 0x7800,
     programDataBase: 0x7846,
     programDataCapacity: 0x0800,
-    readOnlyBase: 0x6986,
+    readOnlyBase: 0x6ab1,
     readOnlyCapacity: 0x0800,
     services: {
         readInputByte: 0x9000,

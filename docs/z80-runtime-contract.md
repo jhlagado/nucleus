@@ -261,23 +261,28 @@ per-bank subsetting.
 
 ### 3.1 Scalar values
 
-`u8` occupies one byte and ranges from 0 through 255. `boolean` occupies one
+`u8` occupies one byte and ranges from 0 through 255. `i8` occupies one byte,
+uses two's complement, and ranges from -128 through 127. `boolean` occupies one
 byte and is exactly 0 or 1. `u16` occupies two little-endian bytes and ranges
-from 0 through 65,535. A compiler or runtime helper must not depend on another
-Boolean representation.
+from 0 through 65,535. `i16` occupies two little-endian two's-complement bytes
+and ranges from -32,768 through 32,767. A compiler or runtime helper must not
+depend on another Boolean representation.
 
 Arithmetic width and wraparound follow the language specification. A value
 held temporarily in a Z80 register pair may use a wider carrier, but storage
-and observable results retain their declared widths. Checked narrowing tests
-the complete `u16` value before producing a `u8`.
+and observable results retain their declared widths. The ordinary carrier for
+an `i8` value keeps H zero; a signed operation interprets L's sign bit or
+sign-extends only while needed. Every stored, returned, or forwarded `i8`
+result restores H to zero. Checked conversion tests the mathematical source
+value against the complete destination range before producing a result.
 
 ### 3.2 Records and arrays
 
 Records are packed in field-declaration order with no padding. Field extents
 are:
 
-- one byte for `u8` and `boolean`;
-- two little-endian bytes for `u16`; and
+- one byte for `u8`, `i8`, and `boolean`;
+- two little-endian bytes for `u16` and `i16`; and
 - the complete inline extent for a record, fixed array, or bounded string.
 
 A fixed array stores its elements consecutively. Its stride is the complete
@@ -481,11 +486,12 @@ mathematical half-open region `[a, a + w)` lies wholly within either the used
 writable region or the generated read-only-data region. The calculation must
 not use wrapped 16-bit arithmetic as evidence that the region fits.
 
-A fixed-array access first checks the unsigned index against its declared
-length, then forms `base + index * stride`, and then establishes the complete
-element region. An open-array access performs the same sequence with the
-retained count word as its bound and the statically known element extent as its
-stride. A string access applies Section 3.3. Any failed check performs `bounds`
+A fixed-array access first rejects a negative signed index, then checks its
+unsigned magnitude against the declared length, forms `base + index * stride`,
+and establishes the complete element region. An open-array access performs the
+same sequence with the retained count word as its bound and the statically known
+element extent as its stride. A string access applies the same negative-index
+rule before Section 3.3's length check. Any failed check performs `bounds`
 before a load, store, or alias result is produced.
 
 The compiler may omit a runtime check only when information already proved at
@@ -645,14 +651,14 @@ has acted.
 
 ### 7.2 Stable trap codes
 
-|   Code | Reason                | Required condition                                             |
-| -----: | --------------------- | -------------------------------------------------------------- |
-| `0x01` | `bounds`              | A checked data region, array index, or string byte is invalid. |
-| `0x02` | `narrowing`           | A dynamic checked `u8(...)` operand exceeds 255.               |
-| `0x03` | `division-by-zero`    | A runtime integer divisor is zero.                             |
-| `0x04` | `loop-range`          | A continuing counted-loop value does not fit its counter.      |
-| `0x05` | `activation-capacity` | A new activation cannot fit its published limit.               |
-| `0x06` | `unhandled-error`     | `main` returns recoverable failure.                            |
+|   Code | Reason                | Required condition                                                      |
+| -----: | --------------------- | ----------------------------------------------------------------------- |
+| `0x01` | `bounds`              | A checked data region, array index, or string byte is invalid.          |
+| `0x02` | `narrowing`           | A dynamic explicit integer conversion is outside its destination range. |
+| `0x03` | `division-by-zero`    | A runtime integer divisor is zero.                                      |
+| `0x04` | `loop-range`          | A continuing counted-loop value does not fit its counter.               |
+| `0x05` | `activation-capacity` | A new activation cannot fit its published limit.                        |
+| `0x06` | `unhandled-error`     | `main` returns recoverable failure.                                     |
 
 These numeric codes are the machine-readable Nucleus Z80 trap contract.
 
@@ -915,9 +921,11 @@ data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
-`test/nobj.test.ts` assembles runtime identity `$0005` under
-`defaultRuntimeLinkContext` and measures a 390-byte canonical linked helper
-image. The 26-byte addition is the bounded-string resize helper.
+`test/nobj.test.ts` assembles runtime identity `$0008` under
+`defaultRuntimeLinkContext` and measures a 689-byte canonical linked helper
+image. This identity includes checked four-way integer conversion, signed
+comparison, signed division and modulo, signed loop continuation, and mixed
+`u8`/`i8` promotion in addition to the existing unsigned and aggregate helpers.
 `proofs/stage9-conformance-z80-slice-proof.json` includes the historical direct
-service adapters and measures 622 bytes;
-`proofs/chapter21-target-z80-slice-proof.json` selects a 600-byte form.
+service adapters and measures 921 bytes;
+`proofs/chapter21-target-z80-slice-proof.json` selects an 899-byte proof form.

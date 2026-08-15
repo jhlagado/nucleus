@@ -14,10 +14,10 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
     { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4407 },
-    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33607 },
-    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33383 },
-    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 3257 },
-    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3481 },
+    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33906 },
+    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33682 },
+    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2958 },
+    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3182 },
     { "at": "AdapterCapturedBank0RoLength", "width": "u16", "equals": 0 },
     { "at": "AdapterCapturedBank1RoLength", "width": "u16", "equals": 2 }
   ],
@@ -26,7 +26,7 @@
       "name": "compiler-code",
       "from": "CompilerCodeStart",
       "to": "CompilerCodeEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-immutable",
@@ -38,7 +38,7 @@
       "name": "compiler-core",
       "from": "CompilerCodeStart",
       "to": "CompilerCoreEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-workspace",
@@ -67,7 +67,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 5,
+      "runtimeIdentity": 8,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -88,22 +88,22 @@
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33220,
+      "dataLoadAddress": 33519,
       "dataLoadLength": 72,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 839,
-          "readOnlyBase": 33220,
+          "usedLength": 1138,
+          "readOnlyBase": 33519,
           "readOnlyLength": 72,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 615,
-          "readOnlyBase": 33161,
+          "usedLength": 914,
+          "readOnlyBase": 33460,
           "readOnlyLength": 2,
-          "aggregateConstantBase": 33161,
+          "aggregateConstantBase": 33460,
           "aggregateConstantLength": 2
         }
       ]
@@ -158,7 +158,7 @@
         { "at": 28800, "bytes": [50, 41, 64, 211, 127, 233] },
         {
           "at": 28832,
-          "bytes": [193, 62, 1, 33, 137, 129, 195, 128, 112]
+          "bytes": [193, 62, 1, 33, 180, 130, 195, 128, 112]
         },
         { "at": 28864, "bytes": [201, 201, 201, 201, 201, 201] },
         { "at": 16640, "bytes": [0] },

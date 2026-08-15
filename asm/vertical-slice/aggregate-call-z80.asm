@@ -39,8 +39,8 @@ Stage7BindParameter:
             JR   Z,Stage7BindOpenString
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7BindWord
-            CP   ScalarTypeU16
-            JR   Z,Stage7BindWord
+            BIT  1,A
+            JR   NZ,Stage7BindWord
             CALL EmitByteInlineChecked
             .db  $3B                      ; DEC SP
 .if CompilerDiagnosticReturns

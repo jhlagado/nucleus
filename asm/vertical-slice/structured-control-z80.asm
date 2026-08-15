@@ -363,6 +363,15 @@ StructuredForTestNegative:
             JR   Z,StructuredForTestCompare
             LD   A,ComparisonGreaterEqual
 StructuredForTestCompare:
+            LD   C,A
+            BIT  3,B
+            LD   A,C
+            JR   Z,StructuredForTestCompareReady
+            OR   $80
+            BIT  2,B
+            JR   NZ,StructuredForTestCompareReady
+            OR   $40
+StructuredForTestCompareReady:
             CALL TypedEmitCompare
 .if CompilerDiagnosticReturns
             RET  C
@@ -436,6 +445,16 @@ StructuredNegativeDistance:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   A,(EmitControlMode)
+            AND  $0C
+            CP   $08                    ; signed byte distance wraps modulo 256
+            JR   NZ,StructuredDistanceWidthReady
+            CALL EmitPairIndexedInline
+            .db  EmitPairZeroH
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+StructuredDistanceWidthReady:
             LD   DE,(EmitControlStep)
             CALL EmitLoadDeImmediate
 .if CompilerDiagnosticReturns
@@ -468,12 +487,15 @@ StructuredDistanceCompare:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+StructuredForNextLoadStep:
             LD   DE,(EmitControlStep)
             CALL EmitLoadDeImmediate
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,(EmitControlMode)
+            BIT  3,A
+            JR   NZ,StructuredSignedStep
             BIT  1,A
             JR   NZ,StructuredSubtractStep
             LD   A,$19                    ; ADD HL,DE
@@ -501,6 +523,7 @@ StructuredForNextFit:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+StructuredForNextTrap:
             LD   HL,(EmitCursor)
             LD   (EmitUpdateExitFixup),HL
             LD   HL,0
@@ -517,6 +540,29 @@ StructuredForNextFit:
             LD   DE,(EmitUpdateExitFixup)
             LD   HL,(EmitCursor)
             CALL PatchWord
+            JR   StructuredForNextStore
+StructuredSignedStep:
+            CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+            LD   DE,NucleusRuntimeSignedLoopStepOffset
+            CALL TypedEmitFailableRuntimeCall
+.else
+            LD   HL,SignedLoopStep
+            CALL TypedEmitFailableCall
+.endif
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(EmitControlTrapOffset)
+            LD   (EmitTypedTrapPosition),HL
+            LD   A,4
+            CALL TypedEmitCurrentTrap
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
 StructuredForNextStore:
             LD   A,(EmitControlCounter)
             LD   C,A

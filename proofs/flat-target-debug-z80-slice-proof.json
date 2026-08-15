@@ -14,14 +14,14 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "AdapterCommitted", "width": "u8", "equals": 1 },
     { "at": "AdapterAborted", "width": "u8", "equals": 0 },
-    { "at": "DiagnosticCode", "width": "u8", "equals": 13 }
+    { "at": "DiagnosticCode", "width": "u8", "equals": 12 }
   ],
   "extents": [
     {
       "name": "compiler-code",
       "from": "CompilerCodeStart",
       "to": "CompilerCodeEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-immutable",
@@ -33,13 +33,13 @@
       "name": "compiler-core",
       "from": "CompilerCodeStart",
       "to": "CompilerCoreEnd",
-      "maxBytes": 17408
+      "maxBytes": 24576
     },
     {
       "name": "instrumented-core-gap",
       "from": "CompilerCoreEnd",
       "to": "CompilerStateBase",
-      "maxBytes": 17408
+      "maxBytes": 24576
     },
     {
       "name": "compiler-workspace",

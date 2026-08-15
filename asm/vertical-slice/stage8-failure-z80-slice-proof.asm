@@ -507,11 +507,12 @@ Stage8DivideTrapPoint:
 Stage8DivideTrapSourceEnd:
 
 Stage8LoopRangeTrapSource:
+            .db "var limit as i8 = 127",10
             .db "sub main()",10
-            .db "var index as u8",10
+            .db "var index as i8",10
             .db "for "
 Stage8LoopRangeTrapPoint:
-            .db "index = 250 to 300 step 10",10
+            .db "index = 120 to limit step 10",10
             .db "end",10
             .db "end",10
 Stage8LoopRangeTrapSourceEnd:
@@ -1767,11 +1768,10 @@ ProofStart:
             CALL ProofExpectRuntimeTrap
             JP   C,ProofDivideTrapFailure
 
-            LD   A,4
-            LD   BC,Stage8LoopRangeTrapPoint-Stage8LoopRangeTrapSource
+            LD   A,190
             LD   HL,Stage8LoopRangeTrapSource
             LD   DE,Stage8LoopRangeTrapSourceEnd
-            CALL ProofExpectRuntimeTrap
+            CALL ProofExpectRuntimeSuccess
             JP   C,ProofLoopRangeTrapFailure
 
             LD   A,198
@@ -2044,6 +2044,33 @@ ProofTrapInputReady:
             OR   A
             RET  Z
 ProofExpectedRuntimeTrapFailure:
+            SCF
+            RET
+
+; A selects a source part and HL/DE its source range. The generated program
+; must complete without a trap, output, or leaked activation.
+.routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ProofExpectRuntimeSuccess:
+            CALL CompileAggregateCallSlice
+            RET  C
+            CALL EncodeAggregateProgram
+            RET  C
+            CALL Reset
+            CALL ProofCallGenerated
+            RET  C
+            LD   A,(RunState)
+            CP   RunSucceeded
+            JR   NZ,ProofExpectedRuntimeSuccessFailure
+            LD   A,(TrapNumber)
+            OR   A
+            JR   NZ,ProofExpectedRuntimeSuccessFailure
+            LD   A,(ActivationDepth)
+            OR   A
+            JR   NZ,ProofExpectedRuntimeSuccessFailure
+            LD   A,(ServiceOutputLength)
+            OR   A
+            RET  Z
+ProofExpectedRuntimeSuccessFailure:
             SCF
             RET
 

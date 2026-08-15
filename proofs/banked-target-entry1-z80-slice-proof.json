@@ -20,7 +20,7 @@
       "name": "compiler-code",
       "from": "CompilerCodeStart",
       "to": "CompilerCodeEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-immutable",
@@ -32,7 +32,7 @@
       "name": "compiler-core",
       "from": "CompilerCodeStart",
       "to": "CompilerCoreEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-workspace",
@@ -61,7 +61,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 5,
+      "runtimeIdentity": 8,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -82,20 +82,20 @@
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 1,
-      "dataLoadAddress": 33220,
+      "dataLoadAddress": 33519,
       "dataLoadLength": 70,
       "partBanks": [1],
       "banks": [
         {
-          "usedLength": 393,
+          "usedLength": 692,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 571,
-          "readOnlyBase": 33220,
+          "usedLength": 870,
+          "readOnlyBase": 33519,
           "readOnlyLength": 70,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0

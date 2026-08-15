@@ -1,6 +1,7 @@
 ; Stage 6 aggregate layout and static-image construction.
 ;
-; Types use one-byte IDs. 1..3 are the predefined scalar types; dynamic IDs
+; Types use one-byte IDs. Predefined scalars use contextual metadata values;
+; dynamic IDs begin at AggregateFirstDynamicTypeId and
 ; index a bounded four-byte descriptor plus a retained word extent. Aggregate
 ; storage is allocated by top-level variables and aggregate constants.
 ; Initializer bytes are staged privately; the Z80 backend publishes them only
@@ -41,8 +42,8 @@ AggregateGetExtent:
             CP   AggregateFirstDynamicTypeId
             JR   NC,AggregateGetDynamicExtent
             LD   HL,1
-            CP   AggregateTypeIdU16
-            JR   Z,AggregateGetU16Extent
+            BIT  1,A
+            JR   NZ,AggregateGetU16Extent
             OR   A
             RET
 AggregateGetU16Extent:
@@ -223,6 +224,10 @@ AggregateParseType:
             JR   Z,AggregateTypeU8
             CP   TokenU16
             JR   Z,AggregateTypeU16
+            CP   TokenI8
+            JR   Z,AggregateTypeI8
+            CP   TokenI16
+            JR   Z,AggregateTypeI16
             CP   TokenBoolean
             JR   Z,AggregateTypeBoolean
             CP   TokenString
@@ -244,6 +249,12 @@ AggregateTypeU8:
             JR   AggregateTypeBaseReady
 AggregateTypeU16:
             LD   A,AggregateTypeIdU16
+            JR   AggregateTypeBaseReady
+AggregateTypeI8:
+            LD   A,AggregateTypeIdI8
+            JR   AggregateTypeBaseReady
+AggregateTypeI16:
+            LD   A,AggregateTypeIdI16
             JR   AggregateTypeBaseReady
 AggregateTypeBoolean:
             LD   A,AggregateTypeIdBoolean
@@ -735,8 +746,8 @@ AggregateParseScalarInitializer:
             RET  C
 .endif
             LD   A,E
-            CP   AggregateTypeIdU16
-            JR   Z,AggregateParseScalarU16High
+            BIT  1,A
+            JR   NZ,AggregateParseScalarU16High
             OR   A
             RET
 AggregateParseScalarU16High:

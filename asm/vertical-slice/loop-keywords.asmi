@@ -5,6 +5,8 @@ KeywordTable:
             .db  2,"as",TokenAs
             .db  2,"u8",TokenU8
             .db  3,"u16",TokenU16
+            .db  2,"i8",TokenI8
+            .db  3,"i16",TokenI16
             .db  7,"boolean",TokenBoolean
             .db  4,"true",TokenTrue
             .db  5,"false",TokenFalse
@@ -34,7 +36,7 @@ KeywordTable:
             .db  6,"record",TokenRecord
             .db  6,"string",TokenString
             .db  6,"handle",TokenHandle
-KeywordCount            .equ 33
+KeywordCount            .equ 35
 
 PunctuationTable:
             .db  "=",TokenEquals

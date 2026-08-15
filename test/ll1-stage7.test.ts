@@ -34,7 +34,7 @@ describe("Stage 7 packed LL(1)", () => {
     expect(table).not.toBeNull();
     const entries = table?.[1]?.match(/^\s*\.db\s+/gm)?.length ?? 0;
     expect(entries).toBe(Number(table?.[2]));
-    expect(entries).toBe(33);
+    expect(entries).toBe(35);
   });
 
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
@@ -61,9 +61,9 @@ describe("Stage 7 packed LL(1)", () => {
         "utf8",
       ),
     );
-    expect(grammar.productions).toHaveLength(81);
+    expect(grammar.productions).toHaveLength(83);
     expect(generateStage7Tables()).toContain(
-      "HybridLL1ProductionCount  .equ 71",
+      "HybridLL1ProductionCount  .equ 73",
     );
     expect(generateStage7ProofActions()).toBe(
       readFileSync(
@@ -117,6 +117,12 @@ describe("Stage 7 packed LL(1)", () => {
         logical: "a:TypeBoolean",
         handler: "SetScalarTypeAction",
         parameter: 3,
+      },
+      { logical: "a:TypeI8", handler: "SetScalarTypeAction", parameter: 4 },
+      {
+        logical: "a:TypeI16",
+        handler: "SetScalarTypeAction",
+        parameter: 5,
       },
     ]);
   });
@@ -228,47 +234,47 @@ describe("Stage 7 packed LL(1)", () => {
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
-    expect(outcome.instructions).toBe(2_203_194);
-    expect(outcome.cycles).toBe(20_349_926);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_298 });
+    expect(outcome.instructions).toBe(2_240_301);
+    expect(outcome.cycles).toBe(20_638_732);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_854 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 229,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-tables",
-      bytes: 800,
+      bytes: 824,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-actions",
-      bytes: 2_556,
+      bytes: 2_567,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_915,
+      bytes: 15_654,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_514,
+      bytes: 15_244,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
-      bytes: 401,
+      bytes: 410,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-workspace",
-      bytes: 3_605,
+      bytes: 3_607,
     });
     expect(outcome.extents).toContainEqual({
       name: "z80-runtime",
-      bytes: 622,
+      bytes: 921,
     });
     expect(
       (extents.get("parser") ?? -1) -
         (extents.get("ll1-engine") ?? -1) -
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
-    ).toBe(5_713);
+    ).toBe(6_234);
   }, 30_000);
 
   it("executes every retained Stage 7 action family", async () => {

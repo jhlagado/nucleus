@@ -14,10 +14,10 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "AdapterCommitted", "width": "u8", "equals": 1 },
     { "at": "AdapterAborted", "width": "u8", "equals": 0 },
-    { "at": "DiagnosticCode", "width": "u8", "equals": 13 },
+    { "at": "DiagnosticCode", "width": "u8", "equals": 12 },
     { "at": "AdapterCapturedRuntimeBase", "width": "u16", "equals": 32771 },
     { "at": "AdapterCapturedStateBase", "width": "u16", "equals": 16417 },
-    { "at": "AdapterRuntimeContextPointer", "width": "u16", "equals": 19955 },
+    { "at": "AdapterRuntimeContextPointer", "width": "u16", "equals": 28149 },
     { "at": "AdapterLogLength", "width": "u16", "equals": 930 }
   ],
   "extents": [
@@ -25,7 +25,7 @@
       "name": "compiler-code",
       "from": "CompilerCodeStart",
       "to": "CompilerCodeEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-immutable",
@@ -37,7 +37,7 @@
       "name": "compiler-core",
       "from": "CompilerCodeStart",
       "to": "CompilerCoreEnd",
-      "maxBytes": 16384
+      "maxBytes": 24576
     },
     {
       "name": "compiler-workspace",
@@ -66,7 +66,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 5,
+      "runtimeIdentity": 8,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -87,13 +87,13 @@
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33220,
+      "dataLoadAddress": 33519,
       "dataLoadLength": 72,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 582,
-          "readOnlyBase": 33220,
+          "usedLength": 881,
+          "readOnlyBase": 33519,
           "readOnlyLength": 72,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
@@ -108,7 +108,7 @@
       "vectorBase": 16384,
       "programDataBase": 16454,
       "programDataCapacity": 3,
-      "readOnlyBase": 33292,
+      "readOnlyBase": 33591,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,

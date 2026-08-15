@@ -275,9 +275,11 @@ BankedOtherOverflowDescriptor:
 
 ; The accepted multipart program from Chapter 21.1 is compiled through the
 ; production target entry and executed only from its committed NOBJ image.
-; Its source occupies part of the address space released by retiring the old
-; complete-image staging buffer.
-            .org ReleasedGeneratedStagingBase
+; This proof-only corpus is deliberately separate from the deployment source
+; window: the individual compile still observes the published source-window
+; capacity, while the complete proof may retain many mutually exclusive input
+; fixtures without overlapping the selected runtime.
+            .org ProofSourceCorpusBase
 Chapter21TargetPart1:
             .db "record Cell",10
             .db "    value as u8",10
@@ -330,13 +332,16 @@ Chapter21TargetDescriptor:
             .db 1
             .db 1,0
             .dw Chapter21TargetPartBanks
+Chapter21ProofCorpusEnd:
 
             .org TargetRuntimeBase
 RuntimeCodeStart:
             .include "proof-z80-runtime.asm"
 RuntimeCodeEnd:
 
-            .org ProofBase
+            ; The driver follows the selected runtime and must finish before
+            ; ExecutionBase. Keeping the two adjacent prevents the proof from
+            ; overlapping the adapter's saved high-memory logs.
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
             LD   SP,StackTop
@@ -463,7 +468,7 @@ ProofStart:
             OR   A
             JP   NZ,ProofLoadedFailure
             LD   HL,(AdapterCapturedContext+$0E)
-            LD   DE,$81AC
+            LD   DE,$82D7
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -477,7 +482,7 @@ ProofStart:
             OR   L
             JP   NZ,ProofLoadedFailure
             LD   HL,(AdapterCapturedMap+$09)
-            LD   DE,$81AC
+            LD   DE,$82D7
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -690,7 +695,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(AdapterCapturedMap+$05)
-            LD   DE,$81C4
+            LD   DE,$82EF
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
@@ -720,7 +725,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(AdapterCapturedMap+TargetMapDataLoadAddress-TargetFlatMapBase)
-            LD   DE,$81C4
+            LD   DE,$82EF
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure

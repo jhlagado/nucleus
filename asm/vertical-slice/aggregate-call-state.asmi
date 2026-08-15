@@ -34,7 +34,10 @@ Stage8CallFlags             .equ Stage7StateBase+$1C
 Stage7OpenViewCountOffset     .equ Stage7StateBase+$1D
 Stage7PathAssignmentMode    .equ Stage7StateBase+$1E
 Stage7StringResizeOffset    .equ Stage7StateBase+$1F
-Stage7StateEnd              .equ Stage7StateBase+$20
+; Counted-loop parsing spans start, bound and step expressions. Keep its source
+; anchor in durable Stage 7 state rather than expression or initializer scratch.
+Stage7ForOffset             .equ Stage7StateBase+$20 ; word
+Stage7StateEnd              .equ Stage7StateBase+$22
 
 Stage7RoutineTableBase      .equ Stage7StateEnd
 Stage7RoutineEntrySize      .equ 8

@@ -1,8 +1,8 @@
 ; Generated from stage7-grammar.json.
 HybridLL1NonterminalCount .equ 43
-HybridLL1ProductionCount  .equ 71
-HybridLL1ProductionSplit  .equ 36
-HybridLL1ActionCount      .equ 75
+HybridLL1ProductionCount  .equ 73
+HybridLL1ProductionSplit  .equ 37
+HybridLL1ActionCount      .equ 77
 HybridLL1StartSymbol      .equ $40
 HybridLL1ActionOrdinalEmitExit .equ 46
 HybridLL1ActionOrdinalEmitContinue .equ 47
@@ -11,6 +11,8 @@ HybridLL1ActionOrdinalForUntil .equ 62
 HybridLL1ActionOrdinalTypeU8 .equ 72
 HybridLL1ActionOrdinalTypeU16 .equ 73
 HybridLL1ActionOrdinalTypeBoolean .equ 74
+HybridLL1ActionOrdinalTypeI8 .equ 75
+HybridLL1ActionOrdinalTypeI16 .equ 76
 
 HybridLL1RowDirectory:
             .db HybridLL1Row0-HybridLL1Rows,DiagnosticExpectedTopLevel ; compilation-unit
@@ -231,6 +233,8 @@ HybridLL1Row27: ; return-value-opt
             .db 42
             .db TokenCharacter
             .db TokenFalse
+            .db TokenI16
+            .db TokenI8
             .db TokenLeftParen
             .db TokenMinus
             .db TokenName
@@ -284,6 +288,8 @@ HybridLL1Row36: ; for-step-opt
 HybridLL1Row37: ; type
             .db 59+$80
             .db TokenBoolean
+            .db TokenI16
+            .db TokenI8
             .db TokenName
             .db TokenString
             .db TokenU16
@@ -291,6 +297,8 @@ HybridLL1Row37: ; type
 HybridLL1Row38: ; type-atom
             .db 60
             .db TokenBoolean
+            .db TokenI16
+            .db TokenI8
             .db TokenU16
             .db TokenU8+$80
             .db 61
@@ -301,6 +309,8 @@ HybridLL1Row39: ; string-capacity
             .db 63
             .db TokenCharacter
             .db TokenFalse
+            .db TokenI16
+            .db TokenI8
             .db TokenLeftParen
             .db TokenMinus
             .db TokenName
@@ -325,6 +335,8 @@ HybridLL1Row41: ; type-array-bound
             .db 66
             .db TokenCharacter
             .db TokenFalse
+            .db TokenI16
+            .db TokenI8
             .db TokenLeftParen
             .db TokenMinus
             .db TokenName
@@ -341,8 +353,12 @@ HybridLL1Row42: ; scalar-type
             .db TokenU8+$80
             .db 69
             .db TokenU16+$80
-            .db 70+$80
+            .db 70
             .db TokenBoolean+$80
+            .db 71
+            .db TokenI8+$80
+            .db 72+$80
+            .db TokenI16+$80
 HybridLL1RowsEnd:
 
 HybridLL1ProductionDirectory:
@@ -382,9 +398,9 @@ HybridLL1ProductionDirectory:
             .db HybridLL1Production33-HybridLL1Productions ; statement-sequence
             .db HybridLL1Production34-HybridLL1Productions ; statement
             .db HybridLL1Production35-HybridLL1Productions ; statement
+            .db HybridLL1Production36-HybridLL1Productions ; statement
             .db HybridLL1ProductionsHigh-HybridLL1Productions
 HybridLL1ProductionDirectoryHigh:
-            .db HybridLL1Production36-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production37-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production38-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production39-HybridLL1ProductionsHigh ; statement
@@ -419,6 +435,8 @@ HybridLL1ProductionDirectoryHigh:
             .db HybridLL1Production68-HybridLL1ProductionsHigh ; scalar-type
             .db HybridLL1Production69-HybridLL1ProductionsHigh ; scalar-type
             .db HybridLL1Production70-HybridLL1ProductionsHigh ; scalar-type
+            .db HybridLL1Production71-HybridLL1ProductionsHigh ; scalar-type
+            .db HybridLL1Production72-HybridLL1ProductionsHigh ; scalar-type
             .db HybridLL1ProductionsEnd-HybridLL1ProductionsHigh
 HybridLL1ProductionDirectoryEnd:
 HybridLL1Productions:
@@ -493,9 +511,9 @@ HybridLL1Production34: ; statement
             .db $5d,$a5
 HybridLL1Production35: ; statement
             .db TokenNewline,$5a
-HybridLL1ProductionsHigh:
 HybridLL1Production36: ; statement
             .db TokenNewline,$5c
+HybridLL1ProductionsHigh:
 HybridLL1Production37: ; statement
             .db TokenNewline,$5e
 HybridLL1Production38: ; statement
@@ -564,6 +582,10 @@ HybridLL1Production69: ; scalar-type
             .db $c9,TokenU16
 HybridLL1Production70: ; scalar-type
             .db $ca,TokenBoolean
+HybridLL1Production71: ; scalar-type
+            .db $cb,TokenI8
+HybridLL1Production72: ; scalar-type
+            .db $cc,TokenI16
 HybridLL1ProductionsEnd:
 
 HybridLL1ActionDirectory:
@@ -642,6 +664,8 @@ HybridLL1ActionDirectory:
             .dw HybridLL1SetScalarTypeAction ; a:TypeU8, parameter 1
             .dw HybridLL1SetScalarTypeAction ; a:TypeU16, parameter 2
             .dw HybridLL1SetScalarTypeAction ; a:TypeBoolean, parameter 3
+            .dw HybridLL1SetScalarTypeAction ; a:TypeI8, parameter 4
+            .dw HybridLL1SetScalarTypeAction ; a:TypeI16, parameter 5
 HybridLL1ActionDirectoryEnd:
 
 HybridLL1GeneratedTableEnd:
