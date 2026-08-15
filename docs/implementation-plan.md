@@ -2183,6 +2183,29 @@ at least the byte it would save. Sharing four open-string type guards saved
 three additional production bytes but added 59 compiler instructions and
 1,062 T-states to the target proof. The direct guards remain.
 
+### Production inline-byte return path
+
+The production-only return-path stage starts from fixed diagnostic-tail
+checkpoint `ade652678d9cd85a3643a3c1a88e0195856eed21`. The resuming
+`EmitByteInlineChecked` helper retains its full carry-return path in historical
+layouts. In the production layout, an emission diagnostic takes the nonlocal
+compiler exit and cannot return to the helper. The helper can therefore jump
+to `EmitByte` after placing the corrected continuation on the stack; the
+ordinary `EmitByte` return resumes the enclosing routine.
+
+The production branch is three code bytes smaller. Shipping compiler code is
+14,907 bytes. With 393 immutable bytes, compiler core is 15,300 bytes and
+1,084 bytes remain in the 16 KiB region. The instrumented image measures
+14,963 code bytes and 15,356 core bytes, leaving 2,052 bytes in its separate
+reservation. Workspace remains 3,609 bytes and the selected runtime remains
+574 bytes.
+
+The shipping proof executes 1,057,695 instructions in 10,412,887 T-states,
+reductions of 189 instructions and 3,409 T-states. The instrumented proof has
+the same reductions and executes 1,062,324 instructions in 10,463,898
+T-states. Proof code and data remain 2,487 and 2,489 bytes. Generated program,
+runtime, NOBJ, HEX, and D8 results remain unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

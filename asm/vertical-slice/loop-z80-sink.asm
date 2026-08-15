@@ -53,10 +53,14 @@ EmitByteInlineChecked:
             LD   A,(HL)
             INC  HL
             PUSH HL
+.if CompilerDiagnosticReturns
             CALL EmitByte
             RET  NC
             POP  HL
             RET
+.else
+            JP   EmitByte
+.endif
 
 .routine noreturn
 EmitPairIndexedInline:
