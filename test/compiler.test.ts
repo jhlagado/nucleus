@@ -23,6 +23,72 @@ const expectValidIntelHexChecksums = (hex: string): void => {
 };
 
 describe("emulator-backed compiler host", () => {
+  it("distinguishes every keyword from a longer identifier", async () => {
+    const keywords = [
+      "var",
+      "as",
+      "u8",
+      "u16",
+      "boolean",
+      "true",
+      "false",
+      "const",
+      "or",
+      "xor",
+      "mod",
+      "assert",
+      "and",
+      "not",
+      "fail",
+      "end",
+      "sub",
+      "fails",
+      "for",
+      "until",
+      "forward",
+      "return",
+      "if",
+      "elseif",
+      "else",
+      "while",
+      "to",
+      "step",
+      "exit",
+      "continue",
+      "record",
+      "string",
+      "handle",
+    ] as const;
+
+    for (const keyword of keywords) {
+      const exact = await compileNucleus([
+        {
+          name: "main.nu",
+          source: `var ${keyword} as u8\nsub main()\nend\n`,
+        },
+      ]);
+      expect(exact).toMatchObject({
+        success: false,
+        diagnostic: {
+          code: 130,
+          sourcePart: 1,
+          sourceName: "main.nu",
+          offset: 4,
+          line: 1,
+          column: 5,
+        },
+      });
+
+      const longer = await compileNucleus([
+        {
+          name: "main.nu",
+          source: `var ${keyword}x as u8\nsub main()\nend\n`,
+        },
+      ]);
+      expect(longer.success).toBe(true);
+    }
+  }, 30_000);
+
   it("reports the full trace port without changing Z80 machine state", () => {
     const memory = new Uint8Array(0x10000);
     memory.set([0xd3, 0xd8, 0x76], 0x100);

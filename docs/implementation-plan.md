@@ -2206,6 +2206,34 @@ the same reductions and executes 1,062,324 instructions in 10,463,898
 T-states. Proof code and data remain 2,487 and 2,489 bytes. Generated program,
 runtime, NOBJ, HEX, and D8 results remain unchanged.
 
+### Keyword table bound
+
+The keyword-bound correction starts from inline-byte checkpoint
+`7790c69ec3d3801867d8cb7865ddff8300a92480`. `KeywordTable` contains 33
+physical entries, but its scan count was 34. A non-keyword identifier therefore
+examined one extra pseudo-entry beginning at the punctuation table. The first
+byte of that table is `"="`, so the extra comparison could not classify a
+valid Nucleus name as a keyword, but it performed an invalid table traversal on
+every ordinary name. `KeywordCount` now matches the physical entry count. A
+static test locks the count, and an execution test distinguishes every exact
+keyword from the corresponding identifier with an added `x`.
+
+The correction changes no resident bytes. Shipping compiler code remains
+14,907 bytes and compiler core remains 15,300 bytes, with 1,084 bytes of 16 KiB
+headroom. Workspace remains 3,609 bytes and the selected runtime remains 574
+bytes. The shipping proof executes 1,055,198 instructions in 10,393,365
+T-states, reductions of 2,497 instructions and 19,522 T-states. The
+instrumented proof has the same reductions and executes 1,059,827 instructions
+in 10,444,376 T-states.
+
+A high-bit-terminated keyword table was measured and rejected. It removed 33
+immutable length bytes but added eight scanner-code bytes, for a net 25-byte
+core saving. Without the length prefilter, the scanner compared each name
+against keyword characters that the current representation skips. The shipping
+proof added 120,085 instructions and 1,245,777 T-states, and several bounded
+historical proofs exceeded their execution budgets. The length-prefixed table
+remains.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

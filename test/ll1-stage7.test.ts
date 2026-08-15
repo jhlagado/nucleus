@@ -17,6 +17,26 @@ const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
 
 describe("Stage 7 packed LL(1)", () => {
+  it("keeps the keyword scan bound equal to the physical table", () => {
+    const source = readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "..",
+        "asm",
+        "vertical-slice",
+        "loop-keywords.asmi",
+      ),
+      "utf8",
+    );
+    const table = source.match(
+      /KeywordTable:\s*\n([\s\S]*?)KeywordCount\s+\.equ\s+(\d+)/,
+    );
+    expect(table).not.toBeNull();
+    const entries = table?.[1]?.match(/^\s*\.db\s+/gm)?.length ?? 0;
+    expect(entries).toBe(Number(table?.[2]));
+    expect(entries).toBe(33);
+  });
+
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
     const analysis = analyzeStage7Grammar();
     const grammar = readStage7Grammar();
@@ -208,8 +228,8 @@ describe("Stage 7 packed LL(1)", () => {
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
-    expect(outcome.instructions).toBe(2_182_248);
-    expect(outcome.cycles).toBe(20_212_077);
+    expect(outcome.instructions).toBe(2_177_001);
+    expect(outcome.cycles).toBe(20_171_055);
     expect(outcome.extents).toContainEqual({ name: "parser", bytes: 8_924 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",

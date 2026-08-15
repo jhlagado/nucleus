@@ -34,7 +34,7 @@ KeywordTable:
             .db  6,"record",TokenRecord
             .db  6,"string",TokenString
             .db  6,"handle",TokenHandle
-KeywordCount            .equ 34
+KeywordCount            .equ 33
 
 PunctuationTable:
             .db  "=",TokenEquals
