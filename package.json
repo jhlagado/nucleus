@@ -33,6 +33,7 @@
   ],
   "scripts": {
     "check:azm-toolchain": "node scripts/check-azm-toolchain.mjs",
+    "check:compiler-relocation": "vitest run test/compiler-relocation.test.ts --reporter=verbose",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "prebuild": "npm run generate:compiler-images",

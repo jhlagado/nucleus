@@ -72,6 +72,18 @@ exposes, constructs, compares, converts, or calculates with one. A bank ordinal
 is also private target metadata. The compiler retains the type, extent, root
 category, and bank information required for every aggregate address carrier.
 
+The handwritten Z80 compiler is likewise independent of its assembly origin.
+The deployment platform chooses its origin and surrounding memory map; `$0000`
+in the repository proof layout is not part of the compiler ABI. CP/M may place
+the compiler at `$0100`, a TEC-1 configuration may place it at `$8000`, and
+another system may choose any address at which the complete image fits without
+overlap. Every compiler code and immutable-data pointer is an opaque 16-bit
+address. Compiler metadata must not be encoded in address bits, and compiler
+pointers must not be masked, truncated, or compressed on the assumption that
+the image occupies a particular half, page, alignment, or region of the Z80
+address space. Any alignment restriction must be an explicit deployment
+contract rather than an inference from a current build.
+
 ### 2.2 Separate accounts
 
 The implementation reports these bounded accounts separately:

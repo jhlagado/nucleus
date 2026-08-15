@@ -50,6 +50,17 @@ from source-line count or stylistic preference. A proposed language cut remains
 a redesign and requires evidence that implementation economies cannot recover
 the required margin.
 
+The compiler image is origin-independent. The `$0000` address in the current
+proof memory map is only a host measurement choice; deployment policy may place
+the compiler anywhere its complete image fits, including `$0100` under CP/M or
+`$8000` on a TEC-1 configuration. All compiler pointers remain full-width
+16-bit addresses. Pointer-bit tagging, address truncation, and metadata schemes
+that depend on the current origin are prohibited. A dispatcher-prefetch
+prototype that marked handlers with address bit 15 was rejected and restored
+before commit because it would have silently restricted the compiler to the
+low 32 KiB. Future relocation-sensitive compression must use address-independent
+metadata and pass the low/high-origin relocation proof.
+
 ## Settled implementation boundary
 
 The first implementation follows these directions unless the project owner

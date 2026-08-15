@@ -198,6 +198,31 @@ Report resource accounts separately:
 Moving required compiler code or tables into another account does not satisfy
 the 16 KiB compiler-core gate.
 
+### Compiler origin is deployment policy
+
+The handwritten compiler has no fixed or preferred assembly origin. Its
+deployment environment chooses the origin and the surrounding memory map. A
+TEC-1 deployment may place it at `$8000`; CP/M may place it at `$0100`; another
+Z80 system may choose any other address at which the complete compiler image
+fits without overlap. The repository's `$0000` proof layout is one measurement
+fixture, not an implementation constraint or a promise about deployment.
+
+Every compiler code and immutable-data address is a complete, opaque 16-bit
+address. An implementation or size optimization must not use any address bit as
+a flag, tag, class, operand descriptor, or other metadata; mask, truncate, or
+compress a pointer on the strength of the current link address; require the
+compiler to occupy the low or high half of memory; or infer alignment that the
+deployment contract does not explicitly guarantee. Metadata must be stored or
+derived independently of addresses. Alignment-based representations require a
+separate explicit platform contract and project-owner approval; they are never
+inferred from the current assembled image.
+
+Compiler changes that touch pointer tables, dispatch, relocation-sensitive
+expressions, or address-bearing templates must pass the ordinary strict-contract
+gate and assemble at both low and high origins. The relocation proof must show
+that full-width table entries resolve to the relocated labels. Passing the
+ordinary `$0000` execution proof alone is insufficient evidence.
+
 ## Settled language directions
 
 ### Names, declarations, and source assembly

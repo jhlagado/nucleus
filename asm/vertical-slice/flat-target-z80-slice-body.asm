@@ -1,48 +1,8 @@
 ; Prove the compact descriptor and flat append-only compiler sink end to end.
 
             .include "target-memory-map.asmi"
-SegmentedOutput       .equ 1
-TargetStreamingOutput .equ 1
-            .include "loop-compiler-state.asmi"
-            .include "aggregate-call-state.asmi"
-            .include "target-output-state.asmi"
-            .include "loop-z80-state.asmi"
-
             .org CompilerCoreBase
-CompilerCodeStart:
-LegacyCompilerSlices .equ 0
-AggregateCallSlices  .equ 1
-Stage7LL1            .equ 1
-SourceAdapterCodeStart:
-            .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
-            .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
-            .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
-            .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
-            .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
-LegacyEncoders .equ 0
-            .include "loop-z80-sink.asm"
-            .include "target-output.asm"
-TypedSinkCodeStart:
-            .include "typed-expression-z80.asm"
-            .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
-            .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+            .include "flat-target-compiler-image.asmi"
 
             .org SourceBase
 FlatTargetSource:
