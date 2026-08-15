@@ -197,8 +197,8 @@ AggregateParseBound:
             RET
 
 AggregateTypeShapeFailure:
-            LD   A,DiagnosticTypeBound
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticTypeBound
 
 ; Parse any admitted aggregate type. Bounds and complete extents are retained
 ; as words. Object allocation is still bounded by the selected program-data
@@ -341,11 +341,11 @@ AggregateArrayExtentLoop:
             OR   A
             RET
 AggregateProgramDataCapacityFailure:
-            LD   A,DiagnosticProgramDataCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticProgramDataCapacity
 AggregateStringCapacityFailure:
-            LD   A,DiagnosticStringCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticStringCapacity
 .endif
 
 .routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
@@ -545,8 +545,8 @@ AggregateRecordFinish:
             JP   TypedParseTopLevel
 .endif
 AggregateRecordEmptyFailure:
-            LD   A,DiagnosticRecordEmpty
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticRecordEmpty
 .endif
 
 AggregateInitializerCapacityFailure:

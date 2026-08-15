@@ -2156,6 +2156,33 @@ and executes 1,062,513 instructions in 10,467,307 T-states. Proof code and data
 remain 2,487 and 2,489 bytes. The complete functional proof set retains the
 same generated program, runtime, NOBJ, HEX, and D8 results.
 
+### Remaining fixed diagnostic tails
+
+The fixed diagnostic-tail stage starts from indexed inline-pair checkpoint
+`913afdf7732f2767a23e406ec5c5e1a564b4e74a`. Twenty source sites still
+loaded a fixed diagnostic byte and jumped to `CompilerSetDiagnostic`. They now
+use the existing `SetDiagInline` helper. Only one of those bytes is resident in
+the shipping layout, so shipping compiler code falls to 14,910 bytes. With 393
+immutable bytes, compiler core is 15,303 bytes and 1,081 bytes remain in the
+16 KiB region. The instrumented image measures 14,966 code bytes and 15,359
+core bytes, leaving 2,049 bytes in its separate reservation. The historical
+Stage 8 and Stage 9 layouts each save two code bytes. Four legacy sites retain
+their direct jumps because their smallest proof layouts do not include the
+shared helper contract.
+
+The full shipping and instrumented proofs keep the preceding instruction and
+T-state counts because they do not enter the converted diagnostic sites. The
+packed Stage 7 proof exercises those paths and measures twelve more compiler
+instructions and 174 more T-states. Generated program, runtime, NOBJ, HEX, and
+D8 results remain unchanged.
+
+Two nearby prototypes were rejected. Fixed token and Z80-opcode tails cannot
+store their raw values after a nonreturning call because multi-byte opcode
+values desynchronise AZM's strict routine decoder; an indirect encoding costs
+at least the byte it would save. Sharing four open-string type guards saved
+three additional production bytes but added 59 compiler instructions and
+1,062 T-states to the target proof. The direct guards remain.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

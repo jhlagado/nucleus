@@ -310,8 +310,8 @@ Stage7ParseTopLevel:
             JR   Z,Stage7TopLevelConst
             CP   TokenSub
             JR   Z,Stage7TopLevelRoutine
-            LD   A,DiagnosticExpectedTopLevel
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTopLevel
 Stage7TopLevelRecord:
             CALL ParserTake
 .if CompilerDiagnosticReturns
@@ -721,8 +721,8 @@ Stage7RoutineEndToken:
             LD   (NextLocalSlot),A
             JP   Stage7ParseTopLevel
 Stage7RoutineCapacityFailure:
-            LD   A,DiagnosticRoutineCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticRoutineCapacity
 
 ; Main is the final declaration in this increment. `fails` is accepted but
 ; its full call/failure surface remains Stage 8.

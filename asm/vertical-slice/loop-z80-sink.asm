@@ -366,8 +366,8 @@ SegmentOrderReady:
             OR   A
             RET
 SegmentTableFailure:
-            LD   A,DiagnosticOutputSegment
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticOutputSegment
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 AbortSegmentedProgram:
@@ -878,8 +878,8 @@ DispatchCallReturn:
             RET
 DispatchCallInvalid:
             POP  BC
-            LD   A,DiagnosticSinkCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticSinkCapacity
 
 CallOperationTable:
             .dw CallLiteral
@@ -1129,8 +1129,8 @@ DispatchExpressionReturn:
             RET
 DispatchExpressionInvalid:
             POP  BC
-            LD   A,DiagnosticSinkCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticSinkCapacity
 
 ExpressionOperationTable:
             .dw ExpressionDefineProgram

@@ -29,8 +29,8 @@ SemanticSinkPutRoom:
             OR   A
             RET
 SemanticSinkPutFull:
-            LD   A,DiagnosticSinkCapacity
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticSinkCapacity
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:

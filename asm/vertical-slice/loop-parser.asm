@@ -297,11 +297,11 @@ ParserExpectWrite:
             LD   B,5
             CALL TokenNameEquals
             JR   C,ParserActiveCounter
-            LD   A,DiagnosticExpectedWrite
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedWrite
 ParserActiveCounter:
-            LD   A,DiagnosticActiveCounter
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticActiveCounter
 ParserExpectWriteYes:
             OR   A
             RET
@@ -962,8 +962,8 @@ ParserParseScalarLocals:
 .endif
             JR   ParserParseScalarLocals
 ParserScalarExpectedTopLevel:
-            LD   A,DiagnosticExpectedTopLevel
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTopLevel
 .endif
 
 .if HybridLL1Full
@@ -998,8 +998,8 @@ ParserParseArrayProgramAfterU8:
 .endif
             CP   4
             JR   Z,ParserArrayLengthYes
-            LD   A,DiagnosticExpectedArrayLength
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedArrayLength
 ParserArrayLengthYes:
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
@@ -1444,11 +1444,11 @@ ParserParseCallProgramAfterForward:
             LD   E,TokenEof
             JP   ParserExpect
 ParserExpectedZero:
-            LD   A,DiagnosticExpectedNumber
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedNumber
 ParserForwardIncomplete:
-            LD   A,DiagnosticForwardIncomplete
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticForwardIncomplete
 .endif
 
 .if HybridLL1Full
@@ -1469,8 +1469,8 @@ ParserParseProgram:
             JP   Z,TypedParseTopLevelConstAfterTake
             CP   TokenRecord
             JP   Z,AggregateParseRecordAfterTake
-            LD   A,DiagnosticExpectedTopLevel
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTopLevel
 .endif
 
 ; A is the stable source-part identity; HL..DE is the half-open byte range.

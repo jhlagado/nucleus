@@ -18,8 +18,8 @@ ParserPeek:
             LD   A,(MockPeekFailure)
             OR   A
             JR   Z,ParserPeekReady
-            LD   A,DiagnosticExpectedTokenBase
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTokenBase
 ParserPeekReady:
             LD   HL,(MockTokenCursor)
             LD   A,(HL)

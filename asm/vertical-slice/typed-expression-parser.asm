@@ -1847,8 +1847,8 @@ TypedParseType:
             JR   Z,TypedTypeU16
             CP   TokenBoolean
             JR   Z,TypedTypeBoolean
-            LD   A,DiagnosticExpectedType
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedType
 TypedTypeU8:       LD A,ScalarTypeU8
                    OR A
                    RET
@@ -2090,8 +2090,8 @@ TypedParseTopLevel:
             JP   Z,TypedParseMain
             CP   TokenRecord
             JR   Z,TypedTopLevelRecord
-            LD   A,DiagnosticExpectedTopLevel
-            JP   CompilerSetDiagnostic
+            CALL SetDiagInline
+            .db  DiagnosticExpectedTopLevel
 TypedTopLevelVar:
             CALL ParserTake
 .if CompilerDiagnosticReturns
