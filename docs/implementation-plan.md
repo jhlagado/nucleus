@@ -1990,6 +1990,32 @@ remain 2,487 and 2,489 bytes. Fresh CLI builds again reproduce the six saved
 NOBJ, HEX, and D8 hashes. Parser propagation is unchanged and remains the next
 stage.
 
+### Parser diagnostic-return removal
+
+The third removal stage starts from emit-sink checkpoint
+`baa4df3bae0d8a5b087089623227901b7fc8777b`. It classifies the `RET C` sites in
+the LL(1) engine and actions, scalar and aggregate expression parsers,
+structured-control parser, aggregate parser, and their common parser driver.
+All 746 source-level sites remain in historical layouts. The production build
+omits only returns reached after a fallible parser or semantic-sink operation;
+tokenizer EOF, character comparisons, symbol-search results, and predictive
+selection carry remain unchanged.
+
+The shipping compiler now measures 15,190 code bytes plus 393 immutable bytes,
+or 15,583 compiler-core bytes with 801 bytes of 16 KiB headroom. This is a
+measured 295-byte core reduction from the emit-sink checkpoint. The instrumented
+compiler measures 15,246 code bytes plus 393 immutable bytes, or 15,639 core
+bytes, leaving 1,769 bytes in its 17 KiB reservation. Workspace remains 3,609
+bytes and the selected runtime remains 574 bytes.
+
+The unchanged expanded shipping proof executes 1,058,364 instructions in
+10,416,261 T-states, reductions of 8,927 instructions and 44,635 T-states. The
+instrumented proof executes 1,062,993 instructions in 10,467,272 T-states, with
+the same reductions. Proof code and data remain 2,487 and 2,489 bytes. Fresh
+CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes. This stage removes
+diagnostic-return instructions only; conditional diagnostic branches and their
+cleanup shims remain candidates for later, separately measured work.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

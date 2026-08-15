@@ -175,14 +175,18 @@ AggregateStringCapacityFailure:
 AggregateParseBound:
             LD   A,ScalarTypeU16
             CALL TypedExpressionBeginConstant
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             AND  ScalarMetaConstant
             JP   Z,AggregateTypeShapeFailure
             LD   E,ScalarTypeU16
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,H
             OR   L
             JR   Z,AggregateTypeShapeFailure
@@ -203,7 +207,9 @@ AggregateTypeShapeFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseType:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenU8
             JR   Z,AggregateTypeU8
             CP   TokenU16
@@ -215,7 +221,9 @@ AggregateParseType:
             CP   TokenName
             JR   NZ,AggregateTypeShapeFailure
             CALL SymbolLookupCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             AND  SymbolRecordTypeFlag+SymbolAggregateFlag
             CP   SymbolRecordTypeFlag
@@ -234,9 +242,13 @@ AggregateTypeBoolean:
 AggregateParseStringType:
             LD   E,TokenLeftBracket
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateParseBound
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,H
             OR   A
             JP   NZ,AggregateStringCapacityFailure
@@ -254,11 +266,15 @@ AggregateParseStringType:
             INC  HL
             LD   (AggregateCandidateExtent),HL
             CALL AggregateInternType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 AggregateTypeBaseReady:
             LD   (AggregateCurrentTypeId),A
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenLeftBracket
             JR   Z,AggregateParseArraySuffix
             LD   A,(AggregateCurrentTypeId)
@@ -281,9 +297,13 @@ AggregateNestedArrayFailure:
 AggregateArrayElementReady:
             LD   (AggregateCandidateAux),A
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateParseBound
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (AggregateCandidateLength),HL
             LD   B,H
             LD   C,L
@@ -296,7 +316,9 @@ AggregateArrayExtentLoop:
             ADD  HL,DE
             JP   C,AggregateProgramDataCapacityFailure
             CALL AggregateCheckExtentCapacity
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  BC
             LD   A,B
             OR   C
@@ -305,10 +327,14 @@ AggregateArrayExtentLoop:
             LD   A,AggregateTypeKindArray
             LD   (AggregateCandidateKind),A
             CALL AggregateInternType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (AggregateCurrentTypeId),A
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenLeftBracket
             JP   Z,AggregateTypeShapeFailure
             LD   A,(AggregateCurrentTypeId)
@@ -370,9 +396,13 @@ AggregateRecordEmptyFailure:
 AggregateParseRecordAfterTake:
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedRetainDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(AggregateTypeCount)
             CP   AggregateTypeCapacity
             JP   NC,AggregateTypeCapacityFailure
@@ -380,7 +410,9 @@ AggregateParseRecordAfterTake:
             CP   AggregateRecordCapacity
             JP   NC,AggregateTypeCapacityFailure
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(AggregateFieldCount)
             LD   (AggregateCurrentFieldStart),A
             XOR  A
@@ -390,15 +422,21 @@ AggregateParseRecordAfterTake:
             LD   (AggregateCurrentRecordExtent),HL
 AggregateRecordFieldLoop:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenEnd
             JR   Z,AggregateRecordFinish
             CP   TokenName
             JP   NZ,AggregateTypeShapeFailure
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateCheckFieldDuplicate
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(AggregateFieldCount)
             LD   B,A
             LD   A,(AggregateCurrentFieldCount)
@@ -412,11 +450,15 @@ AggregateRecordFieldLoop:
             PUSH HL
             CALL ParserExpectAs
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH HL
             CALL AggregateParseType
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   B,A
             INC  HL
             LD   (HL),B
@@ -432,10 +474,14 @@ AggregateRecordFieldLoop:
             ADD  HL,DE
             JP   C,AggregateProgramDataCapacityFailure
             CALL AggregateCheckExtentCapacity
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (AggregateCurrentRecordExtent),HL
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,AggregateCurrentFieldCount
             INC  (HL)
             JR   AggregateRecordFieldLoop
@@ -444,9 +490,13 @@ AggregateRecordFinish:
             OR   A
             JR   Z,AggregateRecordEmptyFailure
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,AggregateTypeKindRecord
             LD   (AggregateCandidateKind),A
             LD   A,(AggregateRecordCount)
@@ -456,7 +506,9 @@ AggregateRecordFinish:
             LD   HL,(AggregateCurrentRecordExtent)
             LD   (AggregateCandidateExtent),HL
             CALL AggregateAppendType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (AggregateCurrentTypeId),A
             LD   A,(AggregateRecordCount)
             ADD  A,A
@@ -474,9 +526,13 @@ AggregateRecordFinish:
             LD   C,A
             LD   B,0
             CALL TypedPrepareCurrentWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL SymbolCommit
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(AggregateCurrentFieldCount)
             LD   HL,AggregateFieldCount
             ADD  A,(HL)
@@ -528,7 +584,9 @@ AggregateDecodeString:
             PUSH BC
             CALL AggregateWriteByte
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,B
             SUB  C
             LD   B,A
@@ -586,7 +644,9 @@ AggregateDecodeStringWrite:
             CALL AggregateWriteByte
             POP  HL
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  C
             JR   AggregateDecodeStringLoop
 AggregateDecodeStringAdvancePadding:
@@ -651,9 +711,13 @@ AggregateParseScalarInitializer:
             PUSH DE
             CALL TypedExpressionBeginConstant
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             AND  ScalarMetaConstant
             JP   Z,TypedTypeFailure
             LD   A,L
@@ -662,7 +726,9 @@ AggregateParseScalarInitializer:
             CALL AggregateWriteByte
             POP  HL
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,E
             CP   AggregateTypeIdU16
             JR   Z,AggregateParseScalarU16High
@@ -682,7 +748,9 @@ AggregateParseStringInitializer:
             LD   E,TokenStringLiteral
             CALL ParserExpect
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(TokenLength)
             CP   B
             JR   C,AggregateParseStringDecode
@@ -699,11 +767,15 @@ AggregateBeginCompositeInitializer:
             PUSH AF
             CALL AggregatePeekPreserveBC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   D
             JP   NZ,AggregateInitializerShapeFailure
             CALL AggregateTakePreserveBC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(AggregateInitializerDepth)
             CP   AggregateInitializerDepthCapacity
             JP   NC,AggregateInitializerCapacityFailure
@@ -728,7 +800,9 @@ AggregateParseRecordInitializer:
             LD   C,(HL)
             LD   A,TokenLeftParen
             CALL AggregateBeginCompositeInitializer
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 AggregateRecordInitializerLoop:
             PUSH BC
             LD   A,B
@@ -739,15 +813,21 @@ AggregateRecordInitializerLoop:
             LD   A,(HL)
             CALL AggregateParseInitializer
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             INC  B
             DEC  C
             JR   Z,AggregateRecordInitializerExpectClose
             CALL AggregatePeekPreserveBC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenRightParen
             CALL AggregateExpectCommaPreserveBC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   AggregateRecordInitializerLoop
 AggregateRecordInitializerExpectClose:
             LD   BC,(TokenRightParen<<8)|TokenRightBracket
@@ -769,7 +849,9 @@ AggregateParseArrayInitializer:
             CALL AggregateBeginCompositeInitializer
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 AggregateArrayInitializerLoop:
             PUSH BC
             PUSH DE
@@ -777,7 +859,9 @@ AggregateArrayInitializerLoop:
             CALL AggregateParseInitializer
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  DE
             LD   A,D
             OR   E
@@ -785,12 +869,16 @@ AggregateArrayInitializerLoop:
             PUSH DE
             CALL AggregatePeekPreserveBC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenRightBracket
             PUSH DE
             CALL AggregateExpectCommaPreserveBC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   AggregateArrayInitializerLoop
 AggregateArrayInitializerExpectClose:
             LD   BC,(TokenRightBracket<<8)|TokenRightParen
@@ -798,7 +886,9 @@ AggregateArrayInitializerExpectClose:
 .routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
 AggregateInitializerExpectClose:
             CALL AggregatePeekPreserveBC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   B
             JR   Z,AggregateInitializerTakeClose
             CP   C
@@ -806,7 +896,9 @@ AggregateInitializerExpectClose:
             JP   AggregateInitializerCountFailure
 AggregateInitializerTakeClose:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   AggregateInitializerLeave
 
 ; Zero exactly the candidate object's complete extent before applying an
@@ -833,11 +925,17 @@ AggregateZeroCurrentLoop:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseProgramAfterVar:
             CALL TypedRetainDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (AggregateCurrentTypeId),A
             CALL AggregateGetExtent
             LD   (AggregateCurrentObjectExtent),HL
@@ -850,16 +948,22 @@ AggregateParseProgramAfterVar:
             JP   NZ,AggregateProgramDataCapacityFailure
             LD   (AggregateCurrentObjectEnd),HL
             CALL AggregateZeroCurrentObject
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             LD   (AggregateInitializerDepth),A
             LD   (AggregateHasInitializer),A
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenEquals
             JR   NZ,AggregateProgramInitializerDone
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(StaticImageLength)
             LD   (AggregateCurrentObjectOffset),HL
             LD   A,(AggregateCurrentTypeId)
@@ -884,7 +988,9 @@ AggregateProgramInitializerFailure:
             RET
 AggregateProgramInitializerDone:
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   BC,(StaticImageLength)
             LD   A,(AggregateCurrentTypeId)
             CP   AggregateFirstDynamicTypeId
@@ -898,7 +1004,9 @@ AggregateProgramPrepareSymbol:
             PUSH BC
             CALL TypedPrepareCurrentWord
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SymbolCount)
             LD   E,A
             LD   D,0
@@ -907,7 +1015,9 @@ AggregateProgramPrepareSymbol:
             LD   A,(AggregateCurrentTypeId)
             LD   (HL),A
             CALL SymbolCommit
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(AggregateCurrentObjectEnd)
             LD   (StaticImageLength),HL
             LD   A,L
@@ -935,6 +1045,8 @@ CompileAggregateSlice:
 .else
             CALL ParserParseProgram
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   SemanticSinkFinish
 .endif

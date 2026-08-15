@@ -9,6 +9,7 @@ SegmentedOutput .equ 0
             .include "aggregate-call-state.asmi"
 
 AggregateCallSlices .equ 0
+CompilerDiagnosticReturns .equ 1
 
             .org CompilerCoreBase
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL

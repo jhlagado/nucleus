@@ -110,7 +110,9 @@ TypedEmitWord:
             LD   A,L
             CALL TypedEmitByte
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,H
             JR   TypedEmitByte
 
@@ -121,7 +123,9 @@ TypedEmitOperationBC:
             PUSH BC
             CALL TypedEmitOperation
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedEmitWord
 .endif
 
@@ -389,7 +393,9 @@ TypedEmitWidthSelected:
 .routine in C,D,E out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedPrepareConstantBinary:
             CALL TypedEmitWidthOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedBothConstant
             RET  Z
             LD   HL,(ExpressionLeftValue)
@@ -400,7 +406,9 @@ TypedPrepareConstantBinary:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedReduceIntegerBinary:
             CALL TypedResolveIntegerPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ExpressionOperator)
             CP   TokenPlus
             JR   Z,TypedReduceAdd
@@ -419,7 +427,9 @@ TypedReduceIntegerBinary:
 TypedReduceOr:
             LD   DE,SemanticOr8*$100+SemanticOr16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             RET  Z
             LD   A,L
@@ -432,7 +442,9 @@ TypedReduceOr:
 TypedReduceXor:
             LD   DE,SemanticXor8*$100+SemanticXor16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             RET  Z
             LD   A,L
@@ -445,7 +457,9 @@ TypedReduceXor:
 TypedReduceAnd:
             LD   DE,SemanticAnd8*$100+SemanticAnd16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             RET  Z
             LD   A,L
@@ -459,7 +473,9 @@ TypedReduceAdd:
             LD   D,SemanticAdd8
             LD   E,SemanticAdd16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Z,TypedReduceIntegerMeta
             ADD  HL,DE
             JR   TypedReduceIntegerConstantDone
@@ -467,7 +483,9 @@ TypedReduceSubtract:
             LD   D,SemanticSubtract8
             LD   E,SemanticSubtract16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Z,TypedReduceIntegerMeta
             OR   A
             SBC  HL,DE
@@ -476,7 +494,9 @@ TypedReduceMultiply:
             LD   D,SemanticMultiply8
             LD   E,SemanticMultiply16
             CALL TypedPrepareConstantBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Z,TypedReduceIntegerMeta
             ; Constant multiplication modulo 65536, using sixteen shift/add
             ; steps.
@@ -507,10 +527,14 @@ TypedReduceModulo:
             LD   DE,SemanticModulo8*$100+SemanticModulo16
 TypedReduceDivision:
             CALL TypedEmitWidthOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ExpressionOperatorOffset)
             CALL TypedEmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             ; A divisor known to be zero is invalid even when the dividend is
             ; dynamic. The fault helper also implements constant short-circuit
             ; suppression, so the unevaluated Boolean arm remains admissible.
@@ -559,7 +583,9 @@ TypedReduceIntegerMeta:
 ; Primary expressions.
 TypedParsePrimary:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH AF
             PUSH BC
             LD   HL,TokenStartOffset
@@ -614,7 +640,9 @@ TypedPrimaryEmitTypedConstant:
             CALL TypedEmitWord
             POP  HL
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,B
             OR   A
             RET
@@ -636,7 +664,9 @@ TypedPrimaryOrdinaryName:
             CALL Stage7FindRoutineCurrent
             JP   Z,Stage7TypedPrimaryRoutine
             CALL SymbolLookupCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             AND  SymbolAggregateFlag
             JP   NZ,Stage7TypedPrimaryAggregateSymbol
@@ -651,11 +681,15 @@ TypedPrimaryOrdinaryName:
 .endif
 TypedPrimaryVariableName:
             CALL SymbolLookupCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
 TypedPrimaryNameResolved:
             CALL TypedRequireScalarSymbolClass
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Z,TypedPrimaryConstantName
             LD   A,D
             AND  ScalarMetaTypeMask
@@ -683,7 +717,9 @@ TypedPrimaryProgramSelected:
             PUSH DE
             CALL TypedEmitOperationBC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,E
             OR   A
             RET
@@ -703,12 +739,16 @@ TypedPrimaryEmitLoad:
             CALL TypedEmitOperation
             POP  BC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             PUSH DE
             CALL TypedEmitByte
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,E
             OR   A
             RET
@@ -808,18 +848,24 @@ TypedRequireComposable:
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedComposableSaveLeft:
             CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedSaveLeft
 
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedComposableRestoreOperands:
             CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedRestoreOperands
 .endif
 TypedPrimaryParen:
             CALL TypedParseOr
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH AF
             PUSH HL
             CALL ParserExpectRight
@@ -865,7 +911,9 @@ TypedParseConversionOperand:
             LD   A,D
 .if AggregateCallSlices
             CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
             OR   A
             RET
@@ -897,7 +945,9 @@ TypedPrimaryNarrow:
             LD   L,C
             LD   A,D
             CALL TypedRequireIntegerMeta
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             AND  ScalarMetaConstant
             JR   Z,TypedPrimaryDynamicNarrow
             LD   A,H
@@ -909,10 +959,14 @@ TypedPrimaryNarrow:
 TypedPrimaryDynamicNarrow:
             LD   A,SemanticNarrowU8
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ExpressionOperatorOffset)
             CALL TypedEmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,ScalarTypeU8
             OR   A
             RET
@@ -934,9 +988,13 @@ TypedRequireIntegerMeta:
 TypedPrimaryWiden:
             LD   A,ScalarTypeU16
             CALL TypedParseConversionOperand
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedRequireIntegerMeta
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             AND  ScalarMetaConstant
             LD   A,ScalarTypeU16
             RET  Z
@@ -947,7 +1005,9 @@ TypedPrimaryWiden:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseUnary:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenPlus
             JR   Z,TypedUnaryPlus
             CP   TokenMinus
@@ -956,20 +1016,30 @@ TypedParseUnary:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedUnaryPlus:
             CALL ParserTake
-            RET  C
-            CALL TypedParseUnary
-            RET  C
-.if AggregateCallSlices
-            CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL TypedRequireIntegerMeta
+            CALL TypedParseUnary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
+.if AggregateCallSlices
+            CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.endif
+            CALL TypedRequireIntegerMeta
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             OR   A
             RET
 TypedUnaryMinus:
             CALL TypedUnaryPlus
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             AND  ScalarMetaTypeMask
             JR   NZ,TypedUnaryMinusTyped
@@ -989,7 +1059,9 @@ TypedUnaryMinusResolved:
             LD   A,SemanticNegate16
 TypedUnaryMinusEmit:
             CALL TypedEmitUnaryOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,D
             AND  ScalarMetaConstant
             LD   A,C
@@ -1031,7 +1103,9 @@ TypedUnaryMinusU8Ready:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseMultiplicative:
             CALL TypedParseUnary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedMultiplicativeLoop:
             PUSH AF
             PUSH HL
@@ -1056,17 +1130,25 @@ TypedMultiplicativeOperator:
 .else
             CALL TypedSaveLeft
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseUnary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedReduceIntegerBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedMultiplicativeLoop
 TypedMultiplicativeDone:
             POP  HL
@@ -1081,7 +1163,9 @@ TypedMultiplicativePeekFailure:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseAdditive:
             CALL TypedParseMultiplicative
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedAdditiveLoop:
             PUSH AF
             PUSH HL
@@ -1102,17 +1186,25 @@ TypedAdditiveOperator:
 .else
             CALL TypedSaveLeft
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseMultiplicative
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedReduceIntegerBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedAdditiveLoop
 TypedAdditiveDone:
             POP  HL
@@ -1151,7 +1243,9 @@ TypedComparisonTokens:
 
 TypedParseComparison:
             CALL TypedParseAdditive
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH AF
             PUSH HL
             CALL ParserPeek
@@ -1169,17 +1263,25 @@ TypedParseComparison:
 .else
             CALL TypedSaveLeft
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseAdditive
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedReduceComparison
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH AF
             PUSH HL
             CALL ParserPeek
@@ -1224,7 +1326,9 @@ TypedReduceComparison:
             JR   TypedComparisonEmit
 TypedComparisonInteger:
             CALL TypedResolveIntegerPair
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,C
             CP   ScalarTypeU8
             LD   A,SemanticCompare8
@@ -1232,10 +1336,14 @@ TypedComparisonInteger:
             LD   A,SemanticCompare16
 TypedComparisonEmit:
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ExpressionOperator)
             CALL TypedEmitByte
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedBothConstant
             LD   A,ScalarTypeBoolean
             RET  Z
@@ -1311,16 +1419,24 @@ TypedComparisonConstantDone:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseNot:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenNot
             JP   NZ,TypedParseComparison
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseNot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
             LD   D,A
             AND  ScalarMetaTypeMask
@@ -1360,7 +1476,9 @@ TypedNotTypedInteger:
             LD   A,SemanticNot16
 TypedNotEmit:
             CALL TypedEmitUnaryOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,D
             AND  ScalarMetaConstant
             LD   A,C
@@ -1391,7 +1509,9 @@ TypedNotConstantDone:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseAnd:
             CALL TypedParseNot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedAndLoop:
             PUSH AF
             PUSH HL
@@ -1409,37 +1529,51 @@ TypedAndLoop:
 .else
             CALL TypedSaveLeft
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedLeftTypeIsBoolean
             JR   NZ,TypedAndParseRight
             LD   A,SemanticBeginBooleanAnd
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   C,0
             CALL TypedBeginSuppression
 TypedAndParseRight:
             CALL TypedParseNot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedLeftTypeIsBoolean
             JR   NZ,TypedAndInteger
             CALL TypedReduceBoolean
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedAndLoop
 TypedAndInteger:
             CALL TypedReduceIntegerBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedAndLoop
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseOr:
             CALL TypedParseAnd
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedOrLoop:
             PUSH AF
             PUSH HL
@@ -1462,7 +1596,9 @@ TypedOrOperator:
             POP  HL
             POP  AF
             CALL TypedSaveLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ExpressionOperator)
             CP   TokenXor
             JR   NZ,TypedOrBooleanLeft
@@ -1474,22 +1610,30 @@ TypedOrBooleanLeft:
             JR   NZ,TypedOrParseRight
             LD   A,SemanticBeginBooleanOr
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   C,1
             CALL TypedBeginSuppression
 TypedOrParseRight:
             CALL TypedParseAnd
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedLeftTypeIsBoolean
             JR   NZ,TypedOrInteger
             CALL TypedReduceBoolean
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedOrLoop
 TypedBooleanDone:
             POP  HL
@@ -1506,7 +1650,9 @@ TypedBooleanPeekFailure:
             RET
 TypedOrInteger:
             CALL TypedReduceIntegerBinary
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedOrLoop
 
 .routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1529,7 +1675,9 @@ TypedReduceBoolean:
             JP   NZ,TypedTypeFailure
             LD   A,SemanticEndBoolean
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedBothConstant
             LD   A,ScalarTypeBoolean
             RET  Z
@@ -1624,7 +1772,9 @@ TypedExpressionBeginConstant:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseType:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenU8
             JR   Z,TypedTypeU8
             CP   TokenU16
@@ -1670,7 +1820,9 @@ TypedEmitProgramDefinitionOp:
             POP  HL
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH BC
             PUSH DE
             PUSH HL
@@ -1679,14 +1831,18 @@ TypedEmitProgramDefinitionOp:
             POP  HL
             POP  DE
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH DE
             PUSH HL
             LD   A,L
             CALL SemanticSinkPut
             POP  HL
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,D
             CP   ScalarTypeU16
             JR   Z,TypedEmitProgramDefinitionHigh
@@ -1699,20 +1855,30 @@ TypedEmitProgramDefinitionHigh:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseConstantAfterName:
             CALL TypedRetainDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectEqual
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,ScalarTypeExact
             CALL TypedExpressionBeginConstant
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedRetainInferredConstantExpression
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             OR   SymbolClassConstant
             LD   D,A
             LD   BC,(DeclarationPayload)
             CALL TypedPrepareCurrentWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   SymbolCommit
 
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1722,7 +1888,9 @@ TypedRetainConstantExpression:
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             AND  ScalarMetaConstant
             JP   Z,TypedTypeFailure
             LD   (DeclarationPayload),HL
@@ -1751,18 +1919,26 @@ TypedParseProgramAfterVar:
             OR   A
             JP   NZ,AggregateParseProgramAfterVar
             CALL TypedRetainDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (DeclarationInfo),A
 .if LegacyCompilerSlices
             ; Preserve the legacy initialized-array proof behind u8[...].
             CP   ScalarTypeU8
             JR   NZ,TypedProgramScalar
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenLeftBracket
             JR   NZ,TypedProgramScalar
             LD   A,(NextProgramSlot)
@@ -1770,12 +1946,16 @@ TypedParseProgramAfterVar:
             LD   B,0
             LD   D,SymbolInfoProgramU8
             CALL TypedPrepareCurrentWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   ParserParseArrayProgramAfterU8
 .endif
 TypedProgramScalar:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenEquals
             JR   Z,TypedProgramExplicit
             LD   HL,0
@@ -1784,13 +1964,19 @@ TypedProgramScalar:
             JR   TypedProgramHaveExpression
 TypedProgramExplicit:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             CALL TypedExpressionBeginConstant
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedProgramHaveExpression:
             CALL TypedRetainConstantExpression
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(NextProgramSlot)
             LD   C,A
             LD   B,0
@@ -1801,15 +1987,21 @@ TypedProgramHaveExpression:
             LD   D,A
             CALL TypedPrepareCurrentWord
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL SymbolCommit
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   BC,(ExpressionLeftValue)
             LD   HL,(DeclarationPayload)
             LD   A,(DeclarationInfo)
             LD   D,A
             CALL TypedEmitProgramDefinition
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             CALL TypedTypeWidth
             LD   HL,NextProgramSlot
@@ -1819,7 +2011,9 @@ TypedProgramHaveExpression:
 
 TypedParseTopLevel:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenVar
             JR   Z,TypedTopLevelVar
             CP   TokenConst
@@ -1834,35 +2028,53 @@ TypedParseTopLevel:
             JP   CompilerSetDiagnostic
 TypedTopLevelVar:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseProgramAfterVar
 TypedTopLevelConst:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseConstantAfterName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedParseTopLevel
 TypedTopLevelForward:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseForwardAfterTake
 TypedTopLevelRecord:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   AggregateParseRecordAfterTake
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseTopLevelConstAfterTake:
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseConstantAfterName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseTopLevel
 
 ; TokenForward has already been consumed. Nucleus 0.1 permits a bounded
@@ -1872,43 +2084,67 @@ TypedParseTopLevelConstAfterTake:
 TypedParseForwardAfterTake:
             LD   E,TokenSub
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ForwardOrdinal)
             OR   A
             JP   NZ,TypedDuplicateNameFailure
             CALL TypedRejectCurrentOrdinaryName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserRetainForwardName
             CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ForwardNamePointer)
             LD   A,(ForwardNameLength)
             LD   B,A
             CALL TokenNameEquals
             JP   C,TypedDuplicateNameFailure
             CALL TypedRejectCurrentOrdinaryName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserRetainForwardParameter
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (ForwardParameterType),A
             CALL ParserExpectRight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (ForwardResultType),A
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,1
             LD   (ForwardOrdinal),A
             XOR  A
@@ -1917,13 +2153,19 @@ TypedParseForwardAfterTake:
 
 TypedParseMain:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedParseMainAfterTake:
             CALL ParserExpectRoutineHeader
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticBeginMain
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ControlReset
             LD   A,(SymbolCount)
             LD   (ControlGlobalSymbolCount),A
@@ -1931,23 +2173,35 @@ TypedParseMainAfterTake:
             LD   (ControlRoutineKind),A
 TypedParseLocals:
             CALL TypedParseLocalRun
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedParseMainStatements:
             CALL TypedParseStatements
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseEndMain
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseLocalDeclaration:
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedRetainDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             OR   SymbolClassLocal
             LD   (DeclarationInfo),A
             LD   A,(NextLocalSlot)
@@ -1959,34 +2213,48 @@ TypedParseLocalDeclaration:
             LD   D,A
             CALL TypedPrepareCurrentWord
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             CALL TypedEmitLocalDeclare
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenEquals
             JR   Z,TypedLocalExplicit
             LD   A,1
             LD   (ExpressionEmitEnabled),A
             LD   A,SemanticLiteral16
             CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,0
             CALL TypedEmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             OR   ScalarMetaConstant
             JR   TypedLocalHaveExpression
 TypedLocalExplicit:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedLocalHaveExpression:
             LD   D,A
             LD   A,(DeclarationInfo)
@@ -1994,17 +2262,25 @@ TypedLocalHaveExpression:
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             LD   D,A
             LD   A,(DeclarationPayload)
             LD   C,A
             CALL TypedEmitStoreByInfo
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL SymbolCommit
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             CALL TypedTypeWidth
@@ -2017,16 +2293,22 @@ TypedLocalHaveExpression:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseLocalRun:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenVar
             JR   Z,TypedParseLocalRunTake
             OR   A
             RET
 TypedParseLocalRunTake:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseLocalDeclaration
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   TypedParseLocalRun
 .endif
 
@@ -2038,7 +2320,9 @@ TypedEmitLocalDeclare:
             LD   A,SemanticDeclareLocal16
 TypedEmitLocalDeclareSelected:
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(NextLocalSlot)
             JP   SemanticSinkPut
 
@@ -2090,7 +2374,9 @@ TypedParseStatements:
             LD   (ControlSequenceFallsThrough),A
 TypedParseStatementsContinue:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenEnd
             RET  Z
             CP   TokenElseIf
@@ -2115,7 +2401,9 @@ TypedStatementDispatch:
             CP   TokenName
             JP   NZ,ParserExpectedScalar
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,NameWriteOutputByte
             LD   B,15
             CALL TokenNameEquals
@@ -2125,11 +2413,15 @@ TypedStatementDispatch:
             JP   Z,Stage7ParseCallStatement
 .endif
             CALL TypedParseAssignment
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseStatementsContinue
 TypedStatementIf:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ControlSequenceFallsThrough)
             PUSH AF
             CALL StructuredParseIf
@@ -2141,14 +2433,18 @@ TypedStatementIf:
             JP   TypedParseStatementsContinue
 TypedStatementWhile:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ControlSequenceFallsThrough)
             PUSH AF
             CALL StructuredParseWhile
             JR   TypedStatementLoopComplete
 TypedStatementFor:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ControlSequenceFallsThrough)
             PUSH AF
             CALL StructuredParseFor
@@ -2163,7 +2459,9 @@ TypedStatementControlFailure:
             RET
 TypedStatementReturn:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if AggregateCallSlices
             LD   A,(Stage7CurrentResultType)
             CP   AggregateFirstDynamicTypeId
@@ -2174,18 +2472,26 @@ TypedStatementReturn:
             JR   NZ,TypedRoutineFlowFailure
             LD   A,(ControlResultType)
             CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             LD   A,(ControlResultType)
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticReturnScalar
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             LD   (ControlSequenceFallsThrough),A
             JP   TypedParseStatementsContinue
@@ -2198,44 +2504,66 @@ TypedRoutineFlowFailure:
 TypedStatementTransfer:
             LD   (DeclarationInfo),A
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             CALL StructuredParseLoopTransfer
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseStatementsContinue
 TypedParseWrite:
             LD   HL,(TokenStartOffset)
             LD   (ExpressionCallOffset),HL
             CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,ScalarTypeU8
             CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,ScalarTypeU8
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectRight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticWriteValueU8
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(ExpressionCallOffset)
             PUSH HL
             LD   A,L
             CALL SemanticSinkPut
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,H
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectElseFailLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseStatementsContinue
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseAssignment:
             CALL SymbolLookupCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (DeclarationInfo),A
             LD   (DeclarationPayload),BC
             LD   D,A
@@ -2251,40 +2579,56 @@ TypedParseAssignment:
             CP   SymbolClassLocal
             JR   NZ,TypedAssignmentCounterChecked
             CALL ControlCheckActiveCounter
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedAssignmentCounterChecked:
             LD   A,D
             AND  SymbolClassMask
             JP   Z,TypedTypeFailure
             CALL ParserExpectEqual
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             LD   A,(DeclarationInfo)
             AND  ScalarMetaTypeMask
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   BC,(DeclarationPayload)
             LD   A,(DeclarationInfo)
             LD   D,A
             CALL TypedEmitStoreByInfo
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   ParserExpectLine
 
 TypedParseEndMain:
             LD   E,TokenEnd
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticEndMain
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ForwardOrdinal)
             OR   A
             JR   NZ,TypedParseForwardCompletion
@@ -2294,16 +2638,24 @@ TypedParseEndMain:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseForwardCompletion:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenSub
             JP   NZ,TypedForwardIncomplete
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,DiagnosticForwardMismatch
             CALL ParserExpectForwardName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ControlGlobalSymbolCount)
             LD   (SymbolCount),A
             XOR  A
@@ -2317,9 +2669,13 @@ TypedParseForwardCompletion:
             LD   D,A
             LD   BC,0
             CALL SymbolPrepareCurrentWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL SymbolCommit
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ForwardParameterType)
             CALL TypedTypeWidth
             LD   (NextLocalSlot),A
@@ -2331,30 +2687,46 @@ TypedParseForwardCompletion:
             LD   (ControlSequenceFallsThrough),A
             LD   A,SemanticBeginRoutine
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ForwardOrdinal)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ForwardParameterType)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedParseRoutineLocals:
             CALL TypedParseLocalRun
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 TypedParseRoutineStatements:
             CALL TypedParseStatements
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(ControlSequenceFallsThrough)
             OR   A
             JP   NZ,TypedRoutineFlowFailure
             LD   E,TokenEnd
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticEndTypedRoutine
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,1
             LD   (ForwardCompleted),A
             LD   E,TokenEof

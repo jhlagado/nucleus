@@ -33,7 +33,9 @@ HybridLL1Parse:
             LD   (HybridLL1StackDepth),A
             LD   A,HybridLL1StartSymbol
             CALL HybridLL1PushSymbol
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 HybridLL1Loop:
             LD   A,(HybridLL1StackDepth)
             OR   A
@@ -60,13 +62,17 @@ HybridLL1Loop:
             PUSH DE
             JP   (HL)
 HybridLL1ActionReturn:
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   HybridLL1Loop
 
 HybridLL1Terminal:
             LD   E,A
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   HybridLL1Loop
 
 HybridLL1Nonterminal:
@@ -114,7 +120,9 @@ HybridLL1PredictionFound:
             LD   A,B
             AND  $7F
             CALL HybridLL1PushProduction
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   HybridLL1Loop
 
 ; A is a production ordinal. Adjacent directory offsets delimit its body.

@@ -111,7 +111,9 @@ CompileTargetAggregateCallParts:
             PUSH AF
             CALL SourceInitializeParts
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,B
             ; Validate every bank-bearing descriptor field before source
             ; semantics can retain a bank ordinal. A is the bounded part count.
@@ -144,7 +146,9 @@ TargetResetBankRoLengthLoop:
             INC  HL
             DJNZ TargetResetBankRoLengthLoop
             CALL CompileAggregateCallReady
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             ; A diagnostic during generation restores this synthetic frame and
             ; returns directly through the one target-output abort path. A
             ; successful generation returns normally and discards the frame.
@@ -247,7 +251,9 @@ CompileAggregateCallParts:
             POP  HL
             POP  AF
             CALL SourceInitializeParts
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   CompileAggregateCallReady
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileAggregateCallSlice:
@@ -270,7 +276,9 @@ CompileAggregateCallResetLoop:
 .else
             CALL Stage7ParseTopLevel
 .endif
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   SemanticSinkFinish
 
 ; Reject a routine name that collides with an ordinary name or an earlier
@@ -291,7 +299,9 @@ Stage7RejectCurrentDeclarationName:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7ParseTopLevel:
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenRecord
             JR   Z,Stage7TopLevelRecord
             CP   TokenVar
@@ -304,27 +314,41 @@ Stage7ParseTopLevel:
             JP   CompilerSetDiagnostic
 Stage7TopLevelRecord:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   AggregateParseRecordAfterTake
 Stage7TopLevelVar:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   AggregateParseProgramAfterVar
 Stage7TopLevelConst:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL TypedParseTopLevelConstAfterTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Stage7ParseTopLevel
 Stage7TopLevelRoutine:
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,NameMain
             LD   B,4
             CALL TokenNameEquals
@@ -358,9 +382,13 @@ Stage7CheckParameterLoop:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7CheckParameterDeclarationName:
             CALL TypedRejectCurrentOrdinaryName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7RejectCurrentDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CurrentRoutine)
             CALL Stage7RoutineAddress
             LD   E,(HL)
@@ -403,17 +431,25 @@ Stage7ParameterCapacityFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7ParseSignature:
             CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenRightParen
             JR   Z,Stage7SignatureClose
 Stage7SignatureParameter:
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7CheckParameterDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH HL
             LD   HL,(TokenLexemePointer)
             LD   (DeclarationNamePointer),HL
@@ -421,34 +457,52 @@ Stage7SignatureParameter:
             LD   (DeclarationNameLength),A
             POP  HL
             CALL ParserExpectAs
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             PUSH AF
             CALL TypedRestoreDeclarationToken
             POP  AF
             CALL Stage7AppendParameter
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenComma
             JR   NZ,Stage7SignatureClose
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage7SignatureParameter
 Stage7SignatureClose:
             CALL ParserExpectRight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             LD   (Stage7CurrentResultType),A
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenAs
             JR   NZ,Stage7SignatureLine
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL AggregateParseType
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (Stage7CurrentResultType),A
 Stage7SignatureLine:
             JP   ParserExpectLine
@@ -487,21 +541,31 @@ Stage7InstallScalarParameter:
             LD   D,A
 Stage7InstallParameterSymbol:
             CALL SymbolPrepareCurrentWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             CALL SymbolCommitTyped
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             LD   C,A
             LD   A,SemanticBindParameter
             CALL ParserEmitOperationC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathOffset)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentIndex)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             CP   AggregateFirstDynamicTypeId
             JR   C,Stage7InstallScalarParameterWidth
@@ -527,7 +591,9 @@ Stage7ParseRoutineAfterName:
             CP   Stage7RoutineCapacity
             JP   NC,Stage7RoutineCapacityFailure
             CALL Stage7RejectCurrentDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7RoutineCount)
             LD   (Stage7CurrentRoutine),A
             CALL Stage7RoutineAddress
@@ -539,7 +605,9 @@ Stage7ParseRoutineAfterName:
             XOR  A
             LD   (Stage7CurrentParameterCount),A
             CALL Stage7ParseSignature
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CurrentRoutine)
             CALL Stage7RoutineAddress
             LD   DE,Stage7RoutineParameterCount
@@ -574,13 +642,19 @@ Stage7RoutineKindReady:
             LD   (ControlSequenceFallsThrough),A
             LD   A,SemanticBeginGeneralRoutine
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CallLabel)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CurrentParameterCount)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   B,A
             LD   A,(Stage7CurrentParameterStart)
             LD   D,A
@@ -597,7 +671,9 @@ Stage7RoutineParameterLoop:
             CALL Stage7InstallParameter
             POP  BC
             POP  DE
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             INC  D
             INC  E
             DEC  B
@@ -605,10 +681,14 @@ Stage7RoutineParameterLoop:
 
 Stage7RoutineLocals:
             CALL TypedParseLocalRun
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7RoutineStatements:
             CALL TypedParseStatements
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CurrentResultType)
             OR   A
             JR   Z,Stage7RoutineEndToken
@@ -618,15 +698,23 @@ Stage7RoutineStatements:
 Stage7RoutineEndToken:
             LD   E,TokenEnd
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticEndGeneralRoutine
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CurrentResultType)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7GlobalSymbolCount)
             LD   (SymbolCount),A
             XOR  A
@@ -641,23 +729,37 @@ Stage7RoutineCapacityFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7ParseMainAfterName:
             CALL Stage7RejectCurrentDeclarationName
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectRight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserPeek
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   TokenFails
             JR   NZ,Stage7MainLine
             CALL ParserTake
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7MainLine:
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticBeginMain
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(SymbolCount)
             LD   (Stage7GlobalSymbolCount),A
             XOR  A
@@ -669,18 +771,28 @@ Stage7MainLine:
             LD   (ControlSequenceFallsThrough),A
 Stage7MainLocals:
             CALL TypedParseLocalRun
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7MainStatements:
             CALL TypedParseStatements
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenEnd
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticEndMain
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,TokenEof
             JP   ParserExpect
 .endif
@@ -774,7 +886,9 @@ Stage7EmitWord:
             LD   A,L
             CALL SemanticSinkPut
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,H
             JP   SemanticSinkPut
 
@@ -783,7 +897,9 @@ Stage7EmitWord:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7EmitAggregateSymbolRoot:
             CALL Stage7LookupAggregateCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (Stage7PathType),A
             CP   AggregateOpenStringTypeId
             JR   NZ,Stage7EmitAggregateRootClass
@@ -802,7 +918,9 @@ Stage7EmitAggregateRootAddress:
             PUSH BC
             CALL SemanticSinkOperation
             POP  HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7EmitWord
             JR   Stage7EmitAggregateRootReady
 Stage7EmitAggregateRootReadOnly:
@@ -810,7 +928,9 @@ Stage7EmitAggregateRootReadOnly:
             PUSH BC
             CALL TargetRequireCurrentBank
             POP  BC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
             LD   A,SemanticLoadReadOnlyAlias
             JR   Stage7EmitAggregateRootAddress
@@ -821,7 +941,9 @@ Stage7EmitAggregateRootParameter:
 Stage7EmitAggregateRootSelected:
             CALL ParserEmitOperationC
 Stage7EmitAggregateRootReady:
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             OR   A
             RET
@@ -848,7 +970,9 @@ Stage7PathFieldComposition:
             POP  AF
             LD   (Stage7PathType),A
             CALL Stage8RequireNoPendingFailure
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             PUSH AF
 Stage7PathField:
@@ -952,7 +1076,9 @@ Stage7PathIndexComposition:
             POP  AF
             LD   (Stage7PathType),A
             CALL Stage8RequireNoPendingFailure
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7OpenStringCapacityOffset)
             PUSH AF
             LD   A,(Stage7PathType)
@@ -1145,7 +1271,9 @@ Stage7ParseScalarArgument:
             LD   A,(Stage7PathType)
             LD   HL,(ExpressionRightValue)
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Stage8RequireNoPendingFailure
 Stage7ScalarArgumentFailure:
             LD   L,A
@@ -1328,7 +1456,9 @@ Stage7PrepareOpenStringArgument:
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7PrepareForwardedOpenString
             CALL Stage7StringCapacity
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   (Stage7ArgumentCount),A
             XOR  A
             JR   Stage7PrepareOpenStringReady
@@ -1340,10 +1470,14 @@ Stage7PrepareOpenStringReady:
             LD   C,A
             LD   A,SemanticPrepareOpenArgument
             CALL ParserEmitOperationC
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7ArgumentCount)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7CurrentCallFrame
             LD   DE,Stage7CallFrameArgumentCount
             ADD  HL,DE
@@ -1385,7 +1519,9 @@ Stage7CallArgumentsDone:
             LD   A,(Stage8CallFlags)
             LD   D,A
             CALL TargetRequireCurrentBank
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7CallResultBankReady:
 .endif
             LD   A,(Stage8CallFlags)
@@ -1401,27 +1537,41 @@ Stage7CallFailureClassReady:
 Stage7PublishCallable:
             LD   A,SemanticCallGeneral
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CallLabel)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             AND  Stage8CallableServiceFlag
             JR   NZ,Stage7PublishCallableCommon
             LD   A,(Stage7ArgumentCount)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7CallResultType)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8CallFlags)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage7PublishCallableCommon:
             LD   HL,(Stage7CallOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage8EmitFailurePlaceholders
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8CallFlags)
             AND  Stage7RoutineFails
             LD   (Stage8DirectFailable),A
@@ -1448,12 +1598,16 @@ Stage7CallFailure:
 Stage7ParseAggregateValue:
             LD   E,TokenName
             CALL ParserExpect
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7FindRoutineCurrent
             JR   NZ,Stage7AggregateValueSymbol
             LD   C,1
             CALL Stage7ParseCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CP   AggregateFirstDynamicTypeId
             JP   C,TypedTypeFailure
 .if TargetStreamingOutput
@@ -1462,7 +1616,9 @@ Stage7ParseAggregateValue:
             JR   Stage7AggregateValueSuffix
 Stage7AggregateValueSymbol:
             CALL Stage7LookupAggregateCurrent
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,D
             AND  SymbolAggregateFlag
             JP   Z,TypedTypeFailure
@@ -1486,7 +1642,9 @@ Stage7AggregateValueRootFailure:
             RET
 .else
             CALL Stage7EmitAggregateSymbolRoot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
 Stage7AggregateValueSuffix:
 .if TargetStreamingOutput
@@ -1496,7 +1654,9 @@ Stage7AggregateValueSuffix:
             POP  BC
 .else
             CALL Stage7ParsePathSuffix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .endif
             LD   E,A
             LD   A,D
@@ -1544,7 +1704,9 @@ Stage7ScalarPathFailure:
 Stage7TypedPrimaryRoutine:
             LD   C,1
             CALL Stage7ParseCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             OR   A
             JP   Z,TypedTypeFailure
             CP   AggregateFirstDynamicTypeId
@@ -1553,7 +1715,9 @@ Stage7TypedPrimaryRoutine:
             RET
 Stage7TypedPrimaryRoutineAggregate:
             CALL Stage7ParsePathSuffix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JR   Stage7FinishScalarPath
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -1585,7 +1749,9 @@ Stage8ParseServiceCall:
 Stage8ServiceDescriptorReady:
             LD   (Stage8ServiceId),A
             CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8ServiceId)
             RRCA
             RRCA
@@ -1600,10 +1766,14 @@ Stage8ServiceArgument:
             CALL Stage7ParseScalarArgument
             POP  HL
             LD   (Stage7CallOffset),HL
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 Stage8ServiceExpectRight:
             CALL ParserExpectRight
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage8ServiceId)
             LD   (Stage7CallLabel),A
             AND  Stage8ServiceResultU8
@@ -1636,14 +1806,18 @@ Stage8EmitFailurePlaceholders:
             XOR  A
 Stage8FailurePlaceholderLoop:
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             DEC  C
             JR   NZ,Stage8FailurePlaceholderLoop
             RET
 
 Stage7TypedPrimaryAggregateSymbol:
             CALL Stage7EmitAggregateSymbolRoot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   Stage7TypedPrimaryRoutineAggregate
 
 ; Current routine name has already been consumed as a complete statement.
@@ -1652,9 +1826,13 @@ Stage7TypedPrimaryAggregateSymbol:
 Stage7ParseCallStatement:
             LD   C,0
             CALL Stage7ParseCall
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             JP   TypedParseStatementsContinue
 
 ; Return one exact aggregate alias and mark the structured path non-fallthrough.
@@ -1668,10 +1846,14 @@ Stage7ParseAggregateReturn:
             CP   D
             JP   NZ,TypedTypeFailure
             CALL ParserExpectLine
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticReturnAggregate
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             XOR  A
             LD   (ControlSequenceFallsThrough),A
             JP   TypedParseStatementsContinue
@@ -1690,9 +1872,13 @@ Stage7ParseAggregateAssignment:
             .db  DiagnosticReadOnlyAssignment
 Stage7AggregateAssignmentWritable:
             CALL Stage7EmitAggregateSymbolRoot
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             CALL Stage7ParsePathSuffix
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   E,A
             LD   A,D
             OR   A
@@ -1700,7 +1886,9 @@ Stage7AggregateAssignmentWritable:
             LD   A,E
             LD   (Stage7PathType),A
             CALL ParserExpectEqual
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(TokenStartOffset)
             LD   (Stage7CallOffset),HL
             LD   A,(Stage7PathType)
@@ -1708,17 +1896,23 @@ Stage7AggregateAssignmentWritable:
             JR   NC,Stage7AggregateCopyAssignment
             LD   E,A
             CALL TypedExpressionBeginRuntime
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   D,A
             LD   A,(Stage7PathType)
             LD   E,A
             LD   A,D
             CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,1
             LD   (Stage8RetainedCarriers),A
             CALL Stage8SelectFailureConsumer
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,(Stage7PathType)
             CP   ScalarTypeU16
             LD   A,SemanticStoreIndirect8
@@ -1726,7 +1920,9 @@ Stage7AggregateAssignmentWritable:
             LD   A,SemanticStoreIndirect16
 Stage7ScalarAssignmentEmit:
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if Stage7LL1
             RET
 .else
@@ -1747,16 +1943,24 @@ Stage7AggregateCopyAssignment:
             LD   A,1
             LD   (Stage8RetainedCarriers),A
             CALL Stage8SelectFailureConsumer
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   A,SemanticCopyAggregate
             CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7PathExtent)
             CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
             LD   HL,(Stage7CallOffset)
             CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
             RET  C
+.endif
 .if Stage7LL1
             RET
 .else
