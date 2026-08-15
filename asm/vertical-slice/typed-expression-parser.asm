@@ -1136,128 +1136,121 @@ TypedUnaryMinusU8Ready:
             LD   A,ScalarTypeU8
             JR   TypedUnaryMinusResolved
 
+; Integer * / mod bind tighter than + -. One climber replaces the two
+; handwritten loops. B is the minimum precedence: 1 for additive, 2 for a
+; right operand that must not accept + or -.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedParseMultiplicative:
+TypedParseAdditive:
+            LD   B,1
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedParseIntegerClimb:
+            PUSH BC
             CALL TypedParseUnary
+            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-TypedMultiplicativeLoop:
+TypedIntegerClimbLoop:
             PUSH AF
             PUSH HL
+            LD   A,B
+            CP   3
+            JR   NC,TypedIntegerClimbDonePrec
+            PUSH BC
             CALL ParserPeek
 .if CompilerDiagnosticBranches
-            JR   C,TypedMultiplicativePeekFailure
+            JR   C,TypedIntegerClimbPeekFailure
 .endif
+            CP   TokenMinus
+            JR   Z,TypedIntegerClimbAdd
+            CP   TokenPlus
+            JR   Z,TypedIntegerClimbAdd
             CP   TokenStar
-            JR   Z,TypedMultiplicativeOperator
+            JR   Z,TypedIntegerClimbMul
             CP   TokenSlash
-            JR   Z,TypedMultiplicativeOperator
+            JR   Z,TypedIntegerClimbMul
             CP   TokenMod
-            JR   NZ,TypedMultiplicativeDone
-TypedMultiplicativeOperator:
+            JR   NZ,TypedIntegerClimbDone
+TypedIntegerClimbMul:
+            LD   C,2
+            JR   TypedIntegerClimbGot
+TypedIntegerClimbAdd:
+            LD   C,1
+TypedIntegerClimbGot:
             LD   (ExpressionOperator),A
+            LD   A,C
+            POP  BC
+            CP   B
+            JR   C,TypedIntegerClimbDonePrec
+            INC  A
+            LD   C,A
+            PUSH BC
             CALL ParserTake
 .if CompilerDiagnosticBranches
-            JR   C,TypedMultiplicativePeekFailure
+            JR   C,TypedIntegerClimbTakeFailurePacked
 .endif
             LD   HL,(TokenStartOffset)
             LD   (ExpressionOperatorOffset),HL
+            POP  DE
             POP  HL
             POP  AF
+            PUSH DE
 .if AggregateCallSlices
             CALL TypedComposableSaveLeft
 .else
             CALL TypedSaveLeft
 .endif
 .if CompilerDiagnosticReturns
-            RET  C
+            JR   NC,TypedIntegerClimbSaved
+            POP  BC
+            RET
+TypedIntegerClimbSaved:
 .endif
-            CALL TypedParseUnary
+            POP  BC
+            PUSH BC
+            LD   B,C
+            CALL TypedParseIntegerClimb
 .if CompilerDiagnosticReturns
-            RET  C
+            JR   NC,TypedIntegerClimbRight
+            POP  BC
+            RET
 .endif
+TypedIntegerClimbRight:
 .if AggregateCallSlices
             CALL TypedComposableRestoreOperands
 .else
             CALL TypedRestoreOperands
 .endif
 .if CompilerDiagnosticReturns
-            RET  C
+            JR   NC,TypedIntegerClimbReduce
+            POP  BC
+            RET
+TypedIntegerClimbReduce:
 .endif
             CALL TypedReduceIntegerBinary
 .if CompilerDiagnosticReturns
-            RET  C
+            JR   NC,TypedIntegerClimbReduced
+            POP  BC
+            RET
+TypedIntegerClimbReduced:
 .endif
-            JR   TypedMultiplicativeLoop
-TypedMultiplicativeDone:
+            POP  BC
+            JR   TypedIntegerClimbLoop
+TypedIntegerClimbDone:
+            POP  BC
+TypedIntegerClimbDonePrec:
             POP  HL
             POP  AF
             RET
 .if CompilerDiagnosticBranches
-TypedMultiplicativePeekFailure:
+TypedIntegerClimbPeekFailure:
+            POP  BC
             POP  HL
             POP  AF
             SCF
             RET
-.endif
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedParseAdditive:
-            CALL TypedParseMultiplicative
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-TypedAdditiveLoop:
-            PUSH AF
-            PUSH HL
-            CALL ParserPeek
-.if CompilerDiagnosticBranches
-            JR   C,TypedAdditivePeekFailure
-.endif
-            CP   TokenPlus
-            JR   Z,TypedAdditiveOperator
-            CP   TokenMinus
-            JR   NZ,TypedAdditiveDone
-TypedAdditiveOperator:
-            LD   (ExpressionOperator),A
-            CALL ParserTake
-.if CompilerDiagnosticBranches
-            JR   C,TypedAdditivePeekFailure
-.endif
-            POP  HL
-            POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
-            CALL TypedSaveLeft
-.endif
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL TypedParseMultiplicative
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
-            CALL TypedRestoreOperands
-.endif
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL TypedReduceIntegerBinary
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JR   TypedAdditiveLoop
-TypedAdditiveDone:
-            POP  HL
-            POP  AF
-            RET
-.if CompilerDiagnosticBranches
-TypedAdditivePeekFailure:
+TypedIntegerClimbTakeFailurePacked:
+            POP  DE
             POP  HL
             POP  AF
             SCF
