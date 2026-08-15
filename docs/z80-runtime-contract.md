@@ -334,6 +334,20 @@ contents then check the stored-length invariant. Source can obtain the retained
 capacity only through `.capacity`. The address carrier remains unavailable to
 source code.
 
+A `T[]` parameter uses the same two-word call order: the concrete array's
+unsigned 16-bit element count is below its address, and the address is closest
+to the return address. The callee retains a four-byte binding: the ordinary
+two-byte alias followed by the two-byte count. Forwarding loads both words from
+the caller's activation and recreates the same stack order. Unlike a bounded
+string, an array stores no count or capacity in its object. The element extent
+and exact element type remain compiler metadata.
+
+Concrete-array `.length` evaluates its base, discards the resulting address,
+and produces the static count as a canonical `u16`. Open-array `.length`
+discards the evaluated address and loads the retained count word without
+dereferencing the object. Both forms preserve all calls and checks required to
+form the base. Neither is writable.
+
 ## 4. Program storage and startup
 
 ### 4.1 Program objects
@@ -457,8 +471,10 @@ not use wrapped 16-bit arithmetic as evidence that the region fits.
 
 A fixed-array access first checks the unsigned index against its declared
 length, then forms `base + index * stride`, and then establishes the complete
-element region. A string access applies Section 3.3. Any failed check performs
-`bounds` before a load, store, or alias result is produced.
+element region. An open-array access performs the same sequence with the
+retained count word as its bound and the statically known element extent as its
+stride. A string access applies Section 3.3. Any failed check performs `bounds`
+before a load, store, or alias result is produced.
 
 The compiler may omit a runtime check only when information already proved at
 that source point establishes the same condition.
@@ -473,8 +489,8 @@ region and then the complete source region before the first destination byte
 changes. It copies the common fixed extent, including a bounded string's length
 byte, complete capacity, and permanent terminator. Self-assignment has no
 effect. Nucleus types cannot produce proper partial overlap between distinct
-same-type aggregate paths. An open-string view is not a whole-object assignment
-operand.
+same-type aggregate paths. An open-string or open-array view is not a
+whole-object assignment operand.
 
 Checked open-string length assignment follows the same atomicity boundary. The
 complete-region check, old-length check, and new-length check all precede
@@ -505,14 +521,26 @@ later arguments. A trap during argument evaluation prevents the call.
 Scalar parameters receive copied values. Concrete aggregate parameters receive
 fixed, non-null, non-reseatable address carriers to existing program storage.
 An open-string parameter receives the same fixed carrier plus its actual
-capacity. The callee may mutate that storage where the language permits.
+capacity. An open-array parameter receives the fixed carrier plus its actual
+16-bit element count. The callee may mutate that storage where the language
+permits.
 
 ### 6.2 Activation state
 
 Each successful call creates distinct logical storage for its scalar
-parameters, scalar locals, aggregate-parameter carriers, return address, and
-other live implementation state. Recursion uses the same mechanism as an
-ordinary call. One active invocation must not overwrite another's state.
+parameters, scalar locals, aggregate-parameter carriers and retained open-view
+bounds, return address, and other live implementation state. Recursion uses the
+same mechanism as an ordinary call. One active invocation must not overwrite
+another's state.
+
+In the current Z80 activation, a concrete aggregate parameter occupies its
+two-byte alias slot. `string[]` adds one hidden capacity byte immediately after
+that slot. `T[]` adds one hidden little-endian count word immediately after the
+alias slot. Positive `IX` source displacements therefore include two call-stack
+words for either open view, while activation offsets include three bytes for
+`string[]` and four for `T[]`. Parameters later in a signature are displaced by
+the complete retained size of every earlier binding. Caller cleanup counts both
+words for each open-view source argument on success, propagation, and handling.
 
 The backend may use the hardware stack, a bounded activation arena, static
 slots saved around calls, or a measured combination. It publishes both the
@@ -585,7 +613,9 @@ argument cannot cross banks because its provenance is not represented in the
 runtime carrier. Scalar arguments and results cross without this restriction.
 A bank-local accessor may expose a scalar from a banked aggregate constant, and
 a banked routine may operate on caller-owned RAM through a directly
-variable-rooted aggregate argument.
+variable-rooted aggregate argument. An open-array argument adds no bank field;
+it follows the same root and call-placement restrictions as the concrete array
+alias from which it is formed.
 
 ## 7. Recoverable failure and traps
 

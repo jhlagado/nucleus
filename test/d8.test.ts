@@ -13,16 +13,17 @@ describe("Nucleus D8 semantic transcript validation", () => {
     ].map((operation) => [operation, 1] as const),
     ...[
       22, 25, 29, 33, 36, 58, 59, 60, 63, 67, 68, 69, 75, 76, 79, 80, 86, 88,
-      102, 103, 105, 111,
+      102, 103, 105, 111, 114,
     ].map((operation) => [operation, 2] as const),
     ...[
       20, 24, 28, 30, 34, 35, 43, 44, 56, 57, 61, 62, 70, 74, 87, 89, 98, 99,
-      106, 107, 110,
+      106, 107, 113,
     ].map((operation) => [operation, 3] as const),
     ...[32, 71, 82, 83, 96, 97, 108, 109, 112].map(
       (operation) => [operation, 4] as const,
     ),
     ...[77, 95].map((operation) => [operation, 5] as const),
+    [115, 6],
     [90, 7],
     [72, 9],
   ]);
@@ -64,6 +65,18 @@ describe("Nucleus D8 semantic transcript validation", () => {
     expect(nucleusSemanticOperationKeys(serviceCall, 2)).toEqual([0, 7]);
     expect(nucleusSemanticOperationKeys(programHandler, 2)).toEqual([0, 5]);
     expect(nucleusSemanticOperationKeys(localHandler, 2)).toEqual([0, 4]);
+  });
+
+  it("distinguishes byte and word open-view argument payloads", () => {
+    expect(nucleusSemanticOperationKeys(Uint8Array.of(110, 0, 7), 1)).toEqual([
+      0,
+    ]);
+    expect(
+      nucleusSemanticOperationKeys(Uint8Array.of(110, 2, 0x34, 0x12), 1),
+    ).toEqual([0]);
+    expect(() =>
+      nucleusSemanticOperationKeys(Uint8Array.of(110, 2, 0x34), 1),
+    ).toThrow("extends beyond the transcript payload");
   });
 
   it("rejects truncated or trailing final operations", () => {

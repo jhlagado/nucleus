@@ -79,7 +79,7 @@ compiler tables, and bounded activation storage.
 
 Nucleus has no source-visible pointer type, null reference, pointer arithmetic,
 heap, garbage collector, variable-sized local object, reflection, runtime type
-test, open array, slice, or unrestricted dynamic allocation. These exclusions
+test, open-array storage, slice, or unrestricted dynamic allocation. These exclusions
 are part of the small-system architecture rather than temporary omissions in
 an otherwise dynamic design.
 
@@ -242,10 +242,11 @@ Records have nominal identity; equal field sequences do not create structural
 compatibility.
 
 Nucleus does not admit record subtyping, interface inheritance, generic record
-parameters, open arrays, slices, variant records, unions, or general aggregate
-comparison. Task-oriented syntax may later desugar to ordinary routines with a
-scalar state and a task-specific data record. It must not introduce a second
-record type system.
+parameters, slices, open-array storage or results, variant records, unions, or
+general aggregate comparison. It does admit parameter-only `T[]` views of one
+complete concrete fixed array. Task-oriented syntax may later desugar to
+ordinary routines with a scalar state and a task-specific data record. It must
+not introduce a second record type system.
 
 Bounded strings retain a current length, permit embedded zero bytes, support
 `.length`, checked byte access, byte replacement, and exact-type aggregate
@@ -256,6 +257,13 @@ checked writable `.length`, which ordinary source routines can use to construct
 text. Concrete paths keep read-only `.length` and do not expose `.capacity`.
 Bounded strings have no intrinsic append, insertion, slicing, splicing, or
 general comparison operation.
+
+An array parameter may use `T[]`, a length-polymorphic view of one complete
+concrete `T[N]` object. It retains the actual `u16` element count, admits
+read-only `.length` and checked indexing, and requires exact element-type
+identity. It has no independent offset or caller-selected count and is not a
+slice. Array length is never writable. Nested fixed arrays remain absent, so an
+open view cannot use an array as its element type.
 
 ### Structured initializers
 
@@ -277,10 +285,11 @@ aggregate local, whether as owned storage or as a local alias.
 
 An aggregate parameter is a fixed typed alias to caller-provided storage. It
 is neither nullable nor reseatable. A concrete aggregate alias carries one
-address; a `string[]` binding also retains the concrete argument capacity in
-the activation. A routine that needs aggregate destination or scratch storage
-receives it from its caller or addresses a top-level object. Every local
-variable is scalar and belongs to its activation.
+address; a `string[]` binding also retains the concrete argument capacity, and
+a `T[]` binding retains the concrete array's element count. A routine that
+needs aggregate destination or scratch storage receives it from its caller or
+addresses a top-level object. Every local variable is scalar and belongs to
+its activation.
 
 Assignment between identical aggregate types copies the complete object. The
 left side supplies the destination storage and the right side supplies the
@@ -476,7 +485,7 @@ Do not present any of the following as a routine correction or size cleanup:
 - routine-local aggregate declarations, whether owning storage or binding an alias;
 - program-variable, parameter, or source-writable counted-loop counters;
 - general runtime aggregate constructors;
-- arrays of arrays, open arrays, or slices;
+- arrays of arrays, open-array storage or results, or slices;
 - exception unwinding;
 - interrupt routines, vector declarations, raw bank-address operations, or
   bank selectors in source;

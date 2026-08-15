@@ -31,7 +31,7 @@ Stage8RetainedCarriers      .equ Stage7StateBase+$1A
 ; These values span expression parsing, so nested calls must not overlay them.
 Stage8ServiceId             .equ Stage7StateBase+$1B
 Stage8CallFlags             .equ Stage7StateBase+$1C
-Stage7OpenStringCapacityOffset .equ Stage7StateBase+$1D
+Stage7OpenViewCountOffset     .equ Stage7StateBase+$1D
 Stage7PathAssignmentMode    .equ Stage7StateBase+$1E
 Stage7StringResizeOffset    .equ Stage7StateBase+$1F
 Stage7StateEnd              .equ Stage7StateBase+$20
@@ -148,6 +148,9 @@ SemanticOpenStringIndex      .equ 109
 SemanticPrepareOpenArgument  .equ 110
 SemanticStringCapacity       .equ 111
 SemanticStringResize         .equ 112
+SemanticArrayLength          .equ 113
+SemanticOpenArrayLength      .equ 114
+SemanticOpenArrayIndex       .equ 115
 Stage8ServiceReadInput       .equ 0
 Stage8ServiceWriteOutput     .equ 1
 Stage8ServiceReadStorage     .equ 2

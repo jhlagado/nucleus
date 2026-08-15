@@ -68,5 +68,6 @@ HybridLL1BeginTypeBound:
 HybridLL1MakeStringType:
 HybridLL1MakeOpenStringType:
 HybridLL1MakeArrayType:
+HybridLL1MakeOpenArrayType:
 HybridLL1SetScalarTypeAction:
             RET

@@ -479,6 +479,51 @@ Chapter21_20ReadOnlyPoint:
             .db "end",10
 Chapter21_20ReadOnlySourceEnd:
 
+Chapter21_21Source:
+            .db "const tooLong = 5",10
+            .db "var small as u8[3] = [1, 2, 3]",10
+            .db "var large as u8[5]",10
+            .db 10
+            .db "sub sum(data as u8[]) as u16",10
+            .db "    var total as u16 = 0",10
+            .db "    var i as u16",10
+            .db 10
+            .db "    for i = 0 until data.length",10
+            .db "        total = total + u16(data[i])",10
+            .db "    end",10
+            .db 10
+            .db "    return total",10
+            .db "end",10
+            .db 10
+            .db "sub fill(data as u8[], value as u8)",10
+            .db "    var i as u16",10
+            .db 10
+            .db "    for i = 0 until data.length",10
+            .db "        data[i] = value",10
+            .db "    end",10
+            .db "end",10
+            .db 10
+            .db "sub copy(source as u8[], destination as u8[]) fails",10
+            .db "    var i as u16",10
+            .db 10
+            .db "    if source.length > destination.length",10
+            .db "        fail tooLong",10
+            .db "    end",10
+            .db 10
+            .db "    for i = 0 until source.length",10
+            .db "        destination[i] = source[i]",10
+            .db "    end",10
+            .db "end",10
+            .db 10
+            .db "sub main() fails",10
+            .db "    writeOutputByte(u8(sum(small))) else fail",10
+            .db "    fill(large, 9)",10
+            .db "    copy(small, large) else fail",10
+            .db "    writeOutputByte(large[0]) else fail",10
+            .db "    writeOutputByte(large[4]) else fail",10
+            .db "end",10
+Chapter21_21SourceEnd:
+
 Chapter21_10UnconsumedSource:
             .db "sub readOne() as u8 fails",10
             .db "    var value as u8 = readInputByte() else fail",10
@@ -726,7 +771,7 @@ Chapter21OpenDelimiterDescriptors:
             .dw Chapter21OpenDelimiterPart2,Chapter21OpenDelimiterPart2End
 CorpusSourceEnd:
 
-            .org $D000
+            .org $D200
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
             LD   SP,StackTop

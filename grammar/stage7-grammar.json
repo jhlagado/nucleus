@@ -42,6 +42,7 @@
     "type-atom": "DiagnosticExpectedType",
     "string-capacity": "DiagnosticExpectedScalar",
     "type-array-opt": "DiagnosticExpectedScalar",
+    "type-array-bound": "DiagnosticExpectedScalar",
     "scalar-type": "DiagnosticExpectedType"
   },
   "externals": {
@@ -464,13 +465,20 @@
     { "lhs": "string-capacity", "rhs": ["a:MakeOpenStringType"] },
     {
       "lhs": "type-array-opt",
+      "rhs": ["TokenLeftBracket", "type-array-bound"]
+    },
+    {
+      "lhs": "type-array-bound",
       "rhs": [
-        "TokenLeftBracket",
         "a:BeginTypeBound",
         "x:ConstantExpression",
         "TokenRightBracket",
         "a:MakeArrayType"
       ]
+    },
+    {
+      "lhs": "type-array-bound",
+      "rhs": ["TokenRightBracket", "a:MakeOpenArrayType"]
     },
     { "lhs": "type-array-opt", "rhs": [] },
     { "lhs": "scalar-type", "rhs": ["TokenU8", "a:TypeU8"] },

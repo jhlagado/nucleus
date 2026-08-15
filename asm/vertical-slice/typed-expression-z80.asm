@@ -180,7 +180,10 @@ TypedOperationTable:
             .dw Stage7PrepareOpenArgument ; 110
             .dw Stage7EmitStringCapacityValue ; 111
             .dw Stage7StringResize   ; 112
-TypedOperationCount .equ 93
+            .dw Stage7ArrayLength    ; 113
+            .dw Stage7OpenArrayLength ; 114
+            .dw Stage7OpenArrayIndex ; 115
+TypedOperationCount .equ 96
 .else
 TypedOperationCount .equ 62
 .endif

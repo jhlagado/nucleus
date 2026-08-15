@@ -1,16 +1,16 @@
 ; Generated from stage7-grammar.json.
-HybridLL1NonterminalCount .equ 42
-HybridLL1ProductionCount  .equ 69
-HybridLL1ProductionSplit  .equ 35
-HybridLL1ActionCount      .equ 74
+HybridLL1NonterminalCount .equ 43
+HybridLL1ProductionCount  .equ 71
+HybridLL1ProductionSplit  .equ 36
+HybridLL1ActionCount      .equ 75
 HybridLL1StartSymbol      .equ $40
 HybridLL1ActionOrdinalEmitExit .equ 46
 HybridLL1ActionOrdinalEmitContinue .equ 47
 HybridLL1ActionOrdinalForTo .equ 61
 HybridLL1ActionOrdinalForUntil .equ 62
-HybridLL1ActionOrdinalTypeU8 .equ 71
-HybridLL1ActionOrdinalTypeU16 .equ 72
-HybridLL1ActionOrdinalTypeBoolean .equ 73
+HybridLL1ActionOrdinalTypeU8 .equ 72
+HybridLL1ActionOrdinalTypeU16 .equ 73
+HybridLL1ActionOrdinalTypeBoolean .equ 74
 
 HybridLL1RowDirectory:
             .db HybridLL1Row0-HybridLL1Rows,DiagnosticExpectedTopLevel ; compilation-unit
@@ -54,7 +54,8 @@ HybridLL1RowDirectory:
             .db HybridLL1Row38-HybridLL1Rows,DiagnosticExpectedType ; type-atom
             .db HybridLL1Row39-HybridLL1Rows,DiagnosticExpectedScalar ; string-capacity
             .db HybridLL1Row40-HybridLL1Rows,DiagnosticExpectedScalar ; type-array-opt
-            .db HybridLL1Row41-HybridLL1Rows,DiagnosticExpectedType ; scalar-type
+            .db HybridLL1Row41-HybridLL1Rows,DiagnosticExpectedScalar ; type-array-bound
+            .db HybridLL1Row42-HybridLL1Rows,DiagnosticExpectedType ; scalar-type
 HybridLL1RowDirectoryEnd:
 HybridLL1Rows:
 HybridLL1Row0: ; compilation-unit
@@ -320,12 +321,27 @@ HybridLL1Row40: ; type-array-opt
             .db TokenFails
             .db TokenNewline
             .db TokenRightParen+$80
-HybridLL1Row41: ; scalar-type
+HybridLL1Row41: ; type-array-bound
             .db 66
+            .db TokenCharacter
+            .db TokenFalse
+            .db TokenLeftParen
+            .db TokenMinus
+            .db TokenName
+            .db TokenNot
+            .db TokenNumber
+            .db TokenPlus
+            .db TokenTrue
+            .db TokenU16
             .db TokenU8+$80
-            .db 67
+            .db 67+$80
+            .db TokenRightBracket+$80
+HybridLL1Row42: ; scalar-type
+            .db 68
+            .db TokenU8+$80
+            .db 69
             .db TokenU16+$80
-            .db 68+$80
+            .db 70+$80
             .db TokenBoolean+$80
 HybridLL1RowsEnd:
 
@@ -365,9 +381,9 @@ HybridLL1ProductionDirectory:
             .db HybridLL1Production32-HybridLL1Productions ; local-initializer-opt
             .db HybridLL1Production33-HybridLL1Productions ; statement-sequence
             .db HybridLL1Production34-HybridLL1Productions ; statement
+            .db HybridLL1Production35-HybridLL1Productions ; statement
             .db HybridLL1ProductionsHigh-HybridLL1Productions
 HybridLL1ProductionDirectoryHigh:
-            .db HybridLL1Production35-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production36-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production37-HybridLL1ProductionsHigh ; statement
             .db HybridLL1Production38-HybridLL1ProductionsHigh ; statement
@@ -398,9 +414,11 @@ HybridLL1ProductionDirectoryHigh:
             .db HybridLL1Production63-HybridLL1ProductionsHigh ; string-capacity
             .db HybridLL1Production64-HybridLL1ProductionsHigh ; string-capacity
             .db HybridLL1Production65-HybridLL1ProductionsHigh ; type-array-opt
-            .db HybridLL1Production66-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production67-HybridLL1ProductionsHigh ; scalar-type
+            .db HybridLL1Production66-HybridLL1ProductionsHigh ; type-array-bound
+            .db HybridLL1Production67-HybridLL1ProductionsHigh ; type-array-bound
             .db HybridLL1Production68-HybridLL1ProductionsHigh ; scalar-type
+            .db HybridLL1Production69-HybridLL1ProductionsHigh ; scalar-type
+            .db HybridLL1Production70-HybridLL1ProductionsHigh ; scalar-type
             .db HybridLL1ProductionsEnd-HybridLL1ProductionsHigh
 HybridLL1ProductionDirectoryEnd:
 HybridLL1Productions:
@@ -464,7 +482,7 @@ HybridLL1Production28: ; routine-body
 HybridLL1Production29: ; local-list
             .db $55,$56
 HybridLL1Production30: ; local-declaration
-            .db $a0,TokenNewline,$57,$9f,$69,TokenAs,$82,TokenName,TokenVar
+            .db $a0,TokenNewline,$57,$9f,$6a,TokenAs,$82,TokenName,TokenVar
 HybridLL1Production31: ; local-initializer-opt
             .db $a3,$a2,$a1,TokenEquals
 HybridLL1Production32: ; local-initializer-opt
@@ -473,9 +491,9 @@ HybridLL1Production33: ; statement-sequence
             .db $58,$59
 HybridLL1Production34: ; statement
             .db $5d,$a5
-HybridLL1ProductionsHigh:
 HybridLL1Production35: ; statement
             .db TokenNewline,$5a
+HybridLL1ProductionsHigh:
 HybridLL1Production36: ; statement
             .db TokenNewline,$5c
 HybridLL1Production37: ; statement
@@ -525,7 +543,7 @@ HybridLL1Production58: ; for-step-opt
 HybridLL1Production59: ; type
             .db $68,$66
 HybridLL1Production60: ; type-atom
-            .db $69
+            .db $6a
 HybridLL1Production61: ; type-atom
             .db $c2,TokenName
 HybridLL1Production62: ; type-atom
@@ -535,13 +553,17 @@ HybridLL1Production63: ; string-capacity
 HybridLL1Production64: ; string-capacity
             .db $c5
 HybridLL1Production65: ; type-array-opt
-            .db $c6,TokenRightBracket,$83,$c3,TokenLeftBracket
-HybridLL1Production66: ; scalar-type
-            .db $c7,TokenU8
-HybridLL1Production67: ; scalar-type
-            .db $c8,TokenU16
+            .db $69,TokenLeftBracket
+HybridLL1Production66: ; type-array-bound
+            .db $c6,TokenRightBracket,$83,$c3
+HybridLL1Production67: ; type-array-bound
+            .db $c7,TokenRightBracket
 HybridLL1Production68: ; scalar-type
-            .db $c9,TokenBoolean
+            .db $c8,TokenU8
+HybridLL1Production69: ; scalar-type
+            .db $c9,TokenU16
+HybridLL1Production70: ; scalar-type
+            .db $ca,TokenBoolean
 HybridLL1ProductionsEnd:
 
 HybridLL1ActionDirectory:
@@ -616,6 +638,7 @@ HybridLL1ActionDirectory:
             .dw HybridLL1MakeStringType ; a:MakeStringType
             .dw HybridLL1MakeOpenStringType ; a:MakeOpenStringType
             .dw HybridLL1MakeArrayType ; a:MakeArrayType
+            .dw HybridLL1MakeOpenArrayType ; a:MakeOpenArrayType
             .dw HybridLL1SetScalarTypeAction ; a:TypeU8, parameter 1
             .dw HybridLL1SetScalarTypeAction ; a:TypeU16, parameter 2
             .dw HybridLL1SetScalarTypeAction ; a:TypeBoolean, parameter 3

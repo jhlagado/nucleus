@@ -458,6 +458,12 @@ AggregateTypeKindArray  .equ 6
 ; Parameter-only open bounded-string view. It is never interned in the
 ; aggregate type table and therefore remains outside its compact ordinals.
 AggregateOpenStringTypeId .equ $7C
+; Parameter-only open arrays encode the exact element type in the low seven
+; bits. Live element type IDs occupy 1..11, so this contextual family cannot
+; collide with scalar, interned aggregate, or open-string identities.
+AggregateOpenArrayTypeMask .equ $80
+AggregateOpenArrayElementMask .equ $7F
+AggregateFirstOpenViewTypeId .equ AggregateOpenStringTypeId
 
 SymbolInfoConstantU8    .equ SymbolClassConstant+ScalarTypeU8
 SymbolInfoConstantU16   .equ SymbolClassConstant+ScalarTypeU16

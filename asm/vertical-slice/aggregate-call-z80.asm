@@ -61,6 +61,7 @@ Stage7BindOpenString:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            JR   Stage7BindWord
 Stage7BindWord:
             CALL EmitPairIndexedInline
             .db  EmitPairDecSp2
@@ -715,6 +716,35 @@ Stage7SelectIndex:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            JR   Stage7SelectIndexBoundReady
+
+; Open arrays use the retained caller count for the bound, but retain the
+; concrete element extent in the semantic stream for ordinary scaling.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7OpenArrayIndex:
+            CALL NextSemanticByte
+            LD   (Stage7ArgumentCount),A
+            CALL Stage7ReadExtentAndOffset
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEHL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7LoadIXC
+            CALL Stage7EmitOpenDisplacedCapacity
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7ArgumentCount
+            INC  (HL)
+            LD   HL,Stage7LoadIXB
+            CALL Stage7EmitOpenDisplacedCapacity
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7SelectIndexBoundReady:
 .if TargetStreamingOutput
             LD   DE,NucleusRuntimeCheckArrayIndexOffset
             CALL EmitRuntimeCall
@@ -752,6 +782,29 @@ Stage7SelectIndex:
 .endif
             LD   HL,Stage7PopDEAddPush
             JP   EmitThree
+
+; Concrete array length is static, but its base carrier has already been
+; evaluated. Discard that carrier before producing the canonical u16 count.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7ArrayLength:
+            CALL ReadSemanticWord
+            LD   (Stage7PathExtent),DE
+            CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(Stage7PathExtent)
+            LD   A,$21                    ; LD HL,nn
+            JP   TypedEmitOpcodeWordPushHL
+
+; Open array length is the retained u16 word in the parameter activation.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7OpenArrayLength:
+            CALL TypedEmitPopHL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JP   TypedLoadLocal16
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7LoadIndirect8:
@@ -1067,19 +1120,29 @@ Stage7EmitOpenDisplacedCapacity:
             JP   EmitByte
 
 ; Convert a just-evaluated address carrier into the internal open-argument
-; pair. Mode zero carries a static capacity; mode one forwards a hidden local.
+; pair. Modes zero/one carry or forward a string capacity byte. Modes two/three
+; carry or forward a complete array count word.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7PrepareOpenArgument:
             CALL NextSemanticByte
             LD   (Stage7ArgumentIndex),A
+            CP   2
+            JR   NC,Stage7ReadOpenArrayArgument
             CALL NextSemanticByte
             LD   (Stage7ArgumentCount),A
+            JR   Stage7PrepareOpenArgumentPayloadReady
+Stage7ReadOpenArrayArgument:
+            CALL ReadSemanticWord
+            LD   (Stage7PathOffset),DE
+Stage7PrepareOpenArgumentPayloadReady:
             CALL EmitByteInlineChecked
             .db  $D1                    ; POP DE address carrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,(Stage7ArgumentIndex)
+            CP   2
+            JR   NC,Stage7PrepareOpenArrayArgument
             OR   A
             JR   NZ,Stage7PrepareForwardedOpenArgument
             LD   A,(Stage7ArgumentCount)
@@ -1102,6 +1165,26 @@ Stage7PrepareOpenArgumentPush:
             LD   HL,Stage7PushHLDE
             JP   EmitPair
 
+Stage7PrepareOpenArrayArgument:
+            AND  1
+            JR   NZ,Stage7PrepareForwardedOpenArray
+            LD   HL,(Stage7PathOffset)
+            CALL EmitLoadHl
+            JR   Stage7PrepareOpenArgumentPush
+Stage7PrepareForwardedOpenArray:
+            LD   A,(Stage7PathOffset)
+            LD   (Stage7ArgumentCount),A
+            LD   HL,Stage7LoadIXL
+            CALL Stage7EmitOpenDisplacedCapacity
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7ArgumentCount
+            INC  (HL)
+            LD   HL,Stage7LoadIXH
+            CALL Stage7EmitOpenDisplacedCapacity
+            JR   Stage7PrepareOpenArgumentPush
+
 .if TargetStreamingOutput
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 .else
@@ -1122,7 +1205,7 @@ Stage7EmitStringCheck:
 .else
             POP  HL
 .endif
-            JR   Stage7EmitStringCheckFinish
+            JP   Stage7EmitStringCheckFinish
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitStringCapacityValue:
@@ -1194,6 +1277,10 @@ Stage7PopDEAddPush:       .db $D1,$19,$E5
 Stage7PushDEHL:           .db $D5,$E5
 Stage7PushHLDE            .equ TypedPopOperandsBytes+2
 Stage7LoadIXC:            .db $DD,$4E
+; This target template is written as a normal Z80 instruction. The compiler
+; copies its two-byte opcode prefix and emits the retained-count displacement.
+Stage7LoadIXB:
+            LD   B,(IX+0)
 Stage7ZeroHighBytes       .equ TypedZeroHigh
 Stage7OpenExtentBytes:    .db $06,$00,$03,$03
 ; Target template assembled from ordinary Z80 mnemonics: capacity C becomes

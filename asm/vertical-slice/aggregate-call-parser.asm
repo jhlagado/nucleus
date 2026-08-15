@@ -550,6 +550,52 @@ Stage7InstallParameterSymbol:
             RET  C
 .endif
             LD   A,(Stage7PathType)
+            CP   AggregateOpenArrayTypeMask
+            JR   C,Stage7InstallPublishParameter
+            LD   A,ScalarTypeU16          ; address word
+            CALL Stage7PublishParameterBinding
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,Stage7PathOffset
+            INC  (HL)
+            INC  (HL)
+            LD   HL,Stage7ArgumentIndex
+            INC  (HL)
+            INC  (HL)
+            LD   A,ScalarTypeU16          ; retained count word
+            CALL Stage7PublishParameterBinding
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,4
+            JR   Stage7InstallParameterWidth
+Stage7InstallPublishParameter:
+            CALL Stage7PublishParameterBinding
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage7PathType)
+            CP   AggregateFirstDynamicTypeId
+            JR   C,Stage7InstallScalarParameterWidth
+            CP   AggregateOpenStringTypeId
+            JR   C,Stage7InstallAggregateParameterWidth
+            LD   A,3
+            JR   Stage7InstallParameterWidth
+Stage7InstallAggregateParameterWidth:
+            LD   A,2
+            JR   Stage7InstallParameterWidth
+Stage7InstallScalarParameterWidth:
+            CALL TypedTypeWidth
+Stage7InstallParameterWidth:
+            LD   HL,NextLocalSlot
+            ADD  A,(HL)
+            LD   (HL),A
+            OR   A
+            RET
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7PublishParameterBinding:
             LD   C,A
             LD   A,SemanticBindParameter
             CALL ParserEmitOperationC
@@ -562,25 +608,7 @@ Stage7InstallParameterSymbol:
             RET  C
 .endif
             LD   A,(Stage7ArgumentIndex)
-            CALL SemanticSinkPut
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,(Stage7PathType)
-            CP   AggregateFirstDynamicTypeId
-            JR   C,Stage7InstallScalarParameterWidth
-            CP   AggregateOpenStringTypeId
-            LD   A,3
-            SBC  A,0
-            JR   Stage7InstallParameterWidth
-Stage7InstallScalarParameterWidth:
-            CALL TypedTypeWidth
-Stage7InstallParameterWidth:
-            LD   HL,NextLocalSlot
-            ADD  A,(HL)
-            LD   (HL),A
-            OR   A
-            RET
+            JP   SemanticSinkPut
 
 ; Current token is a non-main routine name.
 .if HybridLL1Full
@@ -799,7 +827,7 @@ Stage7MainStatements:
 
 ; Return the positive IX displacement of the current source argument. Every
 ; later source parameter contributes one address/scalar word; each later open
-; string contributes its hidden capacity word as well.
+; view contributes its hidden count/capacity word as well.
 .routine in B,D out A,B,C,D,E,carry,zero clobbers sign,parity,halfCarry,HL
 Stage7ParameterSourceOffset:
             PUSH BC
@@ -818,8 +846,8 @@ _parameterSourceOffsetLoop:
             INC  HL
             INC  HL
             LD   A,(HL)
-            CP   AggregateOpenStringTypeId
-            JR   NZ,_parameterSourceOffsetNext
+            CP   AggregateFirstOpenViewTypeId
+            JR   C,_parameterSourceOffsetNext
             INC  C
             INC  C
 _parameterSourceOffsetNext:
@@ -905,12 +933,12 @@ Stage7EmitAggregateSymbolRoot:
             RET  C
 .endif
             LD   (Stage7PathType),A
-            CP   AggregateOpenStringTypeId
-            JR   NZ,Stage7EmitAggregateRootClass
+            CP   AggregateFirstOpenViewTypeId
+            JR   C,Stage7EmitAggregateRootClass
             LD   A,C
             INC  A
             INC  A
-            LD   (Stage7OpenStringCapacityOffset),A
+            LD   (Stage7OpenViewCountOffset),A
 Stage7EmitAggregateRootClass:
             LD   A,D
             AND  SymbolClassMask
@@ -1000,10 +1028,15 @@ Stage7PathField:
 .endif
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7PathStringField
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage7PathArrayField
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
-            JR   NZ,Stage7PathRecordField
+            JR   Z,Stage7PathStringField
+            CP   AggregateTypeKindArray
+            JR   Z,Stage7PathArrayField
+            JP   Stage7PathRecordField
 Stage7PathStringField:
             LD   HL,NameLength
             LD   B,6
@@ -1016,7 +1049,7 @@ Stage7PathStringField:
             LD   A,(Stage7PathType)
             CP   AggregateOpenStringTypeId
             JP   NZ,Stage7PathFieldTypeFailure
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             LD   C,A
             LD   A,SemanticStringCapacity
             CALL ParserEmitOperationC
@@ -1031,7 +1064,7 @@ Stage7PathStringLength:
             LD   A,(Stage7PathType)
             CP   AggregateOpenStringTypeId
             JP   NZ,Stage7PathFieldTypeFailure
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             LD   (Stage7StringResizeOffset),A
             POP  AF
             LD   D,2
@@ -1046,7 +1079,7 @@ Stage7PathStringLengthRead:
             LD   A,SemanticStringLength
             JR   Stage7PathStringLengthReady
 Stage7PathOpenStringLengthRead:
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             LD   C,A
             LD   A,SemanticOpenStringLength
 Stage7PathStringLengthReady:
@@ -1062,6 +1095,49 @@ Stage7PathStringLengthReady:
 Stage7PathStringScalarReady:
             POP  AF
             LD   A,ScalarTypeU8
+            LD   D,1
+            OR   A
+            RET
+Stage7PathArrayField:
+            LD   HL,NameLength
+            LD   B,6
+            CALL TokenNameEquals
+            JP   NC,Stage7PathFieldTypeFailure
+            LD   A,(Stage7PathAssignmentMode)
+            OR   A
+            JP   NZ,Stage7PathFieldTypeFailure
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage7PathOpenArrayLength
+            CALL AggregateTypeAddress
+            INC  HL
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (Stage7PathOffset),DE
+            LD   A,SemanticArrayLength
+            CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
+            JP   C,Stage7PathSuffixFailure
+.endif
+            LD   HL,(Stage7PathOffset)
+            CALL Stage7EmitWord
+.if CompilerDiagnosticBranches
+            JP   C,Stage7PathSuffixFailure
+.endif
+            JR   Stage7PathArrayLengthReady
+Stage7PathOpenArrayLength:
+            LD   A,(Stage7OpenViewCountOffset)
+            LD   C,A
+            LD   A,SemanticOpenArrayLength
+            CALL ParserEmitOperationC
+.if CompilerDiagnosticBranches
+            JP   C,Stage7PathSuffixFailure
+.endif
+Stage7PathArrayLengthReady:
+            POP  AF
+            LD   A,ScalarTypeU16
             LD   D,1
             OR   A
             RET
@@ -1129,7 +1205,7 @@ Stage7PathIndexComposition:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             PUSH AF
             LD   A,(Stage7PathType)
             PUSH AF
@@ -1177,17 +1253,19 @@ Stage7PathIndex:
             LD   E,A
             POP  BC
             LD   A,B
-            LD   (Stage7OpenStringCapacityOffset),A
+            LD   (Stage7OpenViewCountOffset),A
             LD   A,E
             CP   AggregateFirstDynamicTypeId
             JP   C,TypedTypeFailure
             PUSH AF
             CP   AggregateOpenStringTypeId
-            JR   Z,Stage7PathOpenStringIndex
+            JP   Z,Stage7PathOpenStringIndex
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage7PathOpenArrayIndex
             CALL AggregateTypeAddress
             LD   A,(HL)
             CP   AggregateTypeKindString
-            JR   Z,Stage7PathStringIndex
+            JP   Z,Stage7PathStringIndex
             CP   AggregateTypeKindArray
             JP   NZ,Stage7PathFieldTypeFailure
             INC  HL
@@ -1203,7 +1281,7 @@ Stage7PathIndex:
             LD   HL,(ExpressionRightValue)
             OR   A
             SBC  HL,BC
-            JR   NC,Stage7PathIndexRangeFailure
+            JP   NC,Stage7PathIndexRangeFailure
 Stage7PathIndexDynamic:
             LD   (Stage7PathOffset),BC
             LD   A,(Stage7PathType)
@@ -1219,6 +1297,23 @@ Stage7PathIndexDynamic:
 .if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
 .endif
+            JR   Stage7PathArrayIndexTail
+Stage7PathOpenArrayIndex:
+            AND  AggregateOpenArrayElementMask
+            LD   (Stage7PathType),A
+            CALL AggregateGetExtent
+            LD   (Stage7PathExtent),HL
+            LD   A,SemanticOpenArrayIndex
+            CALL SemanticSinkOperation
+.if CompilerDiagnosticBranches
+            JR   C,Stage7PathSuffixFailure
+.endif
+            LD   A,(Stage7OpenViewCountOffset)
+            CALL SemanticSinkPut
+.if CompilerDiagnosticBranches
+            JR   C,Stage7PathSuffixFailure
+.endif
+Stage7PathArrayIndexTail:
             LD   HL,(Stage7PathExtent)
             CALL Stage7EmitWord
 .if CompilerDiagnosticBranches
@@ -1230,9 +1325,7 @@ Stage7PathIndexDynamic:
             JR   C,Stage7PathSuffixFailure
 .endif
             POP  AF
-            CALL AggregateTypeAddress
-            INC  HL
-            LD   A,(HL)
+            LD   A,(Stage7PathType)
             JP   Stage7PathSuffixLoop
 Stage7PathStringIndex:
             INC  HL
@@ -1240,7 +1333,7 @@ Stage7PathStringIndex:
             LD   A,SemanticStringIndex
             JR   Stage7PathStringIndexReady
 Stage7PathOpenStringIndex:
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             LD   C,A
             LD   A,SemanticOpenStringIndex
 Stage7PathStringIndexReady:
@@ -1284,7 +1377,7 @@ Stage7PathIndexExpressionFailure:
 Stage7PathIndexRangeFailure:
             LD   A,(ExpressionSuppressFault)
             OR   A
-            JR   NZ,Stage7PathIndexDynamic
+            JP   NZ,Stage7PathIndexDynamic
             LD   HL,(Stage7CallOffset)
             LD   (TokenStartOffset),HL
             POP  AF
@@ -1458,7 +1551,7 @@ Stage7CallArgumentLoop:
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
 .endif
-            JR   Stage7CallArgumentReady
+            JP   Stage7CallArgumentReady
 Stage7CallAggregateArgument:
             CALL Stage7ParseAggregateValue
 .if CompilerDiagnosticBranches
@@ -1480,6 +1573,8 @@ Stage7CallAggregateArgument:
             LD   (Stage7CallResultType),A
             CP   AggregateOpenStringTypeId
             JR   Z,Stage7CallOpenStringType
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage7CallOpenArrayType
             LD   A,(Stage7PathType)
             CP   D
             JP   NZ,Stage7CallTypeFailure
@@ -1492,6 +1587,28 @@ Stage7CallOpenStringType:
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
 .endif
+            JR   Stage7CallAggregateTypeReady
+Stage7CallOpenArrayType:
+            AND  AggregateOpenArrayElementMask
+            LD   B,A                      ; preserve C: direct-root bank flag
+            LD   A,(Stage7PathType)
+            LD   D,A
+            LD   A,(Stage7CallResultType)
+            CP   D
+            JR   Z,Stage7CallAggregateTypeReady
+            LD   A,D
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,Stage7CallTypeFailure
+            CP   AggregateFirstDynamicTypeId
+            JP   C,Stage7CallTypeFailure
+            CALL AggregateTypeAddress
+            LD   A,(HL)
+            CP   AggregateTypeKindArray
+            JP   NZ,Stage7CallTypeFailure
+            INC  HL
+            LD   A,(HL)
+            CP   B
+            JP   NZ,Stage7CallTypeFailure
 Stage7CallAggregateTypeReady:
 .if TargetStreamingOutput
             ; A cross-bank aggregate parameter must originate at a direct
@@ -1518,7 +1635,15 @@ Stage7CallAggregateBankReady:
 .endif
             LD   A,(Stage7CallResultType)
             CP   AggregateOpenStringTypeId
-            JR   NZ,Stage7CallArgumentReady
+            JR   Z,Stage7CallPrepareOpenString
+            CP   AggregateOpenArrayTypeMask
+            JR   C,Stage7CallArgumentReady
+            CALL Stage7PublishOpenArrayArgument
+.if CompilerDiagnosticBranches
+            JP   C,Stage7CallFailure
+.endif
+            JR   Stage7CallArgumentReady
+Stage7CallPrepareOpenString:
             CALL Stage7PrepareOpenStringArgument
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
@@ -1559,7 +1684,7 @@ Stage7PrepareOpenStringArgument:
             XOR  A
             JR   Stage7PrepareOpenStringReady
 Stage7PrepareForwardedOpenString:
-            LD   A,(Stage7OpenStringCapacityOffset)
+            LD   A,(Stage7OpenViewCountOffset)
             LD   (Stage7ArgumentCount),A
             LD   A,1
 Stage7PrepareOpenStringReady:
@@ -1571,6 +1696,47 @@ Stage7PrepareOpenStringReady:
 .endif
             LD   A,(Stage7ArgumentCount)
             CALL SemanticSinkPut
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7CurrentCallFrame
+            LD   DE,Stage7CallFrameArgumentCount
+            ADD  HL,DE
+            INC  (HL)
+            OR   A
+            RET
+
+; Convert a concrete or forwarded open-array carrier into the shared two-word
+; call form. The retained array count remains a complete u16 word.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7PublishOpenArrayArgument:
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage7PublishForwardedOpenArray
+            CALL AggregateTypeAddress
+            INC  HL
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            EX   DE,HL
+            LD   A,2
+            JR   Stage7PrepareOpenArrayReady
+Stage7PublishForwardedOpenArray:
+            LD   A,(Stage7OpenViewCountOffset)
+            LD   L,A
+            LD   H,0
+            LD   A,3
+Stage7PrepareOpenArrayReady:
+            LD   C,A
+            LD   (Stage7PathOffset),HL
+            LD   A,SemanticPrepareOpenArgument
+            CALL ParserEmitOperationC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(Stage7PathOffset)
+            CALL Stage7EmitWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2061,8 +2227,8 @@ Stage7AggregateCopyAssignment:
 .endif
             LD   D,A
             POP  AF
-            CP   AggregateOpenStringTypeId
-            JP   Z,TypedTypeFailure
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,TypedTypeFailure
             CP   D
             JP   NZ,TypedTypeFailure
             CALL AggregateGetExtent

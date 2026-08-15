@@ -146,11 +146,30 @@ HybridLL1MakeOpenStringType:
             LD   A,AggregateOpenStringTypeId
             JR   HybridLL1SetCurrentType
 
+; An open array is a parameter-only contextual type. Its low seven bits retain
+; the exact concrete element type without consuming an aggregate-type entry.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+HybridLL1MakeOpenArrayType:
+            LD   A,(AggregateCurrentTypeId)
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
+            CP   AggregateFirstDynamicTypeId
+            JR   C,HybridLL1OpenArrayElementReady
+            PUSH AF
+            CALL AggregateTypeAddress
+            LD   A,(HL)
+            CP   AggregateTypeKindArray
+            JP   Z,AggregateNestedArrayFailure
+            POP  AF
+HybridLL1OpenArrayElementReady:
+            OR   AggregateOpenArrayTypeMask
+            JR   HybridLL1SetCurrentType
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1MakeArrayType:
             LD   A,(AggregateCurrentTypeId)
-            CP   AggregateOpenStringTypeId
-            JP   Z,AggregateTypeShapeFailure
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
             CP   AggregateFirstDynamicTypeId
             JR   C,HybridLL1ArrayElementReady
             PUSH AF
@@ -314,8 +333,8 @@ HybridLL1AssertTypeFailure:
 HybridLL1SaveProgramType:
             LD   A,(AggregateCurrentTypeId)
 HybridLL1SaveObjectType:
-            CP   AggregateOpenStringTypeId
-            JP   Z,AggregateTypeShapeFailure
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
             LD   (DeclarationInfo),A
             CALL AggregateGetExtent
             LD   (AggregateCurrentObjectExtent),HL
@@ -519,8 +538,8 @@ HybridLL1BeginRecordField:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitRecordField:
             LD   A,(AggregateCurrentTypeId)
-            CP   AggregateOpenStringTypeId
-            JP   Z,AggregateTypeShapeFailure
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
             LD   A,(AggregateFieldCount)
             LD   B,A
             LD   A,(AggregateCurrentFieldCount)
@@ -792,8 +811,8 @@ HybridLL1AllowSubResult:
 
 HybridLL1SaveSubResult:
             LD   A,(AggregateCurrentTypeId)
-            CP   AggregateOpenStringTypeId
-            JP   Z,AggregateTypeShapeFailure
+            CP   AggregateFirstOpenViewTypeId
+            JP   NC,AggregateTypeShapeFailure
             LD   (Stage7CurrentResultType),A
             OR   A
             RET
@@ -1511,6 +1530,8 @@ HybridLL1ParseAssignment:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   A,(DeclarationInfo)
+            LD   D,A
 HybridLL1StatementCounterChecked:
             LD   A,D
             AND  SymbolClassMask

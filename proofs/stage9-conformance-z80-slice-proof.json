@@ -54,7 +54,7 @@
       "name": "corpus-source-and-descriptors",
       "from": "CorpusSourceStart",
       "to": "CorpusSourceEnd",
-      "maxBytes": 8192
+      "maxBytes": 8704
     },
     {
       "name": "proof-code-and-data",
