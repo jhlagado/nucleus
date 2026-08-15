@@ -4,7 +4,6 @@
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX
 Stage7BeginRoutine:
-            CALL NextSemanticByte
             LD   C,A
             CALL NextSemanticByte     ; retained parameter count
 .if TargetStreamingOutput
@@ -29,7 +28,6 @@ Stage7DefineRoutineFrame:
 ; activation before any body statement runs.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7BindParameter:
-            CALL NextSemanticByte
             LD   (Stage7PathType),A
             CALL NextSemanticByte
             CPL
@@ -207,7 +205,6 @@ Stage8ReadArgumentCount:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7Call:
-            CALL NextSemanticByte
             LD   (Stage7CallLabel),A
             AND  Stage8CallableServiceFlag
             JR   NZ,Stage8ReadServiceCall
@@ -433,7 +430,6 @@ Stage8ReturnSuccess:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage8EndFailableRoutine:
-            CALL NextSemanticByte
             OR   A
             RET  NZ
 Stage8SuccessTail:
@@ -446,14 +442,12 @@ Stage8SuccessTail:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage8SkipHandler:
-            CALL NextSemanticByte
             LD   C,A
             LD   A,$C3
             JP   StructuredEmitFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8BeginHandler:
-            CALL NextSemanticByte
             LD   C,A
             CALL StructuredDefineLabel
 .if CompilerDiagnosticReturns
@@ -474,7 +468,6 @@ Stage8BeginHandler:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage8EndHandler:
-            CALL NextSemanticByte
             LD   C,A
             JP   StructuredDefineLabel
 
@@ -580,7 +573,6 @@ Stage8ServiceAddressTable:
 ; into unhandled-error and final success into host completion.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8BeginCallableMain:
-            CALL NextSemanticByte
             LD   (Stage8EmitCallFlags),A
 .if TargetStreamingOutput
             CALL NextSemanticByte
@@ -656,7 +648,6 @@ Stage8MainWrapperSuccess:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EndRoutine:
-            CALL NextSemanticByte
             OR   A
             RET  NZ
             CALL ExpressionRestoreFrame
@@ -1126,7 +1117,6 @@ Stage7EmitOpenDisplacedCapacity:
 ; carry or forward a complete array count word.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7PrepareOpenArgument:
-            CALL NextSemanticByte
             LD   (Stage7ArgumentIndex),A
             CP   2
             JR   NC,Stage7ReadOpenArrayArgument

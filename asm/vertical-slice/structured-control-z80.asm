@@ -87,7 +87,6 @@ StructuredEmitFixup:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredLabel:
-            CALL NextSemanticByte
             LD   C,A
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredDefineLabel:
@@ -121,7 +120,6 @@ StructuredDefineLabel:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredBranchFalse:
-            CALL NextSemanticByte
             LD   C,A
             PUSH BC
             LD   HL,StructuredBranchFalseBytes
@@ -135,7 +133,6 @@ StructuredBranchFalse:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredJump:
-            CALL NextSemanticByte
             LD   C,A
             LD   A,$C3                    ; JP nn
             JR   StructuredEmitFixup
@@ -309,7 +306,6 @@ StructuredStoreCounter:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredForSetup:
-            CALL NextSemanticByte
             LD   C,A
             CALL NextSemanticByte
             LD   B,A
@@ -330,7 +326,6 @@ StructuredForSetup:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForTest:
-            CALL NextSemanticByte
             LD   C,A                      ; counter
             CALL NextSemanticByte
             LD   B,A                      ; mode
@@ -398,7 +393,6 @@ EmitLoadDeImmediate:
 ; Read and retain the fixed-width ForNext operands in emitter scratch.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForNext:
-            CALL NextSemanticByte
             LD   (EmitControlTestLabel),A
             CALL NextSemanticByte
             LD   (EmitControlExitLabel),A

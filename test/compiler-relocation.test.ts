@@ -102,22 +102,46 @@ describe("compiler origin independence", () => {
 
     const baselineStart = baseline.addresses.get("CompilerCodeStart");
     const baselineEnd = baseline.addresses.get("CompilerCoreEnd");
-    const operationTable = baseline.addresses.get("TypedOperationTable");
-    const operationCount = baseline.values.get("TypedOperationCount");
     expect(baselineStart).toBe(0);
     expect(baselineEnd).toBeGreaterThan(baselineStart ?? 0);
-    expect(operationTable).toBeDefined();
-    expect(operationCount).toBeGreaterThan(0);
-    if (
-      baselineStart === undefined ||
-      baselineEnd === undefined ||
-      operationTable === undefined ||
-      operationCount === undefined
-    ) {
+    if (baselineStart === undefined || baselineEnd === undefined) {
       return;
     }
 
     const coreBytes = baselineEnd - baselineStart;
+    const prefetchAddress = baseline.addresses.get("TypedPrefetchBits");
+    const prefetchedOperations = [
+      20, 22, 32, 33, 34, 58, 59, 60, 67, 68, 69, 70, 71, 72, 74, 77, 82,
+      83, 84, 86, 102, 103, 104, 105, 106, 110,
+    ];
+    const prefetchBytes = new Array<number>(12).fill(0);
+    for (const operation of prefetchedOperations) {
+      const index = operation - 20;
+      prefetchBytes[index >> 3] |= 1 << (index & 7);
+    }
+    expect(prefetchAddress).toBeDefined();
+    if (prefetchAddress !== undefined) {
+      expect(
+        Array.from(
+          baseline.memory.slice(
+            prefetchAddress,
+            prefetchAddress + prefetchBytes.length,
+          ),
+        ),
+      ).toEqual(prefetchBytes);
+    }
+    const addressTables = [
+      {
+        name: "semantic operation",
+        table: "TypedOperationTable",
+        count: "TypedOperationCount",
+      },
+      {
+        name: "LL(1) action",
+        table: "HybridLL1ActionDirectory",
+        count: "HybridLL1ActionCount",
+      },
+    ] as const;
     for (const relocated of images.slice(1)) {
       const delta = relocated.origin - baseline.origin;
       expect(relocated.addresses.get("CompilerCodeStart")).toBe(relocated.origin);
@@ -125,6 +149,20 @@ describe("compiler origin independence", () => {
         relocated.origin + coreBytes,
       );
       expect(relocated.origin + coreBytes).toBeLessThanOrEqual(0x10000);
+      if (prefetchAddress !== undefined) {
+        const relocatedPrefetch = relocated.addresses.get("TypedPrefetchBits");
+        expect(relocatedPrefetch).toBe(prefetchAddress + delta);
+        if (relocatedPrefetch !== undefined) {
+          expect(
+            Array.from(
+              relocated.memory.slice(
+                relocatedPrefetch,
+                relocatedPrefetch + prefetchBytes.length,
+              ),
+            ),
+          ).toEqual(prefetchBytes);
+        }
+      }
 
       for (const [name, address] of baseline.addresses) {
         if (address >= baselineStart && address < baselineEnd) {
@@ -135,18 +173,38 @@ describe("compiler origin independence", () => {
         }
       }
 
-      const relocatedTable = relocated.addresses.get("TypedOperationTable");
-      expect(relocatedTable).toBe(operationTable + delta);
-      if (relocatedTable === undefined) continue;
-      for (let index = 0; index < operationCount; index += 1) {
-        const baselineHandler = wordAt(baseline.memory, operationTable + index * 2);
-        const relocatedHandler = wordAt(relocated.memory, relocatedTable + index * 2);
-        expect(
-          relocatedHandler,
-          `operation ${index + 20} at $${relocated.origin.toString(16)}`,
-        ).toBe(baselineHandler + delta);
-        expect(relocatedHandler).toBeGreaterThanOrEqual(relocated.origin);
-        expect(relocatedHandler).toBeLessThan(relocated.origin + coreBytes);
+      for (const descriptor of addressTables) {
+        const baselineTable = baseline.addresses.get(descriptor.table);
+        const relocatedTable = relocated.addresses.get(descriptor.table);
+        const count = baseline.values.get(descriptor.count);
+        expect(baselineTable).toBeDefined();
+        expect(relocatedTable).toBe(
+          baselineTable === undefined ? undefined : baselineTable + delta,
+        );
+        expect(count).toBeGreaterThan(0);
+        if (
+          baselineTable === undefined ||
+          relocatedTable === undefined ||
+          count === undefined
+        ) {
+          continue;
+        }
+        for (let index = 0; index < count; index += 1) {
+          const baselineHandler = wordAt(
+            baseline.memory,
+            baselineTable + index * 2,
+          );
+          const relocatedHandler = wordAt(
+            relocated.memory,
+            relocatedTable + index * 2,
+          );
+          expect(
+            relocatedHandler,
+            `${descriptor.name} ${index} at $${relocated.origin.toString(16)}`,
+          ).toBe(baselineHandler + delta);
+          expect(relocatedHandler).toBeGreaterThanOrEqual(relocated.origin);
+          expect(relocatedHandler).toBeLessThan(relocated.origin + coreBytes);
+        }
       }
     }
   }, 30_000);

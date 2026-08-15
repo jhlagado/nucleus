@@ -2565,6 +2565,61 @@ unification must identify another identical boundary rather than erase those
 differences. The next large isolated experiment remains dispatcher-side
 operand prefetch.
 
+The compiler-origin audit at `f9a3d18f363e0f42f87754618b327c7ed0e7ba7b`
+classified every active address directory and every production bit operation.
+The two active compiler code-pointer directories are `TypedOperationTable` and
+`HybridLL1ActionDirectory`; both contain complete `.dw` addresses and neither
+encodes metadata in a pointer. Source cursors, retained source-name pointers,
+semantic cursors, output cursors, fixups, and call-frame pointers are also
+complete words. The relocation gate now assembles the compiler at `$0000`,
+`$0100`, `$8000`, and `$C000`, checks every code label's displacement, and
+checks every word in both active code-pointer directories against the relocated
+handler label.
+
+The remaining production bit operations act on byte-sized counters, token or
+type metadata, control flags, or a bounded target-storage offset. In the last
+case, `ExpressionProgramAddress` uses one semantic bit to select initialized or
+BSS storage and adds the remaining relative offset to a full 16-bit target
+base. The target offset is bounded by the published 4,096-byte region; it is not
+a compiler pointer, an absolute target address, or an assumption about compiler
+origin. The audit found no compiler address mask, pointer tag, truncated code
+address, or low/high-memory dependency.
+
+The retained dispatcher-prefetch experiment stores its classification in a
+separate twelve-byte bitset. The 96 handler-table entries remain untouched
+full-width addresses. Marked handlers receive their first semantic operand in
+`A`; unmarked handlers retain their existing reads. Operations 22 and 33 share
+the `TypedDeclare8` entry, so both bits are set even though the shared entry
+removes only one operand read. Focused open-array execution distinguishes this
+alias: omitting operation 33's bit reaches the internal-operation diagnostic.
+
+The earlier 120--170-byte estimate did not survive assembly. The measured
+reduction is 16 compiler-code bytes. Production code is 15,453 bytes plus 401
+immutable bytes, or 15,854 compiler-core bytes, leaving 530 bytes below 16 KiB.
+The instrumented compiler is 15,509 code bytes plus 401 immutable bytes.
+Workspace remains 3,611 bytes and the selected runtime remains 600 bytes. The
+shipping proof increases from 1,052,768 to 1,062,343 instructions and from
+10,364,607 to 10,425,959 T-states; the instrumented proof increases by the same
+9,575 instructions and 61,352 T-states. This compilation-time cost is retained
+because the project gives resident compiler bytes priority and generated
+program execution is unchanged.
+
+The helper does not amortize in the smaller historical module compositions.
+Their typed-sink and compiler-core accounts each grow by 14 bytes because they
+retain the common dispatcher but expose fewer converted handlers. Those layouts
+remain proof fixtures rather than the shipping compiler, stay well below their
+memory limits, and continue to assemble and execute. The production account is
+the acceptance boundary for this optimization.
+
+A fresh comparison against the pushed pre-experiment compiler used a program
+that combines an open `u16[]` parameter, a counted loop, indexing, a `u16`
+local, and a source call. Normal and instrumented builds produced identical
+3,652-byte NOBJ streams, 4,096-byte materialized images, HEX output, and D8
+maps. The NOBJ SHA-256 was
+`5b93a1af62fde90346622fb9bc2cfef4e7ae23195c9c6e72c5a235c69b29289f`;
+the materialized-image SHA-256 was
+`6a4a1acac3434c1d60d4752ccad371af177b011b722b9f395f3da1e2d716d381`.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

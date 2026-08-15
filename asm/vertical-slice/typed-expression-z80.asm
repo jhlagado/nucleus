@@ -44,6 +44,9 @@ TypedDispatchNext:
             SUB  SemanticDefineProgramU8
             CP   TypedOperationCount
             JR   NC,TypedInvalidPopped
+            CALL TypedPrefetchFirstOperand
+            LD   B,A
+            LD   A,C
             ADD  A,A
             LD   E,A
             LD   D,0
@@ -52,6 +55,7 @@ TypedDispatchNext:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
+            LD   A,B
             EX   DE,HL
             LD   DE,TypedDispatchReturn
             PUSH DE
@@ -84,6 +88,9 @@ TypedInternalOperation:
 TypedBooleanFixupCapacity:
             CALL SetDiagInline
             .db  DiagnosticBooleanFixupCapacity
+
+TypedPrefetchBits:
+            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
@@ -188,15 +195,46 @@ TypedOperationCount .equ 96
 TypedOperationCount .equ 62
 .endif
 
+; Operand-prefetch metadata is deliberately separate from the full-width
+; handler addresses. C returns the zero-based operation index. For marked
+; operations A returns the first operand; otherwise A is scratch.
+.routine in A out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,E,HL
+TypedPrefetchFirstOperand:
+            LD   D,A
+            AND  7
+            INC  A
+            LD   B,A
+            LD   A,1
+TypedPrefetchMaskLoop:
+            DEC  B
+            JR   Z,TypedPrefetchMaskReady
+            RLCA
+            JR   TypedPrefetchMaskLoop
+TypedPrefetchMaskReady:
+            LD   E,A
+            LD   A,D
+            RRCA
+            RRCA
+            RRCA
+            AND  $1F
+            LD   C,A
+            LD   B,0
+            LD   HL,TypedPrefetchBits
+            ADD  HL,BC
+            LD   A,(HL)
+            AND  E
+            LD   C,D
+            RET  Z
+            CALL NextSemanticByte
+            RET
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDefine8:
-            CALL NextSemanticByte     ; byte offset
             CALL NextSemanticByte     ; value
             JP   EmitByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDefine16:
-            CALL NextSemanticByte     ; byte offset
             CALL NextSemanticByte
             CALL EmitByte
 .if CompilerDiagnosticReturns
@@ -223,7 +261,6 @@ TypedBeginProgramFrame:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare8:
-            CALL NextSemanticByte
             CALL EmitByteInline
             .db  $3B                      ; DEC SP
 
@@ -238,7 +275,6 @@ TypedDeclare16:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedLiteral16:
-            CALL NextSemanticByte
             LD   C,A
             CALL NextSemanticByte
             LD   H,A
@@ -577,7 +613,6 @@ TypedEmitCompare:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedCompare:
-            CALL NextSemanticByte
             LD   C,A
             PUSH BC
             CALL TypedPopOperands
@@ -824,7 +859,6 @@ TypedRootFrameReady:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedBeginRoutine:
             CALL NextSemanticByte
-            CALL NextSemanticByte
             LD   (EmitTypedWidth),A
             LD   C,ControlRoutineLabel
             CALL StructuredDefineLabel
@@ -851,7 +885,6 @@ TypedBeginRoutineParameter:
 ; forward label. The result returns in HL and becomes the enclosing carrier.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedCallScalar:
-            CALL NextSemanticByte     ; ordinal
             CALL NextSemanticByte     ; result type
             LD   (EmitTypedWidth),A
             CALL TypedReadTrapPosition
