@@ -648,9 +648,11 @@ TypedPrimaryEmitTypedConstant:
             LD   A,B
             OR   A
             RET
+.if CompilerDiagnosticBranches
 TypedPrimaryEmitTypedConstantFailure:
             POP  BC
             RET
+.endif
 TypedPrimaryName:
 .if AggregateCallSlices
             CALL Stage8MatchPredefinedCurrent
@@ -897,11 +899,13 @@ TypedPrimaryParen:
 .else
             RET
 .endif
+.if CompilerDiagnosticBranches
 TypedPrimaryParenFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 
 ; Parse the parenthesized operand of an explicit conversion under the
 ; conversion's own expected type. The enclosing expected type is restored on
@@ -943,6 +947,7 @@ TypedParseConversionOperand:
 .endif
             OR   A
             RET
+.if CompilerDiagnosticBranches
 TypedParseConversionRightFailure:
             POP  HL
             POP  DE
@@ -952,6 +957,7 @@ TypedParseConversionFailure:
             LD   (ExpressionExpectedType),A
             SCF
             RET
+.endif
 
 TypedPrimaryNarrow:
             LD   HL,(TokenStartOffset)
@@ -998,10 +1004,12 @@ TypedPrimaryDynamicNarrow:
             LD   A,ScalarTypeU8
             OR   A
             RET
+.if CompilerDiagnosticBranches
 TypedPrimaryNarrowContextFailure:
             POP  HL
             SCF
             RET
+.endif
 
 .routine in A out A,D,carry,zero clobbers sign,parity,halfCarry
 TypedRequireIntegerMeta:
@@ -1186,11 +1194,13 @@ TypedMultiplicativeDone:
             POP  HL
             POP  AF
             RET
+.if CompilerDiagnosticBranches
 TypedMultiplicativePeekFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseAdditive:
@@ -1246,11 +1256,13 @@ TypedAdditiveDone:
             POP  HL
             POP  AF
             RET
+.if CompilerDiagnosticBranches
 TypedAdditivePeekFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedComparisonToken:
@@ -1337,11 +1349,13 @@ TypedComparisonNone:
             POP  HL
             POP  AF
             RET
+.if CompilerDiagnosticBranches
 TypedComparisonStackFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 TypedComparisonChained:
             POP  HL
             POP  AF
@@ -1693,11 +1707,13 @@ TypedBooleanDone:
 TypedOrFailureContext:
             CALL HybridLL1FailureContext
 .endif
+.if CompilerDiagnosticBranches
 TypedBooleanPeekFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 TypedOrInteger:
             CALL TypedReduceIntegerBinary
 .if CompilerDiagnosticReturns
@@ -2507,10 +2523,12 @@ TypedStatementLoopComplete:
             POP  AF
             LD   (ControlSequenceFallsThrough),A
             JP   TypedParseStatementsContinue
+.if CompilerDiagnosticBranches
 TypedStatementControlFailure:
             POP  AF
             SCF
             RET
+.endif
 TypedStatementReturn:
             CALL ParserTake
 .if CompilerDiagnosticReturns

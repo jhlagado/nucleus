@@ -114,9 +114,11 @@ HybridLL1PredictionToken:
 HybridLL1PredictionFailure:
             POP  AF
             JP   CompilerSetDiagnostic
+.if CompilerDiagnosticBranches
 HybridLL1PredictionPeekFailure:
             POP  BC
             RET
+.endif
 HybridLL1PredictionFound:
             POP  AF
             LD   A,B

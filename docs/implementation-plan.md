@@ -2042,6 +2042,28 @@ Fresh CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes. The cleanup
 labels reached only by these historical branches remain in this checkpoint;
 their removal is the next separately measured stage.
 
+### Parser diagnostic cleanup removal
+
+The cleanup stage starts from conditional-branch checkpoint
+`0bf3f0dac73c2addaa2cd7241038dac13f420261`. It conditionally removes the
+stack-restoration and carry-return blocks whose only incoming edges are the 72
+historical branches classified in the preceding stage. Production source-error
+and capacity paths still enter `CompilerSetDiagnostic` at the original point;
+local carry-result paths retain their existing cleanup.
+
+Shipping compiler code measures 14,976 bytes plus 393 immutable bytes, or
+15,369 bytes of compiler core with 1,015 bytes of 16 KiB headroom. The measured
+reduction is 92 compiler-code bytes. The instrumented image measures 15,032
+code bytes plus 393 immutable bytes, or 15,425 core bytes with 1,983 bytes left
+in its 17 KiB reservation. Workspace remains 3,609 bytes and the selected
+runtime remains 574 bytes.
+
+The shipping and instrumented proofs retain the preceding checkpoint's exact
+instruction and T-state counts because none of the removed instructions was
+reachable. Proof code and data remain 2,487 and 2,489 bytes. The historical
+layouts assemble and execute with their branches and cleanup blocks present.
+Fresh CLI builds reproduce the six saved NOBJ, HEX, and D8 hashes.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

@@ -735,9 +735,11 @@ ParserParseScalarProgramDeclarationAfterU8:
             INC  (HL)
             XOR  A
             RET
+.if CompilerDiagnosticBranches
 ParserScalarProgramOperandFailure:
             POP  BC
             RET
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarLocalDeclaration:
@@ -812,9 +814,11 @@ ParserParseScalarAssignment:
             RET  C
 .endif
             JP   ParserExpectLine
+.if CompilerDiagnosticBranches
 ParserScalarAssignmentFailure:
             POP  BC
             RET
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarWrite:
@@ -851,9 +855,11 @@ ParserParseScalarWrite:
             RET  C
 .endif
             JP   ParserExpectElseFailLine
+.if CompilerDiagnosticBranches
 ParserScalarWriteFailure:
             POP  HL
             RET
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarStatements:

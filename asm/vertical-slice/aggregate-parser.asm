@@ -984,10 +984,12 @@ AggregateParseProgramAfterVar:
             SBC  HL,DE
             JP   NZ,AggregateInitializerCountFailure
             JR   AggregateProgramInitializerDone
+.if CompilerDiagnosticBranches
 AggregateProgramInitializerFailure:
             POP  BC
             SCF
             RET
+.endif
 AggregateProgramInitializerDone:
             CALL ParserExpectLine
 .if CompilerDiagnosticReturns

@@ -856,11 +856,13 @@ HybridLL1BeginForwardBody:
             LD   (Stage7CurrentFlags),A
             JR   HybridLL1OpenRoutineBody
 .if TargetStreamingOutput
+.if CompilerDiagnosticBranches
 HybridLL1ForwardBankFailure:
             POP  HL
             POP  AF
             SCF
             RET
+.endif
 .endif
 HybridLL1BeginForwardMainBody:
 .if TargetStreamingOutput

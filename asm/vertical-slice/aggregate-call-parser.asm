@@ -1222,15 +1222,18 @@ Stage7PathStringIndexReady:
             POP  AF
             LD   A,ScalarTypeU8
             JP   Stage7PathSuffixLoop
+.if CompilerDiagnosticBranches
 Stage7PathSuffixFailure:
             POP  AF
             SCF
             RET
+.endif
 Stage7PathIndexTypeFailure:
             POP  HL
             POP  AF
             POP  BC
             JP   TypedTypeFailure
+.if CompilerDiagnosticBranches
 Stage7PathIndexFailure:
             POP  HL
             POP  AF
@@ -1243,6 +1246,7 @@ Stage7PathIndexExpressionFailure:
             POP  AF
             LD   (ExpressionExpectedType),A
             JR   Stage7PathIndexFailure
+.endif
 Stage7PathIndexRangeFailure:
             LD   A,(ExpressionSuppressFault)
             OR   A
@@ -1313,6 +1317,7 @@ Stage7ParseScalarArgument:
             RET  C
 .endif
             JP   Stage8RequireNoPendingFailure
+.if CompilerDiagnosticBranches
 Stage7ScalarArgumentFailure:
             LD   L,A
             POP  DE
@@ -1324,6 +1329,7 @@ Stage7ScalarArgumentFailure:
             LD   A,L
             SCF
             RET
+.endif
 
 ; Parse one call to a retained routine. A is the routine-table index and C is
 ; zero when the result is discarded or one when its carrier remains live.
@@ -1467,7 +1473,9 @@ Stage7CallAggregateTypeReady:
             JR   NZ,Stage7CallAggregateBankReady
             LD   A,DiagnosticTargetConfiguration
             CALL CompilerSetDiagnostic
+.if CompilerDiagnosticBranches
             JP   Stage7CallFailure
+.endif
 Stage7CallAggregateBankReady:
 .endif
             CALL Stage8RequireNoPendingFailure
@@ -1640,11 +1648,13 @@ Stage7CallTypeFailure:
             LD   HL,Stage7CallDepth
             DEC  (HL)
             JP   TypedTypeFailure
+.if CompilerDiagnosticBranches
 Stage7CallFailure:
             LD   HL,Stage7CallDepth
             DEC  (HL)
             SCF
             RET
+.endif
 
 ; Parse a name-rooted aggregate path or aggregate-returning call. The result
 ; must still be an address path; scalar selection is rejected by this entry.
@@ -1696,10 +1706,12 @@ Stage7AggregateValueRootReady:
             POP  BC
             LD   A,(Stage7PathType)
             JR   Stage7AggregateValueSuffix
+.if CompilerDiagnosticBranches
 Stage7AggregateValueRootFailure:
             POP  BC
             SCF
             RET
+.endif
 .else
             CALL Stage7EmitAggregateSymbolRoot
 .if CompilerDiagnosticReturns
@@ -1730,10 +1742,12 @@ Stage7AggregateValueSuffix:
             OR   A
             RET
 .if TargetStreamingOutput
+.if CompilerDiagnosticBranches
 Stage7AggregateValueSuffixFailure:
             POP  BC
             SCF
             RET
+.endif
 .endif
 
 ; Convert a scalar address path to an ordinary typed expression carrier.
@@ -1760,9 +1774,11 @@ Stage7ScalarPathReady:
             LD   A,(Stage7PathType)
             OR   A
             RET
+.if CompilerDiagnosticBranches
 Stage7ScalarPathFailure:
             SCF
             RET
+.endif
 
 ; Hooks entered by the scalar primary parser after it has consumed the NAME.
 Stage7TypedPrimaryRoutine:
@@ -1923,10 +1939,12 @@ Stage7ParseAggregateReturn:
             XOR  A
             LD   (ControlSequenceFallsThrough),A
             JP   TypedParseStatementsContinue
+.if CompilerDiagnosticBranches
 Stage7AggregateReturnFailure:
             POP  AF
             SCF
             RET
+.endif
 .endif
 
 ; D contains the aggregate symbol info and DeclarationPayload its root offset.
@@ -2034,10 +2052,12 @@ Stage7AggregateCopyAssignment:
 .else
             JP   ParserExpectLine
 .endif
+.if CompilerDiagnosticBranches
 Stage7AggregateCopyFailure:
             POP  AF
             SCF
             RET
+.endif
 
 .if Stage7LL1
             .include "stage7-ll1-parser.asm"
