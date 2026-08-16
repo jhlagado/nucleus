@@ -4,7 +4,10 @@
     "divideUnsigned": "RewriteBackendEscapeDivideUnsigned",
     "narrowU8": "RewriteBackendEscapeNarrowU8",
     "convertInteger": "RewriteBackendEscapeConvertInteger",
-    "divideSigned": "RewriteBackendEscapeDivideSigned"
+    "divideSigned": "RewriteBackendEscapeDivideSigned",
+    "beginRoutine": "RewriteBackendEscapeBeginRoutine",
+    "bindParameter": "RewriteBackendEscapeBindParameter",
+    "endRoutine": "RewriteBackendEscapeEndRoutine"
   },
   "selectors": {
     "defineProgramU8": [],

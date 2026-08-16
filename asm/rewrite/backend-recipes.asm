@@ -753,6 +753,144 @@ RewriteBackendEscapeDivideSignedPush:
             LD   A,$E5
             JP   RewriteBackendEmitByte
 
+; Routine-frame escapes retain the frozen target ABI while the surrounding
+; compiler is rebuilt. The semantic bank is checked against the sink selected
+; by the output driver; this prototype never changes a cursor merely by
+; changing a bank byte.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeBeginRoutine:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandBankOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   C
+            JP   NZ,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandLabelOffset)
+            CALL RewriteBackendDefineLabel
+            LD   A,$DD                    ; PUSH IX
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD IX,0
+            CALL RewriteBackendEmitByte
+            LD   A,$21
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; ADD IX,SP
+            CALL RewriteBackendEmitByte
+            LD   A,$39
+            JP   RewriteBackendEmitByte
+
+; Emit one target IX-displaced instruction. A is the second opcode byte and C
+; is the complete signed displacement. The prefix and operands are compiler
+; output, not compiler-executed instruction data.
+.routine in A,C out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitIxByte:
+            PUSH AF
+            LD   A,$DD
+            CALL RewriteBackendEmitByte
+            POP  AF
+            CALL RewriteBackendEmitByte
+            LD   A,C
+            JP   RewriteBackendEmitByte
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitDecSpCount:
+            LD   C,A
+RewriteBackendEmitDecSpNext:
+            LD   A,$3B                    ; DEC SP
+            CALL RewriteBackendEmitByte
+            DEC  C
+            JR   NZ,RewriteBackendEmitDecSpNext
+            XOR  A
+            RET
+
+; Bind one published formal parameter. Scalar values occupy one or two
+; activation bytes, aggregate aliases occupy one word, and string[] adds its
+; hidden capacity byte. Open arrays arrive as two independent u16 bindings.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeBindParameter:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandTypeOffset)
+            LD   (RewriteBackendTrapReason),A
+            CP   RewriteOpenStringTypeId
+            JR   Z,RewriteBackendBindOpenString
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,RewriteBackendBindWord
+            AND  RewriteScalarTypeBaseMask
+            CP   RewriteScalarTypeU16
+            JR   Z,RewriteBackendBindWord
+RewriteBackendBindByte:
+            LD   A,1
+            CALL RewriteBackendEmitDecSpCount
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset)
+            LD   C,A
+            LD   A,$6E                    ; LD L,(IX+n)
+            CALL RewriteBackendEmitIxByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset)
+            CPL
+            LD   C,A
+            LD   A,$75                    ; LD (IX-n),L
+            JP   RewriteBackendEmitIxByte
+RewriteBackendBindOpenString:
+            LD   A,3
+            JR   RewriteBackendBindWordAllocate
+RewriteBackendBindWord:
+            LD   A,2
+RewriteBackendBindWordAllocate:
+            CALL RewriteBackendEmitDecSpCount
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset)
+            LD   C,A
+            LD   A,$6E                    ; LD L,(IX+n)
+            CALL RewriteBackendEmitIxByte
+            INC  C
+            LD   A,$66                    ; LD H,(IX+n+1)
+            CALL RewriteBackendEmitIxByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset)
+            CPL
+            LD   C,A
+            LD   A,$75                    ; LD (IX-n),L
+            CALL RewriteBackendEmitIxByte
+            DEC  C
+            LD   A,$74                    ; LD (IX-n-1),H
+            CALL RewriteBackendEmitIxByte
+            LD   A,(RewriteBackendTrapReason)
+            CP   RewriteOpenStringTypeId
+            JR   Z,RewriteBackendBindOpenCapacity
+            XOR  A
+            RET
+RewriteBackendBindOpenCapacity:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset)
+            ADD  A,2
+            LD   C,A
+            LD   A,$6E                    ; hidden capacity byte
+            CALL RewriteBackendEmitIxByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset)
+            CPL
+            SUB  2
+            LD   C,A
+            LD   A,$75
+            JP   RewriteBackendEmitIxByte
+
+; A result-bearing fallthrough is unreachable by the language flow checker.
+; Result-free fallthrough restores the canonical IX frame and returns.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEscapeEndRoutine:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticEndGeneralRoutineDirectOperandResultTypeOffset)
+            OR   A
+            RET  NZ
+            LD   A,$DD                    ; LD SP,IX
+            CALL RewriteBackendEmitByte
+            LD   A,$F9
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; POP IX
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$C9                    ; RET
+            JP   RewriteBackendEmitByte
+
 .routine noreturn
 RewriteBackendCapacity:
             LD   A,DiagnosticTargetCapacity

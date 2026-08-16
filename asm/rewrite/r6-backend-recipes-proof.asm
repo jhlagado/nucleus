@@ -449,6 +449,127 @@ ProofBackendControlCompareLoop:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendRoutineFrame:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            LD   A,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandLabelOffset),A
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandParameterCountOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandBankOffset),A
+            LD   A,RewriteSemanticBeginGeneralRoutine
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandTypeOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset),A
+            LD   A,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset),A
+            LD   A,RewriteSemanticBindParameter
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,RewriteScalarTypeU16
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandTypeOffset),A
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset),A
+            LD   A,6
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset),A
+            LD   A,RewriteSemanticBindParameter
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,RewriteOpenStringTypeId
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandTypeOffset),A
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandLocalOffsetOffset),A
+            LD   A,8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBindParameterOperandArgumentOffsetOffset),A
+            LD   A,RewriteSemanticBindParameter
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndGeneralRoutineDirectOperandResultTypeOffset),A
+            LD   A,RewriteSemanticEndGeneralRoutineDirect
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            PUSH HL
+            LD   A,RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndGeneralRoutineEnclosingOperandResultTypeOffset),A
+            LD   A,RewriteSemanticEndGeneralRoutineEnclosing
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            POP  DE
+            LD   HL,(RewriteBackendOutputCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+
+            LD   A,(RewriteBackendLabelValidBase+4)
+            CP   1
+            JP   NZ,ProofFailure
+            LD   A,(RewriteBackendLabelBankBase+4)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   HL,(RewriteBackendLabelAddressBase+8)
+            LD   DE,ProofBackendOutput
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedRoutineFrameEnd-ProofExpectedRoutineFrame
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedRoutineFrame
+            LD   BC,ProofExpectedRoutineFrameEnd-ProofExpectedRoutineFrame
+ProofBackendRoutineFrameCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendRoutineFrameCompare
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendRoutineBankMismatch:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandParameterCountOffset),A
+            INC  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandBankOffset),A
+            LD   A,RewriteSemanticBeginGeneralRoutine
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendUndefinedLabel:
             LD   SP,$FF00
             CALL RewriteReset
@@ -943,3 +1064,30 @@ ProofExpectedControlLabel1:
             POP  IX
             RET
 ProofExpectedControlEnd:
+
+ProofExpectedRoutineFrame:
+            PUSH IX
+            LD   IX,0
+            ADD  IX,SP
+            DEC  SP
+            LD   L,(IX+4)
+            LD   (IX-1),L
+            DEC  SP
+            DEC  SP
+            LD   L,(IX+6)
+            LD   H,(IX+7)
+            LD   (IX-2),L
+            LD   (IX-3),H
+            DEC  SP
+            DEC  SP
+            DEC  SP
+            LD   L,(IX+8)
+            LD   H,(IX+9)
+            LD   (IX-4),L
+            LD   (IX-5),H
+            LD   L,(IX+10)
+            LD   (IX-6),L
+            LD   SP,IX
+            POP  IX
+            RET
+ProofExpectedRoutineFrameEnd:

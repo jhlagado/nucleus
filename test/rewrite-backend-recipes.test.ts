@@ -174,6 +174,33 @@ describe("ground-up rewrite backend recipes", () => {
     ).toBe(18);
   });
 
+  it("emits the canonical routine frame and all retained parameter widths", () => {
+    const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 1_895,
+      cycles: 19_054,
+    });
+    expect(
+      (image.symbols.ProofExpectedRoutineFrameEnd ?? 0) -
+        (image.symbols.ProofExpectedRoutineFrame ?? 0),
+    ).toBe(55);
+  });
+
+  it("rejects a routine emitted through the wrong selected bank", () => {
+    const { memory } = run("ProofBackendRoutineBankMismatch");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted:
+        (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({
+      diagnostic: 67,
+      emitted: 0,
+    });
+  });
+
   it("rejects unresolved labels and exact label/fixup overflow boundaries", () => {
     const undefinedLabel = run("ProofBackendUndefinedLabel").memory;
     const labelCapacity = run("ProofBackendLabelCapacity").memory;
@@ -327,13 +354,15 @@ describe("ground-up rewrite backend recipes", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
+      supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 1_243,
+      engine: 1_469,
       recipes: 709,
-      code: 13_446,
+      code: 13_672,
       immutable: 2_173,
-      core: 15_619,
+      core: 15_845,
       workspace: 3_425,
+      supported: 72,
     });
   });
 });
