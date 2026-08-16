@@ -59,8 +59,10 @@ allows the replacement backend to use shared recipes.
 
 `scripts/generate-rewrite-actions.mjs` gives every front-end action instruction
 a dense ordinal and fixed width, and gives every irregular escape a dense
-selector. The generated Z80 dispatcher uses ordinary full-address jumps;
-selectors are never packed into an address.
+selector. It also emits named action programs declared by the same JSON
+authority; those `.db` rows are interpreter data, not hidden Z80 instructions.
+The generated Z80 dispatcher uses ordinary full-address jumps; selectors are
+never packed into an address.
 The generated TypeScript decoder rejects invalid ordinals, truncation, missing
 `End`, and bytes after `End`. `npm run check:rewrite-actions` rejects stale
 generated authority. An escape returns to the current action program and may

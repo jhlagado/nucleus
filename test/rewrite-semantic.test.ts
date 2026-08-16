@@ -112,8 +112,8 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({
       semanticBytes: 224,
       operationBytes: 594,
-      coreBytes: 6_045,
-      workspaceBytes: 3_364,
+      coreBytes: 6_215,
+      workspaceBytes: 3_366,
     });
     expect(rewriteSemanticOperations).toHaveLength(99);
     expect(rewriteSemanticOperationMaximumWidth).toBe(10);
@@ -614,7 +614,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 488, cycles: 6_586 });
+    }).toEqual({ instructions: 488, cycles: 6_628 });
   });
 
   it("distinguishes exact fill, first overflow, and clean recovery", async () => {
@@ -629,7 +629,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 10_874, cycles: 112_549 });
+    }).toEqual({ instructions: 10_874, cycles: 112_633 });
   });
 
   it("rejects a multi-byte record atomically when only three bytes remain", async () => {

@@ -828,10 +828,36 @@ R3 shared source-type checkpoint (Measured):
   319,406 T-states, 20 exact diagnostics in 45,373 instructions and 434,041
   T-states, and the eight/nine type-capacity boundary in 23,471 instructions
   and 211,469 T-states; and
-- the shipping replacement is now 5,074 code + 967 immutable = 6,041 core
-  bytes. The instrumented replacement is 6,045 core bytes. Workspace is 3,364
-  bytes. That leaves 10,343 bytes beneath the 16,384-byte hard gate and 732
-  bytes in the 4,096-byte workspace account.
+- at that checkpoint, the shipping replacement was 5,074 code + 967 immutable
+  = 6,041 core bytes. The instrumented replacement was 6,045 core bytes, and
+  workspace was 3,364 bytes. That left 10,343 bytes beneath the 16,384-byte
+  hard gate and 732 bytes in the 4,096-byte workspace account.
+
+R3 generated scalar-declaration checkpoint (Measured):
+
+- the front-action JSON now owns complete named programs as well as instruction
+  and escape definitions. The generator validates every instruction name,
+  operand count, escape selector, terminating `End`, and complete program
+  width before emitting Z80 interpreter data and the TypeScript boundary view;
+- the first two generated programs compile scalar `const` and `assert`
+  declarations. Constant names occupy an invisible provisional symbol entry
+  until the expression and newline are valid. Integer constants normalize to
+  the exact domain, signed negative values retain the negative metadata bit,
+  and Boolean remains the sole retained inferred scalar type;
+- assertions retain the `assert` keyword position. False assertions report
+  diagnostic 91 there, non-Boolean expressions report diagnostic 60 there,
+  and expression diagnostics retain their own inner positions. Proofs also
+  lock duplicate-name 55, expected-equals 135, division-by-zero 62,
+  unpublished failed symbols, and clean compilation after failure;
+- successful declarations execute in 21,370 instructions and 194,224 T-states.
+  Five diagnostic and recovery cases execute in 16,820 instructions and
+  161,193 T-states; and
+- the action interpreter and dispatcher are now 147 code bytes, the scalar
+  declaration escapes are 110 code bytes, and the action authority is 34
+  immutable bytes, including 30 bytes for the two programs. The shipping
+  replacement is 5,214 code + 997 immutable = 6,211 core bytes; the
+  instrumented replacement is 6,215 core bytes. Workspace is 3,366 bytes,
+  leaving 10,173 core bytes and 730 workspace bytes beneath their gates.
 
 ### R4 — Expressions, paths, and calls
 
@@ -961,8 +987,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 
 R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
 routine-lifecycle, static-storage, front-action, scalar constant-expression,
-and shared source-type substrates. The next checkpoint is the first generated
-declaration program: constants, assertions, records, variables, formal
-parameters, results, and locals will all call this single parser, then enter
-the type-directed initializer escape. The replacement remains test-selected
-until the complete cutover gate passes.
+and shared source-type substrates. Generated programs now cover scalar
+constants and assertions. The next checkpoint extends the same mechanism to
+aggregate constants, records, variables, formal parameters, results, and
+locals, all calling the single type parser and type-directed initializer
+escape. The replacement remains test-selected until the complete cutover gate
+passes.

@@ -10,6 +10,51 @@
     {
       "name": "ResetInitializer",
       "target": "RewriteInitializerReset"
+    },
+    {
+      "name": "BeginScalarConstant",
+      "target": "RewriteDeclarationBeginScalarConstant"
+    },
+    {
+      "name": "FinishScalarConstant",
+      "target": "RewriteDeclarationFinishScalarConstant"
+    },
+    {
+      "name": "CommitSymbol",
+      "target": "RewriteSymbolCommit"
+    },
+    {
+      "name": "BeginAssert",
+      "target": "RewriteDeclarationBeginAssert"
+    },
+    {
+      "name": "FinishAssert",
+      "target": "RewriteDeclarationFinishAssert"
+    }
+  ],
+  "programs": [
+    {
+      "name": "ScalarConstant",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenConst", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginScalarConstant"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishScalarConstant"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "Assert",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenAssert", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginAssert"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishAssert"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
     }
   ]
 }

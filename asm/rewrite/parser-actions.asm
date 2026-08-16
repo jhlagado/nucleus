@@ -31,7 +31,7 @@ RewriteParserTake:
             OR   A
             RET
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteActionRun:
 RewriteActionNext:
             LD   A,(HL)

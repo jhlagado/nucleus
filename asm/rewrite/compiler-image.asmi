@@ -28,6 +28,9 @@ RewriteExpressionCodeEnd:
 RewriteSourceTypeCodeStart:
             .include "source-types.asm"
 RewriteSourceTypeCodeEnd:
+RewriteFrontDeclarationCodeStart:
+            .include "front-declarations.asm"
+RewriteFrontDeclarationCodeEnd:
             .include "static-storage.asm"
 RewriteMetadataCodeEnd:
 CompilerCodeEnd:

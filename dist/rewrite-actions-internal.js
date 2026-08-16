@@ -37,6 +37,151 @@ export const rewriteActionEscapes = [
         "name": "ResetInitializer",
         "target": "RewriteInitializerReset",
         "id": 0
+    },
+    {
+        "name": "BeginScalarConstant",
+        "target": "RewriteDeclarationBeginScalarConstant",
+        "id": 1
+    },
+    {
+        "name": "FinishScalarConstant",
+        "target": "RewriteDeclarationFinishScalarConstant",
+        "id": 2
+    },
+    {
+        "name": "CommitSymbol",
+        "target": "RewriteSymbolCommit",
+        "id": 3
+    },
+    {
+        "name": "BeginAssert",
+        "target": "RewriteDeclarationBeginAssert",
+        "id": 4
+    },
+    {
+        "name": "FinishAssert",
+        "target": "RewriteDeclarationFinishAssert",
+        "id": 5
+    }
+];
+export const rewriteActionPrograms = [
+    {
+        "name": "ScalarConstant",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenConst",
+                    "DiagnosticExpectedTopLevel"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticExpectedName"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginScalarConstant"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticExpectedEqual"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishScalarConstant"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeCommitSymbol"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 19
+    },
+    {
+        "name": "Assert",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenAssert",
+                    "DiagnosticExpectedTopLevel"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginAssert"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishAssert"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 11
     }
 ];
 export const decodeRewriteActionProgram = (bytes) => {

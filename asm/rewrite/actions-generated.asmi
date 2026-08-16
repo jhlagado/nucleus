@@ -14,4 +14,30 @@ RewriteActionInstructionWidthTable:
             .db 2 ; Raise
 
 RewriteActionEscapeResetInitializer .equ 0
-RewriteActionEscapeCount .equ 1
+RewriteActionEscapeBeginScalarConstant .equ 1
+RewriteActionEscapeFinishScalarConstant .equ 2
+RewriteActionEscapeCommitSymbol .equ 3
+RewriteActionEscapeBeginAssert .equ 4
+RewriteActionEscapeFinishAssert .equ 5
+RewriteActionEscapeCount .equ 6
+
+RewriteActionProgramScalarConstant:
+            .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginScalarConstant
+            .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
+            .db RewriteActionEscape,RewriteActionEscapeFinishScalarConstant
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramScalarConstantEnd:
+RewriteActionProgramScalarConstantWidth .equ 19
+
+RewriteActionProgramAssert:
+            .db RewriteActionExpect,TokenAssert,DiagnosticExpectedTopLevel
+            .db RewriteActionEscape,RewriteActionEscapeBeginAssert
+            .db RewriteActionEscape,RewriteActionEscapeFinishAssert
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramAssertEnd:
+RewriteActionProgramAssertWidth .equ 11
