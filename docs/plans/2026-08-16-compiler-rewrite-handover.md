@@ -1,5 +1,10 @@
 # Nucleus compiler rewrite: coding-agent handover
 
+> Historical handover note: this file records the state transferred before the
+> constant-expression checkpoint. The measured checkpoint ledger and current
+> next step in `2026-08-16-ground-up-compiler-rewrite.md` supersede the status,
+> prototype failures, and receiving-agent instructions below.
+
 ## The assignment
 
 Finish the ground-up replacement of the standalone Nucleus Z80 compiler. Work

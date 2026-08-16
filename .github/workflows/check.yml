@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: jhlagado/debug80
-          ref: 3f2adb669bb9e7888305c623f8c843054c3dd111
+          ref: ce284fde5fcd329ef4e984e2217661f690b66f9e
           path: .debug80
       - uses: actions/setup-node@v4
         with:

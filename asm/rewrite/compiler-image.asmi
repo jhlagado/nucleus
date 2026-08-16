@@ -21,6 +21,9 @@ RewriteSemanticCodeStart:
 RewriteSemanticCodeEnd:
 RewriteMetadataCodeStart:
             .include "types-symbols.asm"
+RewriteExpressionCodeStart:
+            .include "constant-expression.asm"
+RewriteExpressionCodeEnd:
             .include "declarations.asm"
             .include "static-storage.asm"
 RewriteMetadataCodeEnd:
@@ -35,6 +38,9 @@ RewriteKeywordImmutableEnd:
 RewriteOperationImmutableStart:
             .include "operations-generated.asmi"
 RewriteOperationImmutableEnd:
+RewriteExpressionImmutableStart:
+            .include "constant-expression-data.asmi"
+RewriteExpressionImmutableEnd:
 RewriteActionImmutableStart:
             .include "actions-generated.asmi"
 RewriteActionImmutableEnd:

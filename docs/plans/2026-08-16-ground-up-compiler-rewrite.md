@@ -776,6 +776,37 @@ R3 front-action substrate checkpoint (Measured):
   generated declaration programs and the type-directed initializer escape
   remain ahead.
 
+R3/R4 constant-expression checkpoint (Measured):
+
+- one precedence-climbing engine now evaluates the complete scalar constant
+  expression operator set. It handles exact and typed integers, Boolean and
+  character values, earlier scalar constants, grouping, conversions, prefix
+  operators, signed promotion, typed wraparound, comparison, signed and
+  unsigned division and modulo, and Boolean short circuit;
+- operator source offsets survive recursive right operands. The proof locks
+  the frozen compiler's distinct anchors for left-Boolean `xor`, right-side
+  type failures, conversion failures, unary failures, range errors, division
+  by zero, comparison chains, and unknown names;
+- the published expression capacity counts pending binary contexts rather
+  than parentheses. Sixteen nested pending additions succeed, and the
+  seventeenth reports diagnostic 65 at its operator. A separate proof accepts
+  all 255 delimiter levels and returns with the original stack pointer;
+- strict execution covers 39 successful values and 19 diagnostics. The value
+  proof completes in 375,465 instructions and 3,420,248 T-states; the
+  diagnostic and recovery proof completes in 39,040 instructions and 398,269
+  T-states;
+- the expression engine is 1,589 code bytes and its fourteen-entry operator
+  table is 28 immutable bytes. It adds 16 workspace bytes. The shipping
+  replacement is 4,578 code + 967 immutable = 5,545 core bytes; the
+  instrumented replacement is 5,549 core bytes. Workspace is 3,363 bytes;
+- AZM commit `ce284fde5fcd329ef4e984e2217661f690b66f9e` is the first toolchain
+  checkpoint that proves the recursive, nonreturning paths while retaining
+  compatibility with the frozen compiler proofs. CI uses that exact
+  unpublished commit; and
+- this checkpoint supplies the bound evaluator required by the shared source
+  type parser. Runtime expression publication, postfix paths, calls, and the
+  complete R4 size comparison remain ahead.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -903,8 +934,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 ## Next implementation move
 
 R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
-routine-lifecycle, static-storage, and front-action substrates. Its next move is
-the shared source type parser, generated declaration action programs, and the
-type-directed initializer escape described in
-`docs/plans/2026-08-16-compiler-rewrite-handover.md`. The replacement remains
-test-selected until the complete cutover gate passes.
+routine-lifecycle, static-storage, front-action, and scalar constant-expression
+substrates. The next checkpoint is the shared source type parser. It will use
+the proved evaluator for every fixed-array bound and bounded-string capacity,
+then feed the generated declaration action programs and type-directed
+initializer escape. The replacement remains test-selected until the complete
+cutover gate passes.

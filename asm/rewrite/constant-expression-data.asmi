@@ -1,0 +1,18 @@
+; Replacement expression operator descriptors. These are parser data, not
+; encoded Z80 instructions. Each pair is token ordinal, precedence.
+RewriteExpressionOperatorTable:
+            .db TokenPlus,5
+            .db TokenMinus,5
+            .db TokenStar,6
+            .db TokenSlash,6
+            .db TokenMod,6
+            .db TokenEquals,4
+            .db TokenNotEqual,4
+            .db TokenLess,4
+            .db TokenLessEqual,4
+            .db TokenGreater,4
+            .db TokenGreaterEqual,4
+            .db TokenAnd,2
+            .db TokenOr,1
+            .db TokenXor,1
+RewriteExpressionOperatorTableEnd:

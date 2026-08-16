@@ -136,7 +136,23 @@ RewritePendingParameterType  .equ RewriteMetadataControlBase+$19
 RewriteInitializerLength     .equ RewriteMetadataControlBase+$1A ; word
 RewriteParserHasToken        .equ RewriteMetadataControlBase+$1C
 RewriteActionCursor          .equ RewriteMetadataControlBase+$1D ; word
-RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1F
+; The constant evaluator is the first mode of the shared precedence engine.
+; Operand values and source offsets are words so no source position or exact
+; integer carrier is narrowed. The recursive engine uses the hardware stack;
+; this block is only the completed left/right reduction state.
+RewriteExpressionExpectedType .equ RewriteMetadataControlBase+$1F
+RewriteExpressionDepth        .equ RewriteMetadataControlBase+$20
+RewriteExpressionSuppressFault .equ RewriteMetadataControlBase+$21
+RewriteExpressionLeftMeta     .equ RewriteMetadataControlBase+$22
+RewriteExpressionLeftValue    .equ RewriteMetadataControlBase+$23 ; word
+RewriteExpressionLeftOffset   .equ RewriteMetadataControlBase+$25 ; word
+RewriteExpressionRightMeta    .equ RewriteMetadataControlBase+$27
+RewriteExpressionRightValue   .equ RewriteMetadataControlBase+$28 ; word
+RewriteExpressionRightOffset  .equ RewriteMetadataControlBase+$2A ; word
+RewriteExpressionOperator     .equ RewriteMetadataControlBase+$2C
+RewriteExpressionOperatorOffset .equ RewriteMetadataControlBase+$2D ; word
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$2F
+RewriteExpressionDepthCapacity .equ 16
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
@@ -322,6 +338,14 @@ DiagnosticForwardIncomplete  .equ 54
 DiagnosticDuplicateName      .equ 55
 DiagnosticSymbolCapacity     .equ 56
 DiagnosticUnknownName        .equ 57
+DiagnosticExpectedScalar     .equ 58
+DiagnosticExpectedType       .equ 59
+DiagnosticTypeMismatch       .equ 60
+DiagnosticIntegerRange       .equ 61
+DiagnosticDivisionZero       .equ 62
+DiagnosticNarrowing          .equ 63
+DiagnosticComparisonChain    .equ 64
+DiagnosticExpressionCapacity .equ 65
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
 DiagnosticInitializerCapacity .equ 77
@@ -332,6 +356,28 @@ DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
 DiagnosticSourcePartCapacity .equ 88
 DiagnosticReadOnlyCapacity   .equ 93
+
+; Expected-token diagnostics retain the published production-token ordinals,
+; not the replacement tokenizer's private compact ordinals.
+DiagnosticExpectedLeft       .equ $80+5
+DiagnosticExpectedRight      .equ $80+6
+DiagnosticExpectedRightBracket .equ $80+19
+
+RewriteExpressionOpAdd       .equ 0
+RewriteExpressionOpSubtract  .equ 1
+RewriteExpressionOpMultiply  .equ 2
+RewriteExpressionOpDivide    .equ 3
+RewriteExpressionOpModulo    .equ 4
+RewriteExpressionOpEqual     .equ 5
+RewriteExpressionOpNotEqual  .equ 6
+RewriteExpressionOpLess      .equ 7
+RewriteExpressionOpLessEqual .equ 8
+RewriteExpressionOpGreater   .equ 9
+RewriteExpressionOpGreaterEqual .equ 10
+RewriteExpressionOpAnd       .equ 11
+RewriteExpressionOpOr        .equ 12
+RewriteExpressionOpXor       .equ 13
+RewriteExpressionOperatorCount .equ 14
 
 DebugTraceSemanticStartPort  .equ $DD
 DebugTraceSemanticEndPort    .equ $DE
