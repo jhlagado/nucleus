@@ -81,9 +81,7 @@ describe("ground-up rewrite front action machine", () => {
     expect(rewriteActionEscapes).toEqual([
       { name: "ResetInitializer", target: "RewriteInitializerReset", id: 0 },
     ]);
-    expect(image.symbols.RewriteActionEscapeDirectoryEnd).toBe(
-      (image.symbols.RewriteActionEscapeDirectory ?? 0) + 2,
-    );
+    expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
       code:
         (image.symbols.RewriteActionCodeEnd ?? 0) -
@@ -97,7 +95,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 126, immutable: 6, core: 3_940, workspace: 3_347 });
+    }).toEqual({ code: 117, immutable: 4, core: 3_928, workspace: 3_347 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {

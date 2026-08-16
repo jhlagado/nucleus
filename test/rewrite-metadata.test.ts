@@ -94,6 +94,6 @@ describe("ground-up rewrite type and symbol substrate", () => {
         (symbols.RewriteCompilerCodeStart ?? 0),
       workspace:
         (symbols.RewriteWorkspaceEnd ?? 0) - (symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 2_999, immutable: 941, core: 3_940, workspace: 3_347 });
+    }).toEqual({ code: 2_989, immutable: 939, core: 3_928, workspace: 3_347 });
   });
 });

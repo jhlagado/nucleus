@@ -1,6 +1,6 @@
 ; Generated front-end action programs use this token cache and compact
-; interpreter. Escape targets live in a full-address word directory; no code
-; address is narrowed or packed into metadata.
+; interpreter. A generated dispatcher reaches escape targets with ordinary
+; full-address jumps; no code address is narrowed or packed into metadata.
 
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 RewriteParserPeek:
@@ -73,19 +73,11 @@ RewriteActionDoEscape:
             CP   RewriteActionEscapeCount
             JR   NC,RewriteActionInvalid
             LD   (RewriteActionCursor),HL
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,RewriteActionEscapeDirectory
-            ADD  HL,DE
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            EX   DE,HL
-            LD   DE,RewriteActionResume
-            PUSH DE
-            JP   (HL)
+            CALL RewriteActionEscapeDispatch
+            JR   RewriteActionResume
 
 RewriteActionInvalid:
             LD   A,DiagnosticInternalOperation
             JP   RewriteRaiseDiagnostic
+
+            .include "actions-escape-generated.asmi"

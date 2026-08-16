@@ -11,7 +11,7 @@ meaning; these files make its current Stage 7 syntax executable and testable.
 | `stage7-tables.asmi`               | Generated prediction, production, and action tables included by the compiler; each row marks its final production in-band.    |
 | `stage7-proof-actions.asmi`        | Generated action aliases used only by the isolated engine proof.                                                              |
 | `rewrite-semantic-operations.json` | Replacement-compiler semantic operations, operands, backend class, stack effect, source attribution, and global trace policy. |
-| `rewrite-front-actions.json`       | Replacement front-end action instructions and the full-address handwritten-escape directory.                                  |
+| `rewrite-front-actions.json`       | Replacement front-end action instructions and the full-address handwritten-escape dispatcher.                                 |
 
 `scripts/generate-rewrite-operations.mjs` turns the replacement operation
 source into Z80 ordinals, producer-facing operand offsets, record widths,
@@ -59,8 +59,8 @@ allows the replacement backend to use shared recipes.
 
 `scripts/generate-rewrite-actions.mjs` gives every front-end action instruction
 a dense ordinal and fixed width, and gives every irregular escape a dense
-selector. The generated Z80 directory stores the escape targets as complete
-little-endian 16-bit addresses; selectors are never packed into an address.
+selector. The generated Z80 dispatcher uses ordinary full-address jumps;
+selectors are never packed into an address.
 The generated TypeScript decoder rejects invalid ordinals, truncation, missing
 `End`, and bytes after `End`. `npm run check:rewrite-actions` rejects stale
 generated authority. An escape returns to the current action program and may

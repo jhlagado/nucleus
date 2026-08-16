@@ -1,6 +1,6 @@
 ; Table-directed tokenizer for the replacement compiler.
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 RewriteTokenBegin:
             LD   HL,RewriteSourceOffset
             LD   DE,TokenStartOffset
@@ -169,12 +169,12 @@ RewriteTokenScanBasedNumber:
             CALL RewriteSourceTake
             LD   HL,0
 RewriteTokenScanBasedLoop:
-            LD   D,0
+            XOR  A
             PUSH HL
             CALL RewriteSourcePeek
             POP  HL
-            JR   C,RewriteTokenScanBasedDone
             LD   D,A
+            JR   C,RewriteTokenScanBasedDone
             BIT  4,C
             JR   NZ,RewriteTokenScanBinaryDigit
             CALL RewriteTokenHexDigit
@@ -323,7 +323,7 @@ RewriteTokenDecodeHex:
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 RewriteTokenSkipComment:
 RewriteTokenSkipCommentLoop:
             CALL RewriteTokenBegin

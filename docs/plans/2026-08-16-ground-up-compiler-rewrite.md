@@ -185,7 +185,7 @@ deferred because it would couple unrelated state, weaken register-contract
 coverage, and make the first size result difficult to attribute.
 
 Irregular operations remain handwritten Z80 routines reached through explicit
-escape instructions. Every escape directory stores a full 16-bit address.
+escape instructions. Generated dispatch uses ordinary full 16-bit jumps.
 The rewrite does not force difficult semantics into a bytecode merely to make
 the source look uniform.
 
@@ -512,13 +512,13 @@ Checkpoint result, measured on 16 August 2026:
   complete image fits; the `$6000` case moves workspace and adapter intervals
   to prove that their addresses are deployment policy rather than code-origin
   assumptions;
-- the shell is 66 bytes, the source adapter is 94 bytes, the tokenizer is 822
+- the shell is 66 bytes, the source adapter is 94 bytes, the tokenizer is 821
   bytes, and its immutable keyword, escape, and punctuation data is 184 bytes;
-- the complete source/token account is exactly 1,100 bytes, the shell plus that
-  account is 1,166 bytes, and the workspace is 350 bytes, including the
+- the complete source/token account is 1,099 bytes, the shell plus that
+  account is 1,165 bytes, and the workspace is 350 bytes, including the
   255-byte typed-delimiter stack;
-- the multipart proof publishes 77 exact tokens and completes in 47,258
-  instructions and 451,234 T-states; it covers a synthesized part newline,
+- the multipart proof publishes 77 exact tokens and completes in 47,268
+  instructions and 451,940 T-states; it covers a synthesized part newline,
   CRLF, blank and comment-only lines, tab columns, all character escapes, and
   final-newline synthesis;
 - exact Host diagnostics match the frozen compiler for 16 lexical cases,
@@ -762,17 +762,17 @@ R3 front-action substrate checkpoint (Measured):
   TypeScript decoder rejects invalid ordinals, truncated operands, missing
   `End`, and trailing bytes;
 - handwritten escapes are selected by a dense byte but invoked through a
-  generated directory of complete 16-bit addresses. The first real escape
+  generated dispatcher using complete 16-bit jumps. The first real escape
   resets initializer scratch; no origin or spare-address-bit assumption enters
   the format. Escapes do not recursively invoke the action machine, whose one
   retained cursor is deliberately non-reentrant;
 - strict execution proofs distinguish successful token consumption plus escape
   return, an exact token-mismatch diagnostic, and an invalid action ordinal;
   and
-- the parser/action interpreter adds 126 code bytes, its authority adds six
+- the parser/action interpreter adds 117 code bytes, its authority adds four
   immutable bytes, and lookahead/action state adds three workspace bytes. The
-  shipping rewrite is 2,999 code + 941 immutable = 3,940 core bytes; the
-  instrumented rewrite is 3,944 core bytes. Workspace is 3,347 bytes. Complete
+  shipping rewrite is 2,989 code + 939 immutable = 3,928 core bytes; the
+  instrumented rewrite is 3,932 core bytes. Workspace is 3,347 bytes. Complete
   generated declaration programs and the type-directed initializer escape
   remain ahead.
 

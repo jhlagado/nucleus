@@ -58,10 +58,10 @@ previous handover document but does not change compiler behavior.
 
 | Account | Value | Status |
 | --- | ---: | --- |
-| Replacement shipping code | 2,999 bytes | Measured |
-| Replacement immutable data | 941 bytes | Measured |
-| Replacement shipping core | 3,940 bytes | Measured |
-| Replacement debug core | 3,944 bytes | Measured |
+| Replacement shipping code | 2,989 bytes | Measured |
+| Replacement immutable data | 939 bytes | Measured |
+| Replacement shipping core | 3,928 bytes | Measured |
+| Replacement debug core | 3,932 bytes | Measured |
 | Replacement workspace | 3,347 bytes | Measured |
 | Frozen production core | 16,680 bytes | Measured |
 | Full serial gate | 32 files / 331 tests | Measured |
@@ -155,7 +155,7 @@ within that limit.
 - Exact lexical capacities and transactional reset/reuse.
 - Recorded corrections for mismatched delimiters, invalid bytes in comments,
   and character escapes.
-- Source/token account is exactly 1,100 bytes, the R1 exit limit (Measured).
+- Source/token account is 1,099 bytes, one byte below the R1 exit limit (Measured).
 
 ### R2: semantic-stream authority
 
