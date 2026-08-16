@@ -104,6 +104,12 @@ R3 found one declaration-order defect inherited from the frozen compiler:
 | -------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | any top-level declaration after the complete `main` body | reports expected-EOF diagnostic 128 | process it under the ordinary compilation-unit sequence: accept a valid declaration and apply the normal grammar or semantic diagnostic to an invalid one |
 
+R4 found one postfix-diagnostic defect inherited from the frozen compiler:
+
+| Source case | Frozen compiler | Required replacement behaviour |
+| --- | --- | --- |
+| a missing field selected through a valid nested record path | fails to terminate within the Host execution limit | report unknown-name diagnostic 57 at the missing field name |
+
 These are bounded corrections to the oracle, not language additions. The
 accepted source-byte repertoire, typed delimiter rule, literal escapes, and
 ordered top-level declaration sequence that does not require `main` to be last
@@ -1099,6 +1105,36 @@ R4 scalar-precedence checkpoint (Measured):
   replacement is 8,844 core bytes. Workspace is 3,374 bytes, leaving 7,544
   core bytes and 722 workspace bytes beneath their gates.
 
+R4 postfix-path checkpoint (Measured):
+
+- one iterative, type-directed engine now serves record-field selection,
+  concrete and open array indexing, bounded and open string indexing, and the
+  `length`/`capacity` properties. It accepts a complete aggregate carrier and
+  delays the indirect scalar load until the path reaches its leaf;
+- roots distinguish BSS/program, read-only aggregate-constant, concrete
+  parameter, open-array parameter, and open-string parameter carriers without
+  encoding storage or placement in an address bit. Open-view counts remain
+  explicit activation offsets and every program/read-only offset remains a
+  complete word;
+- recursive index expressions preserve the outer path on the hardware stack.
+  A dynamic signed index publishes the bounds-mode integer conversion with its
+  exact value position, while fixed-array selection retains the full count,
+  element extent, and bracket source offset;
+- the accepted proof publishes and checks 61 complete operations byte for
+  byte. It covers nested records, nested fixed arrays, bounded strings, both
+  open views, concrete aggregate parameters, read-only constants, BSS roots,
+  scalar materialisation, and left-to-right binary composition. It executes
+  in 108,264 compiler instructions and 962,787 T-states;
+- exact rejected cases cover fixed-string `capacity` (60), an out-of-range
+  fixed index (61), a Boolean index (60), a negative exact index (61), and the
+  conformance-corrected missing record field (57). Each proof checks part and
+  byte offset before publishing its status; and
+- the path state overlays dead left-reduction slots and adds no workspace.
+  The expression region is 3,306 code bytes. The shipping replacement is
+  8,530 code + 1,250 immutable = 9,780 core bytes; the instrumented replacement
+  is 9,784 core bytes. Workspace remains 3,374 bytes, leaving 6,604 core bytes
+  and 722 workspace bytes beneath their gates.
+
 Exit gate: accepted source, exact diagnostics, transcript intent, target
 behaviour, traps, and stack restoration match. The complete expression/path/
 call region must be at least 25 percent smaller than its measured baseline
@@ -1227,7 +1263,7 @@ fields, direct and forward routine headers, formal parameters, results,
 failure clauses, `main`, default scalar locals, routine close, and EOF
 completeness. R4 now has runtime atoms, complete scalar precedence reduction,
 mixed signed promotion, conversions, comparisons, Boolean short-circuiting,
-and explicit expression-initialized locals. The next checkpoint adds the
-shared postfix path engine for fields, fixed/open indexes, and string/array
-properties, followed by source/service calls and failure consumption. The
-replacement remains test-selected until the complete cutover gate passes.
+explicit expression-initialized locals, and the shared postfix path engine for
+fields, fixed/open indexes, and string/array properties. The next checkpoint
+adds source/service calls and immediate failure consumption. The replacement
+remains test-selected until the complete cutover gate passes.

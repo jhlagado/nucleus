@@ -94,7 +94,7 @@ describe("ground-up rewrite source-type parser", () => {
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 20, instructions: 45_642, cycles: 441_117 });
+    }).toEqual({ cases: 20, instructions: 45_643, cycles: 441_119 });
     expect({
       cases: capacity.proofCase,
       instructions: capacity.instructions,
@@ -116,7 +116,7 @@ describe("ground-up rewrite source-type parser", () => {
       parser: 496,
       ownedTypes: 8,
       suffixes: 4,
-      core: 8_840,
+      core: 9_780,
       workspace: 3_374,
     });
   });

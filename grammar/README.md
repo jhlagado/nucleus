@@ -65,6 +65,12 @@ address BSS. These two BSS operations are fresh replacement authority rather
 than aliases for a frozen production record whose operand packed storage into
 an address bit.
 
+`ConvertInteger.targetType` uses bit 7 only as an operation operand mode: when
+set, a failed signed-to-`u16` conversion reports the target bounds trap rather
+than the ordinary narrowing trap. The low seven bits remain the complete
+scalar type identity. This flag is semantic-record metadata, never part of a
+compiler or generated-program address.
+
 `scripts/generate-rewrite-actions.mjs` gives every front-end action instruction
 a dense ordinal and fixed width, and gives every irregular escape a dense
 selector. It also emits named action programs declared by the same JSON

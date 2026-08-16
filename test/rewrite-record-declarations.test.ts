@@ -108,7 +108,7 @@ describe("ground-up rewrite generated record declarations", () => {
     }).toEqual({
       declarations: 1_510,
       actionData: 261,
-      core: 8_840,
+      core: 9_780,
       workspace: 3_374,
     });
   });

@@ -88,7 +88,7 @@ describe("ground-up rewrite generated scalar declarations", () => {
     expect({
       instructions: accepted.instructions,
       cycles: accepted.cycles,
-    }).toEqual({ instructions: 21_583, cycles: 196_630 });
+    }).toEqual({ instructions: 21_586, cycles: 196_636 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
@@ -125,7 +125,7 @@ describe("ground-up rewrite generated scalar declarations", () => {
       actions: 285,
       declarations: 1_510,
       actionData: 261,
-      core: 8_840,
+      core: 9_780,
       workspace: 3_374,
     });
   });

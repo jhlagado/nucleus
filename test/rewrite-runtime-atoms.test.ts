@@ -63,6 +63,8 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedExpressionSemantics ?? -1;
   const expectedExpressionEnd =
     image.symbols.ProofExpectedExpressionSemanticsEnd ?? -1;
+  const expectedPathStart = image.symbols.ProofExpectedPathSemantics ?? -1;
+  const expectedPathEnd = image.symbols.ProofExpectedPathSemanticsEnd ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
@@ -76,6 +78,9 @@ const run = (entryName: string) => {
     expectedExpressionSemantics: Array.from(
       memory.slice(expectedExpressionStart, expectedExpressionEnd),
     ),
+    expectedPathSemantics: Array.from(
+      memory.slice(expectedPathStart, expectedPathEnd),
+    ),
   };
 };
 
@@ -84,8 +89,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 64_488,
-      cycles: 582_097,
+      instructions: 64_493,
+      cycles: 582_127,
     });
   });
 
@@ -96,8 +101,21 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 126_748,
-      cycles: 1_136_185,
+      instructions: 126_764,
+      cycles: 1_136_297,
+    });
+  });
+
+  it("iterates record, fixed/open array, and bounded/open string postfixes", () => {
+    const result = run("ProofRuntimePaths");
+    expect(result.semanticOperations).toBe(61);
+    expect(result.semantics).toEqual(result.expectedPathSemantics);
+    expect(result).toMatchObject({
+      status: 0xc9,
+      diagnostic: 0,
+      localOffset: 24,
+      instructions: 108_264,
+      cycles: 962_787,
     });
   });
 
@@ -113,6 +131,19 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     "preserves the frozen atom diagnostic at %s",
     (entry, status, diagnostic, offset) => {
       expect(run(entry)).toMatchObject({ status, diagnostic, part: 1, offset });
+    },
+  );
+
+  it.each([
+    ["ProofRuntimePathCapacity", 0xca, 60],
+    ["ProofRuntimePathRange", 0xcb, 61],
+    ["ProofRuntimePathBooleanIndex", 0xcc, 60],
+    ["ProofRuntimePathNegativeIndex", 0xcd, 61],
+    ["ProofRuntimePathUnknownField", 0xce, 57],
+  ] as const)(
+    "preserves exact postfix diagnostic provenance at %s",
+    (entry, status, diagnostic) => {
+      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1 });
     },
   );
 
@@ -149,11 +180,11 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 29,
       actionCode: 285,
       actionData: 261,
-      expression: 2_380,
+      expression: 3_306,
       declarations: 1_510,
-      code: 7_604,
-      immutable: 1_236,
-      core: 8_840,
+      code: 8_530,
+      immutable: 1_250,
+      core: 9_780,
       workspace: 3_374,
     });
   });

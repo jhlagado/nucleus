@@ -139,6 +139,91 @@ ProofRuntimeExpressionSemanticDone:
             LD   (ProofStatus),A
             HALT
 
+ProofRuntimePaths:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsPaths
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            LD   B,9
+ProofRuntimePathLocalLoop:
+            PUSH BC
+            CALL ProofRunLocalInitializedExpression
+            POP  BC
+            DJNZ ProofRuntimePathLocalLoop
+            LD   A,(RewriteCurrentLocalOffset)
+            CP   24
+            JP   NZ,ProofFailure
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   61
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedPathSemantics
+            LD   BC,ProofExpectedPathSemanticsEnd-ProofExpectedPathSemantics
+ProofRuntimePathSemanticLoop:
+            LD   A,B
+            OR   C
+            JR   Z,ProofRuntimePathSemanticDone
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            JR   ProofRuntimePathSemanticLoop
+ProofRuntimePathSemanticDone:
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$C9
+            LD   (ProofStatus),A
+            HALT
+
+; Install five owned types, two nominal record layouts, four fields, one BSS
+; aggregate root, and one read-only aggregate constant. These blocks are
+; metadata fixtures, not instructions.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ProofInstallPathMetadata:
+            LD   HL,ProofPathTypeDescriptors
+            LD   DE,RewriteTypeTableBase
+            LD   BC,ProofPathTypeDescriptorsEnd-ProofPathTypeDescriptors
+            LDIR
+            LD   HL,ProofPathTypeExtents
+            LD   DE,RewriteTypeExtentBase
+            LD   BC,ProofPathTypeExtentsEnd-ProofPathTypeExtents
+            LDIR
+            LD   HL,ProofPathRecords
+            LD   DE,RewriteRecordTableBase
+            LD   BC,ProofPathRecordsEnd-ProofPathRecords
+            LDIR
+            LD   HL,ProofPathFields
+            LD   DE,RewriteFieldTableBase
+            LD   BC,ProofPathFieldsEnd-ProofPathFields
+            LDIR
+            LD   HL,ProofPathRootSymbols
+            LD   DE,RewriteSymbolTableBase
+            LD   BC,ProofPathRootSymbolsEnd-ProofPathRootSymbols
+            LDIR
+            LD   A,5
+            LD   (RewriteTypeCount),A
+            LD   A,2
+            LD   (RewriteRecordCount),A
+            LD   A,4
+            LD   (RewriteFieldCount),A
+            LD   A,2
+            LD   (RewriteSymbolCount),A
+            LD   HL,39
+            LD   (RewriteStaticBssLength),HL
+            XOR  A
+            RET
+
 ProofRuntimeMismatch:
             LD   HL,ProofPartsMismatch
             LD   BC,(DiagnosticTypeMismatch<<8)|$C1
@@ -173,6 +258,55 @@ ProofRuntimeMixedWords:
             LD   HL,ProofPartsMixedWords
             LD   BC,(DiagnosticTypeMismatch<<8)|$C8
             LD   DE,51
+            JP   ProofArmRuntimeDiagnostic
+
+ProofRuntimePathCapacity:
+            LD   HL,ProofPartsPathCapacity
+            LD   BC,(DiagnosticTypeMismatch<<8)|$CA
+            LD   DE,ProofPathCapacityName-ProofSourcePathCapacity
+            JP   ProofArmPathDiagnostic
+ProofRuntimePathRange:
+            LD   HL,ProofPartsPathRange
+            LD   BC,(DiagnosticIntegerRange<<8)|$CB
+            LD   DE,ProofPathRangeValue-ProofSourcePathRange
+            JP   ProofArmPathDiagnostic
+ProofRuntimePathBooleanIndex:
+            LD   HL,ProofPartsPathBooleanIndex
+            LD   BC,(DiagnosticTypeMismatch<<8)|$CC
+            LD   DE,ProofPathBooleanClose-ProofSourcePathBooleanIndex
+            JP   ProofArmPathDiagnostic
+ProofRuntimePathNegativeIndex:
+            LD   HL,ProofPartsPathNegativeIndex
+            LD   BC,(DiagnosticIntegerRange<<8)|$CD
+            LD   DE,ProofPathNegativeValue-ProofSourcePathNegativeIndex
+            JP   ProofArmPathDiagnostic
+ProofRuntimePathUnknownField:
+            LD   HL,ProofPartsPathUnknownField
+            LD   BC,(DiagnosticUnknownName<<8)|$CE
+            LD   DE,ProofPathUnknownFieldName-ProofSourcePathUnknownField
+
+; HL source descriptor, B diagnostic, C status, DE exact offset. Path metadata
+; is installed after reset and before the source-visible routine is parsed.
+.routine noreturn
+ProofArmPathDiagnostic:
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            PUSH HL
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            POP  DE
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            EX   DE,HL
+            LD   A,1
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            JP   ProofFailure
 
 ; HL source descriptor, B diagnostic, C status, DE exact offset.
 .routine noreturn
@@ -411,6 +545,95 @@ ProofExpectedExpressionSemantics:
             .db RewriteSemanticStoreLocalU8,22
 ProofExpectedExpressionSemanticsEnd:
 
+ProofExpectedPathSemantics:
+            ; root.inner.values[1]
+            .db RewriteSemanticDeclareLocal16,11
+            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticSelectField,7,0
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticSelectIndex,3,0,2,0
+            .dw ProofPathValuesIndex-ProofSourcePaths
+            .db RewriteSemanticLoadIndirect16
+            .db RewriteSemanticStoreLocal16,11
+
+            ; root.items[1].values.length
+            .db RewriteSemanticDeclareLocal16,13
+            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticSelectField,13,0
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticSelectIndex,2,0,13,0
+            .dw ProofPathItemsIndex-ProofSourcePaths
+            .db RewriteSemanticSelectField,7,0
+            .db RewriteSemanticArrayLength,3,0
+            .db RewriteSemanticStoreLocal16,13
+
+            ; root.inner.text[2]
+            .db RewriteSemanticDeclareLocalU8,15
+            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticLiteral16,2,0
+            .db RewriteSemanticStringIndex,5
+            .dw ProofPathTextIndex-ProofSourcePaths
+            .db RewriteSemanticStoreLocalU8,15
+
+            ; root.inner.text.length
+            .db RewriteSemanticDeclareLocalU8,16
+            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticStringLength,5
+            .dw ProofPathTextLength-ProofSourcePaths
+            .db RewriteSemanticStoreLocalU8,16
+
+            ; xs.length + row[1]
+            .db RewriteSemanticDeclareLocal16,17
+            .db RewriteSemanticLoadParameterAlias,0
+            .db RewriteSemanticOpenArrayLength,2
+            .db RewriteSemanticLoadParameterAlias,9
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticSelectIndex,3,0,2,0
+            .dw ProofPathRowIndex-ProofSourcePaths
+            .db RewriteSemanticLoadIndirect16
+            .db RewriteSemanticAdd16
+            .db RewriteSemanticStoreLocal16,17
+
+            ; xs[ix]
+            .db RewriteSemanticDeclareLocal16,19
+            .db RewriteSemanticLoadParameterAlias,0
+            .db RewriteSemanticLoadParameter16,7
+            .db RewriteSemanticConvertInteger,RewriteScalarTypeI16,RewriteScalarTypeU16+$80
+            .dw ProofPathDynamicIndexName-ProofSourcePaths
+            .db RewriteSemanticOpenArrayIndex,2,2,0
+            .dw ProofPathDynamicIndex-ProofSourcePaths
+            .db RewriteSemanticLoadIndirect16
+            .db RewriteSemanticStoreLocal16,19
+
+            ; text.length + ro.length
+            .db RewriteSemanticDeclareLocalU8,21
+            .db RewriteSemanticLoadParameterAlias,4
+            .db RewriteSemanticOpenStringLength,6
+            .dw ProofPathOpenTextLength-ProofSourcePaths
+            .db RewriteSemanticLoadReadOnlyAlias,45,1
+            .db RewriteSemanticStringLength,5
+            .dw ProofPathReadOnlyLength-ProofSourcePaths
+            .db RewriteSemanticAdd8
+            .db RewriteSemanticStoreLocalU8,21
+
+            .db RewriteSemanticDeclareLocalU8,22
+            .db RewriteSemanticLoadParameterAlias,4
+            .db RewriteSemanticOpenStringCapacity,6
+            .db RewriteSemanticStoreLocalU8,22
+
+            .db RewriteSemanticDeclareLocalU8,23
+            .db RewriteSemanticLoadParameterAlias,4
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticOpenStringIndex,6
+            .dw ProofPathOpenTextIndex-ProofSourcePaths
+            .db RewriteSemanticStoreLocalU8,23
+ProofExpectedPathSemanticsEnd:
+
             .org $5000
 ProofSourceAccepted:
             .db "const five = 5",10
@@ -478,6 +701,66 @@ ProofUnsignedModuloToken:
             .db "sub main()",10,"end",10
 ProofSourceExpressionsEnd:
 
+ProofSourcePaths:
+            .db "sub work(xs as u16[], text as string[], ix as i16, row as u16[3])",10
+            .db "var a as u16 = root.inner.values"
+ProofPathValuesIndex:
+            .db "[1]",10
+            .db "var b as u16 = root.items"
+ProofPathItemsIndex:
+            .db "[1].values.length",10
+            .db "var c as u8 = root.inner.text"
+ProofPathTextIndex:
+            .db "[2]",10
+            .db "var d as u8 = root.inner.text."
+ProofPathTextLength:
+            .db "length",10
+            .db "var e as u16 = xs.length + row"
+ProofPathRowIndex:
+            .db "[1]",10
+            .db "var f as u16 = xs"
+ProofPathDynamicIndex:
+            .db "["
+ProofPathDynamicIndexName:
+            .db "ix"
+            .db "]",10
+            .db "var g as u8 = text."
+ProofPathOpenTextLength:
+            .db "length + ro."
+ProofPathReadOnlyLength:
+            .db "length",10
+            .db "var h as u8 = text.capacity",10
+            .db "var i as u8 = text"
+ProofPathOpenTextIndex:
+            .db "[1]",10
+ProofSourcePathsEnd:
+
+ProofSourcePathCapacity:
+            .db "sub work()",10,"var x as u8 = root.inner.text."
+ProofPathCapacityName:
+            .db "capacity",10
+ProofSourcePathCapacityEnd:
+ProofSourcePathRange:
+            .db "sub work()",10,"var x as u16 = root.inner.values["
+ProofPathRangeValue:
+            .db "3]",10
+ProofSourcePathRangeEnd:
+ProofSourcePathBooleanIndex:
+            .db "sub work()",10,"var x as u16 = root.inner.values[true"
+ProofPathBooleanClose:
+            .db "]",10
+ProofSourcePathBooleanIndexEnd:
+ProofSourcePathNegativeIndex:
+            .db "sub work()",10,"var x as u16 = root.inner.values[-"
+ProofPathNegativeValue:
+            .db "1]",10
+ProofSourcePathNegativeIndexEnd:
+ProofSourcePathUnknownField:
+            .db "sub work()",10,"var x as u8 = root."
+ProofPathUnknownFieldName:
+            .db "missing",10
+ProofSourcePathUnknownFieldEnd:
+
 ProofPartsAccepted:      .db 1
                          .dw ProofSourceAccepted,ProofSourceAcceptedEnd
 ProofPartsMismatch:      .db 1
@@ -496,3 +779,66 @@ ProofPartsMixedWords:    .db 1
                          .dw ProofSourceMixedWords,ProofSourceMixedWordsEnd
 ProofPartsExpressions:   .db 1
                          .dw ProofSourceExpressions,ProofSourceExpressionsEnd
+ProofPartsPaths:         .db 1
+                         .dw ProofSourcePaths,ProofSourcePathsEnd
+ProofPartsPathCapacity:  .db 1
+                         .dw ProofSourcePathCapacity,ProofSourcePathCapacityEnd
+ProofPartsPathRange:     .db 1
+                         .dw ProofSourcePathRange,ProofSourcePathRangeEnd
+ProofPartsPathBooleanIndex: .db 1
+                         .dw ProofSourcePathBooleanIndex,ProofSourcePathBooleanIndexEnd
+ProofPartsPathNegativeIndex: .db 1
+                         .dw ProofSourcePathNegativeIndex,ProofSourcePathNegativeIndexEnd
+ProofPartsPathUnknownField: .db 1
+                         .dw ProofSourcePathUnknownField,ProofSourcePathUnknownFieldEnd
+
+; Path metadata fixtures. Each .db/.dw block is a type, record, field, or
+; symbol table image and never executes as Z80 code.
+ProofPathTypeDescriptors:
+            .db RewriteTypeKindString,0
+            .dw 5
+            .db RewriteTypeKindArray,RewriteScalarTypeU16
+            .dw 3
+            .db RewriteTypeKindRecord,0
+            .dw 0
+            .db RewriteTypeKindArray,RewriteFirstOwnedTypeId+2
+            .dw 2
+            .db RewriteTypeKindRecord,1
+            .dw 0
+ProofPathTypeDescriptorsEnd:
+ProofPathTypeExtents:
+            .dw 7,6,13,26,39
+ProofPathTypeExtentsEnd:
+ProofPathRecords:
+            .db 0,2,2,2
+ProofPathRecordsEnd:
+ProofPathFields:
+            .dw ProofPathNameText
+            .db 4,RewriteFirstOwnedTypeId
+            .dw 0
+            .dw ProofPathNameValues
+            .db 6,RewriteFirstOwnedTypeId+1
+            .dw 7
+            .dw ProofPathNameInner
+            .db 5,RewriteFirstOwnedTypeId+2
+            .dw 0
+            .dw ProofPathNameItems
+            .db 5,RewriteFirstOwnedTypeId+3
+            .dw 13
+ProofPathFieldsEnd:
+ProofPathRootSymbols:
+            .dw ProofPathNameRoot
+            .db 4,RewriteSymbolClassProgram,RewriteFirstOwnedTypeId+4
+            .dw 0
+            .db RewriteSymbolStorageBss
+            .dw ProofPathNameReadOnly
+            .db 2,RewriteSymbolClassConstant,RewriteFirstOwnedTypeId
+            .dw 301
+            .db RewriteSymbolStorageReadOnly
+ProofPathRootSymbolsEnd:
+ProofPathNameRoot:   .db "root"
+ProofPathNameReadOnly: .db "ro"
+ProofPathNameText:   .db "text"
+ProofPathNameValues: .db "values"
+ProofPathNameInner:  .db "inner"
+ProofPathNameItems:  .db "items"

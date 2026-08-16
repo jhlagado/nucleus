@@ -164,6 +164,14 @@ RewriteExpressionKnown        .equ RewriteMetadataControlBase+$36
 RewriteExpressionLeftKnown    .equ RewriteMetadataControlBase+$37
 RewriteExpressionRightKnown   .equ RewriteMetadataControlBase+$38
 RewriteExpressionResolvedType .equ RewriteMetadataControlBase+$39
+; A postfix path runs inside one primary before that primary is published as
+; the enclosing left operand. Its current type/count/source state therefore
+; overlays the otherwise-dead left-reduction slots. Recursive index parsing
+; saves and restores the path state on the hardware stack. Types and offsets
+; remain full-width metadata; no address bit is borrowed.
+RewritePathType                .equ RewriteExpressionLeftMeta
+RewritePathCountOffset         .equ RewriteExpressionLeftKnown
+RewritePathSourceOffset        .equ RewriteExpressionLeftOffset ; word
 RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$3A
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4

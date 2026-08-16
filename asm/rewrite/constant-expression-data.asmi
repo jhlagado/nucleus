@@ -16,3 +16,10 @@ RewriteExpressionOperatorTable:
             .db TokenOr,1
             .db TokenXor,1
 RewriteExpressionOperatorTableEnd:
+
+; Postfix property spellings are immutable name data, not encoded Z80
+; instructions. Their explicit lengths avoid terminators in the scanner.
+RewritePathNameLength:
+            .db "length"
+RewritePathNameCapacity:
+            .db "capacity"
