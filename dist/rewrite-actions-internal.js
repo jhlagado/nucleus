@@ -107,6 +107,21 @@ export const rewriteActionEscapes = [
         "name": "FinishRecord",
         "target": "RewriteDeclarationFinishRecord",
         "id": 14
+    },
+    {
+        "name": "BeginAggregateConstant",
+        "target": "RewriteDeclarationBeginAggregateConstant",
+        "id": 15
+    },
+    {
+        "name": "FinishAggregateConstant",
+        "target": "RewriteDeclarationFinishAggregateConstant",
+        "id": 16
+    },
+    {
+        "name": "FinishProgramAggregate",
+        "target": "RewriteDeclarationFinishProgramAggregate",
+        "id": 17
     }
 ];
 export const rewriteActionPrograms = [
@@ -552,6 +567,184 @@ export const rewriteActionPrograms = [
             }
         ],
         "width": 11
+    },
+    {
+        "name": "AggregateConstant",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenConst",
+                    "DiagnosticExpectedTopLevel"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticExpectedName"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginAggregateConstant"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenAs",
+                    "DiagnosticExpectedAs"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseOwnedType"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticExpectedEqual"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishAggregateConstant"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeCommitSymbol"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 24
+    },
+    {
+        "name": "ProgramAggregateInitialized",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenVar",
+                    "DiagnosticExpectedTopLevel"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticExpectedName"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginProgram"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenAs",
+                    "DiagnosticExpectedAs"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseOwnedType"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticExpectedEqual"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishProgramAggregate"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeCommitSymbol"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 24
     }
 ];
 export const decodeRewriteActionProgram = (bytes) => {

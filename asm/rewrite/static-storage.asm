@@ -184,3 +184,38 @@ RewriteInitializerAppendByte:
             LD   HL,RewriteStaticPendingByte
             LD   BC,1
             JP   RewriteInitializerAppendBlock
+
+; Reserve and clear BC bytes in the complete-object scratch image. DE returns
+; the old scratch-relative offset. The length changes only after the complete
+; request has passed the one-KiB bound.
+.routine in BC out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL
+RewriteInitializerReserveZero:
+            LD   A,B
+            OR   C
+            JR   NZ,_RewriteInitializerReserveZeroNonempty
+            LD   DE,(RewriteInitializerLength)
+            XOR  A
+            RET
+_RewriteInitializerReserveZeroNonempty:
+            LD   HL,(RewriteInitializerLength)
+            LD   D,H
+            LD   E,L
+            ADD  HL,BC
+            JP   C,RewriteInitializerCapacityFailure
+            CALL RewriteStaticCheckCapacity
+            JP   C,RewriteInitializerCapacityFailure
+            LD   (RewriteInitializerLength),HL
+            LD   HL,RewriteInitializerBase
+            ADD  HL,DE
+            PUSH DE
+            LD   D,0
+_RewriteInitializerReserveZeroLoop:
+            LD   (HL),D
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,_RewriteInitializerReserveZeroLoop
+            POP  DE
+            XOR  A
+            RET

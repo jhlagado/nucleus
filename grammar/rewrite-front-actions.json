@@ -66,6 +66,18 @@
     {
       "name": "FinishRecord",
       "target": "RewriteDeclarationFinishRecord"
+    },
+    {
+      "name": "BeginAggregateConstant",
+      "target": "RewriteDeclarationBeginAggregateConstant"
+    },
+    {
+      "name": "FinishAggregateConstant",
+      "target": "RewriteDeclarationFinishAggregateConstant"
+    },
+    {
+      "name": "FinishProgramAggregate",
+      "target": "RewriteDeclarationFinishProgramAggregate"
     }
   ],
   "programs": [
@@ -148,6 +160,36 @@
       "steps": [
         { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishRecord"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "AggregateConstant",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenConst", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginAggregateConstant"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseOwnedType"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishAggregateConstant"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ProgramAggregateInitialized",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginProgram"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseOwnedType"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishProgramAggregate"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
         { "instruction": "End", "operands": [] }

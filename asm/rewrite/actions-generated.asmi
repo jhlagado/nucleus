@@ -28,7 +28,10 @@ RewriteActionEscapeBeginRecordField .equ 11
 RewriteActionEscapeParseRecordFieldType .equ 12
 RewriteActionEscapeFinishRecordField .equ 13
 RewriteActionEscapeFinishRecord .equ 14
-RewriteActionEscapeCount .equ 15
+RewriteActionEscapeBeginAggregateConstant .equ 15
+RewriteActionEscapeFinishAggregateConstant .equ 16
+RewriteActionEscapeFinishProgramAggregate .equ 17
+RewriteActionEscapeCount .equ 18
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -106,3 +109,31 @@ RewriteActionProgramRecordEnd:
             .db RewriteActionEnd
 RewriteActionProgramRecordEndEnd:
 RewriteActionProgramRecordEndWidth .equ 11
+
+RewriteActionProgramAggregateConstant:
+            .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginAggregateConstant
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseOwnedType
+            .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
+            .db RewriteActionEscape,RewriteActionEscapeFinishAggregateConstant
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramAggregateConstantEnd:
+RewriteActionProgramAggregateConstantWidth .equ 24
+
+RewriteActionProgramProgramAggregateInitialized:
+            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginProgram
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseOwnedType
+            .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
+            .db RewriteActionEscape,RewriteActionEscapeFinishProgramAggregate
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramProgramAggregateInitializedEnd:
+RewriteActionProgramProgramAggregateInitializedWidth .equ 24

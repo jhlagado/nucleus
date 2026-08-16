@@ -924,6 +924,40 @@ R3 generated record-declaration checkpoint (Measured):
   Workspace remains 3,368 bytes, leaving 9,684 core bytes and 728 workspace
   bytes beneath their gates.
 
+R3 recursive static-initializer checkpoint (Measured):
+
+- one recursive, type-directed engine now constructs scalar leaves, nominal
+  records, fixed arrays, nested arrays, and bounded strings for both aggregate
+  constants and initialized aggregate program variables. It uses the same
+  declared-type descriptors and constant-expression compatibility rules as
+  the earlier declaration checkpoints rather than introducing an initializer-
+  specific type system;
+- bounded strings are retained in their complete physical representation:
+  length byte, decoded payload, zero tail, and permanent terminator. The proof
+  distinguishes ordinary bytes, `\0`, and `\xHH`, including an embedded zero;
+- initialized data remains the static-image prefix and aggregate constants the
+  suffix. Adding initialized objects after constants shifts the suffix without
+  changing any constant-relative identity. Symbols retain explicit segment
+  tags and complete word offsets;
+- each destination is checked against the combined 1,024-byte static account
+  before the first initializer token is interpreted. A rejected declaration
+  therefore leaves symbols, segment lengths, and retained bytes unpublished,
+  and diagnostics 81 or 93 take precedence over malformed initializer input;
+- exact oracle diagnostics cover scalar types in aggregate-constant syntax,
+  wrong delimiter shape, too few elements, overlong strings, and the fourth/
+  fifth recursive composite boundary. Codes 60, 77, 78, 79, and 80 retain
+  their exact source part and byte offset;
+- the accepted mixed-object proof executes in 40,924 instructions and 372,366
+  T-states. It checks a record array, an escaped `string[5]`, an initialized
+  record, a nested signed-byte array, the complete 20-byte retained image, and
+  all four segment-relative symbol payloads; and
+- the action interpreter and its 18-target escape dispatcher are 219 code
+  bytes. Nine generated programs occupy 166 immutable bytes. The front
+  declaration region is 979 code bytes. The shipping replacement is 6,220
+  code + 1,129 immutable = 7,349 core bytes; the instrumented replacement is
+  7,353 core bytes. Workspace is 3,369 bytes, leaving 9,035 core bytes and 727
+  workspace bytes beneath their gates.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -1052,10 +1086,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 
 R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
 routine-lifecycle, static-storage, front-action, scalar constant-expression,
-and shared source-type substrates. Generated programs now cover scalar
-constants, assertions, uninitialised program variables, and scalar-initialised
-program variables. Generated record and field programs are also complete. The
-next checkpoint is the recursive type-directed initializer for aggregate
-constants and program variables. Formal parameters, results, and locals follow
-on the same generated action substrate. The replacement remains test-selected
-until the complete cutover gate passes.
+shared source-type, record, and recursive static-initializer substrates.
+Generated programs now cover scalar and aggregate constants, assertions,
+uninitialised variables, scalar- and aggregate-initialised variables, records,
+and fields. The next checkpoint is the generated routine surface: formal
+parameters, results, failure clauses, locals, `main`, and EOF completeness.
+The replacement remains test-selected until the complete cutover gate passes.

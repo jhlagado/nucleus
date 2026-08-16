@@ -296,3 +296,378 @@ RewriteDeclarationFinishRecord:
             ADD  HL,DE
             LD   (HL),C
             JP   RewriteRecordCommit
+
+; Aggregate constants and initialized aggregate program objects share the
+; recursive initializer below. The destination segment is preflighted before
+; the first initializer token is interpreted, so diagnostics 81 and 93 retain
+; precedence over internal scratch/depth failures.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationBeginAggregateConstant:
+            LD   A,RewriteSymbolClassConstant
+            LD   D,RewriteScalarTypeExact
+            LD   BC,0
+            JP   RewriteSymbolPrepareCurrent
+
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+RewriteDeclarationPreflightProgram:
+            LD   DE,(RewriteStaticInitializedLength)
+            ADD  HL,DE
+            JP   C,RewriteStaticProgramCapacityFailure
+            LD   DE,(RewriteStaticConstantLength)
+            ADD  HL,DE
+            JP   C,RewriteStaticProgramCapacityFailure
+            CALL RewriteStaticCheckCapacity
+            JP   C,RewriteStaticProgramCapacityFailure
+            XOR  A
+            RET
+
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+RewriteDeclarationPreflightReadOnly:
+            LD   DE,(RewriteStaticInitializedLength)
+            ADD  HL,DE
+            JP   C,RewriteStaticReadOnlyCapacityFailure
+            LD   DE,(RewriteStaticConstantLength)
+            ADD  HL,DE
+            JP   C,RewriteStaticReadOnlyCapacityFailure
+            CALL RewriteStaticCheckCapacity
+            JP   C,RewriteStaticReadOnlyCapacityFailure
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishAggregateConstant:
+            LD   A,(RewriteCurrentType)
+            CP   RewriteFirstOwnedTypeId
+            JP   C,RewriteDeclarationProgramTypeFailure
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationProgramTypeFailure
+            PUSH HL
+            CALL RewriteDeclarationPreflightReadOnly
+            POP  HL
+            PUSH HL
+            LD   A,(RewriteCurrentType)
+            CALL RewriteInitializerBuild
+            POP  BC
+            LD   HL,RewriteInitializerBase
+            CALL RewriteStaticAppendConstant
+            LD   A,RewriteSymbolStorageReadOnly
+            JP   RewriteDeclarationSetProgramStorage
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishProgramAggregate:
+            LD   A,(RewriteCurrentType)
+            CP   RewriteFirstOwnedTypeId
+            JP   C,RewriteDeclarationProgramTypeFailure
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationProgramTypeFailure
+            PUSH HL
+            CALL RewriteDeclarationPreflightProgram
+            POP  HL
+            PUSH HL
+            LD   A,(RewriteCurrentType)
+            CALL RewriteInitializerBuild
+            POP  BC
+            LD   HL,RewriteInitializerBase
+            CALL RewriteStaticAppendInitialized
+            LD   A,RewriteSymbolStorageInitialized
+            JP   RewriteDeclarationSetProgramStorage
+
+; Build one complete object of exact type A. HL is its already-preflighted
+; extent. Every recursive leaf advances RewriteInitializerLength by exactly
+; its physical representation.
+.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteInitializerBuild:
+            PUSH AF
+            PUSH HL
+            CALL RewriteInitializerReset
+            XOR  A
+            LD   (RewriteInitializerDepth),A
+            POP  HL
+            POP  AF
+            PUSH HL
+            CALL RewriteInitializerParseType
+            POP  DE
+            LD   HL,(RewriteInitializerLength)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,RewriteInitializerInternalFailure
+            XOR  A
+            RET
+
+RewriteInitializerInternalFailure:
+            LD   A,DiagnosticInternalOperation
+            JP   RewriteRaiseDiagnostic
+
+RewriteInitializerShapeFailure:
+            LD   A,DiagnosticInitializerShape
+            JP   RewriteRaiseDiagnostic
+RewriteInitializerCountFailure:
+            LD   A,DiagnosticInitializerCount
+            JP   RewriteRaiseDiagnostic
+RewriteInitializerStringLengthFailure:
+            LD   A,DiagnosticStringLength
+            JP   RewriteRaiseDiagnostic
+RewriteInitializerExpectedStringFailure:
+            LD   A,DiagnosticExpectedStringLiteral
+            JP   RewriteRaiseDiagnostic
+
+; Parse one exact type-directed value at the current token. Open views and
+; exact literals cannot reach this routine from an owning declaration.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteInitializerParseType:
+            CP   RewriteFirstOwnedTypeId
+            JP   C,RewriteInitializerParseScalar
+            PUSH AF
+            CALL RewriteTypeAddress
+            LD   A,(HL)
+            POP  DE
+            LD   E,D
+            CP   RewriteTypeKindString
+            JP   Z,RewriteInitializerParseString
+            CP   RewriteTypeKindRecord
+            JP   Z,RewriteInitializerParseRecord
+            CP   RewriteTypeKindArray
+            JP   Z,RewriteInitializerParseArray
+            JP   RewriteInitializerShapeFailure
+
+RewriteInitializerParseScalar:
+            LD   C,A
+            PUSH BC
+            CALL RewriteExpressionEvaluateConstant
+            POP  BC
+            CALL RewriteDeclarationConvertConstant
+            PUSH HL
+            LD   A,C
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteInitializerInternalFailure
+            PUSH HL
+            LD   B,H
+            LD   C,L
+            CALL RewriteInitializerReserveZero
+            LD   HL,RewriteInitializerBase
+            ADD  HL,DE
+            POP  DE
+            POP  BC
+            LD   (HL),C
+            DEC  E
+            RET  Z
+            INC  HL
+            LD   (HL),B
+            XOR  A
+            RET
+
+; Consume and depth-check the opener in A. The diagnostic is deliberately the
+; aggregate shape diagnostic rather than the generic action-token mismatch.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteInitializerBeginComposite:
+            LD   C,A
+            PUSH BC
+            CALL RewriteParserTake
+            POP  BC
+            CP   C
+            JP   NZ,RewriteInitializerShapeFailure
+            LD   A,(RewriteInitializerDepth)
+            CP   RewriteInitializerDepthCapacity
+            JP   NC,RewriteInitializerCapacityFailure
+            INC  A
+            LD   (RewriteInitializerDepth),A
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
+RewriteInitializerLeaveComposite:
+            LD   HL,RewriteInitializerDepth
+            DEC  (HL)
+            XOR  A
+            RET
+
+; B is the required closer and C the other aggregate closer. Too few/many
+; elements are count errors; the wrong delimiter family is a shape error.
+.routine in B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteInitializerFinishComposite:
+            PUSH BC
+            CALL RewriteParserPeek
+            POP  BC
+            CP   B
+            JR   Z,_RewriteInitializerTakeClose
+            CP   C
+            JP   Z,RewriteInitializerShapeFailure
+            JP   RewriteInitializerCountFailure
+_RewriteInitializerTakeClose:
+            CALL RewriteParserTake
+            JP   RewriteInitializerLeaveComposite
+
+; Expect a comma while more declared components remain. Seeing the proper
+; closer early is a count error; every other token is a shape error.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteInitializerExpectComma:
+            LD   C,A
+            PUSH BC
+            CALL RewriteParserPeek
+            POP  BC
+            CP   C
+            JP   Z,RewriteInitializerCountFailure
+            CP   TokenComma
+            JP   NZ,RewriteInitializerShapeFailure
+            JP   RewriteParserTake
+
+RewriteInitializerParseRecord:
+            LD   A,E
+            CALL RewriteTypeAddress
+            INC  HL
+            LD   A,(HL)
+            CALL RewriteRecordAddress
+            LD   B,(HL)
+            INC  HL
+            LD   C,(HL)
+            LD   A,TokenLeftParen
+            PUSH BC
+            CALL RewriteInitializerBeginComposite
+            POP  BC
+_RewriteInitializerRecordLoop:
+            PUSH BC
+            LD   A,B
+            CALL RewriteFieldAddress
+            LD   DE,RewriteFieldType
+            ADD  HL,DE
+            LD   A,(HL)
+            CALL RewriteInitializerParseType
+            POP  BC
+            INC  B
+            DEC  C
+            JR   Z,_RewriteInitializerRecordClose
+            LD   A,TokenRightParen
+            PUSH BC
+            CALL RewriteInitializerExpectComma
+            POP  BC
+            JR   _RewriteInitializerRecordLoop
+_RewriteInitializerRecordClose:
+            LD   B,TokenRightParen
+            LD   C,TokenRightBracket
+            JP   RewriteInitializerFinishComposite
+
+RewriteInitializerParseArray:
+            LD   A,E
+            CALL RewriteTypeAddress
+            INC  HL
+            LD   C,(HL)
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   A,TokenLeftBracket
+            PUSH BC
+            PUSH DE
+            CALL RewriteInitializerBeginComposite
+            POP  DE
+            POP  BC
+_RewriteInitializerArrayLoop:
+            PUSH BC
+            PUSH DE
+            LD   A,C
+            CALL RewriteInitializerParseType
+            POP  DE
+            POP  BC
+            DEC  DE
+            LD   A,D
+            OR   E
+            JR   Z,_RewriteInitializerArrayClose
+            PUSH BC
+            PUSH DE
+            LD   A,TokenRightBracket
+            CALL RewriteInitializerExpectComma
+            POP  DE
+            POP  BC
+            JR   _RewriteInitializerArrayLoop
+_RewriteInitializerArrayClose:
+            LD   B,TokenRightBracket
+            LD   C,TokenRightParen
+            JP   RewriteInitializerFinishComposite
+
+RewriteInitializerParseString:
+            LD   A,E
+            CALL RewriteTypeAddress
+            INC  HL
+            INC  HL
+            LD   B,(HL)
+            PUSH BC
+            CALL RewriteParserTake
+            POP  BC
+            CP   TokenStringLiteral
+            JP   NZ,RewriteInitializerExpectedStringFailure
+            LD   A,(TokenLength)
+            CP   B
+            JP   C,_RewriteInitializerStringLengthReady
+            JP   NZ,RewriteInitializerStringLengthFailure
+_RewriteInitializerStringLengthReady:
+            LD   C,B
+            LD   B,0
+            INC  BC
+            INC  BC
+            CALL RewriteInitializerReserveZero
+            LD   HL,RewriteInitializerBase
+            ADD  HL,DE
+            EX   DE,HL
+            LD   A,(TokenLength)
+            LD   (DE),A
+            INC  DE
+            LD   C,A
+            OR   A
+            RET  Z
+            LD   HL,(TokenLexemePointer)
+            INC  HL
+_RewriteInitializerStringDecodeLoop:
+            PUSH BC
+            PUSH DE
+            CALL RewriteInitializerDecodeLiteralByte
+            POP  DE
+            POP  BC
+            LD   (DE),A
+            INC  DE
+            DEC  C
+            JR   NZ,_RewriteInitializerStringDecodeLoop
+            XOR  A
+            RET
+
+; Decode one already-validated source spelling byte from HL. The tokenizer has
+; established lexical validity; this pure pointer walk does not disturb the
+; source adapter or parser token cache.
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteInitializerDecodeLiteralByte:
+            LD   A,(HL)
+            INC  HL
+            CP   "\\"
+            RET  NZ
+            LD   A,(HL)
+            INC  HL
+            CP   "x"
+            JR   Z,_RewriteInitializerDecodeHex
+            PUSH HL
+            LD   HL,RewriteStringEscapeTable
+            LD   B,RewriteStringEscapeCount
+_RewriteInitializerDecodeEscapeLoop:
+            CP   (HL)
+            INC  HL
+            JR   Z,_RewriteInitializerDecodeEscapeFound
+            INC  HL
+            DJNZ _RewriteInitializerDecodeEscapeLoop
+            POP  HL
+            JP   RewriteInitializerInternalFailure
+_RewriteInitializerDecodeEscapeFound:
+            LD   A,(HL)
+            POP  HL
+            RET
+_RewriteInitializerDecodeHex:
+            LD   A,(HL)
+            INC  HL
+            CALL RewriteTokenHexDigit
+            RLCA
+            RLCA
+            RLCA
+            RLCA
+            LD   D,A
+            LD   A,(HL)
+            INC  HL
+            CALL RewriteTokenHexDigit
+            OR   D
+            RET

@@ -156,8 +156,10 @@ RewriteDeclarationAnchor      .equ RewriteMetadataControlBase+$30 ; word
 ; Record construction and assertion evaluation are disjoint top-level phases.
 RewriteCurrentRecordExtent    .equ RewriteDeclarationAnchor ; word overlay
 RewriteExpressionAtomOffset   .equ RewriteMetadataControlBase+$32 ; word
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$34
+RewriteInitializerDepth       .equ RewriteMetadataControlBase+$34
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$35
 RewriteExpressionDepthCapacity .equ 16
+RewriteInitializerDepthCapacity .equ 4
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
@@ -354,6 +356,9 @@ DiagnosticExpressionCapacity .equ 65
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
 DiagnosticInitializerCapacity .equ 77
+DiagnosticInitializerShape    .equ 78
+DiagnosticInitializerCount    .equ 79
+DiagnosticStringLength        .equ 80
 DiagnosticProgramDataCapacity .equ 81
 DiagnosticRecordEmpty        .equ 82
 DiagnosticTypeBound          .equ 83
@@ -375,6 +380,7 @@ DiagnosticExpectedAs         .equ $80+14
 DiagnosticExpectedEnd        .equ $80+12
 DiagnosticExpectedLeftBracket .equ $80+18
 DiagnosticExpectedRightBracket .equ $80+19
+DiagnosticExpectedStringLiteral .equ $80+47
 
 RewriteExpressionOpAdd       .equ 0
 RewriteExpressionOpSubtract  .equ 1
