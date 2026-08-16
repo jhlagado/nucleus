@@ -27,12 +27,15 @@ language with a measured compiler core between 12 and 14 KiB. The working
 target is at most 14,336 bytes. The absolute acceptance gate remains 16,384
 bytes. Code and immutable compiler data both count toward these totals.
 
-The rewrite must compile every program accepted by the baseline, reject every
-program rejected by the baseline, report the same diagnostic code and exact
-source position, and generate the same target artifacts unless a separately
-approved target-runtime revision changes an artifact contract. Internal token,
-type, action, and semantic-operation ordinals may change because none is a
-published format.
+The rewrite must compile every conforming program accepted by the baseline,
+reject every conforming program rejected by the baseline, report the same
+diagnostic code and exact source position, and generate the same target
+artifacts unless a separately approved correction or target-runtime revision
+changes a published contract. The frozen compiler is evidence, not permission
+to preserve a contradiction with a higher authority. Every such contradiction
+must appear in the conformance-correction ledger below and have a permanent
+discriminating test. Internal token, type, action, and semantic-operation
+ordinals may change because none is a published format.
 
 The target is not a source-line reduction. It is a simpler compiler with fewer
 independent mechanisms, fewer handwritten policy paths, and explicit data
@@ -84,28 +87,49 @@ The replacement preserves the following properties throughout development:
   platform-owned vectors unless a later deployment contract explicitly makes
   them available.
 
+### Conformance-correction ledger
+
+R1 found three lexical defects inherited from the frozen compiler. The
+replacement follows Chapter 3 of the language specification in each case:
+
+| Source case                                                                       | Frozen compiler                                           | Required replacement behaviour                       |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| `(]`, `[)`, or crossed `([)]` delimiters                                          | reaches the parser and reports a later grammar diagnostic | report lexical diagnostic 1 at the mismatched closer |
+| `\0`, `\n`, `\r`, `\t`, `\'`, `\"`, `\\`, or `\xHH` escape in a character literal | rejects the literal                                       | accept it and return the one decoded byte            |
+| `$00`–`$08`, `$0B`–`$0C`, `$0E`–`$1F`, or `$7F`–`$FF` inside `//`                 | ignores the byte and may compile the program              | report lexical diagnostic 1 at that source byte      |
+
+These are bounded corrections to the oracle, not language additions. The
+accepted source-byte repertoire, typed delimiter rule, and literal escapes were
+already normative before the baseline tag was created. All other R1 lexical
+comparisons continue to require exact frozen-compiler parity.
+
+The consolidated capacity ledger also omitted the already implemented
+255-byte decoded-literal limit and 255-level delimiter limit. R1 publishes both
+limits with exact boundary evidence. This is a documentation correction; it
+does not change the frozen compiler's counters or accepted capacity boundary.
+
 ## Measured baseline
 
 These measurements were reproduced from the normal generated compiler image
 at the tagged baseline. They supersede the older 15,290-byte table in the
 review brief.
 
-| Resident region | Bytes | Status |
-| --- | ---: | --- |
-| source adapter | 141 | Measured |
-| tokenizer | 869 | Measured |
-| semantic sink | 58 | Measured |
-| symbols | 106 | Measured |
-| complete parser region | 9,794 | Measured |
-| backend and target-output region | 5,302 | Measured |
-| compiler code | 16,270 | Measured |
-| immutable compiler data | 410 | Measured |
-| compiler core | 16,680 | Measured |
-| excess over 16 KiB | 296 | Measured |
-| peak compiler workspace | 3,639 | Measured |
-| selected proof runtime | 899 | Measured |
+| Resident region                   |     Bytes | Status   |
+| --------------------------------- | --------: | -------- |
+| source adapter                    |       141 | Measured |
+| tokenizer                         |       869 | Measured |
+| semantic sink                     |        58 | Measured |
+| symbols                           |       106 | Measured |
+| complete parser region            |     9,794 | Measured |
+| backend and target-output region  |     5,302 | Measured |
+| compiler code                     |    16,270 | Measured |
+| immutable compiler data           |       410 | Measured |
+| compiler core                     |    16,680 | Measured |
+| excess over 16 KiB                |       296 | Measured |
+| peak compiler workspace           |     3,639 | Measured |
+| selected proof runtime            |       899 | Measured |
 | target-enabled proof instructions | 1,025,324 | Measured |
-| target-enabled proof T-states | 9,980,322 | Measured |
+| target-enabled proof T-states     | 9,980,322 | Measured |
 
 The parser region contains 6,292 bytes before the 221-byte packed LL(1)
 engine, 831 bytes of generated LL(1) tables and directories, and 2,450 bytes
@@ -161,9 +185,9 @@ the source look uniform.
 ### Source and token layer
 
 The source adapter retains the current ordered multipart contract and exact
-position state. The tokenizer becomes one table-directed scanner with four
-handwritten families: names and keywords, integers, quoted literals, and
-punctuation. Newline synthesis, CRLF handling, comment termination, escape
+part-relative byte offset. The tokenizer becomes one table-directed scanner
+with four handwritten families: names and keywords, integers, quoted literals,
+and punctuation. Newline synthesis, CRLF handling, comment termination, escape
 rules, literal limits, and diagnostic anchors remain exactly as specified.
 
 Keyword descriptors use ordinary data offsets or full addresses. High-bit
@@ -171,10 +195,17 @@ termination may mark characters because keyword bytes are character data; it
 must not reduce a code or source address. Packing is accepted only after the
 complete scanner plus table is smaller than the straightforward form.
 
-The tokenizer publishes a fixed token record containing the token ordinal,
-token-start source identity and offset, and the bounded payload state required
-by names and literals. Parser lookahead stores one such record. No later phase
-reconstructs a diagnostic position from a changed cursor.
+The tokenizer returns the token ordinal and payload in registers while
+retaining the token-start byte offset, source pointer, and bounded name or
+literal length. Parser lookahead stores that result when it must survive
+another operation. For lexical diagnostics, the compiler selects the
+authoritative source part and byte offset; the Node host reconstructs the
+one-based line and byte column from the original source bytes. D8 uses the
+same reconstruction routine, so both publications have one definition of
+CRLF and byte-column handling. Later front-end milestones must preserve any
+oracle diagnostic whose byte-offset and display anchors differ, either with a
+second byte anchor or explicit position fields. The public diagnostic remains
+exact in either representation.
 
 ### Symbols and types
 
@@ -326,10 +357,13 @@ impossible to distinguish from a target-layout redesign.
 ### Diagnostics and abort
 
 All compiler diagnostics enter one nonreturning routine. That routine captures
-the diagnostic code, source part, byte offset, line, and byte column before it
-restores the armed compiler entry stack. Parsing and generation use separate
-armed continuations, so generation failure performs exactly one target-output
-abort while parse failure never consults post-parse overlay state.
+the diagnostic code and its source anchors before it restores the armed
+compiler entry stack. The R1 image declares offset-only diagnostics, so the
+Node host derives line and byte column from the retained source. A later image
+may publish an independent display anchor when the frozen oracle requires one.
+Parsing and generation use separate armed continuations, so generation failure
+performs exactly one target-output abort while parse failure never consults
+post-parse overlay state.
 
 The replacement is designed around this model from its first instruction.
 There is no compatibility configuration with per-frame diagnostic carry
@@ -355,18 +389,18 @@ No event may be inferred from a compiler program counter.
 The following is a design budget, not a claim that the result has already been
 measured.
 
-| Replacement region | Allocation | Status |
-| --- | ---: | --- |
-| source adapter and tokenizer code | 850 | Projected |
-| symbol and type-engine code | 850 | Projected |
-| grammar and action-machine code | 2,200 | Projected |
-| expression, postfix, call, and folding code | 2,400 | Projected |
-| transcript, diagnostics, and shared compiler control | 600 | Projected |
-| target layout and NOBJ production code | 1,400 | Projected |
-| backend recipe engine and handwritten backend code | 2,400 | Projected |
-| all immutable keywords, grammar, operation, and recipe data | 2,200 | Projected |
-| allocated compiler core | 12,900 | Projected |
-| unallocated margin below 14 KiB | 1,436 | Projected |
+| Replacement region                                          | Allocation | Status    |
+| ----------------------------------------------------------- | ---------: | --------- |
+| source adapter and tokenizer code                           |        850 | Projected |
+| symbol and type-engine code                                 |        850 | Projected |
+| grammar and action-machine code                             |      2,200 | Projected |
+| expression, postfix, call, and folding code                 |      2,400 | Projected |
+| transcript, diagnostics, and shared compiler control        |        600 | Projected |
+| target layout and NOBJ production code                      |      1,400 | Projected |
+| backend recipe engine and handwritten backend code          |      2,400 | Projected |
+| all immutable keywords, grammar, operation, and recipe data |      2,200 | Projected |
+| allocated compiler core                                     |     12,900 | Projected |
+| unallocated margin below 14 KiB                             |      1,436 | Projected |
 
 These allocations partition the resident account: recipe and action programs
 appear only in immutable data, not again in their interpreter code rows. A
@@ -458,6 +492,36 @@ against the oracle.
 
 Exit gate: the replacement token/diagnostic layer is origin-independent, strict
 AZM is green, and its complete source/token account is at most 1,100 core bytes.
+
+Checkpoint result, measured on 16 August 2026:
+
+- the replacement includes no old compiler implementation source and assembles
+  at `$0000`, `$0100`, `$6000`, `$8000`, and the highest origin at which the
+  complete image fits; the `$6000` case moves workspace and adapter intervals
+  to prove that their addresses are deployment policy rather than code-origin
+  assumptions;
+- the shell is 66 bytes, the source adapter is 94 bytes, the tokenizer is 822
+  bytes, and its immutable keyword, escape, and punctuation data is 184 bytes;
+- the complete source/token account is exactly 1,100 bytes, the shell plus that
+  account is 1,166 bytes, and the workspace is 350 bytes, including the
+  255-byte typed-delimiter stack;
+- the multipart proof publishes 77 exact tokens and completes in 47,258
+  instructions and 451,234 T-states; it covers a synthesized part newline,
+  CRLF, blank and comment-only lines, tab columns, all character escapes, and
+  final-newline synthesis;
+- exact Host diagnostics match the frozen compiler for 16 lexical cases,
+  including CRLF reconstruction, based-number fusion, and numeric limits;
+- separate normative proofs lock the three conformance corrections in the
+  ledger above;
+- the same comprehensive single-part scan and diagnostic-unwind paths execute
+  with the expected returned stack pointer at every tested origin; and
+- direct replacement proofs distinguish the accepted 255-byte name, decoded
+  literal, and delimiter-depth limits from their first rejected values. They
+  separately cover malformed and crossed delimiters, invalid comment bytes,
+  multipart delimiter failure, source-part counts 1 and 8, and rejected counts
+  0 and 9;
+- the complete serial suite passes 25 files and 257 tests, including all 23
+  target proof cases and the unchanged production diagnostic anchors.
 
 ### R2 — Generated operation authority
 
@@ -609,8 +673,7 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 
 ## Next implementation move
 
-R0 is complete. R1 begins with a new `asm/rewrite/` composition, workspace map,
-public entry, and armed diagnostic exit. The first executable slice will load
-ordered source parts and publish exact token records without including any old
-compiler implementation file. The replacement remains test-selected until the
-complete cutover gate passes.
+R0 and R1 are complete. R2 begins with one generated semantic-operation source
+that supplies producer widths, dispatcher descriptors, backend recipe
+boundaries, and D8 decoding data. The replacement remains test-selected until
+the complete cutover gate passes.

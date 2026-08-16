@@ -7,6 +7,7 @@ import {
 } from "./d8-internal.js";
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
 import type { NobjAdapterImageByte } from "./proof.js";
+import { sourcePositionAtOffset } from "./source-position-internal.js";
 
 type CompilerCpu = ReturnType<typeof createZ80Runtime>["cpu"];
 
@@ -202,31 +203,6 @@ const lineText = (
   return "";
 };
 
-const positionAtOffset = (
-  part: NucleusLoadedSourcePart,
-  offset: number,
-): { line: number; column: number } => {
-  if (offset < 0 || offset > part.bytes.length) {
-    throw new Error(`source offset ${offset} is outside part ${part.id}`);
-  }
-  let line = 1;
-  let column = 1;
-  for (let index = 0; index < offset; index += 1) {
-    const byte = part.bytes[index];
-    if (byte === 0x0d && part.bytes[index + 1] === 0x0a) {
-      index += 1;
-      line += 1;
-      column = 1;
-    } else if (byte === 0x0a) {
-      line += 1;
-      column = 1;
-    } else {
-      column += 1;
-    }
-  }
-  return { line, column };
-};
-
 export class NucleusDebugCollector {
   readonly #memory: Uint8Array;
   readonly #parts: readonly NucleusLoadedSourcePart[];
@@ -369,7 +345,7 @@ export class NucleusDebugCollector {
       return undefined;
     }
     const offset = readWord(this.#memory, this.#symbols.tokenStartOffset);
-    const actual = positionAtOffset(part, offset);
+    const actual = sourcePositionAtOffset(part, offset);
     const line = readWord(this.#memory, this.#symbols.tokenStartLine);
     const column = readWord(this.#memory, this.#symbols.tokenStartColumn);
     if (line !== actual.line || column !== actual.column) {
@@ -403,7 +379,7 @@ export class NucleusDebugCollector {
       );
       return undefined;
     }
-    const { line, column } = positionAtOffset(part, offset);
+    const { line, column } = sourcePositionAtOffset(part, offset);
     return { part, offset, line, column };
   }
 

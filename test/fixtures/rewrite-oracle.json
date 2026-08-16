@@ -47,6 +47,16 @@
       "evidence": "scanner wrap guard"
     },
     {
+      "account": "decoded string-literal bytes",
+      "limit": "255",
+      "evidence": "accepted 255-byte literal and rejected 256th decoded byte"
+    },
+    {
+      "account": "lexical delimiter nesting",
+      "limit": "255",
+      "evidence": "accepted depth 255, rejected depth 256, and crossed-kind discriminators"
+    },
+    {
       "account": "ordinary binding symbols",
       "limit": "16",
       "evidence": "accepted sixteen aggregate variables; rejected seventeenth binding"

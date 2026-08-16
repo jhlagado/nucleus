@@ -1,0 +1,141 @@
+; Nucleus replacement compiler state and internal token authority.
+;
+; The deployment composition supplies CompilerWorkBase, SourceBase, and
+; SourceLimit. Every pointer remains a complete sixteen-bit address.
+
+RewriteStateBase              .equ CompilerWorkBase
+; R1 diagnostics publish part and byte offset. The test-selected Host image
+; derives line and byte column from the retained source. A later parser may
+; remove this marker when oracle parity requires an independent token anchor.
+RewriteDiagnosticOffsetsOnly  .equ 1
+
+; The first five bytes mirror a source descriptor, allowing an exact LDIR.
+SourcePartId                 .equ RewriteStateBase+$00
+RewriteSourceDescriptorStart .equ RewriteStateBase+$01 ; word
+RewriteSourceEnd             .equ RewriteStateBase+$03 ; word
+; The live position block is contiguous for the token-start snapshot. The Z80
+; compiler owns part and byte offset; the host derives line and byte column from
+; the original retained source, exactly as the D8 collector does.
+RewriteSourceOffset          .equ RewriteStateBase+$05 ; word
+RewriteSourceCursor          .equ RewriteStateBase+$07 ; word
+RewriteSourcePartsRemaining  .equ RewriteStateBase+$09
+RewriteSourceNextDescriptor  .equ RewriteStateBase+$0A ; word
+; The low seven bits are the remaining-part count (0..7). Bit 7 means that a
+; synthesized newline has been returned and the next token request must load
+; the following part. This is bounded parser state, never address metadata.
+RewriteSourceAdvancePendingBit .equ 7
+RewriteSourceLineHasToken    .equ RewriteStateBase+$0C
+RewriteSourceDelimiterDepth  .equ RewriteStateBase+$0D
+
+; The tokenizer returns kind in A and payload in BC. TokenKind and TokenValue
+; are consumer-owned lookahead slots; the tokenizer does not write them.
+; TokenLength retains a NAME length or decoded string length, while
+; TokenLexemePointer points into the retained source. Other token kinds leave
+; TokenLength unspecified.
+TokenKind                    .equ RewriteStateBase+$0E
+TokenValue                   .equ RewriteStateBase+$0F ; word
+TokenPartId                  .equ RewriteStateBase+$11
+TokenStartOffset             .equ RewriteStateBase+$12 ; word
+TokenLexemePointer           .equ RewriteStateBase+$14 ; word
+TokenLength                  .equ RewriteStateBase+$16
+RewriteTokenRecordSize       .equ 9
+
+DiagnosticCode               .equ RewriteStateBase+$17
+DiagnosticPartId             .equ RewriteStateBase+$18
+DiagnosticOffset             .equ RewriteStateBase+$19 ; word
+CompilerAbortSp              .equ RewriteStateBase+$1B ; word
+
+; Host API 1 initializes these fields before entering either compiler image.
+; R1 returns a diagnostic before target publication, so the adapter capture
+; fields are reserved only to keep the internal image-selection seam exact.
+AdapterCursor                .equ RewriteStateBase+$1D ; word
+AdapterOpen                  .equ RewriteStateBase+$1F
+AdapterCommitted             .equ RewriteStateBase+$20
+AdapterAborted               .equ RewriteStateBase+$21
+AdapterFailureCountdown      .equ RewriteStateBase+$22
+AdapterMapFailure            .equ RewriteStateBase+$23
+AdapterCommitFailure         .equ RewriteStateBase+$24
+AdapterCapturedMap           .equ RewriteStateBase+$25
+AdapterCapturedContext       .equ AdapterCapturedMap+$28
+; Delimiter kinds are retained separately from their depth. Each byte is the
+; complete left-delimiter token ordinal, so matching never depends on an
+; address bit or on the compiler's origin. Depth 255 is the published limit.
+RewriteDelimiterStack        .equ AdapterCapturedContext+$12
+RewriteDelimiterCapacity     .equ 255
+RewriteWorkspaceEnd          .equ RewriteDelimiterStack+RewriteDelimiterCapacity
+CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
+
+; The test host requires an append-only sink interval even though R1 never
+; opens it. These are full addresses selected by the deployment map.
+AdapterLogBase               .equ RewriteAdapterBase
+AdapterLogLimit              .equ RewriteAdapterLimit
+
+; Fundamental tokens occupy a compact stable prefix. Keywords follow in the
+; exact order of RewriteKeywordTable, so the table stores no token byte.
+TokenEof                     .equ 0
+TokenNewline                 .equ 1
+TokenName                    .equ 2
+TokenNumber                  .equ 3
+TokenCharacter               .equ 4
+TokenStringLiteral           .equ 5
+TokenLeftParen               .equ 6
+TokenRightParen              .equ 7
+TokenLeftBracket             .equ 8
+TokenRightBracket            .equ 9
+TokenEquals                  .equ 10
+TokenComma                   .equ 11
+TokenMinus                   .equ 12
+TokenPlus                    .equ 13
+TokenStar                    .equ 14
+TokenSlash                   .equ 15
+TokenDot                     .equ 16
+TokenLess                    .equ 17
+TokenLessEqual               .equ 18
+TokenGreater                 .equ 19
+TokenGreaterEqual            .equ 20
+TokenNotEqual                .equ 21
+
+TokenFirstKeyword            .equ 32
+TokenVar                     .equ TokenFirstKeyword+0
+TokenAs                      .equ TokenFirstKeyword+1
+TokenU8                      .equ TokenFirstKeyword+2
+TokenU16                     .equ TokenFirstKeyword+3
+TokenI8                      .equ TokenFirstKeyword+4
+TokenI16                     .equ TokenFirstKeyword+5
+TokenBoolean                 .equ TokenFirstKeyword+6
+TokenTrue                    .equ TokenFirstKeyword+7
+TokenFalse                   .equ TokenFirstKeyword+8
+TokenConst                   .equ TokenFirstKeyword+9
+TokenOr                      .equ TokenFirstKeyword+10
+TokenXor                     .equ TokenFirstKeyword+11
+TokenMod                     .equ TokenFirstKeyword+12
+TokenAssert                  .equ TokenFirstKeyword+13
+TokenAnd                     .equ TokenFirstKeyword+14
+TokenNot                     .equ TokenFirstKeyword+15
+TokenFail                    .equ TokenFirstKeyword+16
+TokenEnd                     .equ TokenFirstKeyword+17
+TokenSub                     .equ TokenFirstKeyword+18
+TokenFails                   .equ TokenFirstKeyword+19
+TokenFor                     .equ TokenFirstKeyword+20
+TokenUntil                   .equ TokenFirstKeyword+21
+TokenForward                 .equ TokenFirstKeyword+22
+TokenReturn                  .equ TokenFirstKeyword+23
+TokenIf                      .equ TokenFirstKeyword+24
+TokenElseIf                  .equ TokenFirstKeyword+25
+TokenElse                    .equ TokenFirstKeyword+26
+TokenWhile                   .equ TokenFirstKeyword+27
+TokenTo                      .equ TokenFirstKeyword+28
+TokenStep                    .equ TokenFirstKeyword+29
+TokenExit                    .equ TokenFirstKeyword+30
+TokenContinue                .equ TokenFirstKeyword+31
+TokenRecord                  .equ TokenFirstKeyword+32
+TokenString                  .equ TokenFirstKeyword+33
+TokenHandle                  .equ TokenFirstKeyword+34
+TokenKeywordCount            .equ 35
+
+DiagnosticNone               .equ 0
+DiagnosticLexical            .equ 1
+DiagnosticInternalOperation  .equ 67
+DiagnosticSourcePartCapacity .equ 88
+
+SourcePartCapacity           .equ 8

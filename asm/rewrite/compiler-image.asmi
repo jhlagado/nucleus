@@ -1,0 +1,25 @@
+; Origin-independent R1 compiler composition. The deployment file selects the
+; origin and supplies the complete compiler, workspace, source, and adapter
+; intervals before including this file.
+
+            .include "state.asmi"
+
+CompilerCodeStart:
+RewriteCompilerCodeStart:
+            .include "compiler.asm"
+RewriteSourceCodeStart:
+            .include "source.asm"
+RewriteSourceCodeEnd:
+RewriteTokenizerCodeStart:
+            .include "tokenizer.asm"
+RewriteTokenizerCodeEnd:
+CompilerCodeEnd:
+RewriteCompilerCodeEnd:
+
+CompilerImmutableStart:
+RewriteCompilerImmutableStart:
+            .include "keywords.asmi"
+CompilerImmutableEnd:
+RewriteCompilerImmutableEnd:
+CompilerCoreEnd:
+RewriteCompilerCoreEnd:

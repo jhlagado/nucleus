@@ -1,4 +1,5 @@
 import { assertNucleusSemanticOperationKeys, nucleusD8SourceName, } from "./d8-internal.js";
+import { sourcePositionAtOffset } from "./source-position-internal.js";
 export const nucleusDebugPorts = {
     source: 0xd8,
     declaration: 0xd9,
@@ -52,29 +53,6 @@ const lineText = (part, wantedLine) => {
         }
     }
     return "";
-};
-const positionAtOffset = (part, offset) => {
-    if (offset < 0 || offset > part.bytes.length) {
-        throw new Error(`source offset ${offset} is outside part ${part.id}`);
-    }
-    let line = 1;
-    let column = 1;
-    for (let index = 0; index < offset; index += 1) {
-        const byte = part.bytes[index];
-        if (byte === 0x0d && part.bytes[index + 1] === 0x0a) {
-            index += 1;
-            line += 1;
-            column = 1;
-        }
-        else if (byte === 0x0a) {
-            line += 1;
-            column = 1;
-        }
-        else {
-            column += 1;
-        }
-    }
-    return { line, column };
 };
 export class NucleusDebugCollector {
     #memory;
@@ -185,7 +163,7 @@ export class NucleusDebugCollector {
             return undefined;
         }
         const offset = readWord(this.#memory, this.#symbols.tokenStartOffset);
-        const actual = positionAtOffset(part, offset);
+        const actual = sourcePositionAtOffset(part, offset);
         const line = readWord(this.#memory, this.#symbols.tokenStartLine);
         const column = readWord(this.#memory, this.#symbols.tokenStartColumn);
         if (line !== actual.line || column !== actual.column) {
@@ -206,7 +184,7 @@ export class NucleusDebugCollector {
             this.#errors.push(`name pointer ${pointer.toString(16)} does not retain the original source spelling`);
             return undefined;
         }
-        const { line, column } = positionAtOffset(part, offset);
+        const { line, column } = sourcePositionAtOffset(part, offset);
         return { part, offset, line, column };
     }
     #appendMark(context) {

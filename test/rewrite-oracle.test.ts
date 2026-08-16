@@ -36,7 +36,8 @@ const readCapacityLedger = async () => {
   const source = await readFile(implementationPlanPath, "utf8");
   const heading = "## Capacity ledger";
   const start = source.indexOf(heading);
-  if (start < 0) throw new Error(`missing ${heading} in ${implementationPlanPath}`);
+  if (start < 0)
+    throw new Error(`missing ${heading} in ${implementationPlanPath}`);
   const remainder = source.slice(start + heading.length);
   const nextHeading = remainder.search(/\r?\n## /);
   const section = nextHeading < 0 ? remainder : remainder.slice(0, nextHeading);
@@ -62,14 +63,15 @@ const artifactExpectation = (result: NucleusCompileSuccess) => ({
   nobjSha256: sha256(result.nobj),
   begin: result.materialized.parsed.begin,
   map: result.materialized.parsed.map,
-  flatImage:
-    result.materialized.flatImage === undefined
-      ? undefined
-      : {
+  ...(result.materialized.flatImage === undefined
+    ? {}
+    : {
+        flatImage: {
           length: result.materialized.flatImage.length,
           sha256: sha256(result.materialized.flatImage),
           hexSha256: sha256(writeNucleusIntelHex(result)),
         },
+      }),
   banks: result.materialized.banks?.map((bank, index) => ({
     bank: index,
     length: bank.length,
@@ -96,7 +98,9 @@ const collectOracle = async () => {
       throw new Error(`${testCase.name} debug: ${JSON.stringify(debug)}`);
     }
     if (!normal.success || !debug.success) continue;
-    expect(debug.nobj, `${testCase.name} normal/debug NOBJ`).toEqual(normal.nobj);
+    expect(debug.nobj, `${testCase.name} normal/debug NOBJ`).toEqual(
+      normal.nobj,
+    );
     expect(debug.materialized, `${testCase.name} normal/debug image`).toEqual(
       normal.materialized,
     );
@@ -124,9 +128,10 @@ const collectOracle = async () => {
     expect(normal.success, testCase.name).toBe(false);
     expect(debug.success, testCase.name).toBe(false);
     if (normal.success || debug.success) continue;
-    expect(debug.diagnostic, `${testCase.name} normal/debug diagnostic`).toEqual(
-      normal.diagnostic,
-    );
+    expect(
+      debug.diagnostic,
+      `${testCase.name} normal/debug diagnostic`,
+    ).toEqual(normal.diagnostic);
     diagnostics.push({
       name: testCase.name,
       expectation: normal.diagnostic,
@@ -176,9 +181,15 @@ describe("frozen compiler rewrite oracle", () => {
   it("preserves published contracts, artifacts, diagnostics, and source maps", async () => {
     const current = await collectOracle();
     if (process.env.NUCLEUS_UPDATE_REWRITE_ORACLE === "1") {
-      await writeFile(fixturePath, `${JSON.stringify(current, null, 2)}\n`, "utf8");
+      await writeFile(
+        fixturePath,
+        `${JSON.stringify(current, null, 2)}\n`,
+        "utf8",
+      );
     }
-    const expected = JSON.parse(await readFile(fixturePath, "utf8")) as typeof current;
+    const expected = JSON.parse(
+      await readFile(fixturePath, "utf8"),
+    ) as typeof current;
 
     expect(expected.baseline).toEqual({
       tag: "rewrite-baseline-2026-08-16",

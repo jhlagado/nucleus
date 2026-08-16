@@ -1,0 +1,65 @@
+; Keyword character data. Bit 7 marks the final character of each entry; it
+; never carries pointer or address metadata. A zero byte ends the table.
+
+RewriteKeywordTable:
+            .db  "va","r"+$80
+            .db  "a","s"+$80
+            .db  "u","8"+$80
+            .db  "u1","6"+$80
+            .db  "i","8"+$80
+            .db  "i1","6"+$80
+            .db  "boolea","n"+$80
+            .db  "tru","e"+$80
+            .db  "fals","e"+$80
+            .db  "cons","t"+$80
+            .db  "o","r"+$80
+            .db  "xo","r"+$80
+            .db  "mo","d"+$80
+            .db  "asser","t"+$80
+            .db  "an","d"+$80
+            .db  "no","t"+$80
+            .db  "fai","l"+$80
+            .db  "en","d"+$80
+            .db  "su","b"+$80
+            .db  "fail","s"+$80
+            .db  "fo","r"+$80
+            .db  "unti","l"+$80
+            .db  "forwar","d"+$80
+            .db  "retur","n"+$80
+            .db  "i","f"+$80
+            .db  "elsei","f"+$80
+            .db  "els","e"+$80
+            .db  "whil","e"+$80
+            .db  "t","o"+$80
+            .db  "ste","p"+$80
+            .db  "exi","t"+$80
+            .db  "continu","e"+$80
+            .db  "recor","d"+$80
+            .db  "strin","g"+$80
+            .db  "handl","e"+$80
+            .db  0
+
+; Source spelling and decoded value pairs. These are literal data, not encoded
+; compiler instructions.
+RewriteStringEscapeTable:
+            .db  "0",0,"n",10,"r",13,"t",9,$27,$27,$22,$22,"\\","\\"
+RewriteStringEscapeCount .equ 7
+
+; Simple punctuation stores its token directly. Bit 7 routes a numeric prefix,
+; whose low seven bits retain scanner mode and digit limit. Bit 6 routes a
+; delimiter, whose low bits retain its token. These are bounded token classes,
+; never shortened addresses.
+RewritePunctuationTable:
+            .db  "(",TokenLeftParen+$40
+            .db  ")",TokenRightParen+$40
+            .db  "=",TokenEquals
+            .db  ",",TokenComma
+            .db  "-",TokenMinus
+            .db  "+",TokenPlus
+            .db  "*",TokenStar
+            .db  ".",TokenDot
+            .db  "$",$85
+            .db  "%",$91
+            .db  "[",TokenLeftBracket+$40
+            .db  "]",TokenRightBracket+$40
+RewritePunctuationCount .equ 12

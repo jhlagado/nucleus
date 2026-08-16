@@ -5,6 +5,7 @@ import { loadNucleusCompilerImage, nucleusCompilerImages, productionCompilerImag
 import { materializeNobj, parseNobj, } from "./nobj.js";
 import { commitNobjAdapterGeneration, } from "./proof.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
+import { sourcePositionAtOffset } from "./source-position-internal.js";
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
@@ -71,6 +72,14 @@ const symbol = (symbols, name) => {
             return value;
     }
     throw new Error(`Nucleus compiler image is missing symbol ${name}`);
+};
+const optionalSymbol = (symbols, name) => {
+    const wanted = name.toLowerCase();
+    for (const [candidate, value] of Object.entries(symbols)) {
+        if (candidate.toLowerCase() === wanted)
+            return value;
+    }
+    return undefined;
 };
 const compilerImageFingerprint = (image) => {
     const hash = createHash("sha256");
@@ -372,15 +381,26 @@ export const compileNucleus = async (parts, target = {}, options = {}) => {
     }
     if (runtime.cpu.flags.C !== 0) {
         const part = memory[symbol(image.symbols, "DiagnosticPartId")] ?? 0;
+        const offset = readWord(memory, symbol(image.symbols, "DiagnosticOffset"));
+        const offsetsOnly = optionalSymbol(image.symbols, "RewriteDiagnosticOffsetsOnly") === 1;
+        const loadedPart = prepared.loaded[part - 1];
+        const position = offsetsOnly
+            ? loadedPart === undefined
+                ? { line: 1, column: 1 }
+                : sourcePositionAtOffset(loadedPart, offset)
+            : {
+                line: readWord(memory, symbol(image.symbols, "DiagnosticLine")),
+                column: readWord(memory, symbol(image.symbols, "DiagnosticColumn")),
+            };
         return {
             success: false,
             diagnostic: {
                 code: memory[symbol(image.symbols, "DiagnosticCode")] ?? 0,
                 sourcePart: part,
                 sourceName: parts[part - 1]?.name,
-                offset: readWord(memory, symbol(image.symbols, "DiagnosticOffset")),
-                line: readWord(memory, symbol(image.symbols, "DiagnosticLine")),
-                column: readWord(memory, symbol(image.symbols, "DiagnosticColumn")),
+                offset,
+                line: position.line,
+                column: position.column,
             },
             instructions,
             cycles,
