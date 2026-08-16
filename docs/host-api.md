@@ -228,6 +228,9 @@ before calling this publication function.
 
 ## Command line
 
+The [command-line guide](command-line.md) gives the complete installed-package
+and import-directed project workflow. This section records the stable interface.
+
 ```text
 nucleus build [options] source.nu [more.nu ...]
 nucleus build --project nucleus-project.json

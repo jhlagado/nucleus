@@ -1,0 +1,1 @@
+const Value = 7

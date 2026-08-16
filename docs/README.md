@@ -4,6 +4,9 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 
 - [`specification.md`](specification.md) is the working Nucleus 0.1 Language Specification and governs source-language conformance at its current revision.
 - [`host-api.md`](host-api.md) defines the supported Node, project-file and command-line interfaces.
+- [`command-line.md`](command-line.md) documents installation, import-directed
+  builds, project files, target profiles, artifacts, diagnostics, and launch
+  handoff.
 - [`d8-source-maps.md`](d8-source-maps.md) defines the conditional trace ABI,
   validation rules, and D8 sidecar production.
 - [`host-integration.md`](host-integration.md) records the implemented boundary

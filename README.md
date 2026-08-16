@@ -48,6 +48,9 @@ const result = await compiler.build({
 
 [Nucleus Host API 1](docs/host-api.md) defines target and project schemas,
 classified failures, compiler identity, capabilities and artifact publication.
+[Nucleus command-line compiler](docs/command-line.md) gives the complete
+installation, import-directed build, target, output, diagnostic, and launch
+handoff workflow.
 
 The command-line interface writes the committed object directly. It can also
 materialize a flat Intel HEX launch artifact while retaining NOBJ as the
@@ -82,6 +85,10 @@ positional sources retain explicit written ordering. [Nucleus source
 packaging](docs/source-packaging.md) defines discovery and the generated SP1
 plan for filesystem-aware hosts.
 
+The complete [`examples/import-project`](examples/import-project/) project is
+also included in the npm package and is exercised by the package-installation
+gate.
+
 A launch target profile supplies image and writable layout plus every external
 service destination. The compiler library retains its synthetic default target
 for conformance and tooling, but a host must not mistake those proof addresses
@@ -103,6 +110,7 @@ The current authorities are:
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
 - [Nucleus Host API 1](docs/host-api.md)
+- [Nucleus command-line compiler](docs/command-line.md)
 - [Nucleus source packaging and SP1 source plans](docs/source-packaging.md)
 - [Nucleus D8 Source Maps](docs/d8-source-maps.md)
 - [Nucleus host and Debug80 integration](docs/host-integration.md)

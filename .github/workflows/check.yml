@@ -35,4 +35,5 @@ jobs:
           cp -R .debug80/packages/debug80-runtime/dist node_modules/@jhlagado/debug80-runtime/
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run check:package
       - run: npm test

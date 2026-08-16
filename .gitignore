@@ -1,2 +1,3 @@
 node_modules/
 *.nobj
+examples/import-project/build/

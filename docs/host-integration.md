@@ -76,6 +76,25 @@ unpublished registry package.
 Import-directed project-v2 discovery remains a planned Debug80 adoption item.
 The implementation currently belongs to the standalone Nucleus host package.
 
+## Next host integration increment
+
+Debug80 should adopt project version 2 through the standalone package rather
+than implement another dependency scanner. The integration work is bounded:
+
+1. move the CLI's project loading and final ordinal bank derivation behind one
+   exported host function;
+2. have Debug80 call that function for `.nu` project builds while retaining its
+   existing diagnostics, D8 validation, and artifact publication;
+3. compare explicit version 1 and discovered version 2 builds for identical
+   NOBJ, HEX, D8, source identities, and target mappings; and
+4. retain the current flat-only Debug80 launch gate until its loader has a
+   physical-bank selection model.
+
+The standalone `nucleus` command remains a compiler and artifact publisher.
+A generic `run` command would require a separately reviewed emulated target,
+including input, output, storage, terminal, trap, and far-transfer service
+behaviour. The source resolver does not supply that machine policy.
+
 ## Compiler authority
 
 The handwritten Z80 compiler is the sole executable compiler. A TypeScript

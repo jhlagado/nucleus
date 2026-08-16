@@ -1,0 +1,11 @@
+{
+  "schema": "nucleus-project/v2",
+  "root": ".",
+  "entry": "src/main.nu",
+  "target": "nucleus-target.json",
+  "outputs": {
+    "nobj": "build/program.nobj",
+    "hex": "build/program.hex",
+    "d8": "build/program.d8.json"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "nucleus-target/v1",
+  "imageBase": 32768,
+  "imageCapacity": 4096,
+  "imageFill": 255,
+  "writableBase": 16384,
+  "writableCapacity": 4096,
+  "establishStack": true,
+  "services": {
+    "readInputByte": 28672,
+    "writeOutputByte": 28675,
+    "readStorageByte": 28678,
+    "rewindStorageInput": 28681,
+    "writeStorageByte": 28684,
+    "seekStorageOutput": 28687,
+    "success": 28690,
+    "unhandledFailure": 28693,
+    "trap": 28696,
+    "farCall": 28699,
+    "farJump": 28702
+  }
+}
