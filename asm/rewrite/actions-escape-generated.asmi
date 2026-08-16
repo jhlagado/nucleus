@@ -47,8 +47,9 @@ RewriteActionEscapeDirectory:
             .dw RewriteDeclarationEmitLocalStore ; EmitLocalStore
             .dw RewriteStatementBeginScalarAssignment ; BeginScalarAssignment
             .dw RewriteStatementFinishScalarAssignmentExpression ; FinishScalarAssignmentExpression
-            .dw RewriteStatementEmitScalarAssignment ; EmitScalarAssignment
+            .dw RewriteStatementFinishScalarAssignment ; FinishScalarAssignment
             .dw RewriteStatementParseCall ; ParseCallStatement
+            .dw RewriteStatementFinishCallStatement ; FinishCallStatement
             .dw RewriteStatementParseReturnValue ; ParseReturnValue
             .dw RewriteStatementCommitBareReturn ; CommitBareReturn
             .dw RewriteStatementParseFail ; ParseFail
@@ -70,3 +71,4 @@ RewriteActionEscapeDirectory:
             .dw RewriteControlParseForRange ; ParseForRange
             .dw RewriteControlBeginForBody ; BeginForBody
             .dw RewriteControlEndFor ; EndFor
+            .dw RewriteControlEndHandler ; EndHandle

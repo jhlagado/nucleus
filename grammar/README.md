@@ -63,7 +63,9 @@ segment; no address bit is used as a storage tag. `LoadProgramU8` and
 `LoadProgram16` address initialized storage, while `LoadBssU8` and `LoadBss16`
 address BSS. These two BSS operations are fresh replacement authority rather
 than aliases for a frozen production record whose operand packed storage into
-an address bit.
+an address bit. Program handler destinations follow the same rule:
+`BeginHandlerProgram` addresses initialized storage and `BeginHandlerBss`
+addresses BSS. Both keep the frozen five-byte record width.
 
 `ConvertInteger.targetType` uses bit 7 only as an operation operand mode: when
 set, a failed signed-to-`u16` conversion reports the target bounds trap rather

@@ -2101,6 +2101,46 @@ export const rewriteSemanticOperations = [
     },
     {
         "id": 82,
+        "name": "BeginHandlerBss",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "symbolInfo",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "address",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 5,
+        "backend": {
+            "kind": "escape",
+            "name": "beginHandlerBss",
+            "index": 21
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 83,
         "name": "BeginHandlerLocal",
         "operands": [
             {
@@ -2140,7 +2180,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 83,
+        "id": 84,
         "name": "EndHandler",
         "operands": [
             {
@@ -2155,7 +2195,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "endHandler",
-            "index": 21
+            "index": 22
         },
         "stack": {
             "in": 0,
@@ -2166,7 +2206,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 84,
+        "id": 85,
         "name": "BeginCallableMain",
         "operands": [
             {
@@ -2188,7 +2228,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "beginCallableMain",
-            "index": 22
+            "index": 23
         },
         "stack": {
             "in": 0,
@@ -2199,7 +2239,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 85,
+        "id": 86,
         "name": "LoadReadOnlyAlias",
         "operands": [
             {
@@ -2225,7 +2265,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 86,
+        "id": 87,
         "name": "OpenStringLength",
         "operands": [
             {
@@ -2247,7 +2287,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "openStringLength",
-            "index": 23
+            "index": 24
         },
         "stack": {
             "in": 1,
@@ -2258,7 +2298,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 87,
+        "id": 88,
         "name": "OpenStringIndex",
         "operands": [
             {
@@ -2280,7 +2320,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "openStringIndex",
-            "index": 24
+            "index": 25
         },
         "stack": {
             "in": 2,
@@ -2291,7 +2331,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 88,
+        "id": 89,
         "name": "PrepareOpenStringDirect",
         "operands": [
             {
@@ -2313,7 +2353,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "prepareOpenArgument",
-            "index": 25
+            "index": 26
         },
         "stack": {
             "in": 1,
@@ -2324,7 +2364,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 89,
+        "id": 90,
         "name": "PrepareOpenStringForward",
         "operands": [
             {
@@ -2346,7 +2386,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "prepareOpenArgument",
-            "index": 25
+            "index": 26
         },
         "stack": {
             "in": 1,
@@ -2357,7 +2397,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 90,
+        "id": 91,
         "name": "PrepareOpenArrayDirect",
         "operands": [
             {
@@ -2379,7 +2419,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "prepareOpenArgument",
-            "index": 25
+            "index": 26
         },
         "stack": {
             "in": 1,
@@ -2390,7 +2430,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 91,
+        "id": 92,
         "name": "PrepareOpenArrayForward",
         "operands": [
             {
@@ -2412,7 +2452,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "prepareOpenArgument",
-            "index": 25
+            "index": 26
         },
         "stack": {
             "in": 1,
@@ -2423,7 +2463,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 92,
+        "id": 93,
         "name": "OpenStringCapacity",
         "operands": [
             {
@@ -2449,7 +2489,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 93,
+        "id": 94,
         "name": "OpenStringResize",
         "operands": [
             {
@@ -2471,7 +2511,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "openStringResize",
-            "index": 26
+            "index": 27
         },
         "stack": {
             "in": 2,
@@ -2482,7 +2522,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 94,
+        "id": 95,
         "name": "ArrayLength",
         "operands": [
             {
@@ -2508,7 +2548,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 95,
+        "id": 96,
         "name": "OpenArrayLength",
         "operands": [
             {
@@ -2534,7 +2574,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 96,
+        "id": 97,
         "name": "OpenArrayIndex",
         "operands": [
             {
@@ -2563,7 +2603,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "openArrayIndex",
-            "index": 27
+            "index": 28
         },
         "stack": {
             "in": 2,
@@ -2574,7 +2614,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 97,
+        "id": 98,
         "name": "ConvertInteger",
         "operands": [
             {
@@ -2603,7 +2643,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "convertInteger",
-            "index": 28
+            "index": 29
         },
         "stack": {
             "in": 1,
@@ -2614,7 +2654,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 98,
+        "id": 99,
         "name": "DivideSigned",
         "operands": [
             {
@@ -2636,7 +2676,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "divideSigned",
-            "index": 29
+            "index": 30
         },
         "stack": {
             "in": 2,
@@ -2647,7 +2687,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 99,
+        "id": 100,
         "name": "PromoteI8Pair",
         "operands": [
             {
@@ -2662,7 +2702,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "escape",
             "name": "promoteI8Pair",
-            "index": 30
+            "index": 31
         },
         "stack": {
             "in": 2,
@@ -2673,7 +2713,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 100,
+        "id": 101,
         "name": "LoadBssU8",
         "operands": [
             {
@@ -2699,7 +2739,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 101,
+        "id": 102,
         "name": "LoadBss16",
         "operands": [
             {
@@ -2725,7 +2765,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 102,
+        "id": 103,
         "name": "StoreBssU8",
         "operands": [
             {
@@ -2751,7 +2791,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 103,
+        "id": 104,
         "name": "StoreBss16",
         "operands": [
             {
@@ -2778,7 +2818,7 @@ export const rewriteSemanticOperations = [
     }
 ];
 export const rewriteSemanticOperationMaximumWidth = 10;
-const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
+const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
 export const rewriteSemanticOperationKeys = (payload, operationCount) => {
     if (!Number.isInteger(operationCount) || operationCount < 0 || operationCount > 255) {
         throw new Error(`invalid rewrite semantic operation count ${operationCount}`);

@@ -228,8 +228,8 @@ describe("ground-up rewrite front action machine", () => {
         id: 30,
       },
       {
-        name: "EmitScalarAssignment",
-        target: "RewriteStatementEmitScalarAssignment",
+        name: "FinishScalarAssignment",
+        target: "RewriteStatementFinishScalarAssignment",
         id: 31,
       },
       {
@@ -238,62 +238,68 @@ describe("ground-up rewrite front action machine", () => {
         id: 32,
       },
       {
+        name: "FinishCallStatement",
+        target: "RewriteStatementFinishCallStatement",
+        id: 33,
+      },
+      {
         name: "ParseReturnValue",
         target: "RewriteStatementParseReturnValue",
-        id: 33,
+        id: 34,
       },
       {
         name: "CommitBareReturn",
         target: "RewriteStatementCommitBareReturn",
-        id: 34,
+        id: 35,
       },
       {
         name: "ParseFail",
         target: "RewriteStatementParseFail",
-        id: 35,
+        id: 36,
       },
       {
         name: "FinishRoutine",
         target: "RewriteStatementFinishRoutine",
-        id: 36,
+        id: 37,
       },
-      { name: "BeginIf", target: "RewriteControlBeginIf", id: 37 },
-      { name: "ParseBoolean", target: "RewriteControlParseBoolean", id: 38 },
-      { name: "BeginIfBody", target: "RewriteControlBeginIfBody", id: 39 },
-      { name: "BeginElseIf", target: "RewriteControlBeginElseIf", id: 40 },
-      { name: "BeginElse", target: "RewriteControlBeginElse", id: 41 },
-      { name: "FinishElse", target: "RewriteControlFinishElse", id: 42 },
+      { name: "BeginIf", target: "RewriteControlBeginIf", id: 38 },
+      { name: "ParseBoolean", target: "RewriteControlParseBoolean", id: 39 },
+      { name: "BeginIfBody", target: "RewriteControlBeginIfBody", id: 40 },
+      { name: "BeginElseIf", target: "RewriteControlBeginElseIf", id: 41 },
+      { name: "BeginElse", target: "RewriteControlBeginElse", id: 42 },
+      { name: "FinishElse", target: "RewriteControlFinishElse", id: 43 },
       {
         name: "FinishIfClauses",
         target: "RewriteControlFinishIfClauses",
-        id: 43,
+        id: 44,
       },
-      { name: "EndIf", target: "RewriteControlEndIf", id: 44 },
-      { name: "BeginWhile", target: "RewriteControlBeginWhile", id: 45 },
+      { name: "EndIf", target: "RewriteControlEndIf", id: 45 },
+      { name: "BeginWhile", target: "RewriteControlBeginWhile", id: 46 },
       {
         name: "BeginWhileBody",
         target: "RewriteControlBeginWhileBody",
-        id: 46,
+        id: 47,
       },
-      { name: "EndWhile", target: "RewriteControlEndWhile", id: 47 },
-      { name: "EmitExit", target: "RewriteControlEmitExit", id: 48 },
-      { name: "EmitContinue", target: "RewriteControlEmitContinue", id: 49 },
+      { name: "EndWhile", target: "RewriteControlEndWhile", id: 48 },
+      { name: "EmitExit", target: "RewriteControlEmitExit", id: 49 },
+      { name: "EmitContinue", target: "RewriteControlEmitContinue", id: 50 },
       {
         name: "BeginForCounter",
         target: "RewriteControlBeginForCounter",
-        id: 50,
+        id: 51,
       },
       {
         name: "ParseForRange",
         target: "RewriteControlParseForRange",
-        id: 51,
+        id: 52,
       },
       {
         name: "BeginForBody",
         target: "RewriteControlBeginForBody",
-        id: 52,
+        id: 53,
       },
-      { name: "EndFor", target: "RewriteControlEndFor", id: 53 },
+      { name: "EndFor", target: "RewriteControlEndFor", id: 54 },
+      { name: "EndHandle", target: "RewriteControlEndHandler", id: 55 },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
       ["ScalarConstant", 19],
@@ -313,8 +319,9 @@ describe("ground-up rewrite front action machine", () => {
       ["RoutineBodyEnd", 9],
       ["LocalDefault", 21],
       ["LocalInitializedExpression", 26],
-      ["ScalarAssignment", 16],
-      ["CallStatement", 9],
+      ["ScalarAssignment", 13],
+      ["CallStatement", 8],
+      ["HandleEnd", 9],
       ["ReturnValue", 9],
       ["BareReturn", 9],
       ["Fail", 9],
@@ -345,7 +352,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 235, immutable: 440, core: 12_406, workspace: 3_425 });
+    }).toEqual({ code: 239, immutable: 445, core: 12_732, workspace: 3_425 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
@@ -354,10 +361,10 @@ describe("ground-up rewrite front action machine", () => {
     ).toEqual([0, 3, 5]);
     expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 54, 0])),
+      decodeRewriteActionProgram(new Uint8Array([2, 56, 0])),
     ).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
-    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 54]))).toThrow();
+    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 56]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([0, 0]))).toThrow();
   });
 });

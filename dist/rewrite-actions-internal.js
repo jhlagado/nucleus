@@ -189,8 +189,8 @@ export const rewriteActionEscapes = [
         "id": 30
     },
     {
-        "name": "EmitScalarAssignment",
-        "target": "RewriteStatementEmitScalarAssignment",
+        "name": "FinishScalarAssignment",
+        "target": "RewriteStatementFinishScalarAssignment",
         "id": 31
     },
     {
@@ -199,109 +199,119 @@ export const rewriteActionEscapes = [
         "id": 32
     },
     {
+        "name": "FinishCallStatement",
+        "target": "RewriteStatementFinishCallStatement",
+        "id": 33
+    },
+    {
         "name": "ParseReturnValue",
         "target": "RewriteStatementParseReturnValue",
-        "id": 33
+        "id": 34
     },
     {
         "name": "CommitBareReturn",
         "target": "RewriteStatementCommitBareReturn",
-        "id": 34
+        "id": 35
     },
     {
         "name": "ParseFail",
         "target": "RewriteStatementParseFail",
-        "id": 35
+        "id": 36
     },
     {
         "name": "FinishRoutine",
         "target": "RewriteStatementFinishRoutine",
-        "id": 36
+        "id": 37
     },
     {
         "name": "BeginIf",
         "target": "RewriteControlBeginIf",
-        "id": 37
+        "id": 38
     },
     {
         "name": "ParseBoolean",
         "target": "RewriteControlParseBoolean",
-        "id": 38
+        "id": 39
     },
     {
         "name": "BeginIfBody",
         "target": "RewriteControlBeginIfBody",
-        "id": 39
+        "id": 40
     },
     {
         "name": "BeginElseIf",
         "target": "RewriteControlBeginElseIf",
-        "id": 40
+        "id": 41
     },
     {
         "name": "BeginElse",
         "target": "RewriteControlBeginElse",
-        "id": 41
+        "id": 42
     },
     {
         "name": "FinishElse",
         "target": "RewriteControlFinishElse",
-        "id": 42
+        "id": 43
     },
     {
         "name": "FinishIfClauses",
         "target": "RewriteControlFinishIfClauses",
-        "id": 43
+        "id": 44
     },
     {
         "name": "EndIf",
         "target": "RewriteControlEndIf",
-        "id": 44
+        "id": 45
     },
     {
         "name": "BeginWhile",
         "target": "RewriteControlBeginWhile",
-        "id": 45
+        "id": 46
     },
     {
         "name": "BeginWhileBody",
         "target": "RewriteControlBeginWhileBody",
-        "id": 46
+        "id": 47
     },
     {
         "name": "EndWhile",
         "target": "RewriteControlEndWhile",
-        "id": 47
+        "id": 48
     },
     {
         "name": "EmitExit",
         "target": "RewriteControlEmitExit",
-        "id": 48
+        "id": 49
     },
     {
         "name": "EmitContinue",
         "target": "RewriteControlEmitContinue",
-        "id": 49
+        "id": 50
     },
     {
         "name": "BeginForCounter",
         "target": "RewriteControlBeginForCounter",
-        "id": 50
+        "id": 51
     },
     {
         "name": "ParseForRange",
         "target": "RewriteControlParseForRange",
-        "id": 51
+        "id": 52
     },
     {
         "name": "BeginForBody",
         "target": "RewriteControlBeginForBody",
-        "id": 52
+        "id": 53
     },
     {
         "name": "EndFor",
         "target": "RewriteControlEndFor",
-        "id": 53
+        "id": 54
+    },
+    {
+        "name": "EndHandle",
+        "target": "RewriteControlEndHandler",
+        "id": 55
     }
 ];
 export const rewriteActionPrograms = [
@@ -1378,18 +1388,9 @@ export const rewriteActionPrograms = [
                 "width": 2
             },
             {
-                "instruction": "Expect",
-                "operands": [
-                    "TokenNewline",
-                    "DiagnosticExpectedLine"
-                ],
-                "id": 1,
-                "width": 3
-            },
-            {
                 "instruction": "Escape",
                 "operands": [
-                    "RewriteActionEscapeEmitScalarAssignment"
+                    "RewriteActionEscapeFinishScalarAssignment"
                 ],
                 "id": 2,
                 "width": 2
@@ -1401,7 +1402,7 @@ export const rewriteActionPrograms = [
                 "width": 1
             }
         ],
-        "width": 16
+        "width": 13
     },
     {
         "name": "CallStatement",
@@ -1424,6 +1425,35 @@ export const rewriteActionPrograms = [
                 "width": 2
             },
             {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishCallStatement"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 8
+    },
+    {
+        "name": "HandleEnd",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEnd",
+                    "DiagnosticExpectedEnd"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
                 "instruction": "Expect",
                 "operands": [
                     "TokenNewline",
@@ -1431,6 +1461,14 @@ export const rewriteActionPrograms = [
                 ],
                 "id": 1,
                 "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEndHandle"
+                ],
+                "id": 2,
+                "width": 2
             },
             {
                 "instruction": "End",

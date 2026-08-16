@@ -358,6 +358,197 @@ RewriteControlEmitContinue:
             LD   A,RewriteControlFrameContinue
             JP   RewriteControlEmitTransfer
 
+; A handler frame is selected at the direct failable call, before its header
+; destination is resolved. This preserves the frozen capacity/diagnostic
+; order and patches only the declared call operands in the semantic stream.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlPrepareHandler:
+            LD   B,RewriteControlKindHandler
+            CALL RewriteControlPushFrame
+            LD   B,RewriteControlFrameLabelA
+            CALL RewriteControlAllocateLabel
+            LD   B,RewriteControlFrameExit
+            CALL RewriteControlAllocateLabel
+            LD   HL,(RewritePendingCallModePointer)
+            LD   (HL),RewriteCallModeHandle
+            INC  HL
+            PUSH HL
+            LD   B,RewriteControlFrameLabelA
+            CALL RewriteControlTopField
+            LD   A,(HL)
+            POP  HL
+            LD   (HL),A
+            INC  HL
+            XOR  A
+            LD   (HL),A
+            LD   A,2
+            LD   (RewritePendingFailure),A
+            RET
+
+; Retain one writable u8 destination in the handler frame. Program storage
+; keeps its explicit initialized/BSS tag; activation storage keeps the exact
+; byte offset. SymbolInfo uses the frozen class/type bit layout without
+; borrowing any address bit.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlRetainHandlerDestination:
+            CALL RewriteSymbolFindCurrent
+            JP   NC,RewriteStatementUnknownName
+            LD   DE,RewriteSymbolClass
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   RewriteSymbolClassProgram
+            JR   Z,_RewriteControlHandlerClassReady
+            CP   RewriteSymbolClassLocal
+            JR   Z,_RewriteControlHandlerClassReady
+            CP   RewriteSymbolClassParameter
+            JP   NZ,RewriteStatementAssignmentTypeFailure
+_RewriteControlHandlerClassReady:
+            LD   B,A
+            INC  HL
+            LD   A,(HL)
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeU8
+            JP   NZ,RewriteStatementAssignmentTypeFailure
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            INC  HL
+            LD   C,(HL)
+            LD   A,B
+            CP   RewriteSymbolClassLocal
+            JR   NZ,_RewriteControlHandlerCounterReady
+            PUSH BC
+            PUSH DE
+            LD   C,E
+            CALL RewriteControlCheckActiveCounter
+            POP  DE
+            POP  BC
+_RewriteControlHandlerCounterReady:
+            LD   A,B
+            ADD  A,A
+            ADD  A,A
+            OR   RewriteScalarTypeU8
+            LD   B,A
+            PUSH BC
+            PUSH DE
+            CALL RewriteControlTopFrame
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            POP  DE
+            POP  BC
+            LD   A,B
+            AND  $0C
+            RRCA
+            RRCA
+            LD   (HL),A
+            INC  HL
+            LD   (HL),B
+            INC  HL
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            INC  HL
+            INC  HL
+            LD   (HL),C
+            XOR  A
+            RET
+
+; Assignment and call statements admit propagation or a same-line handler.
+; Local initializers continue to use RewriteCallConsumeLocalFailure and can
+; therefore never reach this handler path.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlSelectStatementFailure:
+            CALL RewriteParserPeek
+            LD   B,A
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JR   NZ,_RewriteControlSelectPendingFailure
+            LD   A,B
+            CP   TokenElse
+            JP   Z,RewriteCallFailureContext
+            CP   TokenHandle
+            JP   Z,RewriteCallFailureContext
+            XOR  A
+            RET
+_RewriteControlSelectPendingFailure:
+            LD   A,B
+            CP   TokenElse
+            JP   Z,RewriteCallConsumeLocalFailure
+            CP   TokenHandle
+            JP   NZ,RewriteCallFailureContext
+            CALL RewriteControlPrepareHandler
+            CALL RewriteParserTake
+            LD   A,TokenName
+            LD   C,DiagnosticExpectedName
+            CALL RewriteCallTakeExpected
+            JP   RewriteControlRetainHandlerDestination
+
+; Emit the success skip followed by the failure entry and error destination.
+; The body begins with an independent fallthrough summary; success always
+; reaches the common exit regardless of the body's own summary.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlEmitHandlerPrefix:
+            LD   B,RewriteControlFrameExit
+            CALL RewriteControlTopField
+            LD   C,(HL)
+            LD   A,RewriteSemanticSkipHandler
+            CALL RewriteControlEmitLabelOperation
+            CALL RewriteControlTopFrame
+            PUSH HL
+            LD   DE,RewriteControlFrameLabelA
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea),A
+            LD   DE,RewriteControlFrameMode-RewriteControlFrameLabelA
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+1),A
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (RewriteSemanticOperandArea+2),DE
+            INC  HL
+            INC  HL
+            LD   C,(HL)
+            POP  HL
+            LD   B,0
+            PUSH BC
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   RewriteSymbolClassProgram
+            JR   NZ,_RewriteControlEmitHandlerLocal
+            POP  BC
+            LD   A,C
+            CP   RewriteSymbolStorageBss
+            LD   A,RewriteSemanticBeginHandlerProgram
+            JR   NZ,_RewriteControlEmitHandlerReady
+            LD   A,RewriteSemanticBeginHandlerBss
+            JR   _RewriteControlEmitHandlerReady
+_RewriteControlEmitHandlerLocal:
+            POP  BC
+            LD   A,RewriteSemanticBeginHandlerLocal
+_RewriteControlEmitHandlerReady:
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            XOR  A
+            LD   (RewritePendingFailure),A
+            LD   A,1
+            LD   (RewriteControlSequenceFallsThrough),A
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlEndHandler:
+            LD   B,RewriteControlFrameExit
+            CALL RewriteControlTopField
+            LD   C,(HL)
+            LD   A,RewriteSemanticEndHandler
+            CALL RewriteControlEmitLabelOperation
+            JP   RewriteControlPopRestore
+
 .routine noreturn
 RewriteControlCounterFailure:
             LD   A,DiagnosticLoopCounter

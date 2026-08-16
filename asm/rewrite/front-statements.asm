@@ -101,7 +101,8 @@ RewriteStatementFinishScalarAssignmentExpression:
             LD   C,A
             LD   A,B
             CALL RewriteExpressionCheckRuntimeAssignable
-            JP   RewriteCallConsumeLocalFailure
+            XOR  A
+            RET
 
 ; Emit the store only after the complete statement line has succeeded. Program
 ; payloads are words; activation payloads are the published byte offsets.
@@ -170,11 +171,36 @@ RewriteStatementParseCall:
             JP   NC,RewriteStatementUnknownName
             CP   6
             JP   NC,RewriteStatementUnknownName
-            CALL RewriteCallParseService
-            JP   RewriteCallConsumeLocalFailure
+            JP   RewriteCallParseService
 _RewriteStatementParseSourceCall:
-            CALL RewriteCallParseSource
-            JP   RewriteCallConsumeLocalFailure
+            JP   RewriteCallParseSource
+
+; Statement consumers are selected only after the complete direct call has
+; been parsed. The line ending is consumed here because a handler header sits
+; on that same logical line. Successful assignment stores remain before the
+; skip/begin handler records in transcript order.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementFinishScalarAssignment:
+            CALL RewriteControlSelectStatementFailure
+            LD   A,TokenNewline
+            LD   C,DiagnosticExpectedLine
+            CALL RewriteCallTakeExpected
+            CALL RewriteStatementEmitScalarAssignment
+            LD   A,(RewritePendingFailure)
+            CP   2
+            RET  NZ
+            JP   RewriteControlEmitHandlerPrefix
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementFinishCallStatement:
+            CALL RewriteControlSelectStatementFailure
+            LD   A,TokenNewline
+            LD   C,DiagnosticExpectedLine
+            CALL RewriteCallTakeExpected
+            LD   A,(RewritePendingFailure)
+            CP   2
+            RET  NZ
+            JP   RewriteControlEmitHandlerPrefix
 
 ; Successful and failed routine exits share the same streaming fallthrough
 ; summary. A terminal statement can occur before later unreachable source;

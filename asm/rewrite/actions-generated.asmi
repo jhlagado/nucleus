@@ -44,30 +44,32 @@ RewriteActionEscapeFinishRuntimeLocalExpression .equ 27
 RewriteActionEscapeEmitLocalStore .equ 28
 RewriteActionEscapeBeginScalarAssignment .equ 29
 RewriteActionEscapeFinishScalarAssignmentExpression .equ 30
-RewriteActionEscapeEmitScalarAssignment .equ 31
+RewriteActionEscapeFinishScalarAssignment .equ 31
 RewriteActionEscapeParseCallStatement .equ 32
-RewriteActionEscapeParseReturnValue .equ 33
-RewriteActionEscapeCommitBareReturn .equ 34
-RewriteActionEscapeParseFail .equ 35
-RewriteActionEscapeFinishRoutine .equ 36
-RewriteActionEscapeBeginIf .equ 37
-RewriteActionEscapeParseBoolean .equ 38
-RewriteActionEscapeBeginIfBody .equ 39
-RewriteActionEscapeBeginElseIf .equ 40
-RewriteActionEscapeBeginElse .equ 41
-RewriteActionEscapeFinishElse .equ 42
-RewriteActionEscapeFinishIfClauses .equ 43
-RewriteActionEscapeEndIf .equ 44
-RewriteActionEscapeBeginWhile .equ 45
-RewriteActionEscapeBeginWhileBody .equ 46
-RewriteActionEscapeEndWhile .equ 47
-RewriteActionEscapeEmitExit .equ 48
-RewriteActionEscapeEmitContinue .equ 49
-RewriteActionEscapeBeginForCounter .equ 50
-RewriteActionEscapeParseForRange .equ 51
-RewriteActionEscapeBeginForBody .equ 52
-RewriteActionEscapeEndFor .equ 53
-RewriteActionEscapeCount .equ 54
+RewriteActionEscapeFinishCallStatement .equ 33
+RewriteActionEscapeParseReturnValue .equ 34
+RewriteActionEscapeCommitBareReturn .equ 35
+RewriteActionEscapeParseFail .equ 36
+RewriteActionEscapeFinishRoutine .equ 37
+RewriteActionEscapeBeginIf .equ 38
+RewriteActionEscapeParseBoolean .equ 39
+RewriteActionEscapeBeginIfBody .equ 40
+RewriteActionEscapeBeginElseIf .equ 41
+RewriteActionEscapeBeginElse .equ 42
+RewriteActionEscapeFinishElse .equ 43
+RewriteActionEscapeFinishIfClauses .equ 44
+RewriteActionEscapeEndIf .equ 45
+RewriteActionEscapeBeginWhile .equ 46
+RewriteActionEscapeBeginWhileBody .equ 47
+RewriteActionEscapeEndWhile .equ 48
+RewriteActionEscapeEmitExit .equ 49
+RewriteActionEscapeEmitContinue .equ 50
+RewriteActionEscapeBeginForCounter .equ 51
+RewriteActionEscapeParseForRange .equ 52
+RewriteActionEscapeBeginForBody .equ 53
+RewriteActionEscapeEndFor .equ 54
+RewriteActionEscapeEndHandle .equ 55
+RewriteActionEscapeCount .equ 56
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -256,19 +258,26 @@ RewriteActionProgramScalarAssignment:
             .db RewriteActionEscape,RewriteActionEscapeBeginScalarAssignment
             .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
             .db RewriteActionEscape,RewriteActionEscapeFinishScalarAssignmentExpression
-            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
-            .db RewriteActionEscape,RewriteActionEscapeEmitScalarAssignment
+            .db RewriteActionEscape,RewriteActionEscapeFinishScalarAssignment
             .db RewriteActionEnd
 RewriteActionProgramScalarAssignmentEnd:
-RewriteActionProgramScalarAssignmentWidth .equ 16
+RewriteActionProgramScalarAssignmentWidth .equ 13
 
 RewriteActionProgramCallStatement:
             .db RewriteActionExpect,TokenName,DiagnosticExpectedName
             .db RewriteActionEscape,RewriteActionEscapeParseCallStatement
-            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeFinishCallStatement
             .db RewriteActionEnd
 RewriteActionProgramCallStatementEnd:
-RewriteActionProgramCallStatementWidth .equ 9
+RewriteActionProgramCallStatementWidth .equ 8
+
+RewriteActionProgramHandleEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeEndHandle
+            .db RewriteActionEnd
+RewriteActionProgramHandleEndEnd:
+RewriteActionProgramHandleEndWidth .equ 9
 
 RewriteActionProgramReturnValue:
             .db RewriteActionExpect,TokenReturn,DiagnosticExpectedReturn

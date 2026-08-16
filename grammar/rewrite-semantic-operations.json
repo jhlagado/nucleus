@@ -508,6 +508,17 @@
       "source": "direct"
     },
     {
+      "name": "BeginHandlerBss",
+      "operands": [
+        ["label", "byte"],
+        ["symbolInfo", "byte"],
+        ["address", "word"]
+      ],
+      "backend": ["escape", "beginHandlerBss"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
       "name": "BeginHandlerLocal",
       "operands": [
         ["label", "byte"],

@@ -107,8 +107,8 @@ describe("ground-up rewrite generated record declarations", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       declarations: 1_528,
-      actionData: 440,
-      core: 12_406,
+      actionData: 445,
+      core: 12_732,
       workspace: 3_425,
     });
   });

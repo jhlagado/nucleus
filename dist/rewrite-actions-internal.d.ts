@@ -130,97 +130,105 @@ export declare const rewriteActionEscapes: readonly [{
     readonly target: "RewriteStatementFinishScalarAssignmentExpression";
     readonly id: 30;
 }, {
-    readonly name: "EmitScalarAssignment";
-    readonly target: "RewriteStatementEmitScalarAssignment";
+    readonly name: "FinishScalarAssignment";
+    readonly target: "RewriteStatementFinishScalarAssignment";
     readonly id: 31;
 }, {
     readonly name: "ParseCallStatement";
     readonly target: "RewriteStatementParseCall";
     readonly id: 32;
 }, {
+    readonly name: "FinishCallStatement";
+    readonly target: "RewriteStatementFinishCallStatement";
+    readonly id: 33;
+}, {
     readonly name: "ParseReturnValue";
     readonly target: "RewriteStatementParseReturnValue";
-    readonly id: 33;
+    readonly id: 34;
 }, {
     readonly name: "CommitBareReturn";
     readonly target: "RewriteStatementCommitBareReturn";
-    readonly id: 34;
+    readonly id: 35;
 }, {
     readonly name: "ParseFail";
     readonly target: "RewriteStatementParseFail";
-    readonly id: 35;
+    readonly id: 36;
 }, {
     readonly name: "FinishRoutine";
     readonly target: "RewriteStatementFinishRoutine";
-    readonly id: 36;
+    readonly id: 37;
 }, {
     readonly name: "BeginIf";
     readonly target: "RewriteControlBeginIf";
-    readonly id: 37;
+    readonly id: 38;
 }, {
     readonly name: "ParseBoolean";
     readonly target: "RewriteControlParseBoolean";
-    readonly id: 38;
+    readonly id: 39;
 }, {
     readonly name: "BeginIfBody";
     readonly target: "RewriteControlBeginIfBody";
-    readonly id: 39;
+    readonly id: 40;
 }, {
     readonly name: "BeginElseIf";
     readonly target: "RewriteControlBeginElseIf";
-    readonly id: 40;
+    readonly id: 41;
 }, {
     readonly name: "BeginElse";
     readonly target: "RewriteControlBeginElse";
-    readonly id: 41;
+    readonly id: 42;
 }, {
     readonly name: "FinishElse";
     readonly target: "RewriteControlFinishElse";
-    readonly id: 42;
+    readonly id: 43;
 }, {
     readonly name: "FinishIfClauses";
     readonly target: "RewriteControlFinishIfClauses";
-    readonly id: 43;
+    readonly id: 44;
 }, {
     readonly name: "EndIf";
     readonly target: "RewriteControlEndIf";
-    readonly id: 44;
+    readonly id: 45;
 }, {
     readonly name: "BeginWhile";
     readonly target: "RewriteControlBeginWhile";
-    readonly id: 45;
+    readonly id: 46;
 }, {
     readonly name: "BeginWhileBody";
     readonly target: "RewriteControlBeginWhileBody";
-    readonly id: 46;
+    readonly id: 47;
 }, {
     readonly name: "EndWhile";
     readonly target: "RewriteControlEndWhile";
-    readonly id: 47;
+    readonly id: 48;
 }, {
     readonly name: "EmitExit";
     readonly target: "RewriteControlEmitExit";
-    readonly id: 48;
+    readonly id: 49;
 }, {
     readonly name: "EmitContinue";
     readonly target: "RewriteControlEmitContinue";
-    readonly id: 49;
+    readonly id: 50;
 }, {
     readonly name: "BeginForCounter";
     readonly target: "RewriteControlBeginForCounter";
-    readonly id: 50;
+    readonly id: 51;
 }, {
     readonly name: "ParseForRange";
     readonly target: "RewriteControlParseForRange";
-    readonly id: 51;
+    readonly id: 52;
 }, {
     readonly name: "BeginForBody";
     readonly target: "RewriteControlBeginForBody";
-    readonly id: 52;
+    readonly id: 53;
 }, {
     readonly name: "EndFor";
     readonly target: "RewriteControlEndFor";
-    readonly id: 53;
+    readonly id: 54;
+}, {
+    readonly name: "EndHandle";
+    readonly target: "RewriteControlEndHandler";
+    readonly id: 55;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -883,13 +891,8 @@ export declare const rewriteActionPrograms: readonly [{
         readonly id: 2;
         readonly width: 2;
     }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
         readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeEmitScalarAssignment"];
+        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignment"];
         readonly id: 2;
         readonly width: 2;
     }, {
@@ -898,7 +901,7 @@ export declare const rewriteActionPrograms: readonly [{
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 16;
+    readonly width: 13;
 }, {
     readonly name: "CallStatement";
     readonly steps: readonly [{
@@ -912,10 +915,34 @@ export declare const rewriteActionPrograms: readonly [{
         readonly id: 2;
         readonly width: 2;
     }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishCallStatement"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 8;
+}, {
+    readonly name: "HandleEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
         readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEndHandle"];
+        readonly id: 2;
+        readonly width: 2;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];

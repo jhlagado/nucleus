@@ -1348,6 +1348,37 @@ R5 counted-loop checkpoint (Measured):
   bytes below 16 KiB with 671 workspace bytes remaining; feature completion,
   not this interim margin, controls the next step.
 
+R5 local-handler checkpoint (Measured):
+
+- assignment and call statements now select exactly one direct failure
+  consumer. Propagation retains the existing routine/main modes; same-line
+  `handle NAME` allocates one ordinary control frame, patches the call's
+  declared mode and handler-label operands, and clears the pending call before
+  the handler body begins;
+- the accepted proof checks sixteen semantic records byte for byte across a
+  same-destination scalar assignment and call statements handled by a local,
+  an initialized program variable, and a BSS program variable. It compiles in
+  50,139 instructions and 451,608 T-states. A second 15-operation proof routes
+  `continue` and `exit` through an intervening handler frame in 32,837
+  instructions and 293,671 T-states;
+- initialized and BSS program destinations use separate, equal-width handler
+  operations. The distinction is an explicit storage identity: no payload or
+  instruction-address bit is borrowed, and each program-handler record keeps
+  the frozen five-byte width;
+- exact diagnostics cover an unknown destination (57), a non-u8 destination
+  and constant destination (60), a handler attached to an infallible call or
+  after propagation (87), a handler on a local initializer (87), an active
+  counted-loop counter (36), and a missing destination name (130). Every case
+  retains the frozen source part and byte offset;
+- the control region is 1,249 code bytes and the statement region is 530 code
+  bytes. The operation authority contains 104 operations; 56 generated
+  escapes and 35 generated programs use 239 code bytes and 445 immutable
+  bytes. The shipping replacement is 11,274 code + 1,458 immutable = 12,732
+  core bytes; the instrumented replacement is 12,736 core bytes. Workspace is
+  3,425 bytes. The interim 3,652-byte margin below 16 KiB remains
+  observational only: frontend and backend completion may exceed it, and
+  compression remains a later phase.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1474,8 +1505,8 @@ source/service calls, concrete and forwarded open arguments, nested calls, and
 immediate `else fail` propagation. R5 now has scalar assignments, source and
 service call statements, scalar and aggregate returns, explicit routine/main
 failure, bare return, routine-end fallthrough validation, complete
-`if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops, and
-nearest-loop `exit`/`continue`. The next work is local `handle` blocks and
-their failure-state transitions, followed by the remaining routine-body
-grammar. Compression follows semantic and backend completion. The replacement
-remains test-selected until the complete cutover gate passes.
+`if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops,
+nearest-loop `exit`/`continue`, and local `handle` blocks. The next work is the
+remaining routine-body and aggregate-statement grammar. Compression follows
+semantic and backend completion. The replacement remains test-selected until
+the complete cutover gate passes.

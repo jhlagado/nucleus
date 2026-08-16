@@ -132,12 +132,16 @@
       "target": "RewriteStatementFinishScalarAssignmentExpression"
     },
     {
-      "name": "EmitScalarAssignment",
-      "target": "RewriteStatementEmitScalarAssignment"
+      "name": "FinishScalarAssignment",
+      "target": "RewriteStatementFinishScalarAssignment"
     },
     {
       "name": "ParseCallStatement",
       "target": "RewriteStatementParseCall"
+    },
+    {
+      "name": "FinishCallStatement",
+      "target": "RewriteStatementFinishCallStatement"
     },
     {
       "name": "ParseReturnValue",
@@ -222,6 +226,10 @@
     {
       "name": "EndFor",
       "target": "RewriteControlEndFor"
+    },
+    {
+      "name": "EndHandle",
+      "target": "RewriteControlEndHandler"
     }
   ],
   "programs": [
@@ -431,8 +439,7 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginScalarAssignment"] },
         { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishScalarAssignmentExpression"] },
-        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
-        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitScalarAssignment"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishScalarAssignment"] },
         { "instruction": "End", "operands": [] }
       ]
     },
@@ -441,7 +448,16 @@
       "steps": [
         { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeParseCallStatement"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishCallStatement"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "HandleEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEndHandle"] },
         { "instruction": "End", "operands": [] }
       ]
     },
