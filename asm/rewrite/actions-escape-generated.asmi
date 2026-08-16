@@ -47,7 +47,15 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeOpenForwardBody
             DEC  A
             JR   Z,_RewriteActionEscapeRequireComplete
-            JP   RewriteRoutineCloseScope
+            DEC  A
+            JR   Z,_RewriteActionEscapeCloseRoutineScope
+            DEC  A
+            JR   Z,_RewriteActionEscapeBeginLocal
+            DEC  A
+            JR   Z,_RewriteActionEscapeParseLocalScalarType
+            DEC  A
+            JR   Z,_RewriteActionEscapeEmitDefaultLocal
+            JP   RewriteDeclarationCommitLocal
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -92,3 +100,11 @@ _RewriteActionEscapeOpenForwardBody:
             JP   RewriteDeclarationOpenForwardBody
 _RewriteActionEscapeRequireComplete:
             JP   RewriteDeclarationRequireComplete
+_RewriteActionEscapeCloseRoutineScope:
+            JP   RewriteRoutineCloseScope
+_RewriteActionEscapeBeginLocal:
+            JP   RewriteDeclarationBeginLocal
+_RewriteActionEscapeParseLocalScalarType:
+            JP   RewriteDeclarationParseLocalScalarType
+_RewriteActionEscapeEmitDefaultLocal:
+            JP   RewriteDeclarationEmitDefaultLocal

@@ -125,12 +125,12 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      escapes: 23,
-      actionCode: 249,
-      actionData: 214,
-      code: 6_569,
-      immutable: 1_177,
-      core: 7_746,
+      escapes: 27,
+      actionCode: 273,
+      actionData: 235,
+      code: 6_777,
+      immutable: 1_198,
+      core: 7_975,
       workspace: 3_369,
     });
   });

@@ -122,10 +122,10 @@ describe("ground-up rewrite generated scalar declarations", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      actions: 249,
-      declarations: 1_298,
-      actionData: 214,
-      core: 7_746,
+      actions: 273,
+      declarations: 1_482,
+      actionData: 235,
+      core: 7_975,
       workspace: 3_369,
     });
   });

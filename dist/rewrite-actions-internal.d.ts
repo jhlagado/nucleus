@@ -97,6 +97,22 @@ export declare const rewriteActionEscapes: readonly [{
     readonly name: "CloseRoutineScope";
     readonly target: "RewriteRoutineCloseScope";
     readonly id: 22;
+}, {
+    readonly name: "BeginLocal";
+    readonly target: "RewriteDeclarationBeginLocal";
+    readonly id: 23;
+}, {
+    readonly name: "ParseLocalScalarType";
+    readonly target: "RewriteDeclarationParseLocalScalarType";
+    readonly id: 24;
+}, {
+    readonly name: "EmitDefaultLocal";
+    readonly target: "RewriteDeclarationEmitDefaultLocal";
+    readonly id: 25;
+}, {
+    readonly name: "CommitLocal";
+    readonly target: "RewriteDeclarationCommitLocal";
+    readonly id: 26;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -604,5 +620,54 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 9;
+}, {
+    readonly name: "LocalDefault";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginLocal"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseLocalScalarType"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEmitDefaultLocal"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitLocal"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 21;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

@@ -36,7 +36,11 @@ RewriteActionEscapeFinishForwardRoutineHeader .equ 19
 RewriteActionEscapeOpenForwardBody .equ 20
 RewriteActionEscapeRequireComplete .equ 21
 RewriteActionEscapeCloseRoutineScope .equ 22
-RewriteActionEscapeCount .equ 23
+RewriteActionEscapeBeginLocal .equ 23
+RewriteActionEscapeParseLocalScalarType .equ 24
+RewriteActionEscapeEmitDefaultLocal .equ 25
+RewriteActionEscapeCommitLocal .equ 26
+RewriteActionEscapeCount .equ 27
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -183,3 +187,16 @@ RewriteActionProgramRoutineEnd:
             .db RewriteActionEnd
 RewriteActionProgramRoutineEndEnd:
 RewriteActionProgramRoutineEndWidth .equ 9
+
+RewriteActionProgramLocalDefault:
+            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginLocal
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseLocalScalarType
+            .db RewriteActionEscape,RewriteActionEscapeEmitDefaultLocal
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitLocal
+            .db RewriteActionEnd
+RewriteActionProgramLocalDefaultEnd:
+RewriteActionProgramLocalDefaultWidth .equ 21

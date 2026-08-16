@@ -15,7 +15,7 @@ let image: Image;
 
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r3-routine-headers-proof.asm"),
+    path.join(rewriteDirectory, "r3-local-declarations-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R3 routine-header proof artifacts");
+    throw new Error("AZM omitted R3 local-declaration proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -65,25 +65,35 @@ const run = (entryName: string) => {
   };
 };
 
-describe("ground-up rewrite generated routine headers", () => {
-  it("retains direct, forward, open-view, result, fails, main, and EOF state", () => {
-    const executed = run("ProofRoutineHeaders");
-    expect(executed).toMatchObject({ status: 0xe8, diagnostic: 0 });
+describe("ground-up rewrite default local declarations", () => {
+  it("publishes all scalar widths after exact zero-initialization records", () => {
+    const executed = run("ProofLocalDeclarations");
+    expect(executed).toMatchObject({ status: 0xd0, diagnostic: 0 });
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 37_218, cycles: 334_628 });
+    }).toEqual({ instructions: 23_559, cycles: 212_494 });
+  });
+
+  it("places locals after mixed-width parameter carriers", () => {
+    const executed = run("ProofLocalAfterParameters");
+    expect(executed).toMatchObject({
+      status: 0xd5,
+      diagnostic: 0,
+    });
+    expect({
+      instructions: executed.instructions,
+      cycles: executed.cycles,
+    }).toEqual({ instructions: 22_933, cycles: 206_498 });
   });
 
   it.each([
-    ["ProofRoutineMissingMain", 0xe9, 37, 12],
-    ["ProofRoutineIncomplete", 0xea, 54, 31],
-    ["ProofRoutineDuplicateParameter", 0xeb, 55, 15],
-    ["ProofRoutineHeaderIsolation", 0xec, 57, 20],
-    ["ProofRoutineMainParameter", 0xed, 134, 9],
-    ["ProofRoutineMainResult", 0xee, 129, 11],
+    ["ProofLocalAggregateType", 0xd1, 59, 20],
+    ["ProofLocalOpenArrayType", 0xd2, 129, 22],
+    ["ProofLocalDuplicate", 0xd3, 55, 27],
+    ["ProofLocalCapacity", 0xd4, 56, 229],
   ] as const)(
-    "preserves the frozen routine diagnostic at %s",
+    "preserves the frozen local diagnostic at %s",
     (entry, status, diagnostic, offset) => {
       expect(run(entry)).toMatchObject({
         status,
@@ -94,7 +104,7 @@ describe("ground-up rewrite generated routine headers", () => {
     },
   );
 
-  it("locks the routine-header replacement accounts", () => {
+  it("locks the default-local replacement accounts", () => {
     expect({
       escapes: image.symbols.RewriteActionEscapeCount,
       actionCode:

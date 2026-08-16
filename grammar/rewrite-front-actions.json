@@ -98,6 +98,22 @@
     {
       "name": "CloseRoutineScope",
       "target": "RewriteRoutineCloseScope"
+    },
+    {
+      "name": "BeginLocal",
+      "target": "RewriteDeclarationBeginLocal"
+    },
+    {
+      "name": "ParseLocalScalarType",
+      "target": "RewriteDeclarationParseLocalScalarType"
+    },
+    {
+      "name": "EmitDefaultLocal",
+      "target": "RewriteDeclarationEmitDefaultLocal"
+    },
+    {
+      "name": "CommitLocal",
+      "target": "RewriteDeclarationCommitLocal"
     }
   ],
   "programs": [
@@ -258,6 +274,20 @@
         { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCloseRoutineScope"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "LocalDefault",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginLocal"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseLocalScalarType"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitDefaultLocal"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitLocal"] },
         { "instruction": "End", "operands": [] }
       ]
     }

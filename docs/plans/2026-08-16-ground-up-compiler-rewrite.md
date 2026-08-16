@@ -988,6 +988,43 @@ R3 generated routine-header checkpoint (Measured):
   Workspace remains 3,369 bytes, leaving 8,638 core bytes and 727 workspace
   bytes beneath their gates.
 
+R3 generated default-local checkpoint (Measured):
+
+- one generated action program now parses and publishes default-initialized
+  scalar locals. The admitted types are exactly `u8`, `u16`, `i8`, `i16`, and
+  `boolean`; records, arrays, bounded strings, and open views remain invalid
+  local types;
+- a provisional local retains its complete source spelling, exact type,
+  activation-storage tag, and byte offset. Publication occurs only after the
+  complete declaration and newline have succeeded. Routine close rewinds the
+  local bindings with the rest of the routine scope;
+- every default declaration emits one width-specific declaration record, one
+  zero `Literal16`, and one width-specific store record. Five declarations
+  produce fifteen checked operations and 35 transcript bytes. Boolean and
+  byte integers consume one activation byte; word integers consume two;
+- the mixed-parameter proof starts locals after a `u16` parameter and a
+  three-byte `string[]` carrier. It locks local offsets 5 and 6 and the final
+  eight-byte activation prefix, rather than assuming that local storage begins
+  at zero;
+- exact diagnostics retain the frozen distinctions: a concrete aggregate
+  local reports 59 at the type token, an open-array suffix reports 129 at its
+  opening bracket, a duplicate reports 55 at the second name, and the
+  seventeenth active binding reports 56 at its name;
+- the five-type proof executes in 23,559 instructions and 212,494 T-states.
+  The mixed-parameter proof executes in 22,933 instructions and 206,498
+  T-states; and
+- the 27-target action dispatcher is 273 code bytes, fifteen generated
+  programs occupy 235 immutable bytes, and the front declaration region is
+  1,482 code bytes. The shipping replacement is 6,777 code + 1,198 immutable
+  = 7,975 core bytes; the instrumented replacement is 7,979 core bytes.
+  Workspace remains 3,369 bytes, leaving 8,409 core bytes and 727 workspace
+  bytes beneath their gates.
+
+Runtime-expression initializers are deliberately not approximated with a
+constant-only shortcut. They are the first consumer of R4's runtime expression
+mode, including ordinary expressions and direct failable calls followed by
+`else fail`.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -1120,7 +1157,8 @@ shared source-type, record, and recursive static-initializer substrates.
 Generated programs now cover scalar and aggregate constants, assertions,
 uninitialised variables, scalar- and aggregate-initialised variables, records,
 fields, direct and forward routine headers, formal parameters, results,
-failure clauses, `main`, routine close, and EOF completeness. The next
-checkpoint is scalar local declarations and their default/runtime initializer
-boundary. The replacement remains test-selected until the complete cutover
-gate passes.
+failure clauses, `main`, default scalar locals, routine close, and EOF
+completeness. The next checkpoint begins R4 runtime expression mode with
+runtime atoms, name loads, scalar compatibility, and explicit local
+initializers as its first end-to-end consumer. The replacement remains
+test-selected until the complete cutover gate passes.

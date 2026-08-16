@@ -861,3 +861,109 @@ RewriteDeclarationOpenForwardBody:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteDeclarationRequireComplete:
             JP   RewriteRoutineRequireComplete
+
+; Default scalar locals are the declaration half of the R3/R4 boundary. R3
+; owns name/type/layout publication and the exact zero-initialization records;
+; R4 will add the runtime-expression path without changing this lifecycle.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationBeginLocal:
+            CALL RewriteDeclarationRejectCurrent
+            LD   A,(RewriteCurrentLocalOffset)
+            LD   C,A
+            LD   B,0
+            LD   D,RewriteScalarTypeExact
+            LD   A,RewriteSymbolClassLocal
+            CALL RewriteSymbolPrepareCurrent
+            LD   A,RewriteSymbolStorageActivation
+            JP   RewriteSymbolSetStorageCurrent
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationParseLocalScalarType:
+            ; Retain the first type token because concrete aggregates and
+            ; string[] use the frozen expected-type anchor there. An open
+            ; array instead retains its closing bracket as the grammar's
+            ; unexpected continuation.
+            CALL RewriteParserPeek
+            LD   HL,(TokenStartOffset)
+            LD   (RewriteDeclarationAnchor),HL
+            CALL RewriteTypeParse
+            BIT  7,A
+            JR   NZ,RewriteDeclarationLocalOpenArrayFailure
+            CP   RewriteFirstOwnedTypeId
+            JP   NC,RewriteDeclarationLocalTypeFailure
+            OR   A
+            JP   Z,RewriteDeclarationLocalTypeFailure
+            LD   (RewriteCurrentType),A
+            LD   C,A
+            LD   A,(RewriteSymbolCount)
+            CALL RewriteSymbolAddress
+            LD   DE,RewriteSymbolType
+            ADD  HL,DE
+            LD   (HL),C
+            LD   A,C
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationLocalTypeFailure
+            LD   A,(RewriteCurrentLocalOffset)
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,L
+            CP   2
+            LD   A,RewriteSemanticDeclareLocalU8
+            JR   NZ,_RewriteDeclarationEmitLocalDeclare
+            LD   A,RewriteSemanticDeclareLocal16
+_RewriteDeclarationEmitLocalDeclare:
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
+RewriteDeclarationLocalTypeFailure:
+            ; The frozen compiler classifies a non-scalar local declaration
+            ; as an invalid declared type, not as a scalar-expression fault.
+            LD   HL,(RewriteDeclarationAnchor)
+            LD   (TokenStartOffset),HL
+            LD   A,DiagnosticExpectedType
+            JP   RewriteRaiseDiagnostic
+
+RewriteDeclarationLocalOpenArrayFailure:
+            LD   HL,(RewriteSuffixOpenOffset)
+            ; A local's scalar grammar stops at the opening bracket; the
+            ; general type parser retained the following closing bracket.
+            DEC  HL
+            LD   (TokenStartOffset),HL
+            LD   A,DiagnosticExpectedLine
+            JP   RewriteRaiseDiagnostic
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationEmitDefaultLocal:
+            XOR  A
+            LD   (RewriteSemanticOperandArea),A
+            LD   (RewriteSemanticOperandArea+1),A
+            LD   A,RewriteSemanticLiteral16
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            LD   A,(RewriteCurrentLocalOffset)
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,(RewriteCurrentType)
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationLocalTypeFailure
+            LD   A,L
+            CP   2
+            LD   A,RewriteSemanticStoreLocalU8
+            JR   NZ,_RewriteDeclarationEmitLocalStore
+            LD   A,RewriteSemanticStoreLocal16
+_RewriteDeclarationEmitLocalStore:
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationCommitLocal:
+            LD   A,(RewriteCurrentType)
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationLocalTypeFailure
+            LD   A,(RewriteCurrentLocalOffset)
+            ADD  A,L
+            JP   C,RewriteDeclarationLocalCapacityFailure
+            LD   (RewriteCurrentLocalOffset),A
+            JP   RewriteSymbolCommit
+
+RewriteDeclarationLocalCapacityFailure:
+            LD   A,DiagnosticSymbolCapacity
+            JP   RewriteRaiseDiagnostic
