@@ -19,6 +19,9 @@ RewriteActionCodeEnd:
 RewriteSemanticCodeStart:
             .include "semantic.asm"
 RewriteSemanticCodeEnd:
+RewriteBackendCodeStart:
+            .include "backend-recipes.asm"
+RewriteBackendCodeEnd:
 RewriteMetadataCodeStart:
             .include "types-symbols.asm"
 RewriteExpressionCodeStart:
@@ -52,6 +55,7 @@ RewriteKeywordImmutableStart:
 RewriteKeywordImmutableEnd:
 RewriteOperationImmutableStart:
             .include "operations-generated.asmi"
+            .include "backend-recipes-generated.asmi"
 RewriteOperationImmutableEnd:
 RewriteExpressionImmutableStart:
             .include "constant-expression-data.asmi"

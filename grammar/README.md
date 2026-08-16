@@ -12,6 +12,7 @@ meaning; these files make its current Stage 7 syntax executable and testable.
 | `stage7-proof-actions.asmi`        | Generated action aliases used only by the isolated engine proof.                                                              |
 | `rewrite-semantic-operations.json` | Replacement-compiler semantic operations, operands, backend class, stack effect, source attribution, and global trace policy. |
 | `rewrite-front-actions.json`       | Replacement front-end action instructions and the relocatable full-address handwritten-escape directory.                     |
+| `rewrite-backend-recipes.json`     | Replacement backend recipes and shared target-byte fragments for recipe-class semantic operations.                           |
 
 `scripts/generate-rewrite-operations.mjs` turns the replacement operation
 source into Z80 ordinals, producer-facing operand offsets, record widths,
@@ -92,6 +93,16 @@ Expressions, name-led statements, and type-directed aggregate initializers are
 deliberate external islands. They require precedence or symbol and type
 information that token lookahead alone cannot supply.
 
+`scripts/generate-rewrite-backend-recipes.mjs` validates the backend selectors
+against the semantic-operation authority, resolves every named operand to its
+operand-buffer offset, and emits the recipe directory and shared fragments.
+Recipe directories and family-dispatch tables store complete 16-bit addresses.
+Recipe instructions and emitted target templates are declared data: `.db`
+contains recipe opcodes or target bytes, and `.dw` contains addresses. The Z80
+instructions executed by the compiler remain ordinary AZM mnemonics. Literal
+target runs are compared with AZM-assembled reference code in the R6 execution
+proof. `npm run check:rewrite-backend-recipes` rejects stale generated output.
+
 The packed statement grammar keeps failure consumption immediate: `else fail`
 propagates a direct failable call, while same-line `handle NAME` opens its local
 handler body. Boolean `or` remains entirely inside the expression island.
@@ -100,4 +111,6 @@ The packed Stage 7 tables are locked by `test/ll1-stage7.test.ts`. Replacement
 operation outputs are locked by `npm run check:rewrite-operations` and
 `test/rewrite-semantic.test.ts`. Replacement action outputs are locked by
 `npm run check:rewrite-actions` and `test/rewrite-actions.test.ts`. Run the
-relevant checks after changing either source or generator.
+relevant checks after changing either source or generator. Replacement backend
+recipes are locked by `npm run check:rewrite-backend-recipes` and
+`test/rewrite-backend-recipes.test.ts`.

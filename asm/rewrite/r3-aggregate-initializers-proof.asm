@@ -282,7 +282,7 @@ ProofExpectedImage:
             ; Constant suffix: Pair[2], then string[5] with embedded zero.
             .db 1,$34,$12,2,$CD,$AB,3,"a",0,"B",0,0,0
 
-            .org $5000
+            .org $7000
 ProofSourceAccepted:
             .db "record Pair",10,"left as u8",10,"right as u16",10,"end",10
             .db "const pairs as Pair[2] = [(1,$1234),(2,$ABCD)]",10

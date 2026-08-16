@@ -331,6 +331,12 @@ RewriteStatementTargetSourceOffset .equ RewriteStaticPendingOffset ; word
 RewriteInitializerCapacity  .equ 1024
 RewriteInitializerBase       .equ RewriteStaticPendingLimit
 RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapacity
+; Backend generation starts only after static construction and reuses the
+; dead initializer scratch prefix for complete output pointers and the current
+; operation. No address bits are metadata and no workspace account grows.
+RewriteBackendOutputCursor   .equ RewriteInitializerBase ; word
+RewriteBackendOutputLimit    .equ RewriteInitializerBase+2 ; word
+RewriteBackendCurrentOperation .equ RewriteInitializerBase+4
 RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity
@@ -474,6 +480,7 @@ DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
 DiagnosticReadOnlyAssignment .equ 94
 DiagnosticAssertionFailed    .equ 91
+DiagnosticTargetCapacity     .equ 96
 
 ; Expected-token diagnostics retain the published production-token ordinals,
 ; not the replacement tokenizer's private compact ordinals.

@@ -308,7 +308,7 @@ ProofExpectedDiagnostic:     .db 0
 ProofExpectedOffset:         .dw 0
 ProofDiagnosticContinuation: .dw 0
 
-            .org $4800
+            .org $7000
 ProofSourceRecords:
             .db "record Pair",10
             .db "left as u8",10

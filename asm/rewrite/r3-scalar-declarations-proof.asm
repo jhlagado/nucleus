@@ -496,7 +496,7 @@ ProofExpectedDiagnostic:     .db 0
 ProofExpectedOffset:         .dw 0
 ProofDiagnosticContinuation: .dw 0
 
-            .org $4800
+            .org $7000
 ProofNameAnswer:   .db "answer"
 ProofNameNegative: .db "negative"
 ProofNamePositive: .db "positive"

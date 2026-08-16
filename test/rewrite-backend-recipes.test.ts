@@ -6,8 +6,6 @@ import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { rewriteSemanticOperations } from "../src/rewrite-semantic-operations-internal.js";
-
 const rewriteDirectory = path.resolve(import.meta.dirname, "../asm/rewrite");
 
 interface Image {
@@ -15,15 +13,13 @@ interface Image {
   readonly symbols: Readonly<Record<string, number>>;
 }
 
-let image: Image;
-
 const imageFromArtifacts = (
   artifacts: Awaited<ReturnType<typeof compile>>["artifacts"],
 ): Image => {
   const hex = artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R5 compilation-unit proof artifacts");
+    throw new Error("AZM omitted R6 backend-recipe proof artifacts");
   }
   return {
     hex: hex.text,
@@ -36,9 +32,11 @@ const imageFromArtifacts = (
   };
 };
 
+let image: Image;
+
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r5-compilation-unit-proof.asm"),
+    path.join(rewriteDirectory, "r6-backend-recipes-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -47,7 +45,7 @@ beforeAll(async () => {
   image = imageFromArtifacts(result.artifacts);
 }, 30_000);
 
-const run = (entryName: string, instructionLimit = 300_000) => {
+const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
   const entry = image.symbols[entryName];
   if (entry === undefined) throw new Error(`missing ${entryName}`);
@@ -57,7 +55,7 @@ const run = (entryName: string, instructionLimit = 300_000) => {
   );
   let instructions = 0;
   let cycles = 0;
-  while (!runtime.isHalted() && instructions < instructionLimit) {
+  while (!runtime.isHalted() && instructions < 300_000) {
     const step = runtime.step();
     instructions += 1;
     cycles += step.cycles ?? 0;
@@ -66,101 +64,52 @@ const run = (entryName: string, instructionLimit = 300_000) => {
   return { memory: runtime.hardware.memory, instructions, cycles };
 };
 
-describe("ground-up rewrite compilation-unit driver", () => {
-  it("parses a complete mixed program directly from source", () => {
-    const { memory, instructions, cycles } = run("ProofCompilationUnit");
+describe("ground-up rewrite backend recipes", () => {
+  it("emits byte-identical target code for the first 26 scalar operations", () => {
+    const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 66_189,
-      cycles: 599_256,
+      instructions: 7_406,
+      cycles: 66_004,
     });
-    expect({
-      symbols: memory[image.symbols.RewriteSymbolCount ?? -1],
-      routines: memory[image.symbols.RewriteRoutineCount ?? -1],
-      parameters: memory[image.symbols.RewriteParameterCount ?? -1],
-      records: memory[image.symbols.RewriteRecordCount ?? -1],
-      mainFlags: memory[image.symbols.RewriteMainFlags ?? -1],
-    }).toEqual({
-      symbols: 7,
-      routines: 1,
-      parameters: 1,
-      records: 1,
-      mainFlags:
-        (image.symbols.RewriteRoutineFlagMain ?? 0) +
-        (image.symbols.RewriteRoutineFlagFails ?? 0),
-    });
-    const initializedBase = image.symbols.RewriteStaticImageBase ?? -1;
-    const constantBase = initializedBase + 4;
-    expect(Array.from(memory.slice(constantBase, constantBase + 6))).toEqual([
-      2,
-      "h".charCodeAt(0),
-      "i".charCodeAt(0),
-      0,
-      0,
-      0,
-    ]);
-    expect(Array.from(memory.slice(initializedBase, initializedBase + 4))).toEqual([
-      3,
-      0,
-      1,
-      0,
-    ]);
-
-    const payload = image.symbols.RewriteSemanticPayloadBase ?? -1;
-    const cursorAddress = image.symbols.RewriteSemanticSinkCursor ?? -1;
-    const cursor = memory[cursorAddress] | (memory[cursorAddress + 1] << 8);
-    const records: Array<{ name: string; bytes: number[] }> = [];
-    for (let address = payload; address < cursor; ) {
-      const operation = rewriteSemanticOperations[memory[address] - 1];
-      if (operation === undefined) throw new Error("invalid semantic operation");
-      records.push({
-        name: operation.name,
-        bytes: Array.from(memory.slice(address, address + operation.width)),
-      });
-      address += operation.width;
-    }
-    expect(records).toEqual([
-      { name: "LoadParameter16", bytes: [52, 0] },
-      { name: "LoadProgram16", bytes: [10, 0, 0] },
-      { name: "Add16", bytes: [20] },
-      { name: "ReturnScalar", bytes: [53] },
-      { name: "EndGeneralRoutineEnclosing", bytes: [62, 18] },
-      { name: "DeclareLocalU8", bytes: [2, 0] },
-      { name: "Literal16", bytes: [9, 0, 0] },
-      { name: "StoreLocalU8", bytes: [6, 0] },
-      { name: "Literal16", bytes: [9, 2, 0] },
-      {
-        name: "CallSource",
-        bytes: [58, 0, 1, 18, 0, 15, 1, 0, 0, 0],
-      },
-      { name: "StoreProgram16", bytes: [37, 0, 0] },
-      { name: "EndFailableRoutineEnclosing", bytes: [80, 0] },
-    ]);
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const expected = image.symbols.ProofExpectedBackend ?? -1;
+    const expectedEnd = image.symbols.ProofExpectedBackendEnd ?? -1;
+    expect(expectedEnd - expected).toBe(171);
+    expect(Array.from(memory.slice(output, output + 171))).toEqual(
+      Array.from(memory.slice(expected, expectedEnd)),
+    );
   });
 
-  it.each([
-    ["ProofCompilationMissingMain", 37, 12],
-    ["ProofCompilationIncompleteForward", 54, 35],
-    ["ProofCompilationMalformedRecord", 82, 14],
-    ["ProofCompilationTypedScalarConstant", 60, 14],
-    ["ProofCompilationMissingForward", 57, 4],
-  ] as const)(
-    "retains exact compilation-unit diagnostic for %s",
-    (entryName, diagnostic, offset) => {
-      const { memory } = run(entryName, 100_000);
-      const diagnosticOffset = image.symbols.DiagnosticOffset ?? -1;
-      expect({
-        diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
-        part: memory[image.symbols.DiagnosticPartId ?? -1],
-        offset:
-          memory[diagnosticOffset] | (memory[diagnosticOffset + 1] << 8),
-      }).toEqual({ diagnostic, part: 1, offset });
-    },
-  );
+  it("reports exact target-capacity failure at the first rejected byte", () => {
+    const { memory } = run("ProofBackendCapacity");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+      bytes: Array.from(memory.slice(output, output + 4)),
+    }).toEqual({
+      diagnostic: 96,
+      cursor: output + 3,
+      bytes: [0x21, 0x34, 0x12, 0],
+    });
+  });
 
-  it("executes complete compilation units at separated compiler origins", async () => {
+  it("rejects an unavailable member of a shared operation family", () => {
+    const { memory } = run("ProofBackendUnsupported");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+      firstByte: memory[output],
+    }).toEqual({ diagnostic: 67, cursor: output, firstByte: 0 });
+  });
+
+  it("uses complete recipe addresses at separated compiler origins", async () => {
     const directory = await mkdtemp(
-      path.join(os.tmpdir(), "nucleus-r5-compilation-unit-origin-"),
+      path.join(os.tmpdir(), "nucleus-r6-backend-recipe-origin-"),
     );
     try {
       const relativeImage = path.relative(
@@ -170,7 +119,7 @@ describe("ground-up rewrite compilation-unit driver", () => {
       for (const origin of [0, 0x8000]) {
         const sourcePath = path.join(
           directory,
-          `compilation-unit-${origin.toString(16)}.asm`,
+          `backend-recipe-${origin.toString(16)}.asm`,
         );
         await writeFile(
           sourcePath,
@@ -184,18 +133,34 @@ describe("ground-up rewrite compilation-unit driver", () => {
             `.org $${origin.toString(16)}`,
             `.include ${JSON.stringify(relativeImage)}`,
             ".org $F000",
-            "ProofRelocatedUnit:",
+            "ProofRelocatedRecipe:",
             " LD SP,$FF00",
             " CALL RewriteReset",
             " LD HL,ProofRelocatedFailure",
             " PUSH HL",
             " LD (CompilerAbortSp),SP",
-            " LD A,1",
-            " LD HL,ProofRelocatedParts",
-            " CALL RewriteSourceInitializeParts",
-            " CALL RewriteFrontParseCompilationUnit",
-            " LD A,(RewriteSymbolCount)",
-            " CP 1",
+            " LD HL,ProofRelocatedOutput",
+            " LD DE,ProofRelocatedOutput+4",
+            " CALL RewriteBackendInitialize",
+            " LD HL,$1234",
+            " LD (RewriteSemanticOperandArea),HL",
+            " LD A,RewriteSemanticLiteral16",
+            " CALL RewriteBackendDispatchOperation",
+            " LD HL,ProofRelocatedOutput",
+            " LD A,(HL)",
+            " CP $21",
+            " JP NZ,ProofRelocatedFailure",
+            " INC HL",
+            " LD A,(HL)",
+            " CP $34",
+            " JP NZ,ProofRelocatedFailure",
+            " INC HL",
+            " LD A,(HL)",
+            " CP $12",
+            " JP NZ,ProofRelocatedFailure",
+            " INC HL",
+            " LD A,(HL)",
+            " CP $E5",
             " JP NZ,ProofRelocatedFailure",
             " LD A,$A5",
             " LD (ProofRelocatedStatus),A",
@@ -205,12 +170,7 @@ describe("ground-up rewrite compilation-unit driver", () => {
             " LD (ProofRelocatedStatus),A",
             " HALT",
             "ProofRelocatedStatus: .db 0",
-            ".org $5000",
-            'ProofRelocatedSource: .db "sub main()",10,"end",10,"var after as u8",10',
-            "ProofRelocatedSourceEnd:",
-            ".org $5900",
-            "ProofRelocatedParts: .db 1",
-            " .dw ProofRelocatedSource,ProofRelocatedSourceEnd",
+            "ProofRelocatedOutput: .ds 4",
             "",
           ].join("\n"),
           "utf8",
@@ -225,17 +185,17 @@ describe("ground-up rewrite compilation-unit driver", () => {
         ).toEqual([]);
         const relocated = imageFromArtifacts(result.artifacts);
         const parsed = parseIntelHex(relocated.hex);
-        const entry = relocated.symbols.ProofRelocatedUnit;
+        const entry = relocated.symbols.ProofRelocatedRecipe;
         const status = relocated.symbols.ProofRelocatedStatus;
         if (entry === undefined || status === undefined) {
-          throw new Error("relocated compilation-unit symbols are incomplete");
+          throw new Error("relocated backend-recipe symbols are incomplete");
         }
         const runtime = createZ80Runtime(
           { ...parsed, memory: parsed.memory.slice(), startAddress: entry },
           entry,
         );
         let instructions = 0;
-        while (!runtime.isHalted() && instructions < 100_000) {
+        while (!runtime.isHalted() && instructions < 20_000) {
           runtime.step();
           instructions += 1;
         }
@@ -247,11 +207,14 @@ describe("ground-up rewrite compilation-unit driver", () => {
     }
   }, 60_000);
 
-  it("locks the compilation-unit code account", () => {
+  it("locks the initial backend recipe account", () => {
     expect({
-      driver:
-        (image.symbols.RewriteFrontDriverCodeEnd ?? 0) -
-        (image.symbols.RewriteFrontDriverCodeStart ?? 0),
+      engine:
+        (image.symbols.RewriteBackendCodeEnd ?? 0) -
+        (image.symbols.RewriteBackendCodeStart ?? 0),
+      recipes:
+        (image.symbols.RewriteBackendRecipeDataEnd ?? 0) -
+        (image.symbols.RewriteBackendRecipeDirectory ?? 0),
       code:
         (image.symbols.RewriteCompilerCodeEnd ?? 0) -
         (image.symbols.RewriteCompilerCodeStart ?? 0),
@@ -265,7 +228,8 @@ describe("ground-up rewrite compilation-unit driver", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      driver: 651,
+      engine: 231,
+      recipes: 365,
       code: 12_434,
       immutable: 1_829,
       core: 14_263,

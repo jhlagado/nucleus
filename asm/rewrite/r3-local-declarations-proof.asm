@@ -310,7 +310,7 @@ ProofExpectedParameterLocalSemantics:
             .db RewriteSemanticStoreLocal16,6
 ProofExpectedParameterLocalSemanticsEnd:
 
-            .org $5000
+            .org $7000
 ProofSourceAccepted:
             .db "sub main()",10
             .db "var byte as u8",10

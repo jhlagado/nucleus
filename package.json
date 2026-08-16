@@ -38,17 +38,19 @@
     "check:rewrite-operations": "node scripts/generate-rewrite-operations.mjs --check",
     "generate:rewrite-actions": "node scripts/generate-rewrite-actions.mjs",
     "check:rewrite-actions": "node scripts/generate-rewrite-actions.mjs --check",
+    "generate:rewrite-backend-recipes": "node scripts/generate-rewrite-backend-recipes.mjs",
+    "check:rewrite-backend-recipes": "node scripts/generate-rewrite-backend-recipes.mjs --check",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "generate:rewrite-oracle": "NUCLEUS_UPDATE_REWRITE_ORACLE=1 vitest run test/rewrite-oracle.test.ts --reporter=verbose",
     "check:rewrite-oracle": "vitest run test/rewrite-oracle.test.ts --reporter=verbose",
-    "prebuild": "npm run generate:rewrite-operations && npm run generate:rewrite-actions && npm run generate:compiler-images",
+    "prebuild": "npm run generate:rewrite-operations && npm run generate:rewrite-actions && npm run generate:rewrite-backend-recipes && npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run check:rewrite-operations && npm run check:rewrite-actions && npm run check:compiler-images && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run check:rewrite-operations && npm run check:rewrite-actions && npm run check:rewrite-backend-recipes && npm run check:compiler-images && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {},
   "peerDependencies": {

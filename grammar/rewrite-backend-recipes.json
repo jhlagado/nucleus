@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "selectors": {
+    "declareLocalU8": [{ "emit": [59] }],
+    "declareLocal16": [{ "emit": [59, 59] }],
+    "literal16": [
+      { "emit": [33] },
+      { "operandWord": "value" },
+      { "emit": [229] }
+    ],
+    "loadLocalU8": [
+      { "emit": [221, 110] },
+      { "complementByte": ["offset", 0] },
+      { "emit": [38, 0, 229] }
+    ],
+    "loadLocal16": [
+      { "emit": [221, 110] },
+      { "complementByte": ["offset", 0] },
+      { "emit": [221, 102] },
+      { "complementByte": ["offset", 1] },
+      { "emit": [229] }
+    ],
+    "storeLocalU8": [
+      { "emit": [225, 221, 117] },
+      { "complementByte": ["offset", 0] }
+    ],
+    "storeLocal16": [
+      { "emit": [225, 221, 117] },
+      { "complementByte": ["offset", 0] },
+      { "emit": [221, 116] },
+      { "complementByte": ["offset", 1] }
+    ],
+    "binary8": [
+      {
+        "dispatch": {
+          "first": "Add8",
+          "targets": ["add8", "subtract8", null, "and8", "or8", "xor8"]
+        }
+      }
+    ],
+    "unary8": [
+      {
+        "dispatch": {
+          "first": "Negate8",
+          "targets": ["negate8", "not8"]
+        }
+      }
+    ],
+    "binary16": [
+      {
+        "dispatch": {
+          "first": "Add16",
+          "targets": ["add16", "subtract16", null, "and16", "or16", "xor16"]
+        }
+      }
+    ],
+    "unary16": [
+      {
+        "dispatch": {
+          "first": "Negate16",
+          "targets": ["negate16", "not16"]
+        }
+      }
+    ],
+    "notBoolean": [{ "emit": [225, 125, 238, 1, 111, 38, 0, 229] }]
+  },
+  "fragments": {
+    "add8": [{ "emit": [209, 225, 125, 131, 111, 38, 0, 229] }],
+    "subtract8": [{ "emit": [209, 225, 125, 147, 111, 38, 0, 229] }],
+    "and8": [{ "emit": [209, 225, 125, 163, 111, 38, 0, 229] }],
+    "or8": [{ "emit": [209, 225, 125, 179, 111, 38, 0, 229] }],
+    "xor8": [{ "emit": [209, 225, 125, 171, 111, 38, 0, 229] }],
+    "add16": [{ "emit": [209, 225, 25, 229] }],
+    "subtract16": [{ "emit": [209, 225, 175, 237, 82, 229] }],
+    "and16": [{ "emit": [209, 225, 125, 163, 111, 124, 162, 103, 229] }],
+    "or16": [{ "emit": [209, 225, 125, 179, 111, 124, 178, 103, 229] }],
+    "xor16": [{ "emit": [209, 225, 125, 171, 111, 124, 170, 103, 229] }],
+    "negate8": [{ "emit": [225, 175, 149, 111, 38, 0, 229] }],
+    "not8": [{ "emit": [225, 125, 47, 111, 38, 0, 229] }],
+    "negate16": [{ "emit": [225, 175, 149, 111, 62, 0, 156, 103, 229] }],
+    "not16": [{ "emit": [225, 125, 47, 111, 124, 47, 103, 229] }]
+  }
+}

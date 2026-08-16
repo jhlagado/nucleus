@@ -290,7 +290,7 @@ ProofExpectedDiagnostic: .db 0
 ProofExpectedStatus:     .db 0
 ProofExpectedFlags:      .db 0
 
-            .org $5000
+            .org $7000
 ProofSourceAccepted:
             .db "forward sub later(x as u8, text as string[], rows as i16[]) as i16 fails",10
             .db "sub later",10,"end",10
