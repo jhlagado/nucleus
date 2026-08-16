@@ -203,7 +203,7 @@ RewriteActionProgramLocalDefault:
 RewriteActionProgramLocalDefaultEnd:
 RewriteActionProgramLocalDefaultWidth .equ 21
 
-RewriteActionProgramLocalInitializedAtom:
+RewriteActionProgramLocalInitializedExpression:
             .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
             .db RewriteActionExpect,TokenName,DiagnosticExpectedName
             .db RewriteActionEscape,RewriteActionEscapeBeginLocal
@@ -215,5 +215,5 @@ RewriteActionProgramLocalInitializedAtom:
             .db RewriteActionEscape,RewriteActionEscapeEmitLocalStore
             .db RewriteActionEscape,RewriteActionEscapeCommitLocal
             .db RewriteActionEnd
-RewriteActionProgramLocalInitializedAtomEnd:
-RewriteActionProgramLocalInitializedAtomWidth .equ 26
+RewriteActionProgramLocalInitializedExpressionEnd:
+RewriteActionProgramLocalInitializedExpressionWidth .equ 26

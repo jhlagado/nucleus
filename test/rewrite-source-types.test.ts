@@ -89,17 +89,17 @@ describe("ground-up rewrite source-type parser", () => {
       cases: accepted.proofCase,
       instructions: accepted.instructions,
       cycles: accepted.cycles,
-    }).toEqual({ cases: 17, instructions: 35_375, cycles: 321_538 });
+    }).toEqual({ cases: 17, instructions: 35_395, cycles: 321_824 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 20, instructions: 45_624, cycles: 439_645 });
+    }).toEqual({ cases: 20, instructions: 45_642, cycles: 441_117 });
     expect({
       cases: capacity.proofCase,
       instructions: capacity.instructions,
       cycles: capacity.cycles,
-    }).toEqual({ cases: 9, instructions: 23_606, cycles: 213_047 });
+    }).toEqual({ cases: 9, instructions: 23_606, cycles: 213_110 });
     expect({
       parser:
         (image.symbols.RewriteSourceTypeCodeEnd ?? 0) -
@@ -116,8 +116,8 @@ describe("ground-up rewrite source-type parser", () => {
       parser: 496,
       ownedTypes: 8,
       suffixes: 4,
-      core: 8_364,
-      workspace: 3_371,
+      core: 8_840,
+      workspace: 3_374,
     });
   });
 });

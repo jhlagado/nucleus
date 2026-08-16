@@ -234,7 +234,7 @@ describe("ground-up rewrite front action machine", () => {
       ["CompilationEnd", 6],
       ["RoutineEnd", 9],
       ["LocalDefault", 21],
-      ["LocalInitializedAtom", 26],
+      ["LocalInitializedExpression", 26],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -250,7 +250,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 285, immutable: 261, core: 8_364, workspace: 3_371 });
+    }).toEqual({ code: 285, immutable: 261, core: 8_840, workspace: 3_374 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {

@@ -1,9 +1,11 @@
-; R3 constant mode of the replacement precedence-climbing expression engine.
+; Shared constant/runtime mode of the replacement precedence-climbing scalar
+; expression engine.
 ;
 ; A result is A=RewriteScalarType* (or exact plus RewriteTypeMetaNegative),
 ; HL=value, DE=source byte offset. The engine is deliberately independent of
 ; compiler origin and retains complete word values and positions. Runtime
-; emission will reuse the parser and type resolution in R4.
+; Runtime mode publishes the declared semantic records while retaining known
+; values for compile-time diagnostics and short-circuit suppression.
 
 ; Carry returns B=dense operator and C=precedence for token A.
 .routine in A out A,B,C,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
@@ -43,11 +45,10 @@ RewriteExpressionEvaluateConstant:
             CALL RewriteExpressionParsePrecedence
             RET
 
-; First R4 runtime entry: parse one primary and publish its target carrier.
-; The full precedence loop adopts runtime reducers in the next checkpoint;
-; callers currently require the following token immediately after this atom.
+; Runtime entry: parse a complete scalar precedence expression and publish its
+; target carriers and reductions. The caller checks the following token.
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-RewriteExpressionEvaluateRuntimeAtom:
+RewriteExpressionEvaluateRuntime:
             LD   (RewriteExpressionExpectedType),A
             LD   A,1
             LD   (RewriteExpressionMode),A
@@ -55,7 +56,9 @@ RewriteExpressionEvaluateRuntimeAtom:
             LD   (RewriteExpressionKnown),A
             LD   (RewriteExpressionDepth),A
             LD   (RewriteExpressionSuppressFault),A
-            JP   RewriteExpressionParsePrimary
+            LD   B,A
+            LD   C,A
+            JP   RewriteExpressionParsePrecedence
 
 ; B is the comparison-used flag for this recursive level and C is the minimum
 ; admitted binary precedence. The two-byte local preserves both through calls.
@@ -100,6 +103,10 @@ _RewriteExpressionComparisonReady:
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
             JR   NZ,_RewriteExpressionNoShortCircuit
+            LD   A,(RewriteExpressionKnown)
+            LD   (RewriteExpressionLeftKnown),A
+            OR   A
+            JR   Z,_RewriteExpressionNoShortCircuit
             LD   A,B
             CP   RewriteExpressionOpAnd
             JR   Z,_RewriteExpressionShortCircuitAnd
@@ -119,9 +126,16 @@ _RewriteExpressionBeginShortCircuit:
             LD   (RewriteExpressionSuppressFault),A
             SET  7,C
 _RewriteExpressionNoShortCircuit:
+            LD   A,(RewriteExpressionMode)
+            OR   A
+            CALL NZ,RewriteExpressionRuntimeBeginBoolean
             LD   A,(RewriteExpressionLeftMeta)
+            OR   A
             PUSH DE
             PUSH HL
+            PUSH AF
+            LD   A,(RewriteExpressionKnown)
+            LD   (RewriteExpressionLeftKnown),A
             PUSH AF
             PUSH BC
             CALL RewriteParserTake
@@ -143,6 +157,8 @@ _RewriteExpressionNoShortCircuit:
             LD   (RewriteExpressionRightMeta),A
             LD   (RewriteExpressionRightValue),HL
             LD   (RewriteExpressionRightOffset),DE
+            LD   A,(RewriteExpressionKnown)
+            LD   (RewriteExpressionRightKnown),A
             POP  BC
             LD   HL,RewriteExpressionDepth
             DEC  (HL)
@@ -154,6 +170,8 @@ _RewriteExpressionNoShortCircuit:
 _RewriteExpressionShortCircuitRestored:
             POP  HL
             LD   (RewriteExpressionOperatorOffset),HL
+            POP  AF
+            LD   (RewriteExpressionLeftKnown),A
             POP  AF
             POP  HL
             POP  DE
@@ -178,6 +196,34 @@ _RewriteExpressionCapacityFailure:
 _RewriteExpressionComparisonFailure:
             LD   A,DiagnosticComparisonChain
             JP   RewriteRaiseDiagnostic
+
+; In runtime mode a Boolean and/or begins its target short-circuit before the
+; right operand is parsed. BC remains the precedence-loop state.
+.routine in B,C,DE,HL out A,B,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
+RewriteExpressionRuntimeBeginBoolean:
+            LD   A,(RewriteExpressionLeftMeta)
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeBoolean
+            RET  NZ
+            LD   A,B
+            CP   RewriteExpressionOpAnd
+            JR   Z,_RewriteExpressionRuntimeBeginAnd
+            CP   RewriteExpressionOpOr
+            RET  NZ
+            LD   A,RewriteSemanticBeginBooleanOr
+            JR   _RewriteExpressionRuntimeBeginReady
+_RewriteExpressionRuntimeBeginAnd:
+            LD   A,RewriteSemanticBeginBooleanAnd
+_RewriteExpressionRuntimeBeginReady:
+            PUSH DE
+            PUSH HL
+            PUSH BC
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            POP  BC
+            POP  HL
+            POP  DE
+            RET
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteExpressionParsePrefix:
@@ -464,6 +510,60 @@ _RewriteExpressionExpectedRight:
 ; source offset retained by the caller.
 .routine in A,B,DE,HL out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteExpressionApplyUnary:
+            LD   (RewriteExpressionRightMeta),A
+            LD   (RewriteExpressionRightValue),HL
+            LD   (RewriteExpressionOperatorOffset),DE
+            LD   A,B
+            LD   (RewriteExpressionOperator),A
+            LD   A,(RewriteExpressionMode)
+            OR   A
+            LD   A,(RewriteExpressionRightMeta)
+            JP   Z,RewriteExpressionApplyUnaryConstant
+            LD   HL,(RewriteExpressionRightValue)
+            LD   DE,(RewriteExpressionOperatorOffset)
+            CALL RewriteExpressionApplyUnaryConstant
+            OR   A
+            PUSH AF
+            PUSH DE
+            PUSH HL
+            LD   C,A
+            LD   A,(RewriteExpressionOperator)
+            CP   TokenPlus
+            JR   Z,_RewriteExpressionRuntimeUnaryDone
+            CP   TokenMinus
+            JR   Z,_RewriteExpressionRuntimeUnaryMinus
+            LD   A,C
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeBoolean
+            LD   A,RewriteSemanticNotBoolean
+            JR   Z,_RewriteExpressionRuntimeUnaryEmit
+            LD   A,C
+            BIT  1,A
+            LD   A,RewriteSemanticNot8
+            JR   Z,_RewriteExpressionRuntimeUnaryEmit
+            LD   A,RewriteSemanticNot16
+            JR   _RewriteExpressionRuntimeUnaryEmit
+_RewriteExpressionRuntimeUnaryMinus:
+            LD   A,C
+            AND  RewriteTypeIdentityMask
+            JR   Z,_RewriteExpressionRuntimeUnaryMinus16
+            BIT  1,A
+            LD   A,RewriteSemanticNegate8
+            JR   Z,_RewriteExpressionRuntimeUnaryEmit
+_RewriteExpressionRuntimeUnaryMinus16:
+            LD   A,RewriteSemanticNegate16
+_RewriteExpressionRuntimeUnaryEmit:
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+_RewriteExpressionRuntimeUnaryDone:
+            POP  HL
+            POP  DE
+            POP  AF
+            OR   A
+            RET
+
+.routine in A,B,DE,HL out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteExpressionApplyUnaryConstant:
             LD   C,A
             LD   A,B
             CP   TokenPlus
@@ -571,6 +671,33 @@ _RewriteExpressionResolveSingleTyped:
 ; preserved by the precedence engine around this call.
 .routine in A,B,DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE
 RewriteExpressionApplyBinary:
+            LD   (RewriteExpressionLeftMeta),A
+            LD   (RewriteExpressionLeftValue),HL
+            LD   (RewriteExpressionLeftOffset),DE
+            LD   A,B
+            LD   (RewriteExpressionOperator),A
+            LD   A,(RewriteExpressionMode)
+            OR   A
+            LD   A,(RewriteExpressionLeftMeta)
+            JP   Z,RewriteExpressionApplyBinaryConstant
+            LD   HL,(RewriteExpressionLeftValue)
+            LD   DE,(RewriteExpressionLeftOffset)
+            CALL RewriteExpressionApplyBinaryConstant
+            OR   A
+            PUSH AF
+            PUSH HL
+            CALL RewriteExpressionRuntimeEmitBinary
+            LD   A,(RewriteExpressionLeftKnown)
+            LD   HL,RewriteExpressionRightKnown
+            AND  (HL)
+            LD   (RewriteExpressionKnown),A
+            POP  HL
+            POP  AF
+            OR   A
+            RET
+
+.routine in A,B,DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteExpressionApplyBinaryConstant:
             LD   (RewriteExpressionLeftMeta),A
             LD   (RewriteExpressionLeftValue),HL
             LD   (RewriteExpressionLeftOffset),DE
@@ -857,6 +984,163 @@ _RewriteExpressionComparisonTrue:
             LD   HL,1
             LD   A,RewriteScalarTypeBoolean
             RET
+
+; Runtime reductions use the already validated constant-mode type resolver,
+; then publish the frozen width-specific operation. The table below contains
+; semantic ordinals, not encoded Z80 instructions.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteExpressionRuntimeEmitBinary:
+            LD   A,(RewriteExpressionOperator)
+            CP   RewriteExpressionOpEqual
+            JR   C,_RewriteExpressionRuntimeEmitArithmetic
+            CP   RewriteExpressionOpAnd
+            JR   C,_RewriteExpressionRuntimeEmitComparison
+            LD   A,(RewriteExpressionLeftMeta)
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeBoolean
+            JR   NZ,_RewriteExpressionRuntimeEmitIntegerLogic
+            LD   A,RewriteSemanticEndBoolean
+            JP   _RewriteExpressionRuntimeEmitSelected
+_RewriteExpressionRuntimeEmitIntegerLogic:
+            CALL RewriteExpressionRuntimeResolvePair
+            LD   A,(RewriteExpressionOperator)
+            SUB  RewriteExpressionOpAnd-3
+            JR   _RewriteExpressionRuntimeEmitWidthTable
+_RewriteExpressionRuntimeEmitArithmetic:
+            CALL RewriteExpressionRuntimeResolvePair
+            LD   A,(RewriteExpressionOperator)
+            CP   RewriteExpressionOpDivide
+            JR   NC,_RewriteExpressionRuntimeEmitDivision
+_RewriteExpressionRuntimeEmitWidthTable:
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteExpressionRuntimeBinaryOperations
+            ADD  HL,DE
+            LD   A,(HL)
+            BIT  1,C
+            JR   Z,_RewriteExpressionRuntimeEmitSelected
+            INC  HL
+            LD   A,(HL)
+            JR   _RewriteExpressionRuntimeEmitSelected
+_RewriteExpressionRuntimeEmitDivision:
+            LD   A,C
+            AND  RewriteScalarTypeSignedFlag
+            JR   NZ,_RewriteExpressionRuntimeEmitSignedDivision
+            LD   A,(RewriteExpressionOperator)
+            CP   RewriteExpressionOpModulo
+            LD   A,RewriteSemanticDivide8
+            JR   NZ,_RewriteExpressionRuntimeEmitUnsignedWidth
+            LD   A,RewriteSemanticModulo8
+_RewriteExpressionRuntimeEmitUnsignedWidth:
+            BIT  1,C
+            JR   Z,_RewriteExpressionRuntimeEmitDivisionOffset
+            INC  A
+_RewriteExpressionRuntimeEmitDivisionOffset:
+            LD   HL,(RewriteExpressionOperatorOffset)
+            LD   (RewriteSemanticOperandArea),HL
+            JR   _RewriteExpressionRuntimeEmitSelected
+_RewriteExpressionRuntimeEmitSignedDivision:
+            LD   A,C
+            BIT  1,A
+            LD   A,$C0
+            JR   Z,_RewriteExpressionRuntimeSignedModeReady
+            LD   A,$40
+_RewriteExpressionRuntimeSignedModeReady:
+            LD   B,A
+            LD   A,(RewriteExpressionOperator)
+            CP   RewriteExpressionOpModulo
+            LD   A,B
+            JR   NZ,_RewriteExpressionRuntimeSignedModeStored
+            OR   1
+_RewriteExpressionRuntimeSignedModeStored:
+            LD   (RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandModeOffset),A
+            LD   HL,(RewriteExpressionOperatorOffset)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticDivideSigned
+            JR   _RewriteExpressionRuntimeEmitSelected
+_RewriteExpressionRuntimeEmitComparison:
+            LD   B,0
+            LD   A,(RewriteExpressionLeftMeta)
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeBoolean
+            LD   A,RewriteSemanticCompareBoolean
+            JR   Z,_RewriteExpressionRuntimeComparisonOperationReady
+            CALL RewriteExpressionRuntimeResolvePair
+            LD   A,C
+            AND  RewriteScalarTypeSignedFlag
+            JR   Z,_RewriteExpressionRuntimeComparisonUnsigned
+            LD   A,C
+            BIT  1,A
+            LD   B,$C0
+            JR   Z,_RewriteExpressionRuntimeComparisonSignedReady
+            LD   B,$80
+_RewriteExpressionRuntimeComparisonSignedReady:
+            LD   A,RewriteSemanticCompare16
+            JR   _RewriteExpressionRuntimeComparisonOperationReady
+_RewriteExpressionRuntimeComparisonUnsigned:
+            LD   B,0
+            LD   A,RewriteSemanticCompare8
+            BIT  1,C
+            JR   Z,_RewriteExpressionRuntimeComparisonOperationReady
+            LD   A,RewriteSemanticCompare16
+_RewriteExpressionRuntimeComparisonOperationReady:
+            LD   C,A
+            LD   A,(RewriteExpressionOperator)
+            SUB  RewriteExpressionOpEqual
+            OR   B
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCompare8OperandComparisonOffset),A
+            LD   A,C
+_RewriteExpressionRuntimeEmitSelected:
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
+; Resolve and, where necessary, publish sign extension of the left or right
+; i8 carrier already on the target stack. C returns the common integer type.
+.routine out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteExpressionRuntimeResolvePair:
+            CALL RewriteExpressionResolveIntegerPair
+            LD   A,C
+            LD   (RewriteExpressionResolvedType),A
+            CP   RewriteScalarTypeI16
+            JR   NZ,_RewriteExpressionRuntimeResolveDone
+            LD   A,(RewriteExpressionLeftMeta)
+            AND  RewriteTypeIdentityMask
+            LD   D,A
+            LD   A,(RewriteExpressionRightMeta)
+            AND  RewriteTypeIdentityMask
+            LD   E,A
+            LD   A,D
+            CP   RewriteScalarTypeI8
+            JR   NZ,_RewriteExpressionRuntimeResolveRight
+            LD   A,E
+            CP   RewriteScalarTypeI8
+            JR   Z,_RewriteExpressionRuntimeResolveDone
+            LD   A,1
+            JR   _RewriteExpressionRuntimePromote
+_RewriteExpressionRuntimeResolveRight:
+            LD   A,E
+            CP   RewriteScalarTypeI8
+            JR   NZ,_RewriteExpressionRuntimeResolveDone
+            XOR  A
+_RewriteExpressionRuntimePromote:
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPromoteI8PairOperandModeOffset),A
+            LD   A,RewriteSemanticPromoteI8Pair
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+_RewriteExpressionRuntimeResolveDone:
+            LD   A,(RewriteExpressionResolvedType)
+            LD   C,A
+            OR   A
+            RET
+
+RewriteExpressionRuntimeBinaryOperations:
+            .db RewriteSemanticAdd8,RewriteSemanticAdd16
+            .db RewriteSemanticSubtract8,RewriteSemanticSubtract16
+            .db RewriteSemanticMultiply8,RewriteSemanticMultiply16
+            .db RewriteSemanticAnd8,RewriteSemanticAnd16
+            .db RewriteSemanticOr8,RewriteSemanticOr16
+            .db RewriteSemanticXor8,RewriteSemanticXor16
 
 ; D returns 0 equal, 1 less, 2 greater for the resolved integer operands.
 .routine in C out A,C,D,carry,zero clobbers sign,parity,halfCarry,E,HL

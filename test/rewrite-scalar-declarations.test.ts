@@ -88,23 +88,23 @@ describe("ground-up rewrite generated scalar declarations", () => {
     expect({
       instructions: accepted.instructions,
       cycles: accepted.cycles,
-    }).toEqual({ instructions: 21_514, cycles: 195_792 });
+    }).toEqual({ instructions: 21_583, cycles: 196_630 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 5, instructions: 16_913, cycles: 162_796 });
+    }).toEqual({ cases: 5, instructions: 16_933, cycles: 163_397 });
     const programs = run("ProofProgramVariables");
     const programDiagnostics = run("ProofProgramVariableDiagnostics");
     expect({
       instructions: programs.instructions,
       cycles: programs.cycles,
-    }).toEqual({ instructions: 35_227, cycles: 324_980 });
+    }).toEqual({ instructions: 35_265, cycles: 325_478 });
     expect({
       cases: programDiagnostics.proofCase,
       instructions: programDiagnostics.instructions,
       cycles: programDiagnostics.cycles,
-    }).toEqual({ cases: 7, instructions: 28_665, cycles: 272_593 });
+    }).toEqual({ cases: 7, instructions: 28_674, cycles: 273_140 });
     expect({
       actions:
         (image.symbols.RewriteActionCodeEnd ?? 0) -
@@ -125,8 +125,8 @@ describe("ground-up rewrite generated scalar declarations", () => {
       actions: 285,
       declarations: 1_510,
       actionData: 261,
-      core: 8_364,
-      workspace: 3_371,
+      core: 8_840,
+      workspace: 3_374,
     });
   });
 });

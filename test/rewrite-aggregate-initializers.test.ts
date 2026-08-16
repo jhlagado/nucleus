@@ -72,7 +72,7 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 41_124, cycles: 374_386 });
+    }).toEqual({ instructions: 41_142, cycles: 374_661 });
   });
 
   it.each([
@@ -128,10 +128,10 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
       escapes: 29,
       actionCode: 285,
       actionData: 261,
-      code: 7_128,
+      code: 7_604,
       immutable: 1_236,
-      core: 8_364,
-      workspace: 3_371,
+      core: 8_840,
+      workspace: 3_374,
     });
   });
 });

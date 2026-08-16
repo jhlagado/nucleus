@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R4 runtime-atom proof artifacts");
+    throw new Error("AZM omitted R4 runtime-expression proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -55,6 +55,14 @@ const run = (entryName: string) => {
   expect(runtime.isHalted(), entryName).toBe(true);
   const memory = runtime.hardware.memory;
   const offsetAddress = image.symbols.DiagnosticOffset ?? -1;
+  const semanticBase = image.symbols.RewriteSemanticPayloadBase ?? -1;
+  const semanticCursorAddress = image.symbols.RewriteSemanticSinkCursor ?? -1;
+  const semanticCursor =
+    memory[semanticCursorAddress] | (memory[semanticCursorAddress + 1] << 8);
+  const expectedExpressionStart =
+    image.symbols.ProofExpectedExpressionSemantics ?? -1;
+  const expectedExpressionEnd =
+    image.symbols.ProofExpectedExpressionSemanticsEnd ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
@@ -62,16 +70,34 @@ const run = (entryName: string) => {
     offset: memory[offsetAddress] | (memory[offsetAddress + 1] << 8),
     instructions,
     cycles,
+    semanticOperations: memory[image.symbols.RewriteSemanticBufferBase ?? -1],
+    localOffset: memory[image.symbols.RewriteCurrentLocalOffset ?? -1],
+    semantics: Array.from(memory.slice(semanticBase, semanticCursor)),
+    expectedExpressionSemantics: Array.from(
+      memory.slice(expectedExpressionStart, expectedExpressionEnd),
+    ),
   };
 };
 
-describe("ground-up rewrite runtime expression atoms", () => {
+describe("ground-up rewrite runtime scalar expressions", () => {
   it("publishes literal, constant, activation, initialized, and BSS carriers", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 63_459,
-      cycles: 574_089,
+      instructions: 64_488,
+      cycles: 582_097,
+    });
+  });
+
+  it("reduces complete scalar precedence expressions into exact operations", () => {
+    const result = run("ProofRuntimeExpressions");
+    expect(result.semanticOperations).toBe(79);
+    expect(result.semantics).toEqual(result.expectedExpressionSemantics);
+    expect(result).toMatchObject({
+      status: 0xc4,
+      diagnostic: 0,
+      instructions: 126_748,
+      cycles: 1_136_185,
     });
   });
 
@@ -79,6 +105,10 @@ describe("ground-up rewrite runtime expression atoms", () => {
     ["ProofRuntimeMismatch", 0xc1, 60, 31],
     ["ProofRuntimeSelfReference", 0xc2, 57, 25],
     ["ProofRuntimeTrailingToken", 0xc3, 129, 27],
+    ["ProofRuntimeDivisionZero", 0xc5, 62, 29],
+    ["ProofRuntimeBooleanXor", 0xc6, 60, 52],
+    ["ProofRuntimeComparisonChain", 0xc7, 64, 45],
+    ["ProofRuntimeMixedWords", 0xc8, 60, 51],
   ] as const)(
     "preserves the frozen atom diagnostic at %s",
     (entry, status, diagnostic, offset) => {
@@ -86,7 +116,7 @@ describe("ground-up rewrite runtime expression atoms", () => {
     },
   );
 
-  it("locks the runtime-atom replacement accounts", () => {
+  it("locks the runtime scalar-expression replacement accounts", () => {
     expect({
       operations: image.symbols.RewriteSemanticOperationCount,
       escapes: image.symbols.RewriteActionEscapeCount,
@@ -119,12 +149,12 @@ describe("ground-up rewrite runtime expression atoms", () => {
       escapes: 29,
       actionCode: 285,
       actionData: 261,
-      expression: 1_904,
+      expression: 2_380,
       declarations: 1_510,
-      code: 7_128,
+      code: 7_604,
       immutable: 1_236,
-      core: 8_364,
-      workspace: 3_371,
+      core: 8_840,
+      workspace: 3_374,
     });
   });
 });

@@ -678,7 +678,7 @@ export declare const rewriteActionPrograms: readonly [{
     }];
     readonly width: 21;
 }, {
-    readonly name: "LocalInitializedAtom";
+    readonly name: "LocalInitializedExpression";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];

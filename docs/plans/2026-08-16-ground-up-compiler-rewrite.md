@@ -1066,6 +1066,39 @@ conversion, and call engines. Cover constant and runtime modes, exact literals,
 all four integer types, Boolean short-circuiting, concrete and open aggregate
 paths, nested calls, recursion, results, and left-to-right evaluation.
 
+R4 scalar-precedence checkpoint (Measured):
+
+- one precedence-climbing engine now serves both constant and runtime scalar
+  expressions. The runtime path covers prefix `+`, prefix `-`, `not`, all
+  arithmetic and bitwise binary operators, all six comparisons, parentheses,
+  explicit scalar conversions, and the complete precedence and associativity
+  table;
+- mixed `i8` pairs publish `PromoteI8Pair` with an explicit left/right mode
+  before the selected width-specific operation. The proof distinguishes both
+  directions, the `u8`/`i8` common `i16` case, and the forbidden `u16`/`i16`
+  pair;
+- unsigned division and modulo retain their operator source offset in the
+  width-specific record. Signed division and modulo retain the same full
+  offset plus the byte/word, quotient/remainder mode. A statically zero divisor
+  reports 62 at the frozen operand position;
+- Boolean `and` and `or` publish begin/end records around the right operand.
+  Compile-time fault suppression is enabled only when the left carrier is
+  known, so a dynamic false-looking placeholder cannot suppress a real fault.
+  The proof includes a zero divisor in a statically skipped arm and exact
+  begin/end ordering;
+- the accepted proof publishes 79 operations spanning loads, literals,
+  promotions, unary reductions, arithmetic, integer logic, comparisons,
+  Boolean short-circuiting, and stores. Its complete transcript is checked
+  byte for byte and it executes in 126,748 compiler instructions and
+  1,136,185 T-states;
+- runtime-specific rejected cases lock division-zero 62 at offset 29,
+  Boolean `xor` mismatch 60 at offset 52, comparison chaining 64 at offset 45,
+  and mixed word signedness 60 at offset 51; and
+- the expression region is 2,380 code bytes. The shipping replacement is
+  7,604 code + 1,236 immutable = 8,840 core bytes; the instrumented
+  replacement is 8,844 core bytes. Workspace is 3,374 bytes, leaving 7,544
+  core bytes and 722 workspace bytes beneath their gates.
+
 Exit gate: accepted source, exact diagnostics, transcript intent, target
 behaviour, traps, and stack restoration match. The complete expression/path/
 call region must be at least 25 percent smaller than its measured baseline
@@ -1192,9 +1225,9 @@ Generated programs now cover scalar and aggregate constants, assertions,
 uninitialised variables, scalar- and aggregate-initialised variables, records,
 fields, direct and forward routine headers, formal parameters, results,
 failure clauses, `main`, default scalar locals, routine close, and EOF
-completeness. R4 now has runtime atoms, name loads, scalar compatibility, and
-explicit atom-initialized locals as its first end-to-end consumer. The next
-checkpoint extends that same runtime mode through unary and binary precedence
-reduction, conversions, comparisons, and Boolean short-circuit records before
-postfix paths and calls. The replacement remains test-selected until the
-complete cutover gate passes.
+completeness. R4 now has runtime atoms, complete scalar precedence reduction,
+mixed signed promotion, conversions, comparisons, Boolean short-circuiting,
+and explicit expression-initialized locals. The next checkpoint adds the
+shared postfix path engine for fields, fixed/open indexes, and string/array
+properties, followed by source/service calls and failure consumption. The
+replacement remains test-selected until the complete cutover gate passes.

@@ -72,7 +72,7 @@ describe("ground-up rewrite generated routine headers", () => {
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 37_218, cycles: 334_670 });
+    }).toEqual({ instructions: 37_218, cycles: 334_733 });
   });
 
   it.each([
@@ -123,10 +123,10 @@ describe("ground-up rewrite generated routine headers", () => {
       actionCode: 285,
       actionData: 261,
       declarations: 1_510,
-      code: 7_128,
+      code: 7_604,
       immutable: 1_236,
-      core: 8_364,
-      workspace: 3_371,
+      core: 8_840,
+      workspace: 3_374,
     });
   });
 });

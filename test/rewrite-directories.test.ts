@@ -100,7 +100,7 @@ describe("ground-up rewrite declaration directories", () => {
       parameterWidth: 4,
       suffixes: 4,
       suffixWidth: 4,
-      workspace: 3_371,
+      workspace: 3_374,
     });
   });
 });

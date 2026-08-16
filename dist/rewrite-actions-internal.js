@@ -1081,7 +1081,7 @@ export const rewriteActionPrograms = [
         "width": 21
     },
     {
-        "name": "LocalInitializedAtom",
+        "name": "LocalInitializedExpression",
         "steps": [
             {
                 "instruction": "Expect",

@@ -959,7 +959,7 @@ _RewriteDeclarationEmitLocalStore:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteDeclarationFinishRuntimeLocalExpression:
             LD   A,(RewriteCurrentType)
-            CALL RewriteExpressionEvaluateRuntimeAtom
+            CALL RewriteExpressionEvaluateRuntime
             LD   (RewriteExpressionRightMeta),A
             PUSH DE
             PUSH HL

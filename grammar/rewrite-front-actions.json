@@ -300,7 +300,7 @@
       ]
     },
     {
-      "name": "LocalInitializedAtom",
+      "name": "LocalInitializedExpression",
       "steps": [
         { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
         { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },

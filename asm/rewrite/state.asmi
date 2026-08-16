@@ -161,7 +161,10 @@ RewriteInitializerDepth       .equ RewriteMetadataControlBase+$34
 ; compile-time value carried in HL from a dynamic 16-bit target carrier.
 RewriteExpressionMode         .equ RewriteMetadataControlBase+$35
 RewriteExpressionKnown        .equ RewriteMetadataControlBase+$36
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$37
+RewriteExpressionLeftKnown    .equ RewriteMetadataControlBase+$37
+RewriteExpressionRightKnown   .equ RewriteMetadataControlBase+$38
+RewriteExpressionResolvedType .equ RewriteMetadataControlBase+$39
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$3A
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
 
