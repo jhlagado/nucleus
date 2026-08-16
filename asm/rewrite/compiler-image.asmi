@@ -31,6 +31,9 @@ RewriteKeywordImmutableEnd:
 RewriteOperationImmutableStart:
             .include "operations-generated.asmi"
 RewriteOperationImmutableEnd:
+RewriteDeclarationNameImmutableStart:
+            .include "declaration-names.asmi"
+RewriteDeclarationNameImmutableEnd:
 CompilerImmutableEnd:
 RewriteCompilerImmutableEnd:
 CompilerCoreEnd:

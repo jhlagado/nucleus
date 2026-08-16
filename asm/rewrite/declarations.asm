@@ -162,19 +162,95 @@ RewriteRoutineFindCurrent:
             LD   A,(RewriteRoutineCount)
             OR   A
             RET  Z
-            LD   C,A
-            LD   HL,RewriteRoutineTableBase
+            LD   (RewriteRoutineLookupRemaining),A
+            XOR  A
+            LD   (RewriteRoutineLookupCursor),A
 RewriteRoutineFindLoop:
-            PUSH BC
+            LD   A,(RewriteRoutineLookupCursor)
+            CALL RewriteRoutineAddress
             CALL RewriteSymbolNameEquals
-            POP  BC
-            RET  C
-            LD   DE,RewriteRoutineEntrySize
-            ADD  HL,DE
-            DEC  C
+            JR   C,RewriteRoutineFindFound
+            LD   HL,RewriteRoutineLookupCursor
+            INC  (HL)
+            LD   HL,RewriteRoutineLookupRemaining
+            DEC  (HL)
             JR   NZ,RewriteRoutineFindLoop
             OR   A
             RET
+RewriteRoutineFindFound:
+            LD   A,(RewriteRoutineLookupCursor)
+            SCF
+            RET
+
+; Carry returns the exact source spelling `main`.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteNameEqualsMain:
+            LD   A,(TokenLength)
+            CP   4
+            JR   NZ,RewriteNameEqualsMainDifferent
+            LD   HL,(TokenLexemePointer)
+            LD   DE,RewriteNameMain
+            LD   B,4
+RewriteNameEqualsMainLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JR   NZ,RewriteNameEqualsMainDifferent
+            INC  DE
+            INC  HL
+            DJNZ RewriteNameEqualsMainLoop
+            SCF
+            RET
+RewriteNameEqualsMainDifferent:
+            OR   A
+            RET
+
+; Carry returns a dense predefined ordinal in A. The table contains source
+; spellings only and is independent of its assembled address.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewritePredefinedFindCurrent:
+            LD   HL,RewritePredefinedTable
+            LD   C,RewritePredefinedCount
+RewritePredefinedFindLoop:
+            LD   B,(HL)
+            INC  HL
+            LD   A,(TokenLength)
+            CP   B
+            JR   NZ,RewritePredefinedSkip
+            LD   DE,(TokenLexemePointer)
+RewritePredefinedFindByte:
+            LD   A,(DE)
+            CP   (HL)
+            JR   NZ,RewritePredefinedSkip
+            INC  DE
+            INC  HL
+            DJNZ RewritePredefinedFindByte
+            LD   A,RewritePredefinedCount
+            SUB  C
+            SCF
+            RET
+RewritePredefinedSkip:
+            LD   E,B
+            LD   D,0
+            ADD  HL,DE
+            DEC  C
+            JR   NZ,RewritePredefinedFindLoop
+            OR   A
+            RET
+
+; Ordinary declarations and parameters share one complete source namespace:
+; active symbols, retained routines, predefined names, and main.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteDeclarationRejectCurrent:
+            CALL RewriteSymbolRejectCurrent
+            CALL RewriteRoutineFindCurrent
+            JR   C,RewriteDeclarationDuplicate
+            CALL RewritePredefinedFindCurrent
+            JR   C,RewriteDeclarationDuplicate
+            CALL RewriteNameEqualsMain
+            RET  NC
+RewriteDeclarationDuplicate:
+            LD   A,DiagnosticDuplicateName
+            JP   RewriteRaiseDiagnostic
 
 ; B=result type, C=label, D=flags. The entry stays provisional until commit.
 .routine in B,C,D out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
@@ -218,6 +294,7 @@ RewriteRoutineBeginCurrent:
             LD   A,(RewriteSymbolCount)
             LD   (RewriteSymbolScopeBase),A
             XOR  A
+            LD   (RewriteCurrentLocalOffset),A
             RET
 RewriteRoutineDuplicate:
             POP  DE
@@ -227,6 +304,20 @@ RewriteRoutineDuplicate:
 RewriteRoutineCapacityFailure:
             LD   A,DiagnosticRoutineCapacity
             JP   RewriteRaiseDiagnostic
+
+; Begin a new non-main routine through the complete declaration namespace.
+; B=result type, C=label, and D=flags retain the directory ABI.
+.routine in B,C,D out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteRoutineDeclareBeginCurrent:
+            LD   A,(RewriteRoutineCount)
+            CP   RewriteRoutineCapacity
+            JP   NC,RewriteRoutineCapacityFailure
+            PUSH BC
+            PUSH DE
+            CALL RewriteDeclarationRejectCurrent
+            POP  DE
+            POP  BC
+            JP   RewriteRoutineBeginCurrent
 
 ; A is the retained parameter type. Active symbol publication is deliberately
 ; separate so its scoped payload can be assigned by the declaration action.
@@ -261,13 +352,340 @@ RewriteParameterCapacityFailure:
             LD   A,DiagnosticParameterCapacity
             JP   RewriteRaiseDiagnostic
 
+; A is the retained parameter type. Header checking rejects the complete
+; namespace and earlier parameters before retaining the spelling and type.
+; Scoped parameter symbols are published together only when the body opens.
+.routine in A out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteParameterDeclareCurrent:
+            LD   (RewritePendingParameterType),A
+            CALL RewriteParameterRejectCurrent
+            LD   A,(RewritePendingParameterType)
+            CALL RewriteParameterAppendCurrent
+            XOR  A
+            RET
+
+; Parameters also reject the routine whose signature is still provisional and
+; therefore not yet included in RewriteRoutineCount.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteParameterRejectCurrent:
+            CALL RewriteDeclarationRejectCurrent
+            LD   A,(RewriteCurrentRoutine)
+            LD   B,A
+            LD   A,(RewriteRoutineCount)
+            CP   B
+            JR   NZ,RewriteParameterRejectRetained
+            LD   A,B
+            CALL RewriteRoutineAddress
+            CALL RewriteSymbolNameEquals
+            JR   NC,RewriteParameterRejectRetained
+RewriteParameterDuplicate:
+            LD   A,DiagnosticDuplicateName
+            JP   RewriteRaiseDiagnostic
+RewriteParameterRejectRetained:
+            LD   A,(RewriteCurrentRoutine)
+            CALL RewriteRoutineAddress
+            LD   DE,RewriteRoutineParameterStart
+            ADD  HL,DE
+            LD   C,(HL)
+            INC  HL
+            LD   B,(HL)
+            LD   A,B
+            OR   A
+            RET  Z
+            LD   A,C
+            CALL RewriteParameterAddress
+RewriteParameterRejectRetainedLoop:
+            PUSH BC
+            CALL RewriteSymbolNameEquals
+            POP  BC
+            JR   C,RewriteParameterDuplicate
+            LD   DE,RewriteParameterEntrySize
+            ADD  HL,DE
+            DJNZ RewriteParameterRejectRetainedLoop
+            OR   A
+            RET
+
+; Parameter activation widths are independent of the owned object extent:
+; scalars use 1/2 bytes, concrete aliases 2, open string 3, open arrays 4.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+RewriteParameterActivationWidth:
+            BIT  7,A
+            JR   Z,RewriteParameterWidthNotOpenArray
+            LD   A,4
+            RET
+RewriteParameterWidthNotOpenArray:
+            CP   RewriteOpenStringTypeId
+            JR   NZ,RewriteParameterWidthNotOpenString
+            LD   A,3
+            RET
+RewriteParameterWidthNotOpenString:
+            CP   RewriteFirstOwnedTypeId
+            JR   C,RewriteParameterWidthScalar
+            LD   A,2
+            RET
+RewriteParameterWidthScalar:
+            AND  RewriteScalarTypeBaseMask
+            CP   RewriteScalarTypeU16
+            LD   A,1
+            RET  NZ
+            INC  A
+            RET
+
+; Return the positive IX displacement of a source argument in C. B is the
+; number of parameters from the current one through the last, and D is the
+; current retained-parameter ordinal. Every source parameter occupies one
+; target-stack word; each later open view contributes its hidden count or
+; capacity word as well. This is intentionally separate from the local
+; activation offset used as the active parameter-symbol payload.
+.routine in B,D out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,E,HL
+RewriteParameterSourceOffset:
+            LD   A,B
+            ADD  A,A
+            ADD  A,2
+            LD   C,A
+            DEC  B
+            JR   Z,RewriteParameterSourceOffsetDone
+            LD   A,D
+            INC  A
+            CALL RewriteParameterAddress
+RewriteParameterSourceOffsetLoop:
+            INC  HL
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            CP   RewriteOpenStringTypeId
+            JR   C,RewriteParameterSourceOffsetNext
+            INC  C
+            INC  C
+RewriteParameterSourceOffsetNext:
+            INC  HL
+            DJNZ RewriteParameterSourceOffsetLoop
+RewriteParameterSourceOffsetDone:
+            LD   A,C
+            OR   A
+            RET
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-RewriteRoutineCommit:
-            LD   A,(RewriteSymbolScopeBase)
-            LD   (RewriteSymbolCount),A
+RewriteRoutinePublishSignature:
             LD   HL,RewriteRoutineCount
             INC  (HL)
             XOR  A
+            RET
+
+; Direct bodies publish the complete signature first, then make every formal
+; parameter visible together. Header expressions therefore cannot resolve an
+; earlier parameter as a type or array bound.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteRoutinePublish:
+            CALL RewriteRoutinePublishSignature
+            CALL RewriteRoutinePrepareParameterInstall
+            JP   RewriteRoutineInstallForwardParameters
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+RewriteRoutineCloseScope:
+            LD   A,(RewriteSymbolScopeBase)
+            LD   (RewriteSymbolCount),A
+            XOR  A
+            RET
+
+; Forward declarations publish and close in one action. Direct declarations
+; publish before their body and call RewriteRoutineCloseScope only at `end`.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
+RewriteRoutineCommit:
+            CALL RewriteRoutinePublishSignature
+            JP   RewriteRoutineCloseScope
+
+; Publish the parameters selected for a direct or forwarded body. Retained
+; spellings are checked against the namespaces visible when that body opens.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteRoutineInstallForwardParameters:
+RewriteRoutineOpenForwardParameterLoop:
+            LD   A,(RewriteForwardParameterRemaining)
+            OR   A
+            RET  Z
+            LD   A,(RewriteForwardParameterCursor)
+            CALL RewriteParameterAddress
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (TokenLexemePointer),DE
+            INC  HL
+            LD   A,(HL)
+            LD   (TokenLength),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteForwardParameterType),A
+            CALL RewriteDeclarationRejectCurrent
+            LD   A,(RewriteForwardParameterType)
+            LD   D,A
+            LD   A,(RewriteCurrentLocalOffset)
+            LD   C,A
+            LD   B,0
+            LD   A,RewriteSymbolClassParameter
+            CALL RewriteSymbolPrepareCurrent
+            CALL RewriteSymbolCommit
+            LD   A,(RewriteForwardParameterType)
+            CALL RewriteParameterActivationWidth
+            LD   HL,RewriteCurrentLocalOffset
+            ADD  A,(HL)
+            LD   (HL),A
+            LD   HL,RewriteForwardParameterCursor
+            INC  (HL)
+            LD   HL,RewriteForwardParameterRemaining
+            DEC  (HL)
+            JR   RewriteRoutineOpenForwardParameterLoop
+
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteRoutineSelectForwardCurrent:
+            PUSH BC
+            PUSH DE
+            CALL RewriteRoutineFindCurrent
+            JR   C,RewriteRoutineSelectForwardFound
+            POP  DE
+            POP  BC
+            JR   RewriteRoutineSelectForwardMissing
+RewriteRoutineSelectForwardFound:
+            POP  DE
+            POP  BC
+            LD   (RewriteCurrentRoutine),A
+            LD   DE,RewriteRoutineFlags
+            ADD  HL,DE
+            BIT  2,(HL)
+            JR   Z,RewriteRoutineSelectForwardDuplicate
+            RES  2,(HL)
+            LD   A,(RewriteSymbolCount)
+            LD   (RewriteSymbolScopeBase),A
+            JP   RewriteRoutinePrepareParameterInstall
+RewriteRoutineSelectForwardDuplicate:
+            LD   A,DiagnosticDuplicateName
+            OR   A
+            RET
+RewriteRoutineSelectForwardMissing:
+            LD   A,DiagnosticUnknownName
+            OR   A
+            RET
+
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+RewriteRoutineOpenForwardCurrent:
+            CALL RewriteRoutineSelectForwardCurrent
+            OR   A
+            RET  Z
+            JP   RewriteRaiseDiagnostic
+
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+RewriteRoutinePrepareParameterInstall:
+            XOR  A
+            LD   (RewriteCurrentLocalOffset),A
+            LD   A,(RewriteCurrentRoutine)
+            CALL RewriteRoutineAddress
+            LD   DE,RewriteRoutineParameterStart
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteForwardParameterCursor),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteForwardParameterRemaining),A
+            XOR  A
+            RET
+
+; Successful EOF requires main first, then rejects any incomplete forward.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteRoutineRequireComplete:
+            LD   A,(RewriteMainFlags)
+            OR   A
+            JR   Z,RewriteRoutineMissingMainFailure
+            AND  RewriteRoutineFlagIncomplete
+            JR   NZ,RewriteRoutineIncompleteFailure
+            LD   A,(RewriteRoutineCount)
+            LD   B,A
+            XOR  A
+            LD   C,A
+RewriteRoutineRequireCompleteLoop:
+            LD   A,B
+            OR   A
+            RET  Z
+            LD   A,C
+            CALL RewriteRoutineAddress
+            LD   DE,RewriteRoutineFlags
+            ADD  HL,DE
+            LD   A,(HL)
+            AND  RewriteRoutineFlagIncomplete
+            JR   NZ,RewriteRoutineIncompleteFailure
+            INC  C
+            DEC  B
+            JR   RewriteRoutineRequireCompleteLoop
+RewriteRoutineIncompleteFailure:
+            LD   A,DiagnosticForwardIncomplete
+            JP   RewriteRaiseDiagnostic
+RewriteRoutineMissingMainFailure:
+            LD   A,DiagnosticExpectedTopLevel
+            JP   RewriteRaiseDiagnostic
+
+; Main is unique and deliberately outside the four-entry routine directory.
+; D carries the source effect flags; the fixed main bit is added here.
+.routine in D out A,D,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL,IX,IY
+RewriteMainRequireAvailable:
+            LD   A,D
+            LD   (RewritePendingRoutineFlags),A
+            CALL RewriteNameEqualsMain
+            JR   NC,RewriteMainNameFailure
+            CALL RewriteSymbolRejectCurrent
+            CALL RewriteRoutineFindCurrent
+            JR   C,RewriteMainDuplicateFailure
+            CALL RewritePredefinedFindCurrent
+            JR   C,RewriteMainDuplicateFailure
+            LD   A,(RewriteMainFlags)
+            OR   A
+            JR   NZ,RewriteMainDuplicateFailure
+            LD   A,(RewriteSymbolCount)
+            LD   (RewriteSymbolScopeBase),A
+            XOR  A
+            LD   (RewriteCurrentLocalOffset),A
+            LD   A,(RewritePendingRoutineFlags)
+            LD   D,A
+            XOR  A
+            RET
+RewriteMainNameFailure:
+            LD   A,DiagnosticUnknownName
+            JP   RewriteRaiseDiagnostic
+RewriteMainDuplicateFailure:
+            LD   A,DiagnosticDuplicateName
+            JP   RewriteRaiseDiagnostic
+
+.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteMainBeginCurrent:
+            CALL RewriteMainRequireAvailable
+            LD   A,D
+            OR   RewriteRoutineFlagMain
+            LD   (RewriteMainFlags),A
+            XOR  A
+            RET
+
+.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteMainBeginForwardCurrent:
+            CALL RewriteMainRequireAvailable
+            LD   A,D
+            OR   RewriteRoutineFlagMain+RewriteRoutineFlagIncomplete
+            LD   (RewriteMainFlags),A
+            XOR  A
+            RET
+
+; The abbreviated `sub main` body clears only the incomplete bit and retains
+; the declared `fails` effect. A missing or already completed forward is not a
+; second declaration and therefore reports unknown-name 57.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteMainOpenForwardCurrent:
+            CALL RewriteNameEqualsMain
+            JR   NC,RewriteMainNameFailure
+            LD   A,(RewriteMainFlags)
+            BIT  2,A
+            JR   Z,RewriteMainNameFailure
+            AND  $FF-RewriteRoutineFlagIncomplete
+            LD   (RewriteMainFlags),A
+            LD   A,(RewriteSymbolCount)
+            LD   (RewriteSymbolScopeBase),A
+            XOR  A
+            LD   (RewriteCurrentLocalOffset),A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry

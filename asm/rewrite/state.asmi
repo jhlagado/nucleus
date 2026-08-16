@@ -123,7 +123,17 @@ RewriteSuffixOpen            .equ RewriteMetadataControlBase+$0A
 RewriteStaticInitializedLength .equ RewriteMetadataControlBase+$0B ; word
 RewriteStaticBssLength       .equ RewriteMetadataControlBase+$0D ; word
 RewriteStaticConstantLength  .equ RewriteMetadataControlBase+$0F ; word
-RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$11
+RewriteMainFlags             .equ RewriteMetadataControlBase+$11
+RewriteMainSeen              .equ RewriteMainFlags
+RewriteForwardParameterCursor .equ RewriteMetadataControlBase+$12
+RewriteForwardParameterRemaining .equ RewriteMetadataControlBase+$13
+RewriteForwardParameterType  .equ RewriteMetadataControlBase+$14
+RewriteRoutineLookupCursor   .equ RewriteMetadataControlBase+$15
+RewriteRoutineLookupRemaining .equ RewriteMetadataControlBase+$16
+RewritePendingRoutineFlags   .equ RewriteMetadataControlBase+$17
+RewriteCurrentLocalOffset    .equ RewriteMetadataControlBase+$18
+RewritePendingParameterType  .equ RewriteMetadataControlBase+$19
+RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1A
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
@@ -183,6 +193,9 @@ RewriteRoutineParameterCount .equ 4
 RewriteRoutineResultType     .equ 5
 RewriteRoutineLabel          .equ 6
 RewriteRoutineFlags          .equ 7
+RewriteRoutineFlagFails      .equ 1
+RewriteRoutineFlagMain       .equ 2
+RewriteRoutineFlagIncomplete .equ 4
 RewriteRoutineTableBase      .equ RewriteFieldTableLimit
 RewriteRoutineTableLimit     .equ RewriteRoutineTableBase+RewriteRoutineEntrySize*RewriteRoutineCapacity
 
@@ -278,9 +291,13 @@ TokenKeywordCount            .equ 35
 
 DiagnosticNone               .equ 0
 DiagnosticLexical            .equ 1
+DiagnosticExpectedTopLevel   .equ 37
 DiagnosticSemanticCapacity   .equ 40
+DiagnosticForwardMismatch    .equ 53
+DiagnosticForwardIncomplete  .equ 54
 DiagnosticDuplicateName      .equ 55
 DiagnosticSymbolCapacity     .equ 56
+DiagnosticUnknownName        .equ 57
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
 DiagnosticRecordEmpty        .equ 82

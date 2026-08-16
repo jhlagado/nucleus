@@ -98,9 +98,16 @@ replacement follows Chapter 3 of the language specification in each case:
 | `\0`, `\n`, `\r`, `\t`, `\'`, `\"`, `\\`, or `\xHH` escape in a character literal | rejects the literal                                       | accept it and return the one decoded byte            |
 | `$00`–`$08`, `$0B`–`$0C`, `$0E`–`$1F`, or `$7F`–`$FF` inside `//`                 | ignores the byte and may compile the program              | report lexical diagnostic 1 at that source byte      |
 
+R3 found one declaration-order defect inherited from the frozen compiler:
+
+| Source case                                              | Frozen compiler                     | Required replacement behaviour                                                                                                                            |
+| -------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| any top-level declaration after the complete `main` body | reports expected-EOF diagnostic 128 | process it under the ordinary compilation-unit sequence: accept a valid declaration and apply the normal grammar or semantic diagnostic to an invalid one |
+
 These are bounded corrections to the oracle, not language additions. The
-accepted source-byte repertoire, typed delimiter rule, and literal escapes were
-already normative before the baseline tag was created. All other R1 lexical
+accepted source-byte repertoire, typed delimiter rule, literal escapes, and
+ordered top-level declaration sequence that does not require `main` to be last
+were already normative before the baseline tag was created. All other
 comparisons continue to require exact frozen-compiler parity.
 
 The consolidated capacity ledger also omitted the already implemented
@@ -632,8 +639,8 @@ R3 substrate checkpoint (Measured, in progress):
 
 The next R3 oracle matrix fixes the directory interaction before replacement
 declaration code is written. Record names share the 16-entry ordinary namespace
-with variables and constants. Parameters temporarily occupy that same scoped
-table above the global prefix while their routine is parsed, but the retained
+with variables and constants. Parameters occupy that same scoped table only
+after the complete header has been checked and the body opens; the retained
 16-entry parameter directory accumulates across routine-scope rewinds. The four
 non-main routine entries and five record-layout entries are separate bounded
 directories. Executable oracle cases now prove 11 variables plus five record
@@ -641,7 +648,7 @@ names, eight dynamic types, twelve fields, and four zero-parameter routines in
 one program; four routines with sixteen retained parameters in another; each
 first overflow diagnostic; and the independent four/five suffix boundary.
 
-R3 directory checkpoint (Measured, in progress):
+R3 directory checkpoint (Measured):
 
 - the replacement now owns separate five-entry record, twelve-entry field,
   four-entry non-main routine, sixteen-entry retained-parameter, and four-entry
@@ -649,10 +656,10 @@ R3 directory checkpoint (Measured, in progress):
 - routine entry publishes remain provisional until commit. Active parameter
   symbols are rewound to the saved global prefix, while the retained spelling,
   type, parameter start, and count survive for calls and forward matching;
-- parameter actions have an explicit three-step diagnostic order: reject a
-  duplicate name without reserving it, append to the retained directory, then
-  reserve the scoped symbol. A duplicate seventeenth parameter therefore
-  reports 55, while a distinct seventeenth reports 85;
+- parameter headers reject duplicates before appending to the retained
+  directory. The retained formal parameters are published into the routine's
+  scoped symbol table only when a body opens. A duplicate seventeenth parameter
+  therefore reports 55, while a distinct seventeenth reports 85;
 - record fields preserve full source pointers, one-byte types, and word
   offsets. The proof retains `$1234`, so a byte-truncated field layout cannot
   pass. Suffix entries likewise retain `$0100` counts and word source offsets;
@@ -664,6 +671,51 @@ R3 directory checkpoint (Measured, in progress):
   six bytes. The shipping rewrite is now 1,965 code + 778 immutable = 2,743
   core bytes, with 1,262 bytes of workspace. R3 declaration grammar, static
   initialization, signature reconciliation, and the complete 20-percent
+  comparison remain ahead.
+
+R3 namespace and routine-lifecycle checkpoint (Measured):
+
+- one source-name authority now rejects collisions across active declarations,
+  retained routines, `main`, and ten predefined names—six services and four
+  error constants. Its immutable table stores complete spellings and never
+  packs an address bit or assumes a compiler origin;
+- routine lifecycle is split into signature publication, body opening, and
+  scope closing. A direct signature is visible before recursion begins, while
+  its parameter symbols remain live until the body closes;
+- an abbreviated forward body reopens its existing routine entry without a
+  second capacity charge. Retained parameter names and types are republished
+  into a routine scope above the then-current global prefix, so a global
+  introduced after the forward still causes the established duplicate-name
+  diagnostic;
+- opening a valid abbreviated forward body clears the incomplete flag in
+  place. Ordinary missing and repeated completions retain diagnostics 57 and
+  55; an absent or already completed forward `main` reports 57. Every forward
+  main left incomplete at EOF reports 54; once main is defined, any incomplete
+  ordinary forward also reports 54. Forward `main` remains outside the
+  four-entry non-main routine directory;
+- formal parameters remain invisible while their complete header is checked.
+  They become active together only when a direct or forwarded body opens, so
+  an earlier parameter cannot become the type or bound of a later parameter;
+- active parameter payloads are per-routine activation offsets, not retained
+  directory ordinals. Byte scalars advance by one byte; word scalars and
+  concrete aliases by two; open strings by three; and open arrays by four. A
+  separate calculation retains the caller-stack displacement, including the
+  hidden word carried by every later open view;
+- successful EOF requires a defined `main` before incomplete ordinary forwards
+  are considered. Top-level declarations remain legal before and after the
+  main body, as required by the compilation-unit grammar; the frozen compiler's
+  main-last restriction is recorded as a conformance correction above;
+- action proofs distinguish publication before body close, scope rewind,
+  forward reopening, later-global collision, missing and repeated completion,
+  incomplete-forward rejection, forward `main`, routine-capacity diagnostic
+  precedence, provisional routine-name rejection, mixed-width parameter
+  layout, predefined-parameter rejection, and `main` after four ordinary
+  routines. Main activation layout is reset on both direct and forwarded body
+  entry; and
+- the namespace/lifecycle engine adds 573 code bytes and 157 immutable bytes.
+  The shipping rewrite is 2,538 code + 935 immutable = 3,473 core bytes; the
+  instrumented rewrite is 3,477 core bytes. Workspace is 1,271 bytes. The R3
+  grammar/action programs, static initialization, and complete 20-percent
   comparison remain ahead.
 
 ### R4 — Expressions, paths, and calls

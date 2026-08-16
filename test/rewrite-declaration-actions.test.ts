@@ -15,7 +15,7 @@ let image: Image;
 
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r3-directories-proof.asm"),
+    path.join(rewriteDirectory, "r3-declaration-actions-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R3 directory proof artifacts");
+    throw new Error("AZM omitted R3 declaration-action proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -54,53 +54,34 @@ const run = (entryName: string) => {
   return runtime.hardware.memory[image.symbols.ProofStatus ?? -1];
 };
 
-describe("ground-up rewrite declaration directories", () => {
+describe("ground-up rewrite declaration actions", () => {
   it.each([
-    ["ProofRecordsFields", 0xc1],
-    ["ProofFieldDuplicate", 0xc2],
-    ["ProofFieldCapacity", 0xc3],
-    ["ProofRecordCapacity", 0xc3],
-    ["ProofRecordEmpty", 0xca],
-    ["ProofRoutinesParameters", 0xc5],
-    ["ProofRoutineDuplicate", 0xc2],
-    ["ProofRoutineCapacity", 0xc6],
-    ["ProofRoutineDuplicateAtCapacity", 0xc6],
-    ["ProofParameterCapacity", 0xc7],
-    ["ProofParameterDuplicateAtCapacity", 0xc2],
-    ["ProofSuffixes", 0xc3],
-    ["ProofSuffixOpenShape", 0xc9],
-    ["ProofSuffixConcreteThenOpen", 0xcb],
+    ["ProofForwardLifecycle", 0xd1],
+    ["ProofForwardGlobalCollision", 0xd4],
+    ["ProofForwardMissing", 0xd5],
+    ["ProofForwardAlreadyComplete", 0xd4],
+    ["ProofForwardIncomplete", 0xd6],
+    ["ProofMissingMain", 0xdd],
+    ["ProofForwardWithoutMain", 0xdd],
+    ["ProofOrdinaryAndForwardMainIncomplete", 0xd6],
+    ["ProofMainOutsideRoutineCapacity", 0xd2],
+    ["ProofMainDuplicate", 0xd4],
+    ["ProofForwardMainLifecycle", 0xd7],
+    ["ProofForwardMainIncomplete", 0xd6],
+    ["ProofForwardMainMissing", 0xd5],
+    ["ProofForwardMainRepeated", 0xd5],
+    ["ProofRoutineActionCapacityPrecedence", 0xd8],
+    ["ProofParameterRoutineCollision", 0xd4],
+    ["ProofParameterRoutineCaseDistinct", 0xd9],
+    ["ProofForwardMixedParameterLayout", 0xda],
+    ["ProofMainLocalOffsetReset", 0xdb],
+    ["ProofParameterHeaderIsolation", 0xdc],
+    ["ProofParameterHeaderDuplicate", 0xd4],
+    ["ProofDeclarationAfterMain", 0xde],
+    ["ProofPredefinedParameter", 0xd4],
+    ["ProofRoutineSharedCollision", 0xd4],
+    ["ProofDirectPublishBeforeClose", 0xd3],
   ] as const)("executes %s", (entry, expected) => {
     expect(run(entry)).toBe(expected);
-  });
-
-  it("locks every independent directory account", () => {
-    const symbols = image.symbols;
-    expect({
-      records: symbols.RewriteRecordCapacity,
-      recordWidth: symbols.RewriteRecordEntrySize,
-      fields: symbols.RewriteFieldCapacity,
-      fieldWidth: symbols.RewriteFieldEntrySize,
-      routines: symbols.RewriteRoutineCapacity,
-      routineWidth: symbols.RewriteRoutineEntrySize,
-      parameters: symbols.RewriteParameterCapacity,
-      parameterWidth: symbols.RewriteParameterEntrySize,
-      suffixes: symbols.RewriteSuffixCapacity,
-      suffixWidth: symbols.RewriteSuffixEntrySize,
-      workspace:
-        (symbols.RewriteWorkspaceEnd ?? 0) - (symbols.RewriteStateBase ?? 0),
-    }).toEqual({
-      records: 5,
-      recordWidth: 2,
-      fields: 12,
-      fieldWidth: 6,
-      routines: 4,
-      routineWidth: 8,
-      parameters: 16,
-      parameterWidth: 4,
-      suffixes: 4,
-      suffixWidth: 4,
-      workspace: 1_271,
-    });
   });
 });

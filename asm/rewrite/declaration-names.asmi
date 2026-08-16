@@ -1,0 +1,19 @@
+; Source-visible predefined spellings. These are immutable compiler data, not
+; encoded Z80 instructions. Lookup uses complete 16-bit addresses; the table
+; itself encodes no address metadata and assumes no compiler origin.
+
+RewriteNameMain:
+            .db "main"
+
+RewritePredefinedTable:
+            .db 13,"readInputByte"
+            .db 15,"writeOutputByte"
+            .db 15,"readStorageByte"
+            .db 18,"rewindStorageInput"
+            .db 16,"writeStorageByte"
+            .db 17,"seekStorageOutput"
+            .db 10,"endOfInput"
+            .db 12,"inputFailure"
+            .db 13,"outputFailure"
+            .db 14,"storageFailure"
+RewritePredefinedCount .equ 10

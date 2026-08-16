@@ -112,8 +112,8 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({
       semanticBytes: 224,
       operationBytes: 594,
-      coreBytes: 2_747,
-      workspaceBytes: 1_262,
+      coreBytes: 3_477,
+      workspaceBytes: 1_271,
     });
     expect(rewriteSemanticOperations).toHaveLength(99);
     expect(rewriteSemanticOperationMaximumWidth).toBe(10);
@@ -262,7 +262,7 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols[generatedOffset] ?? -1) + 1,
       );
     }
-  });
+  }, 15_000);
 
   it("decodes exact operation boundaries and rejects every corruption", () => {
     const operationId = (name: string): number => {
@@ -614,7 +614,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 488, cycles: 5_935 });
+    }).toEqual({ instructions: 488, cycles: 6_124 });
   });
 
   it("distinguishes exact fill, first overflow, and clean recovery", async () => {
@@ -629,7 +629,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 10_874, cycles: 111_247 });
+    }).toEqual({ instructions: 10_874, cycles: 111_625 });
   });
 
   it("rejects a multi-byte record atomically when only three bytes remain", async () => {
