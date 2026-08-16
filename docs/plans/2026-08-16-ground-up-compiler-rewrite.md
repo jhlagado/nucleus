@@ -792,13 +792,14 @@ R3/R4 constant-expression checkpoint (Measured):
   seventeenth reports diagnostic 65 at its operator. A separate proof accepts
   all 255 delimiter levels and returns with the original stack pointer;
 - strict execution covers 39 successful values and 19 diagnostics. The value
-  proof completes in 375,465 instructions and 3,420,248 T-states; the
-  diagnostic and recovery proof completes in 39,040 instructions and 398,269
+  proof completes in 375,465 instructions and 3,420,269 T-states; the
+  diagnostic and recovery proof completes in 39,040 instructions and 398,668
   T-states;
 - the expression engine is 1,589 code bytes and its fourteen-entry operator
-  table is 28 immutable bytes. It adds 16 workspace bytes. The shipping
-  replacement is 4,578 code + 967 immutable = 5,545 core bytes; the
-  instrumented replacement is 5,549 core bytes. Workspace is 3,363 bytes;
+  table is 28 immutable bytes. It adds 16 workspace bytes. At that checkpoint,
+  the shipping replacement was 4,578 code + 967 immutable = 5,545 core bytes;
+  the instrumented replacement was 5,549 core bytes, and workspace was 3,363
+  bytes;
 - AZM commit `ce284fde5fcd329ef4e984e2217661f690b66f9e` is the first toolchain
   checkpoint that proves the recursive, nonreturning paths while retaining
   compatibility with the frozen compiler proofs. CI uses that exact
@@ -806,6 +807,31 @@ R3/R4 constant-expression checkpoint (Measured):
 - this checkpoint supplies the bound evaluator required by the shared source
   type parser. Runtime expression publication, postfix paths, calls, and the
   complete R4 size comparison remain ahead.
+
+R3 shared source-type checkpoint (Measured):
+
+- one 496-byte parser now handles all five scalar types, nominal record names,
+  concrete and open bounded strings, fixed arrays, nested fixed arrays, and the
+  parameter-only outer open-array form. It collects suffixes outermost-first
+  and resolves them innermost-first, so `u8[3][2]`, `u8[][2]`, and
+  `string[16][]` share one formation path;
+- bounds use the proved constant-expression engine. Exact and unsigned typed
+  bounds remain admitted, signed typed bounds retain diagnostic 60, negative
+  exact bounds retain diagnostic 61 at the operand, zero retains diagnostic
+  83, and bounded-string capacity 254 retains diagnostic 90;
+- concrete object extent is still checked at type formation. The proof admits
+  exactly 1,024 bytes and reports diagnostic 81 for 1,025 bytes at the closing
+  bracket. It also distinguishes four accepted suffixes from the fifth, eight
+  interned owned types from the ninth, and the historical placement anchors of
+  `string[]` and `T[]`;
+- strict execution covers 17 accepted formations in 35,188 instructions and
+  319,406 T-states, 20 exact diagnostics in 45,373 instructions and 434,041
+  T-states, and the eight/nine type-capacity boundary in 23,471 instructions
+  and 211,469 T-states; and
+- the shipping replacement is now 5,074 code + 967 immutable = 6,041 core
+  bytes. The instrumented replacement is 6,045 core bytes. Workspace is 3,364
+  bytes. That leaves 10,343 bytes beneath the 16,384-byte hard gate and 732
+  bytes in the 4,096-byte workspace account.
 
 ### R4 — Expressions, paths, and calls
 
@@ -934,9 +960,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 ## Next implementation move
 
 R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
-routine-lifecycle, static-storage, front-action, and scalar constant-expression
-substrates. The next checkpoint is the shared source type parser. It will use
-the proved evaluator for every fixed-array bound and bounded-string capacity,
-then feed the generated declaration action programs and type-directed
-initializer escape. The replacement remains test-selected until the complete
-cutover gate passes.
+routine-lifecycle, static-storage, front-action, scalar constant-expression,
+and shared source-type substrates. The next checkpoint is the first generated
+declaration program: constants, assertions, records, variables, formal
+parameters, results, and locals will all call this single parser, then enter
+the type-directed initializer escape. The replacement remains test-selected
+until the complete cutover gate passes.

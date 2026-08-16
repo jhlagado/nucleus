@@ -25,6 +25,9 @@ RewriteExpressionCodeStart:
             .include "constant-expression.asm"
 RewriteExpressionCodeEnd:
             .include "declarations.asm"
+RewriteSourceTypeCodeStart:
+            .include "source-types.asm"
+RewriteSourceTypeCodeEnd:
             .include "static-storage.asm"
 RewriteMetadataCodeEnd:
 CompilerCodeEnd:

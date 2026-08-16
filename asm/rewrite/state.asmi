@@ -151,7 +151,8 @@ RewriteExpressionRightValue   .equ RewriteMetadataControlBase+$28 ; word
 RewriteExpressionRightOffset  .equ RewriteMetadataControlBase+$2A ; word
 RewriteExpressionOperator     .equ RewriteMetadataControlBase+$2C
 RewriteExpressionOperatorOffset .equ RewriteMetadataControlBase+$2D ; word
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$2F
+RewriteCurrentType            .equ RewriteMetadataControlBase+$2F
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$30
 RewriteExpressionDepthCapacity .equ 16
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
@@ -355,12 +356,14 @@ DiagnosticTypeBound          .equ 83
 DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
 DiagnosticSourcePartCapacity .equ 88
+DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
 
 ; Expected-token diagnostics retain the published production-token ordinals,
 ; not the replacement tokenizer's private compact ordinals.
 DiagnosticExpectedLeft       .equ $80+5
 DiagnosticExpectedRight      .equ $80+6
+DiagnosticExpectedLeftBracket .equ $80+18
 DiagnosticExpectedRightBracket .equ $80+19
 
 RewriteExpressionOpAdd       .equ 0
