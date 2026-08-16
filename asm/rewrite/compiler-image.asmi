@@ -13,6 +13,9 @@ RewriteSourceCodeEnd:
 RewriteTokenizerCodeStart:
             .include "tokenizer.asm"
 RewriteTokenizerCodeEnd:
+RewriteActionCodeStart:
+            .include "parser-actions.asm"
+RewriteActionCodeEnd:
 RewriteSemanticCodeStart:
             .include "semantic.asm"
 RewriteSemanticCodeEnd:
@@ -32,6 +35,9 @@ RewriteKeywordImmutableEnd:
 RewriteOperationImmutableStart:
             .include "operations-generated.asmi"
 RewriteOperationImmutableEnd:
+RewriteActionImmutableStart:
+            .include "actions-generated.asmi"
+RewriteActionImmutableEnd:
 RewriteDeclarationNameImmutableStart:
             .include "declaration-names.asmi"
 RewriteDeclarationNameImmutableEnd:

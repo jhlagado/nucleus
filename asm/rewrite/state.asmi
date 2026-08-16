@@ -134,7 +134,9 @@ RewritePendingRoutineFlags   .equ RewriteMetadataControlBase+$17
 RewriteCurrentLocalOffset    .equ RewriteMetadataControlBase+$18
 RewritePendingParameterType  .equ RewriteMetadataControlBase+$19
 RewriteInitializerLength     .equ RewriteMetadataControlBase+$1A ; word
-RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1C
+RewriteParserHasToken        .equ RewriteMetadataControlBase+$1C
+RewriteActionCursor          .equ RewriteMetadataControlBase+$1D ; word
+RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1F
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset

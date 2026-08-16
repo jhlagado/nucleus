@@ -753,6 +753,29 @@ R3 static-storage checkpoint (Measured):
   Workspace is 3,344 bytes. Static initializer grammar and type-directed
   initializer construction remain ahead.
 
+R3 front-action substrate checkpoint (Measured):
+
+- one cached-token layer gives generated actions stable `peek` and `take`
+  operations without making the tokenizer own parser lookahead;
+- a generated instruction authority currently defines `End`, token `Expect`,
+  handwritten `Escape`, and immediate `Raise`, each with one fixed width. Its
+  TypeScript decoder rejects invalid ordinals, truncated operands, missing
+  `End`, and trailing bytes;
+- handwritten escapes are selected by a dense byte but invoked through a
+  generated directory of complete 16-bit addresses. The first real escape
+  resets initializer scratch; no origin or spare-address-bit assumption enters
+  the format. Escapes do not recursively invoke the action machine, whose one
+  retained cursor is deliberately non-reentrant;
+- strict execution proofs distinguish successful token consumption plus escape
+  return, an exact token-mismatch diagnostic, and an invalid action ordinal;
+  and
+- the parser/action interpreter adds 126 code bytes, its authority adds six
+  immutable bytes, and lookahead/action state adds three workspace bytes. The
+  shipping rewrite is 2,999 code + 941 immutable = 3,940 core bytes; the
+  instrumented rewrite is 3,944 core bytes. Workspace is 3,347 bytes. Complete
+  generated declaration programs and the type-directed initializer escape
+  remain ahead.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,

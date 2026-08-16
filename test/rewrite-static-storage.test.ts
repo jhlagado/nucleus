@@ -80,7 +80,7 @@ describe("ground-up rewrite static storage", () => {
       initializerCapacity: 1_024,
       staticCapacity: 1_024,
       symbolEntrySize: 8,
-      workspace: 3_344,
+      workspace: 3_347,
     });
   });
 });

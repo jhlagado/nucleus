@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "instructions": [
+    { "name": "End", "operands": [] },
+    { "name": "Expect", "operands": ["token", "diagnostic"] },
+    { "name": "Escape", "operands": ["selector"] },
+    { "name": "Raise", "operands": ["diagnostic"] }
+  ],
+  "escapes": [
+    {
+      "name": "ResetInitializer",
+      "target": "RewriteInitializerReset"
+    }
+  ]
+}

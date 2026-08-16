@@ -11,6 +11,7 @@ meaning; these files make its current Stage 7 syntax executable and testable.
 | `stage7-tables.asmi`               | Generated prediction, production, and action tables included by the compiler; each row marks its final production in-band.    |
 | `stage7-proof-actions.asmi`        | Generated action aliases used only by the isolated engine proof.                                                              |
 | `rewrite-semantic-operations.json` | Replacement-compiler semantic operations, operands, backend class, stack effect, source attribution, and global trace policy. |
+| `rewrite-front-actions.json`       | Replacement front-end action instructions and the full-address handwritten-escape directory.                                  |
 
 `scripts/generate-rewrite-operations.mjs` turns the replacement operation
 source into Z80 ordinals, producer-facing operand offsets, record widths,
@@ -56,6 +57,17 @@ ordinals while sharing backend selectors. This keeps the published 511-byte
 transcript acceptance boundary identical to the production language and still
 allows the replacement backend to use shared recipes.
 
+`scripts/generate-rewrite-actions.mjs` gives every front-end action instruction
+a dense ordinal and fixed width, and gives every irregular escape a dense
+selector. The generated Z80 directory stores the escape targets as complete
+little-endian 16-bit addresses; selectors are never packed into an address.
+The generated TypeScript decoder rejects invalid ordinals, truncation, missing
+`End`, and bytes after `End`. `npm run check:rewrite-actions` rejects stale
+generated authority. An escape returns to the current action program and may
+not invoke another action program: the compact machine intentionally owns one
+cursor. If nested action execution ever becomes necessary, it requires an
+explicit cursor stack and a separate liveness proof.
+
 Expressions, name-led statements, and type-directed aggregate initializers are
 deliberate external islands. They require precedence or symbol and type
 information that token lookahead alone cannot supply.
@@ -66,5 +78,6 @@ handler body. Boolean `or` remains entirely inside the expression island.
 
 The packed Stage 7 tables are locked by `test/ll1-stage7.test.ts`. Replacement
 operation outputs are locked by `npm run check:rewrite-operations` and
-`test/rewrite-semantic.test.ts`. Run the relevant checks after changing either
-source or generator.
+`test/rewrite-semantic.test.ts`. Replacement action outputs are locked by
+`npm run check:rewrite-actions` and `test/rewrite-actions.test.ts`. Run the
+relevant checks after changing either source or generator.
