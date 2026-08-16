@@ -17,6 +17,7 @@ export interface PreparedNucleusProject {
     readonly targetProfilePath: string;
     readonly target: NucleusTarget;
     readonly outputs: NucleusBuildOutputPaths;
+    readonly sourcePlan: string;
 }
 export declare const prepareNucleusProject: (requestedProjectPath: string, options?: PrepareNucleusProjectOptions) => Promise<PreparedNucleusProject>;
 export interface NucleusProjectCompiler {

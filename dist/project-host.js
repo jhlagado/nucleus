@@ -5,6 +5,7 @@ import { assertNucleusTarget, NucleusConfigurationError, parseNucleusTargetProfi
 import { createNucleusCompiler, } from "./host.js";
 import { NUCLEUS_PROJECT_V2_SCHEMA, parseNucleusProject, } from "./project.js";
 import { resolveNucleusImportGraph, } from "./source-imports.js";
+import { serializeNucleusSourcePlan } from "./source-plan.js";
 const jsonObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 const sourceIdentity = (root, sourcePath) => {
     const relative = path.relative(root, sourcePath);
@@ -141,6 +142,11 @@ export const prepareNucleusProject = async (requestedProjectPath, options = {}) 
     const targetText = await readFile(targetProfilePath, "utf8");
     const requireServices = options.requireServices ?? outputs.hex !== undefined;
     const target = projectTarget(targetText, project, sources, entry, requireServices);
+    const partBanks = "partBanks" in target ? target.partBanks : sources.map(() => 0);
+    const sourcePlan = serializeNucleusSourcePlan(sources.map((source, index) => ({
+        bank: partBanks[index],
+        path: source.name,
+    })));
     return {
         projectPath,
         project,
@@ -151,6 +157,7 @@ export const prepareNucleusProject = async (requestedProjectPath, options = {}) 
         targetProfilePath,
         target,
         outputs,
+        sourcePlan,
     };
 };
 export const buildNucleusProject = async (projectPath, options = {}) => {

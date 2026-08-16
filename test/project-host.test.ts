@@ -89,6 +89,9 @@ describe("Nucleus project host", () => {
       nobj: path.join(root, "build/program.nobj"),
       d8: path.join(root, "build/program.d8.json"),
     });
+    expect(prepared.sourcePlan).toBe(
+      "SP1 2\nP 1 12 src/model.nu\nP 0 11 src/main.nu\nEND\n",
+    );
   });
 
   it("builds through an injected compiler with project-selected artifacts", async () => {

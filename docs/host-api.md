@@ -193,10 +193,11 @@ const { result } = await buildNucleusProject("nucleus-project.json");
 
 `prepareNucleusProject()` resolves paths, reads source bytes, orders v2
 dependencies, derives ordinal bank assignments, validates the complete target,
-and returns absolute publication paths. Its `dependencies` array follows final
-source order. Each entry contains the logical source identity, direct import
-identities, raw byte length, and SHA-256 hash. Version 1 entries have no import
-edges because their order is explicit.
+and returns absolute publication paths. The returned `sourcePlan` is the
+canonical SP1 handoff for a filesystem-aware host. Its `dependencies` array
+follows final source order. Each entry contains the logical source identity,
+direct import identities, raw byte length, and SHA-256 hash. Version 1 entries
+have no import edges because their order is explicit.
 
 `buildNucleusProject()` performs the same preparation and invokes either the
 supplied compiler object or a new compiler object. It returns the prepared

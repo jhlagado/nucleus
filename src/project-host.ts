@@ -23,6 +23,7 @@ import {
   resolveNucleusImportGraph,
   type NucleusSourceDependency,
 } from "./source-imports.js";
+import { serializeNucleusSourcePlan } from "./source-plan.js";
 
 const jsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -176,6 +177,7 @@ export interface PreparedNucleusProject {
   readonly targetProfilePath: string;
   readonly target: NucleusTarget;
   readonly outputs: NucleusBuildOutputPaths;
+  readonly sourcePlan: string;
 }
 
 export const prepareNucleusProject = async (
@@ -224,6 +226,14 @@ export const prepareNucleusProject = async (
     entry,
     requireServices,
   );
+  const partBanks =
+    "partBanks" in target ? target.partBanks : sources.map(() => 0);
+  const sourcePlan = serializeNucleusSourcePlan(
+    sources.map((source, index) => ({
+      bank: partBanks[index]!,
+      path: source.name,
+    })),
+  );
   return {
     projectPath,
     project,
@@ -234,6 +244,7 @@ export const prepareNucleusProject = async (
     targetProfilePath,
     target,
     outputs,
+    sourcePlan,
   };
 };
 
