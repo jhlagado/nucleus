@@ -71,6 +71,10 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedScalarAssignmentSemantics ?? -1;
   const expectedAssignmentEnd =
     image.symbols.ProofExpectedScalarAssignmentSemanticsEnd ?? -1;
+  const expectedCallStatementStart =
+    image.symbols.ProofExpectedCallStatementSemantics ?? -1;
+  const expectedCallStatementEnd =
+    image.symbols.ProofExpectedCallStatementSemanticsEnd ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
@@ -93,6 +97,9 @@ const run = (entryName: string) => {
     expectedAssignmentSemantics: Array.from(
       memory.slice(expectedAssignmentStart, expectedAssignmentEnd),
     ),
+    expectedCallStatementSemantics: Array.from(
+      memory.slice(expectedCallStatementStart, expectedCallStatementEnd),
+    ),
   };
 };
 
@@ -101,8 +108,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 64_676,
-      cycles: 584_067,
+      instructions: 64_690,
+      cycles: 584_256,
     });
   });
 
@@ -113,8 +120,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 127_165,
-      cycles: 1_140_298,
+      instructions: 127_189,
+      cycles: 1_140_622,
     });
   });
 
@@ -126,8 +133,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 108_515,
-      cycles: 965_357,
+      instructions: 108_533,
+      cycles: 965_600,
     });
   });
 
@@ -139,8 +146,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 98_372,
-      cycles: 882_802,
+      instructions: 98_382,
+      cycles: 882_937,
     });
   });
 
@@ -150,8 +157,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_289,
-      cycles: 111_616,
+      instructions: 12_291,
+      cycles: 111_643,
     });
   });
 
@@ -161,8 +168,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_484,
-      cycles: 201_674,
+      instructions: 22_486,
+      cycles: 201_701,
     });
   });
 
@@ -172,8 +179,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 39_863,
-      cycles: 360_764,
+      instructions: 39_865,
+      cycles: 360_791,
     });
   });
 
@@ -183,8 +190,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_395,
-      cycles: 130_623,
+      instructions: 14_397,
+      cycles: 130_650,
     });
   });
 
@@ -195,8 +202,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 39_611,
-      cycles: 353_876,
+      instructions: 39_631,
+      cycles: 354_091,
     });
   });
 
@@ -206,6 +213,29 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     ["ProofRuntimeAssignmentMismatch", 0xd8, 60, 31],
   ] as const)(
     "preserves the frozen scalar-assignment diagnostic at %s",
+    (entry, status, diagnostic, offset) => {
+      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1, offset });
+    },
+  );
+
+  it("publishes source and service call statements with immediate propagation", () => {
+    const result = run("ProofRuntimeCallStatements");
+    expect(result.semanticOperations).toBe(5);
+    expect(result.semantics).toEqual(result.expectedCallStatementSemantics);
+    expect(result).toMatchObject({
+      status: 0xd9,
+      diagnostic: 0,
+      instructions: 28_028,
+      cycles: 251_329,
+    });
+  });
+
+  it.each([
+    ["ProofRuntimeCallStatementUnknown", 0xda, 57, 11],
+    ["ProofRuntimeCallStatementMissingElse", 0xdb, 87, 44],
+    ["ProofRuntimeCallStatementInfallibleElse", 0xdc, 87, 39],
+  ] as const)(
+    "preserves the frozen call-statement diagnostic at %s",
     (entry, status, diagnostic, offset) => {
       expect(run(entry)).toMatchObject({ status, diagnostic, part: 1, offset });
     },
@@ -298,15 +328,15 @@ describe("ground-up rewrite runtime scalar expressions", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       operations: 103,
-      escapes: 32,
-      actionCode: 303,
-      actionData: 277,
-      expression: 4_246,
-      statements: 174,
+      escapes: 33,
+      actionCode: 309,
+      actionData: 286,
+      expression: 4_250,
+      statements: 217,
       declarations: 1_519,
-      code: 9_684,
-      immutable: 1_284,
-      core: 10_968,
+      code: 9_737,
+      immutable: 1_293,
+      core: 11_030,
       workspace: 3_414,
     });
   });

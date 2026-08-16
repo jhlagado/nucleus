@@ -50,6 +50,15 @@ RewriteExpressionEvaluateConstant:
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteExpressionEvaluateRuntime:
             LD   (RewriteExpressionExpectedType),A
+            CALL RewriteExpressionBeginRuntime
+            LD   B,A
+            LD   C,A
+            JP   RewriteExpressionParsePrecedence
+
+; Reset the runtime-only expression state without consuming a primary. Call
+; statements use this entry before their call engine parses actuals.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+RewriteExpressionBeginRuntime:
             LD   A,1
             LD   (RewriteExpressionMode),A
             XOR  A
@@ -59,9 +68,7 @@ RewriteExpressionEvaluateRuntime:
             LD   (RewriteExpressionKnown),A
             LD   (RewriteExpressionDepth),A
             LD   (RewriteExpressionSuppressFault),A
-            LD   B,A
-            LD   C,A
-            JP   RewriteExpressionParsePrecedence
+            RET
 
 ; B is the comparison-used flag for this recursive level and C is the minimum
 ; admitted binary precedence. The two-byte local preserves both through calls.

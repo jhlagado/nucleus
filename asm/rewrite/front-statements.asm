@@ -107,3 +107,27 @@ _RewriteStatementEmitBssStore:
 _RewriteStatementEmitStoreReady:
             LD   HL,RewriteSemanticOperandArea
             JP   RewriteSemanticAppend
+
+; The current NAME begins a source or predefined-service call statement.
+; Result-bearing calls retain their declared result metadata exactly as the
+; frozen compiler does; the backend recipe decides whether a statement result
+; needs a carrier. Immediate `else fail` uses the same pending-call operand as
+; expression initializers.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementParseCall:
+            LD   DE,(TokenStartOffset)
+            LD   (RewriteExpressionAtomOffset),DE
+            XOR  A
+            LD   (RewriteExpressionExpectedType),A
+            CALL RewriteExpressionBeginRuntime
+            CALL RewriteRoutineFindCurrent
+            JR   C,_RewriteStatementParseSourceCall
+            CALL RewritePredefinedFindCurrent
+            JP   NC,RewriteStatementUnknownName
+            CP   6
+            JP   NC,RewriteStatementUnknownName
+            CALL RewriteCallParseService
+            JP   RewriteCallConsumeLocalFailure
+_RewriteStatementParseSourceCall:
+            CALL RewriteCallParseSource
+            JP   RewriteCallConsumeLocalFailure

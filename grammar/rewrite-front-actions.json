@@ -134,6 +134,10 @@
     {
       "name": "EmitScalarAssignment",
       "target": "RewriteStatementEmitScalarAssignment"
+    },
+    {
+      "name": "ParseCallStatement",
+      "target": "RewriteStatementParseCall"
     }
   ],
   "programs": [
@@ -336,6 +340,15 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishScalarAssignmentExpression"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitScalarAssignment"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "CallStatement",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseCallStatement"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "End", "operands": [] }
       ]
     }

@@ -1231,6 +1231,28 @@ R5 scalar-assignment checkpoint (Measured):
   instrumented replacement is 10,972 core bytes. Workspace remains 3,414
   bytes, leaving 5,416 core bytes and 682 workspace bytes beneath their gates.
 
+R5 call-statement checkpoint (Measured):
+
+- one generated action program now parses retained source-routine and
+  predefined-service calls as statements. It shares the four-frame call
+  engine and the pending call-mode operand with expression calls, so immediate
+  `else fail` publishes the same routine/main propagation modes;
+- the accepted proof completes two ordinary routines, opens a failable main,
+  and checks five exact semantic records for a failable source call, a
+  failable output service, and an infallible source call. It runs in 28,028
+  instructions and 251,329 T-states;
+- statement-specific rejected cases retain diagnostic 57 at byte 11 for an
+  unknown callable and diagnostic 87 at byte 44 or 39 for a missing consumer
+  or a consumer attached to an infallible call. Source, diagnostic, semantic,
+  and metadata fixtures remain data; the new compiler path contains no raw
+  instruction encoding; and
+- the shared runtime-expression initializer adds four code bytes, and the
+  statement region grows to 217 code bytes. The action authority contains 33
+  escapes, 309 code bytes, and 286 immutable bytes. The shipping replacement
+  is 9,737 code + 1,293 immutable = 11,030 core bytes; the instrumented
+  replacement is 11,034 core bytes. Workspace remains 3,414 bytes, leaving
+  5,354 core bytes and 682 workspace bytes beneath their gates.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.

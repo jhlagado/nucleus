@@ -133,6 +133,10 @@ export declare const rewriteActionEscapes: readonly [{
     readonly name: "EmitScalarAssignment";
     readonly target: "RewriteStatementEmitScalarAssignment";
     readonly id: 31;
+}, {
+    readonly name: "ParseCallStatement";
+    readonly target: "RewriteStatementParseCall";
+    readonly id: 32;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -787,5 +791,29 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 16;
+}, {
+    readonly name: "CallStatement";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseCallStatement"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 9;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

@@ -479,6 +479,100 @@ ProofArmAssignmentDiagnostic:
             CALL ProofRunScalarAssignment
             JP   ProofFailure
 
+ProofRuntimeCallStatements:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsCallStatements
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+            LD   B,3
+_ProofRuntimeCallStatementLoop:
+            PUSH BC
+            CALL ProofRunCallStatement
+            POP  BC
+            DJNZ _ProofRuntimeCallStatementLoop
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   ProofExpectedCallStatementOperationCount
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedCallStatementSemantics
+            LD   B,ProofExpectedCallStatementSemanticsEnd-ProofExpectedCallStatementSemantics
+_ProofRuntimeCallStatementCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeCallStatementCompare
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$D9
+            LD   (ProofStatus),A
+            HALT
+
+ProofRuntimeCallStatementUnknown:
+            LD   HL,ProofPartsCallStatementUnknown
+            LD   BC,(DiagnosticUnknownName<<8)|$DA
+            LD   DE,11
+            JP   ProofArmCallStatementDiagnostic
+
+ProofRuntimeCallStatementMissingElse:
+            LD   HL,ProofPartsCallStatementMissingElse
+            LD   BC,(DiagnosticFailureContext<<8)|$DB
+            LD   DE,44
+            JR   ProofArmCallStatementDiagnostic
+
+ProofRuntimeCallStatementInfallibleElse:
+            LD   HL,ProofPartsCallStatementInfallibleElse
+            LD   BC,(DiagnosticFailureContext<<8)|$DC
+            LD   DE,39
+ProofArmCallStatementDiagnostic:
+            LD   SP,$FF00
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            CALL RewriteReset
+            POP  HL
+            POP  DE
+            POP  BC
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            LD   (RewriteSymbolCompareEntry),HL
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,(RewriteSymbolCompareEntry)
+            CALL RewriteSourceInitializeParts
+            CALL RewriteParserPeek
+            CP   TokenSub
+            JR   NZ,_ProofCallStatementSkipFirstRoutine
+            CALL ProofRunDirectHeader
+            CALL RewriteParserPeek
+            CP   TokenEnd
+            JR   NZ,_ProofCallStatementCallReady
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+_ProofCallStatementCallReady:
+            CALL ProofRunCallStatement
+            JP   ProofFailure
+_ProofCallStatementSkipFirstRoutine:
+            JP   ProofFailure
+
 ; Install five owned types, two nominal record layouts, four fields, one BSS
 ; aggregate root, and one read-only aggregate constant. These blocks are
 ; metadata fixtures, not instructions.
@@ -792,6 +886,10 @@ ProofRunLocalDefault:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunScalarAssignment:
             LD   HL,RewriteActionProgramScalarAssignment
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunCallStatement:
+            LD   HL,RewriteActionProgramCallStatement
             JP   RewriteActionRun
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunRoutineEnd:
@@ -1159,6 +1257,21 @@ ProofExpectedScalarAssignmentSemantics:
             .db RewriteSemanticStoreParameter16,1
 ProofExpectedScalarAssignmentSemanticsEnd:
 
+ProofExpectedCallStatementOperationCount .equ 5
+ProofExpectedCallStatementSemantics:
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticCallSource,0,1,0,RewriteRoutineFlagFails
+            .dw ProofCallStatementPing-ProofSourceCallStatements
+            .db RewriteCallModePropagateMain,0,0
+            .db RewriteSemanticLiteral16,2,0
+            .db RewriteSemanticCallService,1
+            .dw ProofCallStatementService-ProofSourceCallStatements
+            .db RewriteCallModePropagateMain,0,0
+            .db RewriteSemanticCallSource,1,0,0,0
+            .dw ProofCallStatementDone-ProofSourceCallStatements
+            .db RewriteCallModeInfallible,0,0
+ProofExpectedCallStatementSemanticsEnd:
+
             .org $5000
 ProofSourceAccepted:
             .db "const five = 5",10
@@ -1366,6 +1479,30 @@ ProofSourceAssignmentMismatch:
             .db "var x as u8",10,"sub main()",10,"x = true",10
 ProofSourceAssignmentMismatchEnd:
 
+ProofSourceCallStatements:
+            .db "sub ping(value as u8) fails",10,"end",10
+            .db "sub done()",10,"end",10
+            .db "sub main() fails",10
+ProofCallStatementPing:
+            .db "ping(1) else fail",10
+ProofCallStatementService:
+            .db "writeOutputByte(2) else fail",10
+ProofCallStatementDone:
+            .db "done()",10
+ProofSourceCallStatementsEnd:
+
+ProofSourceCallStatementUnknown:
+            .db "sub main()",10,"missing()",10
+ProofSourceCallStatementUnknownEnd:
+ProofSourceCallStatementMissingElse:
+            .db "sub ping() fails",10,"end",10
+            .db "sub main() fails",10,"ping()",10
+ProofSourceCallStatementMissingElseEnd:
+ProofSourceCallStatementInfallibleElse:
+            .db "sub done()",10,"end",10
+            .db "sub main() fails",10,"done() else fail",10
+ProofSourceCallStatementInfallibleElseEnd:
+
 ProofSourceCallMissingConsumer:
             .db "forward sub maybe() as u8 fails",10
             .db "sub work() fails",10
@@ -1479,6 +1616,10 @@ ProofCallBinaryFailureAnchor:
             .db "+ 1 else fail",10
 ProofSourceCallBinaryFailureEnd:
 
+            ; Descriptor and metadata fixtures live outside both the source
+            ; corpus and the compiler workspace. Their full pointers also
+            ; discriminate any accidental address narrowing.
+            .org $8000
 ProofPartsAccepted:      .db 1
                          .dw ProofSourceAccepted,ProofSourceAcceptedEnd
 ProofPartsMismatch:      .db 1
@@ -1527,6 +1668,14 @@ ProofPartsAssignmentConstant: .db 1
                          .dw ProofSourceAssignmentConstant,ProofSourceAssignmentConstantEnd
 ProofPartsAssignmentMismatch: .db 1
                          .dw ProofSourceAssignmentMismatch,ProofSourceAssignmentMismatchEnd
+ProofPartsCallStatements: .db 1
+                         .dw ProofSourceCallStatements,ProofSourceCallStatementsEnd
+ProofPartsCallStatementUnknown: .db 1
+                         .dw ProofSourceCallStatementUnknown,ProofSourceCallStatementUnknownEnd
+ProofPartsCallStatementMissingElse: .db 1
+                         .dw ProofSourceCallStatementMissingElse,ProofSourceCallStatementMissingElseEnd
+ProofPartsCallStatementInfallibleElse: .db 1
+                         .dw ProofSourceCallStatementInfallibleElse,ProofSourceCallStatementInfallibleElseEnd
 ProofPartsCallMissingConsumer: .db 1
                          .dw ProofSourceCallMissingConsumer,ProofSourceCallMissingConsumerEnd
 ProofPartsCallInfallibleElse: .db 1

@@ -65,7 +65,9 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeBeginScalarAssignment
             DEC  A
             JR   Z,_RewriteActionEscapeFinishScalarAssignmentExpression
-            JP   RewriteStatementEmitScalarAssignment
+            DEC  A
+            JR   Z,_RewriteActionEscapeEmitScalarAssignment
+            JP   RewriteStatementParseCall
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -128,3 +130,5 @@ _RewriteActionEscapeBeginScalarAssignment:
             JP   RewriteStatementBeginScalarAssignment
 _RewriteActionEscapeFinishScalarAssignmentExpression:
             JP   RewriteStatementFinishScalarAssignmentExpression
+_RewriteActionEscapeEmitScalarAssignment:
+            JP   RewriteStatementEmitScalarAssignment
