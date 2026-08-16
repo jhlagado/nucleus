@@ -194,7 +194,11 @@ try {
   const inspectScript = `
     import { readFile } from "node:fs/promises";
     import { createZ80Runtime } from "@jhlagado/debug80-runtime";
+    import { prepareNucleusProject } from "@jhlagado/nucleus";
     import { materializeNobj, parseNobj } from "@jhlagado/nucleus/nobj";
+    const prepared = await prepareNucleusProject(${JSON.stringify(path.join(installedExample, "nucleus-project.json"))});
+    if (prepared.dependencies.map(({ name }) => name).join(",") !== "src/model.nu,src/main.nu") process.exit(1);
+    if (!prepared.dependencies.every(({ sha256 }) => /^[0-9a-f]{64}$/.test(sha256))) process.exit(1);
     const parsed = parseNobj(await readFile(${JSON.stringify(nobjPath)}));
     const target = JSON.parse(await readFile(${JSON.stringify(targetPath)}, "utf8"));
     if (parsed.map.partBanks.length !== 2) process.exit(1);

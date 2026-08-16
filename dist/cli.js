@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { assertNucleusTarget, NucleusConfigurationError, parseNucleusTargetProfile, validateNucleusTargetLayoutProfileDocument, } from "./configuration.js";
+import { NucleusConfigurationError, parseNucleusTargetProfile, validateNucleusTargetLayoutProfileDocument, } from "./configuration.js";
 import { formatNucleusDiagnostic } from "./diagnostics.js";
-import { createNucleusCompiler } from "./host.js";
-import { NUCLEUS_PROJECT_V2_SCHEMA, parseNucleusProject } from "./project.js";
+import { createNucleusCompiler, } from "./host.js";
+import { buildNucleusProject } from "./project-host.js";
 import { publishNucleusBuildOutputs, } from "./publication.js";
 import { resolveNucleusImports } from "./source-imports.js";
 const PACKAGE_VERSION = "0.1.0";
@@ -31,7 +31,6 @@ Build options:
 `;
 class CliUsageError extends Error {
 }
-const jsonObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 const valueAfter = (args, option) => {
     const value = args.shift();
     if (value === undefined)
@@ -126,185 +125,7 @@ const reportFailure = (failure, format) => {
         console.error(`Nucleus compiler execution failed: ${failure.message}`);
     }
 };
-const build = async (args) => {
-    const parsed = parseBuildArguments(args);
-    if (parsed.project !== undefined && parsed.sources.length > 0) {
-        throw new CliUsageError("--project cannot be combined with positional sources");
-    }
-    if (parsed.project !== undefined &&
-        [
-            parsed.output,
-            parsed.hexOutput,
-            parsed.d8Output,
-            parsed.targetProfile,
-            parsed.root,
-        ].some((value) => value !== undefined)) {
-        throw new CliUsageError("--project contains its own root, target and output paths");
-    }
-    let root;
-    let sources;
-    let sourceBankOverrides;
-    let entrySourceName;
-    let targetProfilePath;
-    let outputPaths;
-    if (parsed.project !== undefined) {
-        const projectPath = path.resolve(parsed.project);
-        const project = parseNucleusProject(await readFile(projectPath, "utf8"));
-        root = path.resolve(path.dirname(projectPath), project.root ?? ".");
-        sources =
-            project.schema === NUCLEUS_PROJECT_V2_SCHEMA
-                ? await resolveNucleusImports({ root, entry: project.entry })
-                : await Promise.all(project.sources.map(async (name) => {
-                    const sourcePath = path.resolve(root, name);
-                    return {
-                        name: sourceIdentity(root, sourcePath),
-                        source: await readFile(sourcePath),
-                    };
-                }));
-        if (project.schema === NUCLEUS_PROJECT_V2_SCHEMA) {
-            sourceBankOverrides = project.sourceBanks;
-            entrySourceName = sources.at(-1)?.name;
-        }
-        targetProfilePath = path.resolve(root, project.target);
-        outputPaths = {
-            nobj: path.resolve(root, project.outputs.nobj),
-            ...(project.outputs.hex === undefined
-                ? {}
-                : { hex: path.resolve(root, project.outputs.hex) }),
-            ...(project.outputs.d8 === undefined
-                ? {}
-                : { d8: path.resolve(root, project.outputs.d8) }),
-        };
-    }
-    else {
-        if (parsed.sources.length === 0)
-            throw new CliUsageError("build requires a source file");
-        root = path.resolve(parsed.root ?? process.cwd());
-        sources =
-            parsed.sources.length === 1
-                ? await resolveNucleusImports({ root, entry: parsed.sources[0] })
-                : await Promise.all(parsed.sources.map(async (name) => {
-                    const sourcePath = path.resolve(root, name);
-                    return {
-                        name: sourceIdentity(root, sourcePath),
-                        source: await readFile(sourcePath),
-                    };
-                }));
-        targetProfilePath =
-            parsed.targetProfile === undefined
-                ? undefined
-                : path.resolve(parsed.targetProfile);
-        const defaultOutput = `${parsed.sources[0]?.replace(/\.nu$/i, "") ?? "program"}.nobj`;
-        outputPaths = {
-            nobj: path.resolve(parsed.output ?? defaultOutput),
-            ...(parsed.hexOutput === undefined
-                ? {}
-                : { hex: path.resolve(parsed.hexOutput) }),
-            ...(parsed.d8Output === undefined
-                ? {}
-                : { d8: path.resolve(parsed.d8Output) }),
-        };
-    }
-    if (outputPaths.hex !== undefined && targetProfilePath === undefined) {
-        throw new NucleusConfigurationError("Intel HEX output requires a target profile", [
-            {
-                path: "$.target",
-                message: "supply --target-profile or a project target",
-            },
-        ]);
-    }
-    let target;
-    if (targetProfilePath !== undefined) {
-        const targetText = await readFile(targetProfilePath, "utf8");
-        if (entrySourceName === undefined) {
-            target = parseNucleusTargetProfile(targetText, {
-                requireServices: outputPaths.hex !== undefined,
-                sourcePartCount: sources.length,
-            });
-        }
-        else {
-            let targetValue;
-            try {
-                targetValue = JSON.parse(targetText);
-            }
-            catch (error) {
-                throw new NucleusConfigurationError("Invalid Nucleus target profile JSON", [
-                    {
-                        path: "$",
-                        message: error instanceof Error ? error.message : String(error),
-                    },
-                ]);
-            }
-            if (!jsonObject(targetValue)) {
-                target = assertNucleusTarget(targetValue, {
-                    requireServices: outputPaths.hex !== undefined,
-                    sourcePartCount: sources.length,
-                });
-            }
-            else if (Object.hasOwn(targetValue, "bankCount")) {
-                if (Object.hasOwn(targetValue, "partBanks")) {
-                    throw new NucleusConfigurationError("Invalid Nucleus project target", [
-                        {
-                            path: "$.partBanks",
-                            message: "project v2 derives partBanks from logical source identities",
-                        },
-                    ]);
-                }
-                const sourceNames = new Set(sources.map((source) => source.name));
-                for (const name of Object.keys(sourceBankOverrides ?? {})) {
-                    if (!sourceNames.has(name)) {
-                        throw new NucleusConfigurationError("Invalid Nucleus project", [
-                            {
-                                path: `$.sourceBanks.${name}`,
-                                message: "does not identify a discovered source part",
-                            },
-                        ]);
-                    }
-                }
-                const entryBank = typeof targetValue.entryBank === "number" ? targetValue.entryBank : 0;
-                const partBanks = sources.map((source) => sourceBankOverrides !== undefined &&
-                    Object.hasOwn(sourceBankOverrides, source.name)
-                    ? sourceBankOverrides[source.name]
-                    : entryBank);
-                const entryIndex = sources.findIndex((source) => source.name === entrySourceName);
-                if (entryIndex < 0 || partBanks[entryIndex] !== entryBank) {
-                    throw new NucleusConfigurationError("Invalid Nucleus project", [
-                        {
-                            path: `$.sourceBanks.${entrySourceName}`,
-                            message: "entry source must be assigned to entryBank",
-                        },
-                    ]);
-                }
-                target = assertNucleusTarget({ ...targetValue, partBanks }, {
-                    requireServices: outputPaths.hex !== undefined,
-                    sourcePartCount: sources.length,
-                });
-            }
-            else {
-                if (Object.keys(sourceBankOverrides ?? {}).length > 0) {
-                    throw new NucleusConfigurationError("Invalid Nucleus project", [
-                        {
-                            path: "$.sourceBanks",
-                            message: "requires a banked target profile",
-                        },
-                    ]);
-                }
-                target = assertNucleusTarget(targetValue, {
-                    requireServices: outputPaths.hex !== undefined,
-                    sourcePartCount: sources.length,
-                });
-            }
-        }
-    }
-    const compiler = createNucleusCompiler();
-    const result = await compiler.build({
-        sources,
-        ...(target === undefined ? {} : { target }),
-        artifacts: {
-            hex: outputPaths.hex !== undefined,
-            d8: outputPaths.d8 !== undefined,
-        },
-    });
+const publishBuildResult = async (result, outputPaths, parsed) => {
     if (!result.success) {
         reportFailure(result, parsed.diagnosticFormat);
         return result.kind === "source" ? 1 : 2;
@@ -323,6 +144,77 @@ const build = async (args) => {
             console.log(`Wrote ${output}`);
     }
     return 0;
+};
+const build = async (args) => {
+    const parsed = parseBuildArguments(args);
+    if (parsed.project !== undefined && parsed.sources.length > 0) {
+        throw new CliUsageError("--project cannot be combined with positional sources");
+    }
+    if (parsed.project !== undefined &&
+        [
+            parsed.output,
+            parsed.hexOutput,
+            parsed.d8Output,
+            parsed.targetProfile,
+            parsed.root,
+        ].some((value) => value !== undefined)) {
+        throw new CliUsageError("--project contains its own root, target and output paths");
+    }
+    if (parsed.project !== undefined) {
+        const built = await buildNucleusProject(path.resolve(parsed.project));
+        return await publishBuildResult(built.result, built.prepared.outputs, parsed);
+    }
+    if (parsed.sources.length === 0)
+        throw new CliUsageError("build requires a source file");
+    const root = path.resolve(parsed.root ?? process.cwd());
+    const sources = parsed.sources.length === 1
+        ? await resolveNucleusImports({ root, entry: parsed.sources[0] })
+        : await Promise.all(parsed.sources.map(async (name) => {
+            const sourcePath = path.resolve(root, name);
+            return {
+                name: sourceIdentity(root, sourcePath),
+                source: await readFile(sourcePath),
+            };
+        }));
+    const targetProfilePath = parsed.targetProfile === undefined
+        ? undefined
+        : path.resolve(parsed.targetProfile);
+    const defaultOutput = `${parsed.sources[0]?.replace(/\.nu$/i, "") ?? "program"}.nobj`;
+    const outputPaths = {
+        nobj: path.resolve(parsed.output ?? defaultOutput),
+        ...(parsed.hexOutput === undefined
+            ? {}
+            : { hex: path.resolve(parsed.hexOutput) }),
+        ...(parsed.d8Output === undefined
+            ? {}
+            : { d8: path.resolve(parsed.d8Output) }),
+    };
+    if (outputPaths.hex !== undefined && targetProfilePath === undefined) {
+        throw new NucleusConfigurationError("Intel HEX output requires a target profile", [
+            {
+                path: "$.target",
+                message: "supply --target-profile or a project target",
+            },
+        ]);
+    }
+    let target;
+    if (targetProfilePath !== undefined) {
+        const targetText = await readFile(targetProfilePath, "utf8");
+        target = parseNucleusTargetProfile(targetText, {
+            requireServices: outputPaths.hex !== undefined,
+            sourcePartCount: sources.length,
+        });
+    }
+    const compiler = createNucleusCompiler();
+    const result = await compiler.build({
+        sources,
+        ...(target === undefined ? {} : { target }),
+        artifacts: {
+            hex: outputPaths.hex !== undefined,
+            d8: outputPaths.d8 !== undefined,
+        },
+    });
+    return await publishBuildResult(result, outputPaths, parsed);
 };
 const target = async (args) => {
     if (args.shift() !== "validate")

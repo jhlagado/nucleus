@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { NucleusConfigurationError } from "../src/configuration.js";
 import {
   parseNucleusImportHeader,
+  resolveNucleusImportGraph,
   resolveNucleusImports,
 } from "../src/source-imports.js";
 
@@ -99,6 +100,38 @@ describe("Nucleus import resolution", () => {
       '//% import "shared.nu"\nconst Left = 1\n',
       '//% import "shared.nu"\n//% import "shared.nu"\nconst Right = 2\n',
       '//% import "lib/left.nu"\n//% import "lib/right.nu"\nsub main()\nend\n',
+    ]);
+  });
+
+  it("reports stable dependency edges and raw-byte hashes", async () => {
+    const root = await project();
+    await mkdir(path.join(root, "lib"));
+    await writeFile(path.join(root, "lib/value.nu"), "const Value = 7\n");
+    await writeFile(
+      path.join(root, "main.nu"),
+      '//% import "lib/value.nu"\n//% import "lib/value.nu"\nsub main()\nend\n',
+    );
+
+    const graph = await resolveNucleusImportGraph({
+      root,
+      entry: "main.nu",
+    });
+
+    expect(graph.entry).toBe("main.nu");
+    expect(graph.dependencies).toEqual([
+      {
+        name: "lib/value.nu",
+        imports: [],
+        byteLength: 16,
+        sha256:
+          "729793768a53280b401152f524f9ace317ca5e0512042e6664e793c9403273e4",
+      },
+      {
+        name: "main.nu",
+        imports: ["lib/value.nu"],
+        byteLength: 67,
+        sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+      },
     ]);
   });
 

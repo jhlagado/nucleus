@@ -5,6 +5,7 @@ export * from "./diagnostics.js";
 export * from "./host.js";
 export * from "./nobj.js";
 export * from "./project.js";
+export * from "./project-host.js";
 export * from "./publication.js";
 export * from "./runtime-contract.js";
 export * from "./source-manifest.js";

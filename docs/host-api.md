@@ -182,9 +182,32 @@ identities to bank ordinals after discovery. Unlisted parts default to
 mapping.
 
 `parseNucleusProject()` validates the document without reading its files. The
-CLI reads v1 sources in declared order and resolves v2 from its entry. The
-source-packaging contract defines the generated SP1 plan for a future
-filesystem-aware Z80 host.
+public project host performs the filesystem work:
+
+```ts
+import { buildNucleusProject, prepareNucleusProject } from "@jhlagado/nucleus";
+
+const prepared = await prepareNucleusProject("nucleus-project.json");
+const { result } = await buildNucleusProject("nucleus-project.json");
+```
+
+`prepareNucleusProject()` resolves paths, reads source bytes, orders v2
+dependencies, derives ordinal bank assignments, validates the complete target,
+and returns absolute publication paths. Its `dependencies` array follows final
+source order. Each entry contains the logical source identity, direct import
+identities, raw byte length, and SHA-256 hash. Version 1 entries have no import
+edges because their order is explicit.
+
+`buildNucleusProject()` performs the same preparation and invokes either the
+supplied compiler object or a new compiler object. It returns the prepared
+project beside the ordinary classified build result. The API does not publish
+files; callers may pass the returned artifacts and `prepared.outputs` to
+`publishNucleusBuildOutputs()`.
+
+The CLI uses this API for project builds. Other hosts should use it rather than
+repeat source discovery or filename-to-bank joining. The source-packaging
+contract defines the generated SP1 plan for a future filesystem-aware Z80
+host.
 
 ## Compiler information
 

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
@@ -98,6 +99,19 @@ export interface ResolveNucleusImportsOptions {
   readonly entry: string;
 }
 
+export interface NucleusSourceDependency {
+  readonly name: string;
+  readonly imports: readonly string[];
+  readonly byteLength: number;
+  readonly sha256: string;
+}
+
+export interface NucleusResolvedImportGraph {
+  readonly entry: string;
+  readonly sources: readonly NucleusSourcePart[];
+  readonly dependencies: readonly NucleusSourceDependency[];
+}
+
 const within = (root: string, candidate: string): boolean => {
   const relative = path.relative(root, candidate);
   return (
@@ -111,9 +125,9 @@ const within = (root: string, candidate: string): boolean => {
 const logicalName = (root: string, candidate: string): string =>
   path.relative(root, candidate).split(path.sep).join("/");
 
-export const resolveNucleusImports = async (
+export const resolveNucleusImportGraph = async (
   options: ResolveNucleusImportsOptions,
-): Promise<readonly NucleusSourcePart[]> => {
+): Promise<NucleusResolvedImportGraph> => {
   const root = path.resolve(options.root);
   let physicalRoot: string;
   try {
@@ -130,6 +144,7 @@ export const resolveNucleusImports = async (
   const logicalByPhysical = new Map<string, string>();
   const stack: { physical: string; logical: string }[] = [];
   const ordered: NucleusSourcePart[] = [];
+  const dependencies: NucleusSourceDependency[] = [];
 
   const visit = async (requestedPath: string): Promise<void> => {
     const requested = path.resolve(requestedPath);
@@ -205,15 +220,29 @@ export const resolveNucleusImports = async (
     state.set(physical, "visiting");
     stack.push({ physical, logical: requestedLogical });
     const imports = parseNucleusImportHeader(requestedLogical, source);
-    for (const imported of imports) {
-      await visit(path.resolve(path.dirname(requested), imported));
+    const importedPaths = imports.map((imported) =>
+      path.resolve(path.dirname(requested), imported),
+    );
+    for (const importedPath of importedPaths) {
+      await visit(importedPath);
     }
     stack.pop();
     state.set(physical, "done");
     ordered.push({ name: requestedLogical, source });
+    dependencies.push({
+      name: requestedLogical,
+      imports: [
+        ...new Set(
+          importedPaths.map((importedPath) => logicalName(root, importedPath)),
+        ),
+      ],
+      byteLength: source.length,
+      sha256: createHash("sha256").update(source).digest("hex"),
+    });
   };
 
-  await visit(path.resolve(root, options.entry));
+  const entryPath = path.resolve(root, options.entry);
+  await visit(entryPath);
 
   if (ordered.length > nucleusCompilerCapacities.sourceParts) {
     throw configurationFailure(
@@ -237,5 +266,14 @@ export const resolveNucleusImports = async (
     );
   }
 
-  return ordered;
+  return {
+    entry: logicalName(root, entryPath),
+    sources: ordered,
+    dependencies,
+  };
 };
+
+export const resolveNucleusImports = async (
+  options: ResolveNucleusImportsOptions,
+): Promise<readonly NucleusSourcePart[]> =>
+  (await resolveNucleusImportGraph(options)).sources;

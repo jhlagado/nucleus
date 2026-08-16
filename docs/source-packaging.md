@@ -74,6 +74,11 @@ project-relative `/` path is the diagnostic name, D8 file identity, source-plan
 path, and source-bank key. This logical identity is printable ASCII and occupies
 1 through 255 bytes.
 
+The Node resolver also returns the ordered dependency graph. Every entry
+records its logical identity, direct import identities, raw byte length, and
+SHA-256 hash. Editors and watch processes can use that metadata without reading
+or resolving the files a second time.
+
 ## Project files
 
 `nucleus-project/v1` remains the explicit ordered-source format. Version 2

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { nucleusCompilerCapacities } from "./compiler.js";
@@ -62,7 +63,7 @@ const within = (root, candidate) => {
             !path.isAbsolute(relative)));
 };
 const logicalName = (root, candidate) => path.relative(root, candidate).split(path.sep).join("/");
-export const resolveNucleusImports = async (options) => {
+export const resolveNucleusImportGraph = async (options) => {
     const root = path.resolve(options.root);
     let physicalRoot;
     try {
@@ -75,6 +76,7 @@ export const resolveNucleusImports = async (options) => {
     const logicalByPhysical = new Map();
     const stack = [];
     const ordered = [];
+    const dependencies = [];
     const visit = async (requestedPath) => {
         const requested = path.resolve(requestedPath);
         const requestedLogical = logicalName(root, requested);
@@ -119,14 +121,24 @@ export const resolveNucleusImports = async (options) => {
         state.set(physical, "visiting");
         stack.push({ physical, logical: requestedLogical });
         const imports = parseNucleusImportHeader(requestedLogical, source);
-        for (const imported of imports) {
-            await visit(path.resolve(path.dirname(requested), imported));
+        const importedPaths = imports.map((imported) => path.resolve(path.dirname(requested), imported));
+        for (const importedPath of importedPaths) {
+            await visit(importedPath);
         }
         stack.pop();
         state.set(physical, "done");
         ordered.push({ name: requestedLogical, source });
+        dependencies.push({
+            name: requestedLogical,
+            imports: [
+                ...new Set(importedPaths.map((importedPath) => logicalName(root, importedPath))),
+            ],
+            byteLength: source.length,
+            sha256: createHash("sha256").update(source).digest("hex"),
+        });
     };
-    await visit(path.resolve(root, options.entry));
+    const entryPath = path.resolve(root, options.entry);
+    await visit(entryPath);
     if (ordered.length > nucleusCompilerCapacities.sourceParts) {
         throw configurationFailure("Nucleus source discovery failed", "$.entry", `dependency graph contains ${ordered.length} source parts; capacity is ${nucleusCompilerCapacities.sourceParts}`);
     }
@@ -136,5 +148,10 @@ export const resolveNucleusImports = async (options) => {
     if (windowBytes > nucleusCompilerCapacities.sourceWindowBytes) {
         throw configurationFailure("Nucleus source discovery failed", "$.entry", `resolved sources require ${windowBytes} bytes in the ${nucleusCompilerCapacities.sourceWindowBytes}-byte host source window`);
     }
-    return ordered;
+    return {
+        entry: logicalName(root, entryPath),
+        sources: ordered,
+        dependencies,
+    };
 };
+export const resolveNucleusImports = async (options) => (await resolveNucleusImportGraph(options)).sources;
