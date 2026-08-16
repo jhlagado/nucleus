@@ -69,8 +69,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 10_794,
-      cycles: 95_008,
+      instructions: 10_878,
+      cycles: 95_703,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -130,8 +130,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendEscapes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 6_432,
-      cycles: 61_338,
+      instructions: 6_516,
+      cycles: 62_065,
     });
     expect(
       (image.symbols.ProofExpectedEscapesEnd ?? 0) -
@@ -143,8 +143,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendBankedTrap");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_359,
-      cycles: 14_940,
+      instructions: 1_443,
+      cycles: 15_667,
     });
   });
 
@@ -152,13 +152,47 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendAddresses");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 4_183,
-      cycles: 38_193,
+      instructions: 4_278,
+      cycles: 38_993,
     });
     expect(
       (image.symbols.ProofExpectedAddressesEnd ?? 0) -
         (image.symbols.ProofExpectedAddresses ?? 0),
     ).toBe(84);
+  });
+
+  it("resolves full-width control labels and scalar return recipes", () => {
+    const { memory, instructions, cycles } = run("ProofBackendControl");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 1_382,
+      cycles: 14_435,
+    });
+    expect(
+      (image.symbols.ProofExpectedControlEnd ?? 0) -
+        (image.symbols.ProofExpectedControl ?? 0),
+    ).toBe(18);
+  });
+
+  it("rejects unresolved labels and exact label/fixup overflow boundaries", () => {
+    const undefinedLabel = run("ProofBackendUndefinedLabel").memory;
+    const labelCapacity = run("ProofBackendLabelCapacity").memory;
+    const fixupCapacity = run("ProofBackendFixupCapacity").memory;
+    const diagnostic = image.symbols.DiagnosticCode ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    expect({
+      undefinedLabel: undefinedLabel[diagnostic],
+      labelCapacity: labelCapacity[diagnostic],
+      fixupCapacity: fixupCapacity[diagnostic],
+      fixupCursor:
+        (fixupCapacity[cursor] | (fixupCapacity[cursor + 1] << 8)) - output,
+    }).toEqual({
+      undefinedLabel: 67,
+      labelCapacity: 69,
+      fixupCapacity: 70,
+      fixupCursor: 99,
+    });
   });
 
   it("uses complete recipe addresses at separated compiler origins", async () => {
@@ -294,11 +328,11 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      engine: 978,
-      recipes: 684,
-      code: 13_181,
-      immutable: 2_148,
-      core: 15_329,
+      engine: 1_243,
+      recipes: 709,
+      code: 13_446,
+      immutable: 2_173,
+      core: 15_619,
       workspace: 3_425,
     });
   });

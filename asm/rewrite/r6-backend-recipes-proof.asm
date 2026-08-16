@@ -386,6 +386,136 @@ ProofBackendAddressCompareLoop:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendControl:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,1
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticJumpDirect
+            CALL RewriteBackendDispatchOperation
+            LD   A,2
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticControlLabelEnclosing
+            CALL RewriteBackendDispatchOperation
+            LD   A,1
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticBranchFalse
+            CALL RewriteBackendDispatchOperation
+            LD   A,1
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticControlLabelDirect
+            CALL RewriteBackendDispatchOperation
+            LD   A,2
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticJumpEnclosing
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticReturnScalar
+            CALL RewriteBackendDispatchOperation
+            CALL RewriteBackendResolveFixups
+            LD   HL,ProofBackendOutput+9
+            LD   (ProofExpectedControl+1),HL
+            LD   (ProofExpectedControl+7),HL
+            LD   HL,ProofBackendOutput+3
+            LD   (ProofExpectedControl+10),HL
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedControlEnd-ProofExpectedControl
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedControl
+            LD   BC,ProofExpectedControlEnd-ProofExpectedControl
+ProofBackendControlCompareLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendControlCompareLoop
+            LD   A,(RewriteBackendFixupCount)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendUndefinedLabel:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,3
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticJumpDirect
+            CALL RewriteBackendDispatchOperation
+            CALL RewriteBackendResolveFixups
+            JP   ProofFailure
+
+ProofBackendLabelCapacity:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            XOR  A
+ProofBackendLabelCapacityLoop:
+            LD   (RewriteSemanticOperandArea),A
+            PUSH AF
+            LD   A,RewriteSemanticControlLabelDirect
+            CALL RewriteBackendDispatchOperation
+            POP  AF
+            INC  A
+            CP   RewriteBackendLabelCapacity
+            JR   C,ProofBackendLabelCapacityLoop
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticControlLabelDirect
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
+ProofBackendFixupCapacity:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   B,RewriteBackendFixupCapacity
+ProofBackendFixupCapacityLoop:
+            XOR  A
+            LD   (RewriteSemanticOperandArea),A
+            PUSH BC
+            LD   A,RewriteSemanticJumpDirect
+            CALL RewriteBackendDispatchOperation
+            POP  BC
+            DJNZ ProofBackendFixupCapacityLoop
+            XOR  A
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticJumpDirect
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofExpectedDiagnostic:
             HALT
 ProofUnexpectedDiagnostic:
@@ -798,3 +928,18 @@ ProofExpectedAddresses:
             INC  HL
             LD   (HL),D
 ProofExpectedAddressesEnd:
+
+ProofExpectedControl:
+            JP   ProofExpectedControlLabel1
+ProofExpectedControlLabel2:
+            POP  HL
+            LD   A,L
+            OR   A
+            JP   Z,ProofExpectedControlLabel1
+ProofExpectedControlLabel1:
+            JP   ProofExpectedControlLabel2
+            POP  HL
+            LD   SP,IX
+            POP  IX
+            RET
+ProofExpectedControlEnd:

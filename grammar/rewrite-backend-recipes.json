@@ -158,7 +158,14 @@
         }
       }
     ],
-    "booleanEnd": [{ "relativeFixupPatch": true }]
+    "booleanEnd": [{ "relativeFixupPatch": true }],
+    "controlLabel": [{ "defineLabel": "label" }],
+    "branchFalse": [
+      { "emit": [225, 125, 183] },
+      { "absoluteFixup": ["label", 202] }
+    ],
+    "jump": [{ "absoluteFixup": ["label", 195] }],
+    "returnScalar": [{ "emit": [225, 221, 249, 221, 225, 201] }]
   },
   "fragments": {
     "add8": [{ "emit": [209, 225, 125, 131, 111, 38, 0, 229] }],

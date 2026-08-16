@@ -57,6 +57,8 @@ const instruction = {
   relativeFixupPush: 7,
   relativeFixupPatch: 8,
   addressWord: 9,
+  defineLabel: 10,
+  absoluteFixup: 11,
 };
 const contextOffsets = {
   dataBase: "RewriteBackendContextDataBase",
@@ -167,6 +169,25 @@ const encodeSteps = (ownerKind, ownerName, selector, steps) => {
       );
       continue;
     }
+    if (kind === "defineLabel") {
+      if (ownerKind !== "Selector") {
+        throw new Error(`defineLabel is not valid in fragment ${ownerName}`);
+      }
+      const offset = operandOffset(selector, step.defineLabel);
+      lines.push(`            .db RewriteBackendRecipeDefineLabel,${offset}`);
+      continue;
+    }
+    if (kind === "absoluteFixup") {
+      if (ownerKind !== "Selector") {
+        throw new Error(`absoluteFixup is not valid in fragment ${ownerName}`);
+      }
+      const [operandName, opcode] = step.absoluteFixup ?? [];
+      const offset = operandOffset(selector, operandName);
+      lines.push(
+        `            .db RewriteBackendRecipeAbsoluteFixup,${offset},${hex(byte(opcode, ownerName))}`,
+      );
+      continue;
+    }
     if (kind === "dispatch") {
       const { first, targets } = step.dispatch ?? {};
       const firstId = operationIds.get(first);
@@ -259,7 +280,9 @@ const asm = [
   "RewriteBackendRecipeRelativeFixupPush .equ 7",
   "RewriteBackendRecipeRelativeFixupPatch .equ 8",
   "RewriteBackendRecipeAddressWord .equ 9",
-  "RewriteBackendRecipeInstructionCount .equ 10",
+  "RewriteBackendRecipeDefineLabel .equ 10",
+  "RewriteBackendRecipeAbsoluteFixup .equ 11",
+  "RewriteBackendRecipeInstructionCount .equ 12",
   "",
   "RewriteBackendRecipeDirectory:",
   ...recipeSelectors.map((selector) =>

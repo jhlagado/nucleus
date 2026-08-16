@@ -354,6 +354,15 @@ RewriteBackendRelativeOperand .equ RewriteBackendContextLimit+5 ; word
 RewriteBackendBooleanFixupDepth .equ RewriteBackendContextLimit+7
 RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+8
 RewriteBackendBooleanFixupCapacity .equ 16
+RewriteBackendLabelCapacity    .equ RewriteControlLabelLimit
+RewriteBackendLabelValidBase   .equ RewriteBackendBooleanFixupBase+RewriteBackendBooleanFixupCapacity*2
+RewriteBackendLabelBankBase    .equ RewriteBackendLabelValidBase+RewriteBackendLabelCapacity
+RewriteBackendLabelAddressBase .equ RewriteBackendLabelBankBase+RewriteBackendLabelCapacity
+RewriteBackendFixupCount       .equ RewriteBackendLabelAddressBase+RewriteBackendLabelCapacity*2
+RewriteBackendFixupBase        .equ RewriteBackendFixupCount+1
+RewriteBackendFixupSize        .equ 4 ; label, site bank, full operand address
+RewriteBackendFixupCapacity    .equ 32
+RewriteBackendFixupLimit       .equ RewriteBackendFixupBase+RewriteBackendFixupSize*RewriteBackendFixupCapacity
 
 ; Deployment supplies this full-width record to RewriteBackendInitialize.
 RewriteBackendContextRuntimeBase .equ 0 ; word
@@ -501,6 +510,7 @@ DiagnosticRoutineFlow        .equ 75
 DiagnosticActiveCounter      .equ 36
 DiagnosticControlCapacity    .equ 68
 DiagnosticControlLabelCapacity .equ 69
+DiagnosticControlFixupCapacity .equ 70
 DiagnosticExpectedBoolean    .equ 71
 DiagnosticExpectedLoop       .equ 72
 DiagnosticLoopCounter        .equ 73

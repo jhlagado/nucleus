@@ -17,6 +17,13 @@ RewriteBackendInitialize:
             LDIR
             XOR  A
             LD   (RewriteBackendBooleanFixupDepth),A
+            LD   (RewriteBackendFixupCount),A
+            LD   HL,RewriteBackendLabelValidBase
+            LD   B,RewriteBackendLabelCapacity
+RewriteBackendInitializeLabels:
+            LD   (HL),A
+            INC  HL
+            DJNZ RewriteBackendInitializeLabels
             RET
 
 ; Append one target byte to the bounded prototype sink. The later target/NOBJ
@@ -125,7 +132,11 @@ RewriteBackendRecipeNext:
             JP   Z,RewriteBackendRecipePushRelativeFixup
             CP   RewriteBackendRecipeRelativeFixupPatch
             JP   Z,RewriteBackendRecipePatchRelativeFixup
-            JP   RewriteBackendRecipeEmitAddressWord
+            CP   RewriteBackendRecipeAddressWord
+            JP   Z,RewriteBackendRecipeEmitAddressWord
+            CP   RewriteBackendRecipeDefineLabel
+            JP   Z,RewriteBackendRecipeDoDefineLabel
+            JP   RewriteBackendRecipeEmitAbsoluteFixup
 
 RewriteBackendRecipeEmitLiteral:
             LD   B,(HL)
@@ -151,7 +162,7 @@ RewriteBackendRecipeEmitOperandByte:
             LD   A,(HL)
             CALL RewriteBackendEmitByte
             POP  HL
-            JR   RewriteBackendRecipeNext
+            JP   RewriteBackendRecipeNext
 
 RewriteBackendRecipeEmitOperandWord:
             LD   E,(HL)
@@ -188,7 +199,7 @@ RewriteBackendRecipeEmitComplement:
             SUB  C
             CALL RewriteBackendEmitByte
             POP  HL
-            JR   RewriteBackendRecipeNext
+            JP   RewriteBackendRecipeNext
 
 ; Add a semantic word operand to one full-width deployment base and emit the
 ; complete target address. The recipe stores context and operand offsets, not
@@ -215,6 +226,46 @@ RewriteBackendRecipeEmitAddressWord:
             EX   DE,HL
             ADD  HL,BC
             CALL RewriteBackendEmitWord
+            POP  HL
+            JP   RewriteBackendRecipeNext
+
+RewriteBackendRecipeDoDefineLabel:
+            LD   E,(HL)
+            INC  HL
+            PUSH HL
+            LD   D,0
+            LD   HL,RewriteSemanticOperandArea
+            ADD  HL,DE
+            LD   A,(HL)
+            CALL RewriteBackendDefineLabel
+            POP  HL
+            JP   RewriteBackendRecipeNext
+
+RewriteBackendRecipeEmitAbsoluteFixup:
+            LD   E,(HL)
+            INC  HL
+            LD   A,(HL)
+            INC  HL
+            PUSH HL
+            LD   (RewriteBackendTrapReason),A
+            LD   D,0
+            LD   HL,RewriteSemanticOperandArea
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteBackendTrapSourceOffset),A
+            LD   A,(RewriteBackendTrapReason)
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   D,H
+            LD   E,L
+            PUSH DE
+            XOR  A
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            POP  DE
+            LD   A,(RewriteBackendTrapSourceOffset)
+            CALL RewriteBackendRecordFixup
             POP  HL
             JP   RewriteBackendRecipeNext
 
@@ -320,6 +371,115 @@ RewriteBackendRecipePatchRelativeFixup:
             LD   (DE),A
             POP  HL
             JP   RewriteBackendRecipeNext
+
+; Define and later resolve absolute control-flow operands without packing the
+; label ordinal, bank, or either address. All three remain separate fields.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+RewriteBackendDefineLabel:
+            CP   RewriteBackendLabelCapacity
+            JP   NC,RewriteBackendControlLabelCapacityFailure
+            LD   C,A
+            LD   B,0
+            LD   HL,RewriteBackendLabelValidBase
+            ADD  HL,BC
+            LD   A,(HL)
+            OR   A
+            JP   NZ,RewriteBackendInvalid
+            INC  (HL)
+            LD   HL,RewriteBackendLabelBankBase
+            ADD  HL,BC
+            LD   A,(RewriteBackendOutputBank)
+            LD   (HL),A
+            LD   L,C
+            LD   H,0
+            ADD  HL,HL
+            LD   DE,RewriteBackendLabelAddressBase
+            ADD  HL,DE
+            LD   DE,(RewriteBackendOutputCursor)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            XOR  A
+            RET
+
+.routine in A,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendRecordFixup:
+            CP   RewriteBackendLabelCapacity
+            JP   NC,RewriteBackendControlLabelCapacityFailure
+            LD   C,A
+            LD   A,(RewriteBackendFixupCount)
+            CP   RewriteBackendFixupCapacity
+            JP   NC,RewriteBackendControlFixupCapacityFailure
+            LD   L,A
+            LD   H,0
+            ADD  HL,HL
+            ADD  HL,HL
+            LD   B,0
+            LD   A,C
+            LD   BC,RewriteBackendFixupBase
+            ADD  HL,BC
+            LD   (HL),A
+            INC  HL
+            LD   A,(RewriteBackendOutputBank)
+            LD   (HL),A
+            INC  HL
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            LD   HL,RewriteBackendFixupCount
+            INC  (HL)
+            XOR  A
+            RET
+
+; Resolve all label operands only after semantic emission completes. A bank
+; mismatch is an internal lowering error: source-level structured control may
+; not cross a generated bank boundary.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendResolveFixups:
+            LD   A,(RewriteBackendFixupCount)
+            OR   A
+            RET  Z
+            LD   (RewriteBackendTrapReason),A
+            LD   IX,RewriteBackendFixupBase
+RewriteBackendResolveFixupNext:
+            LD   C,(IX+0)
+            LD   B,0
+            LD   HL,RewriteBackendLabelValidBase
+            ADD  HL,BC
+            LD   A,(HL)
+            OR   A
+            JP   Z,RewriteBackendInvalid
+            LD   HL,RewriteBackendLabelBankBase
+            ADD  HL,BC
+            LD   A,(HL)
+            CP   (IX+1)
+            JP   NZ,RewriteBackendInvalid
+            LD   L,C
+            LD   H,0
+            ADD  HL,HL
+            LD   BC,RewriteBackendLabelAddressBase
+            ADD  HL,BC
+            LD   C,(HL)
+            INC  HL
+            LD   H,(HL)
+            LD   L,C
+            LD   E,(IX+2)
+            LD   D,(IX+3)
+            LD   A,L
+            LD   (DE),A
+            INC  DE
+            LD   A,H
+            LD   (DE),A
+            INC  IX
+            INC  IX
+            INC  IX
+            INC  IX
+            LD   HL,RewriteBackendTrapReason
+            DEC  (HL)
+            JP   NZ,RewriteBackendResolveFixupNext
+            XOR  A
+            LD   (RewriteBackendFixupCount),A
+            RET
 
 ; Shared escape-emission primitives. These produce target instruction bytes;
 ; the compiler executes only the mnemonics below. Full addresses always come
@@ -604,6 +764,14 @@ RewriteBackendInvalid:
 .routine noreturn
 RewriteBackendBooleanFixupCapacityFailure:
             LD   A,DiagnosticBooleanFixupCapacity
+            JP   RewriteRaiseDiagnostic
+.routine noreturn
+RewriteBackendControlLabelCapacityFailure:
+            LD   A,DiagnosticControlLabelCapacity
+            JP   RewriteRaiseDiagnostic
+.routine noreturn
+RewriteBackendControlFixupCapacityFailure:
+            LD   A,DiagnosticControlFixupCapacity
             JP   RewriteRaiseDiagnostic
 .routine noreturn
 RewriteBackendFixupRangeFailure:

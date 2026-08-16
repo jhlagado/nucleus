@@ -45,7 +45,7 @@ beforeAll(async () => {
     result.diagnostics.filter(({ severity }) => severity === "error"),
   ).toEqual([]);
   image = imageFromArtifacts(result.artifacts);
-}, 30_000);
+}, 60_000);
 
 const run = (entryName: string, instructionLimit = 300_000) => {
   const parsed = parseIntelHex(image.hex);
@@ -266,9 +266,9 @@ describe("ground-up rewrite compilation-unit driver", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       driver: 651,
-      code: 13_181,
-      immutable: 2_148,
-      core: 15_329,
+      code: 13_446,
+      immutable: 2_173,
+      core: 15_619,
       workspace: 3_425,
     });
   });

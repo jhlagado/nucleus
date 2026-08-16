@@ -12,7 +12,9 @@ RewriteBackendRecipeRuntimeCall .equ 6
 RewriteBackendRecipeRelativeFixupPush .equ 7
 RewriteBackendRecipeRelativeFixupPatch .equ 8
 RewriteBackendRecipeAddressWord .equ 9
-RewriteBackendRecipeInstructionCount .equ 10
+RewriteBackendRecipeDefineLabel .equ 10
+RewriteBackendRecipeAbsoluteFixup .equ 11
+RewriteBackendRecipeInstructionCount .equ 12
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -36,10 +38,10 @@ RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorStoreLocal16 ; storeLocal16
             .dw RewriteBackendRecipeSelectorBooleanBegin ; booleanBegin
             .dw RewriteBackendRecipeSelectorBooleanEnd ; booleanEnd
-            .dw 0 ; controlLabel
-            .dw 0 ; branchFalse
-            .dw 0 ; jump
-            .dw 0 ; returnScalar
+            .dw RewriteBackendRecipeSelectorControlLabel ; controlLabel
+            .dw RewriteBackendRecipeSelectorBranchFalse ; branchFalse
+            .dw RewriteBackendRecipeSelectorJump ; jump
+            .dw RewriteBackendRecipeSelectorReturnScalar ; returnScalar
             .dw RewriteBackendRecipeSelectorLoadProgramAlias ; loadProgramAlias
             .dw RewriteBackendRecipeSelectorLoadBssAlias ; loadBssAlias
             .dw RewriteBackendRecipeSelectorLoadParameterAlias ; loadParameterAlias
@@ -244,6 +246,19 @@ RewriteBackendRecipeSelectorBooleanBegin:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBooleanEnd:
             .db RewriteBackendRecipeRelativeFixupPatch
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorControlLabel:
+            .db RewriteBackendRecipeDefineLabel,0
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorBranchFalse:
+            .db RewriteBackendRecipeEmit,3,$E1,$7D,$B7
+            .db RewriteBackendRecipeAbsoluteFixup,0,$CA
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorJump:
+            .db RewriteBackendRecipeAbsoluteFixup,0,$C3
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorReturnScalar:
+            .db RewriteBackendRecipeEmit,6,$E1,$DD,$F9,$DD,$E1,$C9
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentAdd8:
             .db RewriteBackendRecipeEmit,8,$D1,$E1,$7D,$83,$6F,$26,$00,$E5
