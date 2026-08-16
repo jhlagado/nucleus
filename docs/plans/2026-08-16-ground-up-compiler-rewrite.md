@@ -896,6 +896,34 @@ R3 generated program-variable checkpoint (Measured):
   bytes. Workspace is 3,368 bytes. The checkpoint therefore leaves 9,906 core
   bytes and 728 workspace bytes beneath their gates.
 
+R3 generated record-declaration checkpoint (Measured):
+
+- three generated action programs handle the record header, each field line,
+  and the closing `end`. The record name occupies an unpublished shared-symbol
+  entry until the closing newline passes. A field name is checked and retained
+  before its type, preserving duplicate-before-invalid-type precedence;
+- record fields use the shared type parser, reject both parameter-only open
+  views at the frozen field position, and retain complete type and word-offset
+  metadata. Field offsets and the current record extent are checked against
+  the exact 1,024-byte object boundary before either field count advances;
+- record descriptors are nominal even when layouts match. The proof constructs
+  `Pair` and `Box`, reuses one field spelling in the two separate record scopes,
+  nests the earlier record and a fixed array, and checks the exact three type
+  extents, four field offsets, two record slices, and two published symbol
+  identities;
+- exact diagnostics cover an empty record, duplicate field before an unknown
+  duplicate type, self-reference while the record name is still provisional,
+  open array and open string fields, aggregate extent overflow, and duplicate
+  record publication. Seven diagnostic cases execute in 55,933 instructions
+  and 491,336 T-states; the accepted record pair executes in 21,248
+  instructions and 189,685 T-states; and
+- the action interpreter and dispatcher are 201 code bytes, the front
+  declaration region is 441 code bytes, and the action authority is 118
+  immutable bytes. The shipping replacement is 5,619 code + 1,081 immutable =
+  6,700 core bytes; the instrumented replacement is 6,704 core bytes.
+  Workspace remains 3,368 bytes, leaving 9,684 core bytes and 728 workspace
+  bytes beneath their gates.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -1026,8 +1054,8 @@ R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
 routine-lifecycle, static-storage, front-action, scalar constant-expression,
 and shared source-type substrates. Generated programs now cover scalar
 constants, assertions, uninitialised program variables, and scalar-initialised
-program variables. The next checkpoint adds record declarations and fields,
-then the recursive type-directed initializer for aggregate constants and
-program variables. Formal parameters, results, and locals follow on the same
-generated action substrate. The replacement remains test-selected until the
-complete cutover gate passes.
+program variables. Generated record and field programs are also complete. The
+next checkpoint is the recursive type-directed initializer for aggregate
+constants and program variables. Formal parameters, results, and locals follow
+on the same generated action substrate. The replacement remains test-selected
+until the complete cutover gate passes.

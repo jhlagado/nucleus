@@ -221,3 +221,78 @@ RewriteDeclarationFinishProgramScalar:
 RewriteDeclarationProgramTypeFailure:
             LD   A,DiagnosticTypeMismatch
             JP   RewriteRaiseDiagnostic
+
+; Record names occupy the shared provisional symbol entry, while fields use
+; the independent field directory. The record type remains invisible until
+; its closing `end` and newline have both passed.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationBeginRecord:
+            LD   A,RewriteSymbolClassRecordType
+            LD   D,RewriteScalarTypeExact
+            LD   BC,0
+            CALL RewriteSymbolPrepareCurrent
+            LD   A,(RewriteTypeCount)
+            CP   RewriteOwnedTypeCapacity
+            JP   NC,RewriteDeclarationTypeCapacityFailure
+            CALL RewriteRecordBegin
+            XOR  A
+            LD   (RewriteCurrentRecordExtent),A
+            LD   (RewriteCurrentRecordExtent+1),A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationParseRecordFieldType:
+            CALL RewriteTypeParse
+            ; The frozen field diagnostic is anchored to the following token
+            ; for both open-view forms. Other owning positions retain the
+            ; shared parser's established open-array closing-bracket anchor.
+            CP   RewriteOpenStringTypeId
+            JP   Z,RewriteTypeBoundFailure
+            BIT  7,A
+            JP   NZ,RewriteTypeBoundFailure
+            OR   A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationFinishRecordField:
+            LD   A,(RewriteCurrentType)
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteDeclarationProgramTypeFailure
+            LD   DE,(RewriteCurrentRecordExtent)
+            ADD  HL,DE
+            JP   C,RewriteStaticProgramCapacityFailure
+            CALL RewriteStaticCheckCapacity
+            JP   C,RewriteStaticProgramCapacityFailure
+            PUSH HL
+            LD   A,(RewriteCurrentType)
+            LD   BC,(RewriteCurrentRecordExtent)
+            CALL RewriteFieldCommitCurrent
+            POP  HL
+            LD   (RewriteCurrentRecordExtent),HL
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationFinishRecord:
+            LD   A,(RewriteCurrentRecord)
+            CALL RewriteRecordAddress
+            INC  HL
+            LD   A,(HL)
+            OR   A
+            JP   Z,RewriteRecordEmptyFailure
+            LD   A,RewriteTypeKindRecord
+            LD   (RewriteTypeCandidateKind),A
+            LD   A,(RewriteCurrentRecord)
+            LD   (RewriteTypeCandidateAux),A
+            LD   HL,0
+            LD   (RewriteTypeCandidateCount),HL
+            LD   HL,(RewriteCurrentRecordExtent)
+            LD   (RewriteTypeCandidateExtent),HL
+            CALL RewriteTypeAppendNominal
+            LD   C,A
+            LD   A,(RewriteSymbolCount)
+            CALL RewriteSymbolAddress
+            LD   DE,RewriteSymbolType
+            ADD  HL,DE
+            LD   (HL),C
+            JP   RewriteRecordCommit

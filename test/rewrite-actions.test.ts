@@ -122,12 +122,40 @@ describe("ground-up rewrite front action machine", () => {
         target: "RewriteDeclarationFinishProgramScalar",
         id: 9,
       },
+      {
+        name: "BeginRecord",
+        target: "RewriteDeclarationBeginRecord",
+        id: 10,
+      },
+      {
+        name: "BeginRecordField",
+        target: "RewriteFieldPrepareCurrent",
+        id: 11,
+      },
+      {
+        name: "ParseRecordFieldType",
+        target: "RewriteDeclarationParseRecordFieldType",
+        id: 12,
+      },
+      {
+        name: "FinishRecordField",
+        target: "RewriteDeclarationFinishRecordField",
+        id: 13,
+      },
+      {
+        name: "FinishRecord",
+        target: "RewriteDeclarationFinishRecord",
+        id: 14,
+      },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
       ["ScalarConstant", 19],
       ["Assert", 11],
       ["ProgramBss", 21],
       ["ProgramScalarInitialized", 24],
+      ["RecordBegin", 12],
+      ["RecordField", 16],
+      ["RecordEnd", 11],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -143,7 +171,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 171, immutable: 79, core: 6_478, workspace: 3_368 });
+    }).toEqual({ code: 201, immutable: 118, core: 6_700, workspace: 3_368 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
@@ -152,7 +180,7 @@ describe("ground-up rewrite front action machine", () => {
     ).toEqual([0, 3, 5]);
     expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 10, 0])),
+      decodeRewriteActionProgram(new Uint8Array([2, 15, 0])),
     ).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([3, 37]))).toThrow();

@@ -45,6 +45,26 @@ export declare const rewriteActionEscapes: readonly [{
     readonly name: "FinishProgramScalar";
     readonly target: "RewriteDeclarationFinishProgramScalar";
     readonly id: 9;
+}, {
+    readonly name: "BeginRecord";
+    readonly target: "RewriteDeclarationBeginRecord";
+    readonly id: 10;
+}, {
+    readonly name: "BeginRecordField";
+    readonly target: "RewriteFieldPrepareCurrent";
+    readonly id: 11;
+}, {
+    readonly name: "ParseRecordFieldType";
+    readonly target: "RewriteDeclarationParseRecordFieldType";
+    readonly id: 12;
+}, {
+    readonly name: "FinishRecordField";
+    readonly target: "RewriteDeclarationFinishRecordField";
+    readonly id: 13;
+}, {
+    readonly name: "FinishRecord";
+    readonly target: "RewriteDeclarationFinishRecord";
+    readonly id: 14;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -222,5 +242,102 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 24;
+}, {
+    readonly name: "RecordBegin";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenRecord", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginRecord"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 12;
+}, {
+    readonly name: "RecordField";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginRecordField"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseRecordFieldType"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRecordField"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 16;
+}, {
+    readonly name: "RecordEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRecord"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 11;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

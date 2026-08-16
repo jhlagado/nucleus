@@ -23,7 +23,12 @@ RewriteActionEscapeBeginProgram .equ 6
 RewriteActionEscapeParseOwnedType .equ 7
 RewriteActionEscapeFinishProgramBss .equ 8
 RewriteActionEscapeFinishProgramScalar .equ 9
-RewriteActionEscapeCount .equ 10
+RewriteActionEscapeBeginRecord .equ 10
+RewriteActionEscapeBeginRecordField .equ 11
+RewriteActionEscapeParseRecordFieldType .equ 12
+RewriteActionEscapeFinishRecordField .equ 13
+RewriteActionEscapeFinishRecord .equ 14
+RewriteActionEscapeCount .equ 15
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -72,3 +77,32 @@ RewriteActionProgramProgramScalarInitialized:
             .db RewriteActionEnd
 RewriteActionProgramProgramScalarInitializedEnd:
 RewriteActionProgramProgramScalarInitializedWidth .equ 24
+
+RewriteActionProgramRecordBegin:
+            .db RewriteActionExpect,TokenRecord,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginRecord
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramRecordBeginEnd:
+RewriteActionProgramRecordBeginWidth .equ 12
+
+RewriteActionProgramRecordField:
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginRecordField
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseRecordFieldType
+            .db RewriteActionEscape,RewriteActionEscapeFinishRecordField
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramRecordFieldEnd:
+RewriteActionProgramRecordFieldWidth .equ 16
+
+RewriteActionProgramRecordEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionEscape,RewriteActionEscapeFinishRecord
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramRecordEndEnd:
+RewriteActionProgramRecordEndWidth .equ 11

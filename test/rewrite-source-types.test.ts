@@ -116,7 +116,7 @@ describe("ground-up rewrite source-type parser", () => {
       parser: 496,
       ownedTypes: 8,
       suffixes: 4,
-      core: 6_478,
+      core: 6_700,
       workspace: 3_368,
     });
   });

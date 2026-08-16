@@ -15,7 +15,7 @@ let image: Image;
 
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r3-constant-expression-proof.asm"),
+    path.join(rewriteDirectory, "r3-record-declarations-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R3 constant-expression proof artifacts");
+    throw new Error("AZM omitted R3 record-declaration proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 15_000);
+});
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -56,15 +56,6 @@ const run = (entryName: string) => {
   return {
     status: runtime.hardware.memory[image.symbols.ProofStatus ?? -1] ?? 0,
     proofCase: runtime.hardware.memory[image.symbols.ProofCase ?? -1] ?? 0,
-    actualMeta:
-      runtime.hardware.memory[image.symbols.ProofActualMeta ?? -1] ?? 0,
-    actualValue:
-      (runtime.hardware.memory[image.symbols.ProofActualValue ?? -1] ?? 0) |
-      ((runtime.hardware.memory[(image.symbols.ProofActualValue ?? -1) + 1] ??
-        0) <<
-        8),
-    actualToken:
-      runtime.hardware.memory[image.symbols.ProofActualToken ?? -1] ?? 0,
     diagnosticCode:
       runtime.hardware.memory[image.symbols.DiagnosticCode ?? -1] ?? 0,
     diagnosticOffset:
@@ -77,39 +68,37 @@ const run = (entryName: string) => {
   };
 };
 
-describe("ground-up rewrite constant-expression engine", () => {
+describe("ground-up rewrite generated record declarations", () => {
   it.each([
-    ["ProofExpressionValues", 0xc1],
-    ["ProofExpressionDiagnostics", 0xc2],
+    ["ProofRecordDeclarations", 0xca],
+    ["ProofRecordDeclarationDiagnostics", 0xcb],
   ] as const)("executes %s", (entry, expected) => {
     const result = run(entry);
     expect(
       result.status,
-      `${entry} case ${result.proofCase}, meta ${result.actualMeta}, value ${result.actualValue}, token ${result.actualToken}, diagnostic ${result.diagnosticCode}@${result.diagnosticOffset}`,
+      `${entry} case ${result.proofCase}, diagnostic ${result.diagnosticCode}@${result.diagnosticOffset}`,
     ).toBe(expected);
   });
 
-  it("locks the expression accounts, full corpus, and strict execution cost", () => {
-    const values = run("ProofExpressionValues");
-    const diagnostics = run("ProofExpressionDiagnostics");
+  it("locks generated record programs, layout, and execution cost", () => {
+    const accepted = run("ProofRecordDeclarations");
+    const diagnostics = run("ProofRecordDeclarationDiagnostics");
     expect({
-      cases: values.proofCase,
-      instructions: values.instructions,
-      cycles: values.cycles,
-    }).toEqual({ cases: 39, instructions: 375_868, cycles: 3_428_413 });
+      instructions: accepted.instructions,
+      cycles: accepted.cycles,
+    }).toEqual({ instructions: 21_248, cycles: 189_685 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 19, instructions: 39_107, cycles: 401_604 });
+    }).toEqual({ cases: 7, instructions: 55_933, cycles: 491_336 });
     expect({
-      code:
-        (image.symbols.RewriteExpressionCodeEnd ?? 0) -
-        (image.symbols.RewriteExpressionCodeStart ?? 0),
-      immutable:
-        (image.symbols.RewriteExpressionImmutableEnd ?? 0) -
-        (image.symbols.RewriteExpressionImmutableStart ?? 0),
-      pendingCapacity: image.symbols.RewriteExpressionDepthCapacity,
+      declarations:
+        (image.symbols.RewriteFrontDeclarationCodeEnd ?? 0) -
+        (image.symbols.RewriteFrontDeclarationCodeStart ?? 0),
+      actionData:
+        (image.symbols.RewriteActionImmutableEnd ?? 0) -
+        (image.symbols.RewriteActionImmutableStart ?? 0),
       core:
         (image.symbols.RewriteCompilerCoreEnd ?? 0) -
         (image.symbols.RewriteCompilerCodeStart ?? 0),
@@ -117,9 +106,8 @@ describe("ground-up rewrite constant-expression engine", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      code: 1_593,
-      immutable: 28,
-      pendingCapacity: 16,
+      declarations: 441,
+      actionData: 118,
       core: 6_700,
       workspace: 3_368,
     });

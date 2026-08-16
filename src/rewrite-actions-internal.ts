@@ -90,6 +90,31 @@ export const rewriteActionEscapes = [
     "name": "FinishProgramScalar",
     "target": "RewriteDeclarationFinishProgramScalar",
     "id": 9
+  },
+  {
+    "name": "BeginRecord",
+    "target": "RewriteDeclarationBeginRecord",
+    "id": 10
+  },
+  {
+    "name": "BeginRecordField",
+    "target": "RewriteFieldPrepareCurrent",
+    "id": 11
+  },
+  {
+    "name": "ParseRecordFieldType",
+    "target": "RewriteDeclarationParseRecordFieldType",
+    "id": 12
+  },
+  {
+    "name": "FinishRecordField",
+    "target": "RewriteDeclarationFinishRecordField",
+    "id": 13
+  },
+  {
+    "name": "FinishRecord",
+    "target": "RewriteDeclarationFinishRecord",
+    "id": 14
   }
 ] as const;
 export const rewriteActionPrograms = [
@@ -379,6 +404,162 @@ export const rewriteActionPrograms = [
       }
     ],
     "width": 24
+  },
+  {
+    "name": "RecordBegin",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenRecord",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginRecord"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 12
+  },
+  {
+    "name": "RecordField",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginRecordField"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseRecordFieldType"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRecordField"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 16
+  },
+  {
+    "name": "RecordEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRecord"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 11
   }
 ] as const;
 

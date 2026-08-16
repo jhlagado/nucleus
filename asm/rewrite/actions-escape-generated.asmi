@@ -21,7 +21,17 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeParseOwnedType
             DEC  A
             JR   Z,_RewriteActionEscapeFinishProgramBss
-            JP   RewriteDeclarationFinishProgramScalar
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishProgramScalar
+            DEC  A
+            JR   Z,_RewriteActionEscapeBeginRecord
+            DEC  A
+            JR   Z,_RewriteActionEscapeBeginRecordField
+            DEC  A
+            JR   Z,_RewriteActionEscapeParseRecordFieldType
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishRecordField
+            JP   RewriteDeclarationFinishRecord
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -40,3 +50,13 @@ _RewriteActionEscapeParseOwnedType:
             JP   RewriteDeclarationParseOwnedType
 _RewriteActionEscapeFinishProgramBss:
             JP   RewriteDeclarationFinishProgramBss
+_RewriteActionEscapeFinishProgramScalar:
+            JP   RewriteDeclarationFinishProgramScalar
+_RewriteActionEscapeBeginRecord:
+            JP   RewriteDeclarationBeginRecord
+_RewriteActionEscapeBeginRecordField:
+            JP   RewriteFieldPrepareCurrent
+_RewriteActionEscapeParseRecordFieldType:
+            JP   RewriteDeclarationParseRecordFieldType
+_RewriteActionEscapeFinishRecordField:
+            JP   RewriteDeclarationFinishRecordField

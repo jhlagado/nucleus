@@ -46,6 +46,26 @@
     {
       "name": "FinishProgramScalar",
       "target": "RewriteDeclarationFinishProgramScalar"
+    },
+    {
+      "name": "BeginRecord",
+      "target": "RewriteDeclarationBeginRecord"
+    },
+    {
+      "name": "BeginRecordField",
+      "target": "RewriteFieldPrepareCurrent"
+    },
+    {
+      "name": "ParseRecordFieldType",
+      "target": "RewriteDeclarationParseRecordFieldType"
+    },
+    {
+      "name": "FinishRecordField",
+      "target": "RewriteDeclarationFinishRecordField"
+    },
+    {
+      "name": "FinishRecord",
+      "target": "RewriteDeclarationFinishRecord"
     }
   ],
   "programs": [
@@ -96,6 +116,38 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeParseOwnedType"] },
         { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishProgramScalar"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RecordBegin",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenRecord", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginRecord"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RecordField",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginRecordField"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseRecordFieldType"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishRecordField"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RecordEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishRecord"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
         { "instruction": "End", "operands": [] }

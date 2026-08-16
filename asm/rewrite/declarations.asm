@@ -93,19 +93,16 @@ RewriteFieldFindLoop:
             OR   A
             RET
 
-; A is the exact field type and BC is its full-word byte offset.
-.routine in A,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-RewriteFieldAppendCurrent:
-            PUSH AF
-            PUSH BC
+; Check and retain one provisional field name before parsing its type. This
+; preserves duplicate-before-type diagnostic precedence without publishing the
+; field count.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteFieldPrepareCurrent:
             CALL RewriteFieldFindCurrent
-            JR   C,RewriteFieldDuplicate
-            POP  BC
-            POP  AF
-            PUSH AF
+            JP   C,RewriteFieldDuplicate
             LD   A,(RewriteFieldCount)
             CP   RewriteFieldCapacity
-            JR   NC,RewriteFieldCapacityFailure
+            JP   NC,RewriteDeclarationTypeCapacityFailure
             CALL RewriteFieldAddress
             LD   DE,(TokenLexemePointer)
             LD   (HL),E
@@ -114,7 +111,19 @@ RewriteFieldAppendCurrent:
             INC  HL
             LD   A,(TokenLength)
             LD   (HL),A
-            INC  HL
+            XOR  A
+            RET
+
+; A is the exact field type and BC is its full-word byte offset. The name has
+; already been prepared at RewriteFieldCount and remains unpublished until this
+; routine advances both field counters.
+.routine in A,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteFieldCommitCurrent:
+            PUSH AF
+            LD   A,(RewriteFieldCount)
+            CALL RewriteFieldAddress
+            LD   DE,RewriteFieldType
+            ADD  HL,DE
             POP  AF
             LD   (HL),A
             INC  HL
@@ -129,13 +138,19 @@ RewriteFieldAppendCurrent:
             INC  (HL)
             XOR  A
             RET
-RewriteFieldDuplicate:
+
+; Compatibility entry retained for direct directory users.
+.routine in A,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteFieldAppendCurrent:
+            PUSH AF
+            PUSH BC
+            CALL RewriteFieldPrepareCurrent
             POP  BC
             POP  AF
+            JP   RewriteFieldCommitCurrent
+RewriteFieldDuplicate:
             LD   A,DiagnosticDuplicateName
             JP   RewriteRaiseDiagnostic
-RewriteFieldCapacityFailure:
-            POP  AF
 RewriteDeclarationTypeCapacityFailure:
             LD   A,DiagnosticTypeMetadataCapacity
             JP   RewriteRaiseDiagnostic
