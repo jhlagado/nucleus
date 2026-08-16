@@ -567,6 +567,22 @@ RewriteBackendEmitRuntimeOffset:
             LD   A,$CD                    ; CALL nn
             JP   RewriteBackendEmitOpcodeWord
 
+; A is a dense target-vector ordinal. Vector entries are three-byte JP
+; instructions, so the complete call address is derived from the deployment
+; context without embedding or shortening any platform address.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitVectorCall:
+            LD   E,A
+            LD   D,0
+            LD   L,E
+            LD   H,D
+            ADD  HL,HL
+            ADD  HL,DE
+            LD   DE,(RewriteBackendVectorBase)
+            ADD  HL,DE
+            LD   A,$CD                    ; CALL vector ordinal
+            JP   RewriteBackendEmitOpcodeWord
+
 ; A is a target JR opcode. DE returns the displacement-byte address.
 .routine in A out A,DE,carry,zero clobbers sign,parity,halfCarry,B,HL
 RewriteBackendEmitRelativePlaceholder:
@@ -1149,6 +1165,103 @@ RewriteBackendCallSourceSuccess:
             RET  Z
             LD   A,$E5                    ; PUSH HL result
             CALL RewriteBackendEmitByte
+            LD   A,$6F                    ; LD L,A / LD H,0 / PUSH HL
+            CALL RewriteBackendEmitByte
+            LD   A,$26
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            JP   RewriteBackendEmitByte
+
+; Validate a replacement service selector. Only the keep-result metadata bit
+; and the dense low service ordinal are admitted; bits 3..6 are intentionally
+; free and cannot silently acquire another meaning.
+.routine in A out A,C,carry,zero clobbers sign,parity,halfCarry
+RewriteBackendServiceSelector:
+            LD   C,A
+            AND  $78
+            JP   NZ,RewriteBackendInvalid
+            LD   A,C
+            AND  7
+            CP   6
+            JP   NC,RewriteBackendInvalid
+            RET
+
+; Service arguments are canonical words on the target stack. Byte services
+; transfer L through A; word services retain HL. The adapter returns carry+A,
+; and a successful result-bearing expression retains only the canonical A
+; carrier. Complete call statements leave the same declared service/result
+; identity in the transcript but omit the keep-result metadata bit.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeCallService:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset)
+            CALL RewriteBackendServiceSelector
+            LD   (RewriteBackendTrapReason),A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteServiceSignatureTable
+            ADD  HL,DE
+            LD   A,(HL)
+            AND  RewriteServiceArgumentMask
+            JR   Z,RewriteBackendCallServiceInvoke
+            LD   C,A
+            LD   A,$E1                    ; POP HL argument
+            CALL RewriteBackendEmitByte
+            LD   A,C
+            CP   RewriteScalarTypeU16*8
+            JR   Z,RewriteBackendCallServiceInvoke
+            LD   A,$7D                    ; LD A,L byte argument
+            CALL RewriteBackendEmitByte
+
+RewriteBackendCallServiceInvoke:
+            LD   A,(RewriteBackendTrapReason)
+            CALL RewriteBackendEmitVectorCall
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset)
+            CP   RewriteCallModeHandle
+            JR   Z,RewriteBackendCallServiceHandle
+            CP   RewriteCallModePropagateRoutine
+            JR   Z,RewriteBackendCallServicePropagate
+            CP   RewriteCallModePropagateMain
+            JP   NZ,RewriteBackendInvalid
+RewriteBackendCallServicePropagate:
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitFailureReturn
+            JR   RewriteBackendCallServiceFailureReady
+
+RewriteBackendCallServiceHandle:
+            LD   A,$4F                    ; LD C,A error code
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset)
+            CALL RewriteBackendEmitDiscardWords
+            LD   A,$79                    ; LD A,C
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
+            LD   B,$C3                    ; JP handler
+            CALL RewriteBackendEmitLocalFixup
+RewriteBackendCallServiceFailureReady:
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchRelative
+
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset)
+            BIT  7,A
+            RET  Z
+            CALL RewriteBackendServiceSelector
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteServiceSignatureTable
+            ADD  HL,DE
+            LD   A,(HL)
+            AND  RewriteServiceResultU8
+            RET  Z
             LD   A,$6F                    ; LD L,A / LD H,0 / PUSH HL
             CALL RewriteBackendEmitByte
             LD   A,$26

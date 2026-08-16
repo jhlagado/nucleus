@@ -266,9 +266,9 @@ describe("ground-up rewrite compilation-unit driver", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       driver: 651,
-      code: 14_150,
+      code: 14_337,
       immutable: 2_173,
-      core: 16_323,
+      core: 16_510,
       workspace: 3_425,
     });
   });

@@ -228,6 +228,32 @@ describe("ground-up rewrite backend recipes", () => {
     });
   });
 
+  it("emits argument, result, propagation, handling, and discard service paths", () => {
+    const { memory, instructions, cycles } = run("ProofBackendServiceCalls");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa6);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 2_018,
+      cycles: 20_533,
+    });
+    expect(
+      (image.symbols.ProofExpectedServiceCallsEnd ?? 0) -
+        (image.symbols.ProofExpectedServiceCalls ?? 0),
+    ).toBe(51);
+  });
+
+  it("rejects reserved service-selector metadata before output", () => {
+    const { memory } = run("ProofBackendServiceCallInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted: (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({
+      diagnostic: 67,
+      emitted: 0,
+    });
+  });
+
   it("rejects unresolved labels and exact label/fixup overflow boundaries", () => {
     const undefinedLabel = run("ProofBackendUndefinedLabel").memory;
     const labelCapacity = run("ProofBackendLabelCapacity").memory;
@@ -383,13 +409,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 1_930,
+      engine: 2_117,
       recipes: 709,
-      code: 14_150,
+      code: 14_337,
       immutable: 2_173,
-      core: 16_323,
+      core: 16_510,
       workspace: 3_425,
-      supported: 73,
+      supported: 74,
     });
   });
 });

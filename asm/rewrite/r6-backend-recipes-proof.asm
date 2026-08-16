@@ -714,6 +714,106 @@ ProofBackendSourceCallMissingBank:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+ProofBackendServiceCalls:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            ; readInputByte() is retained as an expression result and
+            ; propagates failure through the current routine.
+            LD   A,RewriteCallFlagKeepResult
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
+            LD   HL,$5555
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),HL
+            LD   A,RewriteCallModePropagateRoutine
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallService
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            ; writeOutputByte(value) consumes its canonical argument before
+            ; invocation and retains an earlier carrier only on failure.
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
+            LD   HL,$6666
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),HL
+            LD   A,RewriteCallModeHandle
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset),A
+            LD   A,8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset),A
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallService
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            ; readStorageByte() keeps its declared result signature but a
+            ; complete call statement discards successful A.
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
+            LD   HL,$7777
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),HL
+            LD   A,RewriteCallModePropagateMain
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallService
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,8
+            CALL RewriteBackendDefineLabel
+            CALL RewriteBackendResolveFixups
+            LD   HL,ProofBackendOutput+ProofExpectedServiceCallsEnd-ProofExpectedServiceCalls
+            LD   (ProofExpectedServiceHandler+1),HL
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedServiceCallsEnd-ProofExpectedServiceCalls
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedServiceCalls
+            LD   BC,ProofExpectedServiceCallsEnd-ProofExpectedServiceCalls
+ProofBackendServiceCallCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendServiceCallCompare
+            LD   A,$A6
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendServiceCallInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,$40                    ; reserved selector metadata
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
+            LD   A,RewriteSemanticCallService
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendUndefinedLabel:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1329,3 +1429,39 @@ ProofExpectedSourceHandler:
 ProofExpectedSourceCall3Success:
             POP  DE
 ProofExpectedSourceCallsEnd:
+
+ProofExpectedServiceCalls:
+            CALL $A000                    ; readInputByte vector 0
+            JR   NC,ProofExpectedServiceCall1Success
+            LD   HL,$5555
+            LD   ($A100+3),HL
+            LD   SP,IX
+            POP  IX
+            SCF
+            RET
+ProofExpectedServiceCall1Success:
+            LD   L,A
+            LD   H,0
+            PUSH HL
+
+            POP  HL
+            LD   A,L
+            CALL $A003                    ; writeOutputByte vector 1
+            JR   NC,ProofExpectedServiceCall2Success
+            LD   C,A
+            POP  DE
+            LD   A,C
+ProofExpectedServiceHandler:
+            JP   0
+ProofExpectedServiceCall2Success:
+
+            CALL $A006                    ; readStorageByte vector 2
+            JR   NC,ProofExpectedServiceCall3Success
+            LD   HL,$7777
+            LD   ($A100+3),HL
+            LD   SP,IX
+            POP  IX
+            SCF
+            RET
+ProofExpectedServiceCall3Success:
+ProofExpectedServiceCallsEnd:

@@ -419,9 +419,9 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       expression: 4_356,
       statements: 717,
       declarations: 1_528,
-      code: 14_150,
+      code: 14_337,
       immutable: 2_173,
-      core: 16_323,
+      core: 16_510,
       workspace: 3_425,
     });
   });
