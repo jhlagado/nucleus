@@ -840,6 +840,8 @@ RewriteDeclarationPublishRoutineHeader:
             LD   (HL),A
             AND  RewriteRoutineFlagIncomplete
             JP   NZ,RewriteRoutineCommit
+            LD   A,(RewritePendingRoutineFlags)
+            LD   (RewriteCurrentRoutineFlags),A
             JP   RewriteRoutinePublish
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -971,7 +973,8 @@ RewriteDeclarationFinishRuntimeLocalExpression:
             LD   A,(RewriteCurrentType)
             LD   C,A
             LD   A,B
-            JP   RewriteExpressionCheckRuntimeAssignable
+            CALL RewriteExpressionCheckRuntimeAssignable
+            JP   RewriteCallConsumeLocalFailure
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteDeclarationCommitLocal:

@@ -23,3 +23,16 @@ RewritePathNameLength:
             .db "length"
 RewritePathNameCapacity:
             .db "capacity"
+
+; Six predefined service signatures use bits 3..4 for an optional scalar
+; parameter and bit 5 for a successful u8 result. The low selector bits live
+; in the call record itself. These are signature data, not instructions.
+RewriteServiceResultU8       .equ $20
+RewriteServiceArgumentMask   .equ $18
+RewriteServiceSignatureTable:
+            .db RewriteServiceResultU8
+            .db RewriteScalarTypeU8*8
+            .db RewriteServiceResultU8
+            .db 0
+            .db RewriteScalarTypeU8*8
+            .db RewriteScalarTypeU16*8

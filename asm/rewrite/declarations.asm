@@ -501,6 +501,7 @@ RewriteRoutineCloseScope:
             LD   A,(RewriteSymbolScopeBase)
             LD   (RewriteSymbolCount),A
             XOR  A
+            LD   (RewriteCurrentRoutineFlags),A
             RET
 
 ; Forward declarations publish and close in one action. Direct declarations
@@ -568,6 +569,8 @@ RewriteRoutineSelectForwardFound:
             BIT  2,(HL)
             JR   Z,RewriteRoutineSelectForwardDuplicate
             RES  2,(HL)
+            LD   A,(HL)
+            LD   (RewriteCurrentRoutineFlags),A
             LD   A,(RewriteSymbolCount)
             LD   (RewriteSymbolScopeBase),A
             JP   RewriteRoutinePrepareParameterInstall
@@ -673,6 +676,7 @@ RewriteMainBeginCurrent:
             LD   A,D
             OR   RewriteRoutineFlagMain
             LD   (RewriteMainFlags),A
+            LD   (RewriteCurrentRoutineFlags),A
             XOR  A
             RET
 
@@ -697,6 +701,7 @@ RewriteMainOpenForwardCurrent:
             JR   Z,RewriteMainNameFailure
             AND  $FF-RewriteRoutineFlagIncomplete
             LD   (RewriteMainFlags),A
+            LD   (RewriteCurrentRoutineFlags),A
             LD   A,(RewriteSymbolCount)
             LD   (RewriteSymbolScopeBase),A
             XOR  A

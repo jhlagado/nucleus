@@ -53,6 +53,9 @@ RewriteExpressionEvaluateRuntime:
             LD   A,1
             LD   (RewriteExpressionMode),A
             XOR  A
+            LD   (RewritePendingFailure),A
+            LD   (RewritePendingFailureOffset),A
+            LD   (RewritePendingFailureOffset+1),A
             LD   (RewriteExpressionKnown),A
             LD   (RewriteExpressionDepth),A
             LD   (RewriteExpressionSuppressFault),A
@@ -77,6 +80,9 @@ _RewriteExpressionPrecedenceLoop:
             CALL RewriteParserPeek
             CALL RewriteExpressionFindOperator
             JP   NC,_RewriteExpressionPrecedenceDoneSaved
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
             LD   A,C
             CP   (IX-2)
             JP   C,_RewriteExpressionPrecedenceDoneSaved
@@ -252,8 +258,13 @@ _RewriteExpressionPrefixOperator:
             LD   B,0
             CALL RewriteExpressionParsePrecedence
             LD   (RewriteExpressionRightOffset),DE
+            LD   (RewriteExpressionRightMeta),A
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureAtPending
             POP  BC
             POP  DE
+            LD   A,(RewriteExpressionRightMeta)
             JP   RewriteExpressionApplyUnary
 
 ; Match the retained NAME against B bytes at HL. Carry means equal. The
@@ -400,17 +411,17 @@ _RewritePathIndexDynamic:
             LD   A,B
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeI8
-            JR   Z,_RewritePathIndexDynamicSigned
+            JR   Z,RewritePathIndexDynamicSigned
             CP   RewriteScalarTypeI16
-            JR   Z,_RewritePathIndexDynamicSigned
+            JR   Z,RewritePathIndexDynamicSigned
             CP   RewriteScalarTypeU8
-            JR   Z,_RewritePathIndexReady
+            JR   Z,RewritePathIndexReady
             CP   RewriteScalarTypeU16
-            JR   Z,_RewritePathIndexReady
+            JR   Z,RewritePathIndexReady
 _RewritePathIndexTypeFailure:
             LD   A,DiagnosticTypeMismatch
             JP   RewriteRaiseDiagnostic
-_RewritePathIndexDynamicSigned:
+RewritePathIndexDynamicSigned:
             LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset),A
             LD   A,RewriteScalarTypeU16+$80
             LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset),A
@@ -420,7 +431,7 @@ _RewritePathIndexDynamicSigned:
             PUSH DE
             CALL RewriteSemanticAppend
             POP  DE
-_RewritePathIndexReady:
+RewritePathIndexReady:
             LD   A,RewriteScalarTypeU16
             RET
 .routine noreturn
@@ -428,6 +439,531 @@ RewritePathIndexRangeFailure:
             LD   (TokenStartOffset),DE
             LD   A,DiagnosticIntegerRange
             JP   RewriteRaiseDiagnostic
+
+; R4 call parsing uses four compact compiler-side frames. They retain only
+; signature progress and transcript operands; target activations remain a
+; backend concern. No frame field contains or tags a compiler address.
+.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+RewriteCallFrameAddress:
+            ADD  A,A
+            ADD  A,A
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteCallFrameBase
+            ADD  HL,DE
+            RET
+
+.routine out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+RewriteCallCurrentFrame:
+            LD   A,(RewriteCallDepth)
+            DEC  A
+            JP   RewriteCallFrameAddress
+
+.routine noreturn
+RewriteCallFailureContext:
+            LD   A,DiagnosticFailureContext
+            JP   RewriteRaiseDiagnostic
+
+.routine noreturn
+RewriteCallFailureAtPending:
+            LD   HL,(RewritePendingFailureOffset)
+            LD   (TokenStartOffset),HL
+            JP   RewriteCallFailureContext
+
+; A is a retained routine ordinal. Publish its signature into the next call
+; frame before parsing any argument so nested infallible calls are independent.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallPushSourceFrame:
+            LD   B,A
+            LD   A,(RewriteCallDepth)
+            CP   RewriteCallFrameCapacity
+            JR   NC,RewriteCallCapacityFailure
+            LD   A,B
+            CALL RewriteRoutineAddress
+            INC  HL
+            INC  HL
+            INC  HL
+            PUSH HL
+            LD   A,(RewriteCallDepth)
+            CALL RewriteCallFrameAddress
+            LD   D,H
+            LD   E,L
+            POP  HL
+            LD   A,(HL)
+            LD   (DE),A
+            INC  HL
+            INC  DE
+            LD   A,(HL)
+            LD   (DE),A
+            INC  HL
+            INC  DE
+            XOR  A
+            LD   (DE),A
+            INC  DE
+            LD   A,(HL)
+            LD   (DE),A
+            INC  HL
+            INC  DE
+            LD   A,(HL)
+            LD   (DE),A
+            INC  HL
+            INC  DE
+            LD   A,(HL)
+            AND  RewriteRoutineFlagFails
+            LD   (DE),A
+            INC  DE
+            LD   HL,(RewriteExpressionAtomOffset)
+            LD   A,L
+            LD   (DE),A
+            INC  DE
+            LD   A,H
+            LD   (DE),A
+            LD   HL,RewriteCallDepth
+            INC  (HL)
+            XOR  A
+            RET
+RewriteCallCapacityFailure:
+            LD   A,DiagnosticExpressionCapacity
+            JP   RewriteRaiseDiagnostic
+
+; Parse one scalar actual under the formal type in A. Calls inside the argument
+; may be infallible, but a failable call cannot be consumed inside an argument.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallParseScalarArgument:
+            PUSH AF
+            LD   A,(RewriteExpressionExpectedType)
+            PUSH AF
+            POP  BC
+            POP  DE
+            PUSH DE
+            PUSH BC
+            LD   A,D
+            LD   (RewriteExpressionExpectedType),A
+            LD   B,0
+            LD   C,0
+            CALL RewriteExpressionParsePrecedence
+            LD   (RewriteExpressionRightMeta),A
+            LD   (RewriteExpressionRightValue),HL
+            LD   (RewriteExpressionRightOffset),DE
+            POP  BC
+            LD   A,B
+            LD   (RewriteExpressionExpectedType),A
+            POP  BC
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
+            LD   A,(RewriteExpressionRightMeta)
+            LD   HL,(RewriteExpressionRightValue)
+            LD   DE,(RewriteExpressionRightOffset)
+            LD   C,B
+            CALL RewriteExpressionCheckRuntimeAssignable
+            CALL RewriteCallCurrentFrame
+            INC  HL
+            INC  HL
+            INC  (HL)
+            XOR  A
+            RET
+
+; Parse one aggregate actual under the formal type in A. Concrete parameters
+; require exact identity. The sole polymorphic cases retain a concrete
+; capacity/count or forward the hidden activation offset in a declared record.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallParseAggregateArgument:
+            PUSH AF
+            CALL RewriteParserPeek
+            CP   TokenStringLiteral
+            JP   Z,_RewriteCallLiteralAggregateFailure
+            LD   A,(RewriteExpressionExpectedType)
+            PUSH AF
+            POP  BC
+            POP  DE
+            PUSH DE
+            PUSH BC
+            LD   A,D
+            LD   (RewriteExpressionExpectedType),A
+            LD   B,0
+            LD   C,0
+            CALL RewriteExpressionParsePrecedence
+            LD   (RewriteExpressionRightMeta),A
+            LD   (RewriteExpressionRightValue),HL
+            LD   (RewriteExpressionRightOffset),DE
+            POP  BC
+            LD   A,B
+            LD   (RewriteExpressionExpectedType),A
+            POP  BC
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
+            LD   A,(RewriteExpressionRightMeta)
+            LD   D,A
+            LD   A,B
+            CP   RewriteOpenStringTypeId
+            JR   Z,_RewriteCallOpenStringActual
+            CP   RewriteOpenArrayFlag
+            JR   NC,_RewriteCallOpenArrayActual
+            CP   D
+            JP   NZ,_RewriteCallAggregateTypeFailure
+            JR   _RewriteCallAggregateArgumentReady
+
+_RewriteCallOpenStringActual:
+            LD   A,D
+            CP   RewriteOpenStringTypeId
+            JR   Z,_RewriteCallOpenStringForward
+            CP   RewriteFirstOwnedTypeId
+            JP   C,_RewriteCallAggregateTypeFailure
+            CALL RewriteTypeAddress
+            LD   A,(HL)
+            CP   RewriteTypeKindString
+            JP   NZ,_RewriteCallAggregateTypeFailure
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandCapacityOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandArgumentModeOffset),A
+            LD   A,RewriteSemanticPrepareOpenStringDirect
+            JR   _RewriteCallPrepareOpenAppend
+_RewriteCallOpenStringForward:
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandArgumentModeOffset),A
+            LD   A,(RewriteExpressionAggregateCountOffset)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandCapacityOffsetOffset),A
+            LD   A,RewriteSemanticPrepareOpenStringForward
+            JR   _RewriteCallPrepareOpenAppend
+
+_RewriteCallOpenArrayActual:
+            AND  RewriteOpenArrayElementMask
+            LD   C,A
+            LD   A,D
+            CP   B
+            JR   Z,_RewriteCallOpenArrayForward
+            CP   RewriteFirstOwnedTypeId
+            JP   C,_RewriteCallAggregateTypeFailure
+            CALL RewriteTypeAddress
+            LD   A,(HL)
+            CP   RewriteTypeKindArray
+            JP   NZ,_RewriteCallAggregateTypeFailure
+            INC  HL
+            LD   A,(HL)
+            CP   C
+            JP   NZ,_RewriteCallAggregateTypeFailure
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandArgumentModeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandCountOffset),DE
+            LD   A,RewriteSemanticPrepareOpenArrayDirect
+            JR   _RewriteCallPrepareOpenAppend
+_RewriteCallOpenArrayForward:
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandArgumentModeOffset),A
+            LD   A,(RewriteExpressionAggregateCountOffset)
+            LD   L,A
+            LD   H,0
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset),HL
+            LD   A,RewriteSemanticPrepareOpenArrayForward
+_RewriteCallPrepareOpenAppend:
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            CALL RewriteCallCurrentFrame
+            INC  HL
+            INC  HL
+            INC  (HL)
+_RewriteCallAggregateArgumentReady:
+            CALL RewriteCallCurrentFrame
+            INC  HL
+            INC  HL
+            INC  (HL)
+            XOR  A
+            RET
+_RewriteCallLiteralAggregateFailure:
+            LD   A,DiagnosticExpectedName
+            JP   RewriteRaiseDiagnostic
+_RewriteCallAggregateTypeFailure:
+            LD   A,DiagnosticTypeMismatch
+            JP   RewriteRaiseDiagnostic
+
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallTakeExpected:
+            LD   B,A
+            PUSH BC
+            CALL RewriteParserTake
+            POP  BC
+            CP   B
+            RET  Z
+            LD   A,C
+            JP   RewriteRaiseDiagnostic
+
+; Publish the completed source call from the current frame. The call-mode
+; pointer addresses the generated operand by its declared record-relative
+; offset; no instruction address is packed or shortened.
+.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallPublishSource:
+            CALL RewriteCallCurrentFrame
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),DE
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
+            LD   HL,(RewriteSemanticSinkCursor)
+            LD   DE,RewriteSemanticCallSourceRecordOperandCallModeOffset
+            ADD  HL,DE
+            LD   (RewritePendingCallModePointer),HL
+            LD   A,RewriteSemanticCallSource
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteCallFinish
+
+.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallPublishService:
+            CALL RewriteCallCurrentFrame
+            LD   DE,RewriteCallFrameSelector
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
+            INC  HL
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),DE
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset),A
+            LD   HL,(RewriteSemanticSinkCursor)
+            LD   DE,RewriteSemanticCallServiceRecordOperandCallModeOffset
+            ADD  HL,DE
+            LD   (RewritePendingCallModePointer),HL
+            LD   A,RewriteSemanticCallService
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteCallFinish
+
+; Complete either call kind. A failable nested call is invalid before its
+; enclosing argument can observe a carrier; a direct failable call retains the
+; exact mode operand for the immediate statement-level consumer.
+.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallFinish:
+            CALL RewriteCallCurrentFrame
+            LD   DE,RewriteCallFrameResultType
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   B,A
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            LD   C,A
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   HL,RewriteCallDepth
+            DEC  (HL)
+            LD   A,C
+            AND  RewriteRoutineFlagFails
+            JR   Z,_RewriteCallFinishInfallible
+            LD   A,(RewriteCallDepth)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
+            LD   HL,(TokenStartOffset)
+            LD   (RewritePendingFailureOffset),HL
+            LD   A,1
+            LD   (RewritePendingFailure),A
+            JR   _RewriteCallFinishReady
+_RewriteCallFinishInfallible:
+            XOR  A
+            LD   (RewritePendingFailure),A
+_RewriteCallFinishReady:
+            XOR  A
+            LD   (RewriteExpressionKnown),A
+            LD   (RewriteExpressionAggregateCountOffset),A
+            LD   A,B
+            LD   HL,0
+            RET
+
+; Parse all actuals for the current retained source signature.
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseSource:
+            CALL RewriteCallPushSourceFrame
+            LD   A,TokenLeftParen
+            LD   C,DiagnosticExpectedLeft
+            CALL RewriteCallTakeExpected
+_RewriteCallSourceArgumentLoop:
+            CALL RewriteCallCurrentFrame
+            LD   A,(HL)
+            INC  HL
+            LD   B,(HL)
+            LD   A,B
+            OR   A
+            JR   Z,_RewriteCallSourceClose
+            DEC  HL
+            LD   A,(HL)
+            CALL RewriteParameterAddress
+            LD   DE,RewriteParameterType
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,_RewriteCallSourceAggregate
+            CALL RewriteCallParseScalarArgument
+            JR   _RewriteCallSourceArgumentDone
+_RewriteCallSourceAggregate:
+            CALL RewriteCallParseAggregateArgument
+_RewriteCallSourceArgumentDone:
+            CALL RewriteCallCurrentFrame
+            INC  (HL)
+            INC  HL
+            DEC  (HL)
+            JR   Z,_RewriteCallSourceClose
+            LD   A,TokenComma
+            LD   C,DiagnosticExpectedComma
+            CALL RewriteCallTakeExpected
+            JR   _RewriteCallSourceArgumentLoop
+_RewriteCallSourceClose:
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            CALL RewriteCallTakeExpected
+            JP   RewriteCallPublishSource
+
+; A is one of the six dense service ordinals. Their fixed scalar signatures
+; share the same argument checker and every service is failable.
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseService:
+            LD   B,A
+            LD   A,(RewriteCallDepth)
+            CP   RewriteCallFrameCapacity
+            JP   NC,RewriteCallCapacityFailure
+            LD   A,B
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteServiceSignatureTable
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   C,A
+            LD   A,(RewriteCallDepth)
+            CALL RewriteCallFrameAddress
+            PUSH HL
+            LD   A,C
+            AND  RewriteServiceArgumentMask
+            RRCA
+            RRCA
+            RRCA
+            POP  HL
+            LD   (HL),A
+            OR   A
+            LD   A,0
+            JR   Z,_RewriteCallServiceCountReady
+            INC  A
+_RewriteCallServiceCountReady:
+            INC  HL
+            LD   (HL),A
+            INC  HL
+            XOR  A
+            LD   (HL),A
+            INC  HL
+            LD   A,C
+            AND  RewriteServiceResultU8
+            LD   A,0
+            JR   Z,_RewriteCallServiceResultReady
+            LD   A,RewriteScalarTypeU8
+_RewriteCallServiceResultReady:
+            LD   (HL),A
+            INC  HL
+            LD   (HL),B
+            INC  HL
+            LD   A,RewriteRoutineFlagFails
+            LD   (HL),A
+            INC  HL
+            LD   D,H
+            LD   E,L
+            LD   HL,(RewriteExpressionAtomOffset)
+            LD   A,L
+            LD   (DE),A
+            INC  DE
+            LD   A,H
+            LD   (DE),A
+            LD   HL,RewriteCallDepth
+            INC  (HL)
+            LD   A,TokenLeftParen
+            LD   C,DiagnosticExpectedLeft
+            CALL RewriteCallTakeExpected
+            CALL RewriteCallCurrentFrame
+            LD   A,(HL)
+            OR   A
+            JR   Z,_RewriteCallServiceClose
+            INC  HL
+            LD   A,(HL)
+            CALL RewriteCallParseScalarArgument
+_RewriteCallServiceClose:
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            CALL RewriteCallTakeExpected
+            JP   RewriteCallPublishService
+
+; Local initializers admit exactly the propagation consumer. Infallible calls
+; reject a stray consumer, and failable calls require a failable enclosing
+; routine. The only transcript mutation is the declared callMode operand.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallConsumeLocalFailure:
+            CALL RewriteParserPeek
+            LD   B,A
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JR   NZ,_RewriteCallConsumePending
+            LD   A,B
+            CP   TokenElse
+            JP   Z,RewriteCallFailureContext
+            CP   TokenHandle
+            JP   Z,RewriteCallFailureContext
+            XOR  A
+            RET
+_RewriteCallConsumePending:
+            LD   A,B
+            CP   TokenElse
+            JP   NZ,RewriteCallFailureContext
+            LD   A,(RewriteCurrentRoutineFlags)
+            AND  RewriteRoutineFlagFails
+            JP   Z,RewriteCallFailureContext
+            CALL RewriteParserTake
+            LD   A,TokenFail
+            LD   C,DiagnosticExpectedFail
+            CALL RewriteCallTakeExpected
+            CALL RewriteParserPeek
+            CP   TokenElse
+            JP   Z,RewriteCallFailureContext
+            CP   TokenHandle
+            JP   Z,RewriteCallFailureContext
+            LD   A,(RewriteCurrentRoutineFlags)
+            AND  RewriteRoutineFlagMain
+            LD   A,RewriteCallModePropagateRoutine
+            JR   Z,_RewriteCallConsumeModeReady
+            LD   A,RewriteCallModePropagateMain
+_RewriteCallConsumeModeReady:
+            LD   HL,(RewritePendingCallModePointer)
+            LD   (HL),A
+            XOR  A
+            LD   (RewritePendingFailure),A
+            RET
 
 ; Materialize the scalar selected by an address path. A is its exact scalar
 ; type; the alias carrier is already on the target evaluation stack.
@@ -496,8 +1032,14 @@ _RewritePathLoop:
             AND  RewriteTypeIdentityMask
             CP   RewriteFirstOwnedTypeId
             JP   C,RewritePathFinishScalar
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
+            LD   A,(RewritePathCountOffset)
+            LD   (RewriteExpressionAggregateCountOffset),A
+            XOR  A
+            LD   (RewriteExpressionKnown),A
+            LD   A,(RewritePathType)
+            LD   DE,(RewriteExpressionAtomOffset)
+            LD   HL,0
+            RET
 
 _RewritePathDot:
             CALL RewriteParserTake
@@ -637,6 +1179,9 @@ _RewritePathIndex:
             CALL RewriteParserTake
             CP   TokenRightBracket
             JP   NZ,_RewritePathExpectedRightBracket
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
             LD   A,(RewriteExpressionRightMeta)
             LD   HL,(RewriteExpressionRightValue)
             LD   DE,(RewriteExpressionRightOffset)
@@ -782,7 +1327,7 @@ _RewriteExpressionPrimaryFalse:
 
 _RewriteExpressionPrimaryName:
             CALL RewriteSymbolFindCurrent
-            JP   NC,_RewriteExpressionUnknownName
+            JP   NC,_RewriteExpressionPrimaryCallable
             LD   DE,RewriteSymbolClass
             ADD  HL,DE
             LD   A,(HL)
@@ -876,6 +1421,36 @@ _RewriteExpressionPrimaryAggregate:
             CALL RewriteExpressionParsePostfix
             POP  DE
             RET
+_RewriteExpressionPrimaryCallable:
+            CALL RewriteRoutineFindCurrent
+            JR   C,_RewriteExpressionPrimarySourceCall
+            CALL RewritePredefinedFindCurrent
+            JP   NC,_RewriteExpressionUnknownName
+            CP   6
+            JR   C,_RewriteExpressionPrimaryServiceCall
+            SUB  5
+            LD   L,A
+            LD   H,0
+            LD   A,RewriteScalarTypeU8
+            LD   DE,(RewriteExpressionAtomOffset)
+            JP   _RewriteExpressionPrimaryKnown
+_RewriteExpressionPrimarySourceCall:
+            CALL RewriteCallParseSource
+            JR   _RewriteExpressionPrimaryCallReady
+_RewriteExpressionPrimaryServiceCall:
+            CALL RewriteCallParseService
+_RewriteExpressionPrimaryCallReady:
+            OR   A
+            JP   Z,RewriteExpressionTypeFailure
+            CP   RewriteFirstOwnedTypeId
+            JP   C,RewritePathReturnScalarValue
+            LD   B,A
+            LD   A,(RewritePendingFailure)
+            OR   A
+            LD   A,B
+            RET  NZ
+            LD   C,0
+            JP   RewriteExpressionParsePostfix
 _RewriteExpressionPrimaryNamedConstant:
             EX   DE,HL
             LD   A,C
@@ -896,6 +1471,9 @@ _RewriteExpressionPrimaryParenthesized:
             CALL RewriteParserTake
             CP   TokenRightParen
             JP   NZ,_RewriteExpressionExpectedRight
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
             POP  DE
             LD   A,(RewriteExpressionRightMeta)
             LD   HL,(RewriteExpressionRightValue)
@@ -930,6 +1508,9 @@ _RewriteExpressionConversionTypeReady:
             CALL RewriteParserTake
             CP   TokenRightParen
             JP   NZ,_RewriteExpressionExpectedRight
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
             POP  DE
             POP  BC
             LD   A,(RewriteExpressionRightMeta)

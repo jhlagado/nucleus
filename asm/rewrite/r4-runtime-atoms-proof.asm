@@ -186,6 +186,186 @@ ProofRuntimePathSemanticDone:
             LD   (ProofStatus),A
             HALT
 
+ProofRuntimeCalls:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsCalls
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunRoutineEnd
+            CALL ProofRunDirectHeader
+            LD   B,5
+ProofRuntimeCallLocalLoop:
+            PUSH BC
+            CALL ProofRunLocalInitializedExpression
+            POP  BC
+            DJNZ ProofRuntimeCallLocalLoop
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   30
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedCallSemantics
+            LD   BC,ProofExpectedCallSemanticsEnd-ProofExpectedCallSemantics
+ProofRuntimeCallSemanticLoop:
+            LD   A,B
+            OR   C
+            JR   Z,ProofRuntimeCallSemanticDone
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            JR   ProofRuntimeCallSemanticLoop
+ProofRuntimeCallSemanticDone:
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$CA
+            LD   (ProofStatus),A
+            HALT
+
+ProofRuntimeMainCall:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsMainCall
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   3
+            JP   NZ,ProofFailure
+            LD   A,(RewriteSemanticPayloadBase+6)
+            CP   RewriteCallModePropagateMain
+            JP   NZ,ProofFailure
+            LD   A,(RewriteCurrentLocalOffset)
+            CP   1
+            JP   NZ,ProofFailure
+            LD   A,$CB
+            LD   (ProofStatus),A
+            HALT
+
+; Four source-call frames are the exact accepted nesting boundary. The proof
+; observes both transcript validation and complete compiler-frame release.
+ProofRuntimeCallDepth:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsCallDepth
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunForwardHeader
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   7
+            JP   NZ,ProofFailure
+            LD   A,(RewriteCallDepth)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$CC
+            LD   (ProofStatus),A
+            HALT
+
+; Concrete aggregate routine results can bind directly to open string/array
+; formals. Both dynamic calls and both preparation records are compared byte
+; for byte so the concrete capacities/counts cannot be replaced by wildcards.
+ProofRuntimeCallTransientViews:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsCallTransientViews
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunForwardHeader
+            CALL ProofRunForwardHeader
+            CALL ProofRunForwardHeader
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   7
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedCallTransientSemantics
+            LD   B,ProofExpectedCallTransientSemanticsEnd-ProofExpectedCallTransientSemantics
+_ProofRuntimeCallTransientLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeCallTransientLoop
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,(RewriteCurrentLocalOffset)
+            CP   2
+            JP   NZ,ProofFailure
+            LD   A,$CD
+            LD   (ProofStatus),A
+            HALT
+
+; A direct routine is visible throughout its own body. This distinguishes
+; recursion from lookup that sees only previously completed routines.
+ProofRuntimeRecursiveCall:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsRecursiveCall
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   4
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedRecursiveCallSemantics
+            LD   B,ProofExpectedRecursiveCallSemanticsEnd-ProofExpectedRecursiveCallSemantics
+_ProofRuntimeRecursiveCallLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeRecursiveCallLoop
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,(RewriteCallDepth)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$CE
+            LD   (ProofStatus),A
+            HALT
+
 ; Install five owned types, two nominal record layouts, four fields, one BSS
 ; aggregate root, and one read-only aggregate constant. These blocks are
 ; metadata fixtures, not instructions.
@@ -284,6 +464,92 @@ ProofRuntimePathUnknownField:
             LD   HL,ProofPartsPathUnknownField
             LD   BC,(DiagnosticUnknownName<<8)|$CE
             LD   DE,ProofPathUnknownFieldName-ProofSourcePathUnknownField
+            JP   ProofArmPathDiagnostic
+
+ProofRuntimeCallMissingConsumer:
+            LD   HL,ProofPartsCallMissingConsumer
+            LD   BC,(DiagnosticFailureContext<<8)|$D0
+            LD   DE,ProofCallMissingConsumerAnchor-ProofSourceCallMissingConsumer
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallInfallibleElse:
+            LD   HL,ProofPartsCallInfallibleElse
+            LD   BC,(DiagnosticFailureContext<<8)|$D1
+            LD   DE,ProofCallInfallibleElseAnchor-ProofSourceCallInfallibleElse
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallGroupedFailure:
+            LD   HL,ProofPartsCallGroupedFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$D2
+            LD   DE,ProofCallGroupedFailureAnchor-ProofSourceCallGroupedFailure
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallConvertedFailure:
+            LD   HL,ProofPartsCallConvertedFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$D3
+            LD   DE,ProofCallConvertedFailureAnchor-ProofSourceCallConvertedFailure
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallUnaryFailure:
+            LD   HL,ProofPartsCallUnaryFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$D4
+            LD   DE,ProofCallUnaryFailureAnchor-ProofSourceCallUnaryFailure
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallStrayElse:
+            LD   HL,ProofPartsCallStrayElse
+            LD   BC,(DiagnosticFailureContext<<8)|$D5
+            LD   DE,ProofCallStrayElseAnchor-ProofSourceCallStrayElse
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallLiteralOpen:
+            LD   HL,ProofPartsCallLiteralOpen
+            LD   BC,(DiagnosticExpectedName<<8)|$D6
+            LD   DE,ProofCallLiteralOpenAnchor-ProofSourceCallLiteralOpen
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallNestedFailure:
+            LD   HL,ProofPartsCallNestedFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$D7
+            LD   DE,ProofCallNestedFailureAnchor-ProofSourceCallNestedFailure
+            LD   A,2
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallDepthOverflow:
+            LD   HL,ProofPartsCallDepthOverflow
+            LD   BC,(DiagnosticExpressionCapacity<<8)|$D8
+            LD   DE,ProofCallDepthOverflowAnchor-ProofSourceCallDepthOverflow
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallTooFew:
+            LD   HL,ProofPartsCallTooFew
+            LD   BC,(DiagnosticExpectedScalar<<8)|$D9
+            LD   DE,ProofCallTooFewAnchor-ProofSourceCallTooFew
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallTooMany:
+            LD   HL,ProofPartsCallTooMany
+            LD   BC,(DiagnosticExpectedRight<<8)|$DA
+            LD   DE,ProofCallTooManyAnchor-ProofSourceCallTooMany
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallWrongType:
+            LD   HL,ProofPartsCallWrongType
+            LD   BC,(DiagnosticTypeMismatch<<8)|$DB
+            LD   DE,ProofCallWrongTypeAnchor-ProofSourceCallWrongType
+            LD   A,1
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallIndexFailure:
+            LD   HL,ProofPartsCallIndexFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$DC
+            LD   DE,ProofCallIndexFailureAnchor-ProofSourceCallIndexFailure
+            LD   A,$81
+            JP   ProofArmCallDiagnostic
+ProofRuntimeCallBinaryFailure:
+            LD   HL,ProofPartsCallBinaryFailure
+            LD   BC,(DiagnosticFailureContext<<8)|$DD
+            LD   DE,ProofCallBinaryFailureAnchor-ProofSourceCallBinaryFailure
+            LD   A,1
+            JP   ProofArmCallDiagnostic
 
 ; HL source descriptor, B diagnostic, C status, DE exact offset. Path metadata
 ; is installed after reset and before the source-visible routine is parsed.
@@ -329,6 +595,41 @@ ProofArmRuntimeDiagnostic:
             CALL ProofRunLocalInitializedExpression
             JP   ProofFailure
 
+; HL source descriptor, B diagnostic, C status, DE exact offset, A number of
+; retained forward signatures before the direct routine containing the local.
+.routine noreturn
+ProofArmCallDiagnostic:
+            LD   (ProofExpectedForwardCount),A
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            PUSH HL
+            CALL RewriteReset
+            LD   A,(ProofExpectedForwardCount)
+            BIT  7,A
+            CALL NZ,ProofInstallPathMetadata
+            POP  DE
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            EX   DE,HL
+            LD   A,1
+            CALL RewriteSourceInitializeParts
+            LD   A,(ProofExpectedForwardCount)
+            AND  $7F
+            LD   B,A
+            LD   C,0
+_ProofArmCallForwardLoop:
+            PUSH BC
+            CALL ProofRunForwardHeader
+            POP  BC
+            DJNZ _ProofArmCallForwardLoop
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            JP   ProofFailure
+
 ProofExpectedDiagnosticReturn:
             LD   A,(DiagnosticCode)
             LD   B,A
@@ -362,6 +663,10 @@ ProofRunProgramBss:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunDirectHeader:
             LD   HL,RewriteActionProgramRoutineDirectHeader
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunForwardHeader:
+            LD   HL,RewriteActionProgramRoutineForwardHeader
             JP   RewriteActionRun
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunLocalInitializedExpression:
@@ -420,6 +725,7 @@ ProofStatus:             .db 0
 ProofExpectedDiagnostic: .db 0
 ProofExpectedStatus:     .db 0
 ProofExpectedOffset:     .dw 0
+ProofExpectedForwardCount: .db 0
 
 ProofExpectedSemantics:
             .db RewriteSemanticDeclareLocalU8,1
@@ -634,6 +940,85 @@ ProofExpectedPathSemantics:
             .db RewriteSemanticStoreLocalU8,23
 ProofExpectedPathSemanticsEnd:
 
+; Exact call transcript. Every .db/.dw item is semantic data and the word
+; operands are source-relative offsets, never assembled instruction addresses.
+ProofExpectedCallSemantics:
+            .db RewriteSemanticDeclareLocal16,7
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticLiteral16,2,0
+            .db RewriteSemanticLiteral16,3,0
+            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,0
+            .dw ProofCallSumNested-ProofSourceCalls
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,0
+            .dw ProofCallSum-ProofSourceCalls
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticStoreLocal16,7
+            .db RewriteSemanticDeclareLocalU8,9
+            .db RewriteSemanticLiteral16,3,0
+            .db RewriteSemanticCallSource,1,1,RewriteScalarTypeU8,RewriteRoutineFlagFails
+            .dw ProofCallMaybe-ProofSourceCalls
+            .db RewriteCallModePropagateRoutine,0,0
+            .db RewriteSemanticStoreLocalU8,9
+            .db RewriteSemanticDeclareLocalU8,10
+            .db RewriteSemanticCallService,0
+            .dw ProofCallService-ProofSourceCalls
+            .db RewriteCallModePropagateRoutine,0,0
+            .db RewriteSemanticStoreLocalU8,10
+            .db RewriteSemanticDeclareLocal16,11
+            .db RewriteSemanticLoadReadOnlyAlias
+            .dw 301
+            .db RewriteSemanticPrepareOpenStringDirect,0,5
+            .db RewriteSemanticLoadProgramAlias
+            .dw 0
+            .db RewriteSemanticSelectField
+            .dw 0
+            .db RewriteSemanticSelectField
+            .dw 7
+            .db RewriteSemanticPrepareOpenArrayDirect,2
+            .dw 3
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .dw ProofCallMeasure-ProofSourceCalls
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticStoreLocal16,11
+            .db RewriteSemanticDeclareLocal16,13
+            .db RewriteSemanticLoadParameterAlias,0
+            .db RewriteSemanticPrepareOpenStringForward,1,2
+            .db RewriteSemanticLoadParameterAlias,3
+            .db RewriteSemanticPrepareOpenArrayForward,3
+            .dw 5
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .dw ProofCallMeasureForward-ProofSourceCalls
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticStoreLocal16,13
+ProofExpectedCallSemanticsEnd:
+
+ProofExpectedCallTransientSemantics:
+            .db RewriteSemanticDeclareLocal16,0
+            .db RewriteSemanticCallSource,0,0,RewriteFirstOwnedTypeId,0
+            .dw ProofCallTransientText-ProofSourceCallTransientViews
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticPrepareOpenStringDirect,0,5
+            .db RewriteSemanticCallSource,1,0,RewriteFirstOwnedTypeId+1,0
+            .dw ProofCallTransientRow-ProofSourceCallTransientViews
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticPrepareOpenArrayDirect,2
+            .dw 3
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .dw ProofCallTransientMeasure-ProofSourceCallTransientViews
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticStoreLocal16,0
+ProofExpectedCallTransientSemanticsEnd:
+
+ProofExpectedRecursiveCallSemantics:
+            .db RewriteSemanticDeclareLocalU8,1
+            .db RewriteSemanticLoadParameter8,0
+            .db RewriteSemanticCallSource,0,1,RewriteScalarTypeU8,0
+            .dw ProofRecursiveCallName-ProofSourceRecursiveCall
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticStoreLocalU8,1
+ProofExpectedRecursiveCallSemanticsEnd:
+
             .org $5000
 ProofSourceAccepted:
             .db "const five = 5",10
@@ -761,6 +1146,177 @@ ProofPathUnknownFieldName:
             .db "missing",10
 ProofSourcePathUnknownFieldEnd:
 
+ProofSourceCalls:
+            .db "sub sum(a as u8, b as u16) as u16",10,"end",10
+            .db "sub maybe(value as u8) as u8 fails",10,"end",10
+            .db "sub measure(text as string[], values as u16[]) as u16",10,"end",10
+            .db "sub work(text as string[], values as u16[]) fails",10
+            .db "var a as u16 = "
+ProofCallSum:
+            .db "sum(1, "
+ProofCallSumNested:
+            .db "sum(2, 3))",10
+            .db "var b as u8 = "
+ProofCallMaybe:
+            .db "maybe(3) else fail",10
+            .db "var c as u8 = "
+ProofCallService:
+            .db "readInputByte() else fail",10
+            .db "var d as u16 = "
+ProofCallMeasure:
+            .db "measure(ro, root.inner.values)",10
+            .db "var e as u16 = "
+ProofCallMeasureForward:
+            .db "measure(text, values)",10
+ProofSourceCallsEnd:
+
+ProofSourceMainCall:
+            .db "sub main() fails",10
+            .db "var value as u8 = readInputByte() else fail",10
+ProofSourceMainCallEnd:
+
+; Call-boundary diagnostic sources. Labels identify the exact frozen token
+; anchor; all bytes below are proof source text, never executable encodings.
+ProofSourceCallDepth:
+            .db "forward sub id(x as u8) as u8",10
+            .db "sub work()",10
+            .db "var x as u8 = id(id(id(id(1))))",10
+ProofSourceCallDepthEnd:
+
+ProofSourceCallTransientViews:
+            .db "forward sub getText() as string[5]",10
+            .db "forward sub getRow() as u16[3]",10
+            .db "forward sub measure(text as string[], values as u16[]) as u16",10
+            .db "sub work()",10
+            .db "var x as u16 = "
+ProofCallTransientMeasure:
+            .db "measure("
+ProofCallTransientText:
+            .db "getText(), "
+ProofCallTransientRow:
+            .db "getRow())",10
+ProofSourceCallTransientViewsEnd:
+
+ProofSourceRecursiveCall:
+            .db "sub recur(value as u8) as u8",10
+            .db "var next as u8 = "
+ProofRecursiveCallName:
+            .db "recur(value)",10
+ProofSourceRecursiveCallEnd:
+
+ProofSourceCallMissingConsumer:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as u8 = maybe()"
+ProofCallMissingConsumerAnchor:
+            .db 10
+ProofSourceCallMissingConsumerEnd:
+
+ProofSourceCallInfallibleElse:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work()",10
+            .db "var x as u8 = maybe() "
+ProofCallInfallibleElseAnchor:
+            .db "else fail",10
+ProofSourceCallInfallibleElseEnd:
+
+ProofSourceCallGroupedFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as u8 = (maybe()"
+ProofCallGroupedFailureAnchor:
+            .db ") else fail",10
+ProofSourceCallGroupedFailureEnd:
+
+ProofSourceCallConvertedFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as u8 = u8(maybe()"
+ProofCallConvertedFailureAnchor:
+            .db ") else fail",10
+ProofSourceCallConvertedFailureEnd:
+
+ProofSourceCallUnaryFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as i16 = -maybe("
+ProofCallUnaryFailureAnchor:
+            .db ") else fail",10
+ProofSourceCallUnaryFailureEnd:
+
+ProofSourceCallStrayElse:
+            .db "forward sub pure() as u8",10
+            .db "sub work() fails",10
+            .db "var x as u8 = pure() "
+ProofCallStrayElseAnchor:
+            .db "else fail",10
+ProofSourceCallStrayElseEnd:
+
+ProofSourceCallLiteralOpen:
+            .db "forward sub use(text as string[])",10
+            .db "sub work()",10
+            .db "var x as u8 = use("
+ProofCallLiteralOpenAnchor:
+            .db '"',"x",'"',")",10
+ProofSourceCallLiteralOpenEnd:
+
+ProofSourceCallNestedFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "forward sub take(x as u8) as u8",10
+            .db "sub work() fails",10
+            .db "var x as u8 = take(maybe("
+ProofCallNestedFailureAnchor:
+            .db ")) else fail",10
+ProofSourceCallNestedFailureEnd:
+
+ProofSourceCallDepthOverflow:
+            .db "forward sub id(x as u8) as u8",10
+            .db "sub work()",10
+            .db "var x as u8 = id(id(id(id("
+ProofCallDepthOverflowAnchor:
+            .db "id(1)))))",10
+ProofSourceCallDepthOverflowEnd:
+
+ProofSourceCallTooFew:
+            .db "forward sub id(x as u8) as u8",10
+            .db "sub work()",10
+            .db "var x as u8 = id("
+ProofCallTooFewAnchor:
+            .db ")",10
+ProofSourceCallTooFewEnd:
+
+ProofSourceCallTooMany:
+            .db "forward sub id(x as u8) as u8",10
+            .db "sub work()",10
+            .db "var x as u8 = id(1"
+ProofCallTooManyAnchor:
+            .db ",2)",10
+ProofSourceCallTooManyEnd:
+
+ProofSourceCallWrongType:
+            .db "forward sub id(x as u8) as u8",10
+            .db "sub work()",10
+            .db "var x as u8 = id(true"
+ProofCallWrongTypeAnchor:
+            .db ")",10
+ProofSourceCallWrongTypeEnd:
+
+ProofSourceCallIndexFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as u16 = root.inner.values[maybe()"
+ProofCallIndexFailureAnchor:
+            .db "] else fail",10
+ProofSourceCallIndexFailureEnd:
+
+ProofSourceCallBinaryFailure:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub work() fails",10
+            .db "var x as u8 = maybe() "
+ProofCallBinaryFailureAnchor:
+            .db "+ 1 else fail",10
+ProofSourceCallBinaryFailureEnd:
+
 ProofPartsAccepted:      .db 1
                          .dw ProofSourceAccepted,ProofSourceAcceptedEnd
 ProofPartsMismatch:      .db 1
@@ -791,6 +1347,44 @@ ProofPartsPathNegativeIndex: .db 1
                          .dw ProofSourcePathNegativeIndex,ProofSourcePathNegativeIndexEnd
 ProofPartsPathUnknownField: .db 1
                          .dw ProofSourcePathUnknownField,ProofSourcePathUnknownFieldEnd
+ProofPartsCalls:          .db 1
+                         .dw ProofSourceCalls,ProofSourceCallsEnd
+ProofPartsMainCall:       .db 1
+                         .dw ProofSourceMainCall,ProofSourceMainCallEnd
+ProofPartsCallDepth:      .db 1
+                         .dw ProofSourceCallDepth,ProofSourceCallDepthEnd
+ProofPartsCallTransientViews: .db 1
+                         .dw ProofSourceCallTransientViews,ProofSourceCallTransientViewsEnd
+ProofPartsRecursiveCall: .db 1
+                         .dw ProofSourceRecursiveCall,ProofSourceRecursiveCallEnd
+ProofPartsCallMissingConsumer: .db 1
+                         .dw ProofSourceCallMissingConsumer,ProofSourceCallMissingConsumerEnd
+ProofPartsCallInfallibleElse: .db 1
+                         .dw ProofSourceCallInfallibleElse,ProofSourceCallInfallibleElseEnd
+ProofPartsCallGroupedFailure: .db 1
+                         .dw ProofSourceCallGroupedFailure,ProofSourceCallGroupedFailureEnd
+ProofPartsCallConvertedFailure: .db 1
+                         .dw ProofSourceCallConvertedFailure,ProofSourceCallConvertedFailureEnd
+ProofPartsCallUnaryFailure: .db 1
+                         .dw ProofSourceCallUnaryFailure,ProofSourceCallUnaryFailureEnd
+ProofPartsCallStrayElse:  .db 1
+                         .dw ProofSourceCallStrayElse,ProofSourceCallStrayElseEnd
+ProofPartsCallLiteralOpen: .db 1
+                         .dw ProofSourceCallLiteralOpen,ProofSourceCallLiteralOpenEnd
+ProofPartsCallNestedFailure: .db 1
+                         .dw ProofSourceCallNestedFailure,ProofSourceCallNestedFailureEnd
+ProofPartsCallDepthOverflow: .db 1
+                         .dw ProofSourceCallDepthOverflow,ProofSourceCallDepthOverflowEnd
+ProofPartsCallTooFew:    .db 1
+                         .dw ProofSourceCallTooFew,ProofSourceCallTooFewEnd
+ProofPartsCallTooMany:   .db 1
+                         .dw ProofSourceCallTooMany,ProofSourceCallTooManyEnd
+ProofPartsCallWrongType: .db 1
+                         .dw ProofSourceCallWrongType,ProofSourceCallWrongTypeEnd
+ProofPartsCallIndexFailure: .db 1
+                         .dw ProofSourceCallIndexFailure,ProofSourceCallIndexFailureEnd
+ProofPartsCallBinaryFailure: .db 1
+                         .dw ProofSourceCallBinaryFailure,ProofSourceCallBinaryFailureEnd
 
 ; Path metadata fixtures. Each .db/.dw block is a type, record, field, or
 ; symbol table image and never executes as Z80 code.

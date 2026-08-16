@@ -1135,6 +1135,44 @@ R4 postfix-path checkpoint (Measured):
   is 9,784 core bytes. Workspace remains 3,374 bytes, leaving 6,604 core bytes
   and 722 workspace bytes beneath their gates.
 
+R4 call and immediate-failure checkpoint (Measured):
+
+- one bounded four-frame call engine now handles retained source routines and
+  all six predefined services. It parses scalar, exact aggregate, open-string,
+  and open-array actuals left to right and publishes complete source offsets,
+  selectors, argument-word counts, result types, effects, and call modes;
+- open arguments preserve the concrete bounded-string capacity or fixed-array
+  count. Forwarded open views retain their hidden activation offsets. A
+  separate transcript proof passes concrete string and array routine results
+  directly to open formals, so transient aliases do not rely on a wildcard
+  type or an address tag;
+- failable calls remain pending until the containing local initializer consumes
+  exactly `else fail`. Ordinary failable routines and failable `main` publish
+  distinct propagation modes. Infallible calls reject a stray consumer, and a
+  failable call nested in another call, grouping, conversion, unary operation,
+  index, or binary expression reports diagnostic 87 at the frozen context
+  anchor;
+- four nested source-call frames succeed and release the complete compiler-side
+  call state. The fifth reports diagnostic 65 at the innermost routine name.
+  Exact call diagnostics also cover missing and excess actuals, a wrong scalar
+  type, and a literal passed directly to an open-string formal. A separate
+  current-routine proof publishes an exact recursive call transcript in 14,393
+  instructions and 130,607 T-states;
+- the main accepted call proof publishes and checks 30 operations byte for byte
+  in 98,362 compiler instructions and 882,722 T-states. The main-mode proof
+  takes 12,287 instructions and 111,600 T-states; the four-frame proof takes
+  22,482 instructions and 201,658 T-states; and the transient-open-view proof
+  takes 39,861 instructions and 360,748 T-states;
+- source-forward lifecycle flags are masked to the target-visible failure bit
+  before transcript publication. The proof therefore distinguishes an
+  internal incomplete-forward marker from the published call effect; and
+- the call work adds 940 bytes to the expression region, nine bytes to the
+  declaration region, six immutable service-signature bytes, and 40 workspace
+  bytes. The shipping replacement is 9,492 code + 1,256 immutable = 10,748
+  core bytes; the instrumented replacement is 10,752 core bytes. Workspace is
+  3,414 bytes, leaving 5,636 core bytes and 682 workspace bytes beneath their
+  gates.
+
 Exit gate: accepted source, exact diagnostics, transcript intent, target
 behaviour, traps, and stack restoration match. The complete expression/path/
 call region must be at least 25 percent smaller than its measured baseline
@@ -1263,7 +1301,8 @@ fields, direct and forward routine headers, formal parameters, results,
 failure clauses, `main`, default scalar locals, routine close, and EOF
 completeness. R4 now has runtime atoms, complete scalar precedence reduction,
 mixed signed promotion, conversions, comparisons, Boolean short-circuiting,
-explicit expression-initialized locals, and the shared postfix path engine for
-fields, fixed/open indexes, and string/array properties. The next checkpoint
-adds source/service calls and immediate failure consumption. The replacement
-remains test-selected until the complete cutover gate passes.
+explicit expression-initialized locals, the shared postfix path engine, typed
+source/service calls, concrete and forwarded open arguments, nested calls, and
+immediate `else fail` propagation. The next work is the R4 size comparison and
+focused compression review before R5 begins statement and control parsing. The
+replacement remains test-selected until the complete cutover gate passes.

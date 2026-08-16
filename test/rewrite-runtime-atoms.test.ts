@@ -65,6 +65,8 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedExpressionSemanticsEnd ?? -1;
   const expectedPathStart = image.symbols.ProofExpectedPathSemantics ?? -1;
   const expectedPathEnd = image.symbols.ProofExpectedPathSemanticsEnd ?? -1;
+  const expectedCallStart = image.symbols.ProofExpectedCallSemantics ?? -1;
+  const expectedCallEnd = image.symbols.ProofExpectedCallSemanticsEnd ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
@@ -81,6 +83,9 @@ const run = (entryName: string) => {
     expectedPathSemantics: Array.from(
       memory.slice(expectedPathStart, expectedPathEnd),
     ),
+    expectedCallSemantics: Array.from(
+      memory.slice(expectedCallStart, expectedCallEnd),
+    ),
   };
 };
 
@@ -89,8 +94,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 64_493,
-      cycles: 582_127,
+      instructions: 64_662,
+      cycles: 583_955,
     });
   });
 
@@ -101,8 +106,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 126_764,
-      cycles: 1_136_297,
+      instructions: 127_141,
+      cycles: 1_140_106,
     });
   });
 
@@ -114,10 +119,93 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 108_264,
-      cycles: 962_787,
+      instructions: 108_497,
+      cycles: 965_213,
     });
   });
+
+  it("publishes nested source, service, failable, and open-view calls", () => {
+    const result = run("ProofRuntimeCalls");
+    expect(result.semanticOperations).toBe(30);
+    expect(result.semantics).toEqual(result.expectedCallSemantics);
+    expect(result).toMatchObject({
+      status: 0xca,
+      diagnostic: 0,
+      localOffset: 15,
+      instructions: 98_362,
+      cycles: 882_722,
+    });
+  });
+
+  it("selects the distinct main failure-propagation mode", () => {
+    expect(run("ProofRuntimeMainCall")).toMatchObject({
+      status: 0xcb,
+      diagnostic: 0,
+      semanticOperations: 3,
+      localOffset: 1,
+      instructions: 12_287,
+      cycles: 111_600,
+    });
+  });
+
+  it("accepts exactly four nested source-call frames and releases them", () => {
+    expect(run("ProofRuntimeCallDepth")).toMatchObject({
+      status: 0xcc,
+      diagnostic: 0,
+      semanticOperations: 7,
+      localOffset: 1,
+      instructions: 22_482,
+      cycles: 201_658,
+    });
+  });
+
+  it("passes concrete aggregate routine results through open views", () => {
+    expect(run("ProofRuntimeCallTransientViews")).toMatchObject({
+      status: 0xcd,
+      diagnostic: 0,
+      semanticOperations: 7,
+      localOffset: 2,
+      instructions: 39_861,
+      cycles: 360_748,
+    });
+  });
+
+  it("resolves the current routine for a recursive source call", () => {
+    expect(run("ProofRuntimeRecursiveCall")).toMatchObject({
+      status: 0xce,
+      diagnostic: 0,
+      semanticOperations: 4,
+      localOffset: 2,
+      instructions: 14_393,
+      cycles: 130_607,
+    });
+  });
+
+  it.each([
+    ["ProofRuntimeCallMissingConsumer", 0xd0, 87],
+    ["ProofRuntimeCallInfallibleElse", 0xd1, 87],
+    ["ProofRuntimeCallGroupedFailure", 0xd2, 87],
+    ["ProofRuntimeCallConvertedFailure", 0xd3, 87],
+    ["ProofRuntimeCallUnaryFailure", 0xd4, 87],
+    ["ProofRuntimeCallStrayElse", 0xd5, 87],
+    ["ProofRuntimeCallLiteralOpen", 0xd6, 130],
+    ["ProofRuntimeCallNestedFailure", 0xd7, 87],
+    ["ProofRuntimeCallDepthOverflow", 0xd8, 65],
+    ["ProofRuntimeCallTooFew", 0xd9, 58],
+    ["ProofRuntimeCallTooMany", 0xda, 134],
+    ["ProofRuntimeCallWrongType", 0xdb, 60],
+    ["ProofRuntimeCallIndexFailure", 0xdc, 87],
+    ["ProofRuntimeCallBinaryFailure", 0xdd, 87],
+  ] as const)(
+    "preserves exact call/failure diagnostic provenance at %s",
+    (entry, status, diagnostic) => {
+      expect(run(entry)).toMatchObject({
+        status,
+        diagnostic,
+        part: 1,
+      });
+    },
+  );
 
   it.each([
     ["ProofRuntimeMismatch", 0xc1, 60, 31],
@@ -180,12 +268,12 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 29,
       actionCode: 285,
       actionData: 261,
-      expression: 3_306,
-      declarations: 1_510,
-      code: 8_530,
-      immutable: 1_250,
-      core: 9_780,
-      workspace: 3_374,
+      expression: 4_246,
+      declarations: 1_519,
+      code: 9_492,
+      immutable: 1_256,
+      core: 10_748,
+      workspace: 3_414,
     });
   });
 });

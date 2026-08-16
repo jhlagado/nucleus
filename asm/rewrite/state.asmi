@@ -172,9 +172,21 @@ RewriteExpressionResolvedType .equ RewriteMetadataControlBase+$39
 RewritePathType                .equ RewriteExpressionLeftMeta
 RewritePathCountOffset         .equ RewriteExpressionLeftKnown
 RewritePathSourceOffset        .equ RewriteExpressionLeftOffset ; word
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$3A
+; Runtime calls retain only the state that must survive recursive argument
+; expressions. The pending failure pointer addresses a declared semantic
+; operand in the transcript; it is a complete word and makes no assumption
+; about compiler placement. CurrentRoutineFlags is the source routine effect,
+; including the separately represented main bit.
+RewriteCallDepth               .equ RewriteMetadataControlBase+$3A
+RewritePendingFailure          .equ RewriteMetadataControlBase+$3B
+RewritePendingCallModePointer  .equ RewriteMetadataControlBase+$3C ; word
+RewriteCurrentRoutineFlags     .equ RewriteMetadataControlBase+$3E
+RewriteExpressionAggregateCountOffset .equ RewriteMetadataControlBase+$3F
+RewritePendingFailureOffset    .equ RewriteMetadataControlBase+$40 ; word
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$42
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
+RewriteCallFrameCapacity       .equ 4
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
@@ -265,10 +277,25 @@ RewriteSuffixTableLimit      .equ RewriteSuffixTableBase+RewriteSuffixEntrySize*
 RewriteSuffixResumeOffset    .equ RewriteSuffixTableLimit ; word
 RewriteSuffixOpenOffset      .equ RewriteSuffixResumeOffset+2 ; word
 
+; Four recursive source/service calls are sufficient for the published
+; expression-capacity boundary. Each frame is compiler metadata, not a target
+; activation: parameter cursor/count, target carrier count, result, selector,
+; flags, and complete call-site source offset.
+RewriteCallFrameParameterCursor .equ 0
+RewriteCallFrameParameterRemaining .equ 1
+RewriteCallFrameArgumentWords .equ 2
+RewriteCallFrameResultType    .equ 3
+RewriteCallFrameSelector      .equ 4
+RewriteCallFrameFlags         .equ 5
+RewriteCallFrameSourceOffset  .equ 6 ; word
+RewriteCallFrameSize          .equ 8
+RewriteCallFrameBase          .equ RewriteSuffixOpenOffset+2
+RewriteCallFrameLimit         .equ RewriteCallFrameBase+RewriteCallFrameSize*RewriteCallFrameCapacity
+
 ; Static construction uses one complete-object scratch image and one retained
 ; output image. Initialized bytes are the retained prefix and aggregate
 ; constants are the suffix. Both buffers retain the published 1 KiB boundary.
-RewriteStaticPendingSource   .equ RewriteSuffixOpenOffset+2 ; word
+RewriteStaticPendingSource   .equ RewriteCallFrameLimit ; word
 RewriteStaticPendingLength   .equ RewriteStaticPendingSource+2 ; word
 RewriteStaticPendingOffset   .equ RewriteStaticPendingLength+2 ; word
 RewriteStaticPendingByte     .equ RewriteStaticPendingOffset+2
@@ -379,6 +406,7 @@ DiagnosticRecordEmpty        .equ 82
 DiagnosticTypeBound          .equ 83
 DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
+DiagnosticFailureContext     .equ 87
 DiagnosticSourcePartCapacity .equ 88
 DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
@@ -395,7 +423,14 @@ DiagnosticExpectedAs         .equ $80+14
 DiagnosticExpectedEnd        .equ $80+12
 DiagnosticExpectedLeftBracket .equ $80+18
 DiagnosticExpectedRightBracket .equ $80+19
+DiagnosticExpectedComma      .equ $80+20
+DiagnosticExpectedFail       .equ $80+11
 DiagnosticExpectedStringLiteral .equ $80+47
+
+RewriteCallModeInfallible       .equ 0
+RewriteCallModePropagateRoutine .equ 1
+RewriteCallModePropagateMain    .equ 2
+RewriteCallModeHandle           .equ 3
 
 RewriteExpressionOpAdd       .equ 0
 RewriteExpressionOpSubtract  .equ 1
