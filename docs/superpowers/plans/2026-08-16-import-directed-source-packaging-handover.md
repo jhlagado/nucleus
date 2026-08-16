@@ -166,7 +166,5 @@ the explicit/discovered artifact differential.
   tested.
 - Running is target-specific. SP1 is the portable source-order handoff; it is
   not a generic target runner or memory-layout format.
-- Registry publication of `@jhlagado/debug80-runtime` remains an external
-  release step. The package, isolated smoke gate, `prepublishOnly` checks, and
-  GitHub release workflow are ready, but npm authentication or trusted-publisher
-  authorization is required before the first release.
+- Nucleus uses an npm link to the Debug80 Runtime checkout for this development
+  phase. Registry publication is outside this increment.

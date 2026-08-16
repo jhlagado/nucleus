@@ -11,9 +11,10 @@ The harness requires Node 20 or later. `@jhlagado/azm` is a normal package
 dependency because the operating layer links the selected Nucleus runtime for
 the target addresses used by each build.
 
-`@jhlagado/debug80-runtime` is also required at execution time. Its peer entry
-is temporarily marked optional because that package has not yet been published
-independently. A development installation supplies it from a Debug80 checkout:
+`@jhlagado/debug80-runtime` is also required at execution time. The current
+development arrangement supplies it through an npm link from a Debug80
+checkout. Its peer entry remains optional in package metadata so Git dependency
+preparation does not request an unavailable registry package:
 
 ```bash
 cd /path/to/debug80/packages/debug80-runtime
@@ -26,8 +27,8 @@ npm run build
 node dist/cli.js --help
 ```
 
-Once Debug80 Runtime is published, an ordinary package installation can supply
-both packages without the link step.
+Run the link step again after replacing the Debug80 checkout or recreating
+`node_modules`.
 
 ## First build
 
@@ -169,9 +170,9 @@ For a flat target, the HEX file is the launch image and the NOBJ map supplies
 its entry address and memory layout. A loader must install the image, provide
 the service destinations named by the target profile, establish any
 machine-specific state, and enter the recorded address. Debug80 can load the
-flat HEX artifact and its D8 sidecar. Its current project backend has not yet
-adopted version 2 import discovery, so the standalone CLI should build the
-artifacts before that handoff.
+flat HEX artifact and its D8 sidecar. Its Nucleus backend uses the same
+`prepareNucleusProject()` path as the standalone CLI, including version 2
+import discovery.
 
 Banked execution requires an NOBJ-aware loader that preserves physical-bank
 identity. The current Debug80 application launcher accepts only flat HEX, even

@@ -56,10 +56,10 @@ reproducible image gate assembles both layouts from checked AZM source and
 rejects stale embedded bytes or symbol maps. Node and Debug80 execute those
 Z80 images directly.
 
-`@jhlagado/debug80-runtime` is an operationally required peer. During local
-development it is supplied by the linked Debug80 package; the optional npm
-peer metadata only prevents isolated Git preparation from requesting an
-unpublished registry package.
+`@jhlagado/debug80-runtime` is an operationally required peer. Debug80
+supplies its workspace package, while a standalone Nucleus checkout binds the
+same package with `npm link`. The optional peer metadata only prevents isolated
+Git preparation from requesting a registry package.
 
 ## Implemented Debug80 components
 

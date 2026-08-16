@@ -232,10 +232,10 @@ assembling the compiler during npm's isolated Git preparation. The
 publication, and CI verifies that the embedded compiler images match the AZM
 sources.
 
-Until `@jhlagado/debug80-runtime` is published, its peer entry is marked
-optional to npm so Git dependency preparation does not try to download it from
-the registry. The runtime remains operationally required: Debug80 supplies its
-workspace package, and any other host must supply the same compatible package.
+`@jhlagado/debug80-runtime` remains operationally required. Debug80 supplies
+its workspace package. A standalone Nucleus checkout uses `npm link` to bind
+the compatible Runtime checkout. The peer entry is optional in package metadata
+only so Git dependency preparation does not request a registry package.
 
 ## Filesystem publication
 
