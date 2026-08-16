@@ -66,3 +66,7 @@ RewriteActionEscapeDirectory:
             .dw RewriteControlEndWhile ; EndWhile
             .dw RewriteControlEmitExit ; EmitExit
             .dw RewriteControlEmitContinue ; EmitContinue
+            .dw RewriteControlBeginForCounter ; BeginForCounter
+            .dw RewriteControlParseForRange ; ParseForRange
+            .dw RewriteControlBeginForBody ; BeginForBody
+            .dw RewriteControlEndFor ; EndFor

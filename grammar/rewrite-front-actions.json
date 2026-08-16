@@ -206,6 +206,22 @@
     {
       "name": "EmitContinue",
       "target": "RewriteControlEmitContinue"
+    },
+    {
+      "name": "BeginForCounter",
+      "target": "RewriteControlBeginForCounter"
+    },
+    {
+      "name": "ParseForRange",
+      "target": "RewriteControlParseForRange"
+    },
+    {
+      "name": "BeginForBody",
+      "target": "RewriteControlBeginForBody"
+    },
+    {
+      "name": "EndFor",
+      "target": "RewriteControlEndFor"
     }
   ],
   "programs": [
@@ -545,6 +561,28 @@
         { "instruction": "Expect", "operands": ["TokenContinue", "DiagnosticExpectedLoop"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitContinue"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ForHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenFor", "DiagnosticLoopCounter"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticLoopCounter"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginForCounter"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticLoopCounter"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseForRange"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginForBody"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ForEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEndFor"] },
         { "instruction": "End", "operands": [] }
       ]
     }

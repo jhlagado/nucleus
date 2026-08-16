@@ -75,12 +75,35 @@ describe("ground-up rewrite structured control", () => {
     ["ProofStructuredContinueOutsideLoop", 0xeb, 72, 1, 11],
     ["ProofStructuredFrameCapacity", 0xec, 68, 1, 75],
     ["ProofStructuredLabelCapacity", 0xed, 69, 1, 11],
+    ["ProofCountedLoop", 0xf0, 0, 0, 0],
+    ["ProofCountedActiveAssignment", 0xf1, 36, 1, 38],
+    ["ProofCountedNestedCounter", 0xf2, 36, 1, 42],
+    ["ProofCountedWrongCounter", 0xf3, 57, 1, 15],
+    ["ProofCountedZeroStep", 0xf4, 74, 1, 43],
+    ["ProofCountedVariants", 0xf5, 0, 0, 0],
+    ["ProofCountedBooleanCounter", 0xf6, 73, 1, 35],
+    ["ProofCountedNonconstantStep", 0xf7, 74, 1, 62],
+    ["ProofCountedIncompatibleStart", 0xf8, 61, 1, 31],
+    ["ProofCountedNestedTransfers", 0xf9, 0, 0, 0],
+    ["ProofCountedNegativeNamedStep", 0xfa, 74, 1, 64],
+    ["ProofCountedFailableStart", 0xfb, 87, 1, 80],
+    ["ProofCountedFailableBound", 0xfc, 87, 1, 81],
+    ["ProofCountedAggregateStep", 0xfd, 74, 1, 70],
+    ["ProofCountedMissingBound", 0xfe, 58, 1, 33],
+    ["ProofCountedProgramCounter", 0xef, 73, 1, 27],
   ] as const)(
     "executes %s with exact diagnostic provenance",
     (entry, status, diagnostic, part, offset) => {
       expect(run(entry)).toMatchObject({ status, diagnostic, part, offset });
     },
   );
+
+  it("locks the complete four-type counted-loop compilation account", () => {
+    expect(run("ProofCountedVariants")).toMatchObject({
+      instructions: 57_836,
+      cycles: 524_554,
+    });
+  });
 
   it("executes the full-address escape directory at separated compiler origins", async () => {
     const directory = await mkdtemp(

@@ -116,7 +116,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc0,
       diagnostic: 0,
       instructions: 62_959,
-      cycles: 575_239,
+      cycles: 575_386,
     });
   });
 
@@ -128,7 +128,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc4,
       diagnostic: 0,
       instructions: 124_386,
-      cycles: 1_125_800,
+      cycles: 1_125_947,
     });
   });
 
@@ -141,7 +141,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       localOffset: 24,
       instructions: 106_522,
-      cycles: 954_961,
+      cycles: 955_108,
     });
   });
 
@@ -154,7 +154,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       localOffset: 15,
       instructions: 97_084,
-      cycles: 876_289,
+      cycles: 876_436,
     });
   });
 
@@ -165,7 +165,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       semanticOperations: 3,
       localOffset: 1,
       instructions: 12_046,
-      cycles: 110_438,
+      cycles: 110_585,
     });
   });
 
@@ -176,7 +176,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       semanticOperations: 7,
       localOffset: 1,
       instructions: 22_214,
-      cycles: 200_388,
+      cycles: 200_535,
     });
   });
 
@@ -187,7 +187,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       semanticOperations: 7,
       localOffset: 2,
       instructions: 39_535,
-      cycles: 359_202,
+      cycles: 359_349,
     });
   });
 
@@ -198,7 +198,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       semanticOperations: 4,
       localOffset: 2,
       instructions: 14_154,
-      cycles: 129_475,
+      cycles: 129_622,
     });
   });
 
@@ -209,8 +209,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 38_604,
-      cycles: 348_747,
+      instructions: 38_624,
+      cycles: 349_098,
     });
   });
 
@@ -233,7 +233,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xde,
       diagnostic: 0,
       instructions: 34_745,
-      cycles: 315_269,
+      cycles: 315_416,
     });
   });
 
@@ -243,7 +243,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       instructions: 9_940,
-      cycles: 91_971,
+      cycles: 92_118,
     });
   });
 
@@ -276,7 +276,7 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xd9,
       diagnostic: 0,
       instructions: 27_725,
-      cycles: 249_940,
+      cycles: 250_087,
     });
   });
 
@@ -378,16 +378,16 @@ describe("ground-up rewrite runtime scalar expressions", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       operations: 103,
-      escapes: 50,
-      actionCode: 227,
-      actionData: 412,
+      escapes: 54,
+      actionCode: 235,
+      actionData: 440,
       expression: 4_250,
-      statements: 441,
+      statements: 496,
       declarations: 1_528,
-      code: 10_387,
-      immutable: 1_419,
-      core: 11_806,
-      workspace: 3_418,
+      code: 10_959,
+      immutable: 1_447,
+      core: 12_406,
+      workspace: 3_425,
     });
   });
 });

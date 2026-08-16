@@ -189,7 +189,12 @@ RewriteCurrentRoutineResultType .equ RewriteMetadataControlBase+$42
 RewriteControlSequenceFallsThrough .equ RewriteMetadataControlBase+$43
 RewriteControlDepth            .equ RewriteMetadataControlBase+$44
 RewriteControlNextLabel        .equ RewriteMetadataControlBase+$45
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$46
+RewriteControlPendingCounter   .equ RewriteMetadataControlBase+$46
+RewriteControlPendingType      .equ RewriteMetadataControlBase+$47
+RewriteControlPendingMode      .equ RewriteMetadataControlBase+$48
+RewriteControlPendingStep      .equ RewriteMetadataControlBase+$49 ; word
+RewriteControlPendingSourceOffset .equ RewriteMetadataControlBase+$4B ; word
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$4D
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
 RewriteCallFrameCapacity       .equ 4

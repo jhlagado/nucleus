@@ -2,6 +2,44 @@
 ; class, storage segment, scalar type, and full payload. No address bit is
 ; interpreted as metadata.
 
+; C is a local activation offset. Reject a source write or nested counted-loop
+; reuse while that exact local is the counter of an active `for` frame.
+.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteControlCheckActiveCounter:
+            LD   A,(RewriteControlDepth)
+            OR   A
+            RET  Z
+_RewriteControlCheckCounterNext:
+            DEC  A
+            PUSH AF
+            LD   L,A
+            LD   H,0
+            ADD  HL,HL
+            LD   E,L
+            LD   D,H
+            ADD  HL,HL
+            ADD  HL,HL
+            ADD  HL,DE
+            LD   DE,RewriteControlFrameBase
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   RewriteControlKindFor
+            JR   NZ,_RewriteControlCheckCounterContinue
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   C
+            JR   Z,_RewriteControlActiveCounterFailure
+_RewriteControlCheckCounterContinue:
+            POP  AF
+            OR   A
+            JR   NZ,_RewriteControlCheckCounterNext
+            RET
+_RewriteControlActiveCounterFailure:
+            POP  AF
+            LD   A,DiagnosticActiveCounter
+            JP   RewriteRaiseDiagnostic
+
 ; The current token is the assignment NAME. Retain a writable scalar target
 ; until the complete right-hand expression and line have been validated.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -35,6 +73,12 @@ _RewriteStatementAssignmentClassReady:
             INC  HL
             LD   A,(HL)
             LD   (RewriteStatementTargetStorage),A
+            LD   A,(RewriteStatementTargetClass)
+            CP   RewriteSymbolClassLocal
+            JR   NZ,_RewriteStatementAssignmentTargetReady
+            LD   C,E
+            CALL RewriteControlCheckActiveCounter
+_RewriteStatementAssignmentTargetReady:
             XOR  A
             RET
 

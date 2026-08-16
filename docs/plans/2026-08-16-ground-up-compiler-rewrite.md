@@ -1314,6 +1314,40 @@ R5 conditional-and-while checkpoint (Measured):
   but feature completion remains the active gate and compression remains
   deferred.
 
+R5 counted-loop checkpoint (Measured):
+
+- generated `ForHeader` and `ForEnd` action programs lower a previously
+  declared scalar local chosen by the programmer. The counter type remains
+  `u8`, `u16`, `i8`, or `i16`; the loop syntax introduces no binding and
+  stores no inferred counter type;
+- one ten-byte control frame retains the counter activation offset, inclusive
+  or exclusive bound mode, direction, width, signedness, complete 16-bit step,
+  and counter source offset. Start and bound expressions are each evaluated
+  once before `ForSetup`; `continue` targets the increment path and `exit`
+  targets the loop exit;
+- the four-type proof checks 38 operation records byte for byte. It covers
+  `to`, `until`, default `+1`, a named step, explicit positive and negative
+  steps, and the complete 65,535 magnitude. It compiles in 57,836 instructions
+  and 524,554 T-states. A nested `while`/`for` proof separately distinguishes
+  the inner counted-loop transfer targets from the outer loop;
+- exact diagnostics cover an active-counter assignment and nested reuse (36),
+  an unknown counter (57), Boolean and program-variable counters (73), zero,
+  nonconstant, negative-named, and aggregate step values (74), an incompatible
+  start (61), a missing `to` or `until` (58), and failable start and bound
+  expressions (87). The failure-context cases retain the frozen positions at
+  the first bound token and the line ending after the bound;
+- step-name classification now requires a nonnegative integer scalar constant.
+  An aggregate constant cannot be interpreted as a numeric payload. Active
+  counter checks scan all enclosing counted frames, while nearest-loop
+  `exit` and `continue` still select the innermost `while` or `for` frame;
+- the control region is 972 code bytes. Fifty-four generated escapes and
+  thirty-four generated programs use 235 code bytes and 440 immutable bytes.
+  The shipping replacement is 10,959 code + 1,447 immutable = 12,406 core
+  bytes; the instrumented replacement is 12,410 core bytes. Workspace is
+  3,425 bytes. These observational accounts place the current image 3,978
+  bytes below 16 KiB with 671 workspace bytes remaining; feature completion,
+  not this interim margin, controls the next step.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1440,8 +1474,8 @@ source/service calls, concrete and forwarded open arguments, nested calls, and
 immediate `else fail` propagation. R5 now has scalar assignments, source and
 service call statements, scalar and aggregate returns, explicit routine/main
 failure, bare return, routine-end fallthrough validation, complete
-`if`/`elseif`/`else` lowering, `while`, and nearest-loop `exit`/`continue`.
-The next work is programmer-typed counted loops, followed by local `handle`
-blocks and their failure-state transitions. Compression follows semantic and
-backend completion. The replacement remains test-selected until the complete
-cutover gate passes.
+`if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops, and
+nearest-loop `exit`/`continue`. The next work is local `handle` blocks and
+their failure-state transitions, followed by the remaining routine-body
+grammar. Compression follows semantic and backend completion. The replacement
+remains test-selected until the complete cutover gate passes.

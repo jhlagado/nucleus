@@ -357,3 +357,302 @@ RewriteControlEmitExit:
 RewriteControlEmitContinue:
             LD   A,RewriteControlFrameContinue
             JP   RewriteControlEmitTransfer
+
+.routine noreturn
+RewriteControlCounterFailure:
+            LD   A,DiagnosticLoopCounter
+            JP   RewriteRaiseDiagnostic
+
+.routine noreturn
+RewriteControlStepFailure:
+            LD   A,DiagnosticLoopStep
+            JP   RewriteRaiseDiagnostic
+
+.routine noreturn
+RewriteControlForBoundFailure:
+            LD   A,DiagnosticExpectedScalar
+            JP   RewriteRaiseDiagnostic
+
+; The current token is the counted-loop counter name. Only an integer local is
+; admitted, and its activation offset is also the active-counter identity.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlBeginForCounter:
+            LD   DE,(TokenStartOffset)
+            LD   (RewriteControlPendingSourceOffset),DE
+            CALL RewriteSymbolFindCurrent
+            JP   NC,RewriteStatementUnknownName
+            LD   DE,RewriteSymbolClass
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   RewriteSymbolClassLocal
+            JP   NZ,RewriteControlCounterFailure
+            INC  HL
+            LD   A,(HL)
+            AND  RewriteTypeIdentityMask
+            OR   A
+            JP   Z,RewriteControlCounterFailure
+            CP   RewriteScalarTypeBoolean
+            JP   Z,RewriteControlCounterFailure
+            CP   RewriteFirstOwnedTypeId
+            JP   NC,RewriteControlCounterFailure
+            LD   (RewriteControlPendingType),A
+            INC  HL
+            LD   C,(HL)
+            LD   A,C
+            LD   (RewriteControlPendingCounter),A
+            CALL RewriteControlCheckActiveCounter
+            XOR  A
+            RET
+
+; Parse the optional sign and one literal or earlier nonnegative named
+; constant. B receives the direction bit and DE the nonzero magnitude.
+.routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
+RewriteControlParseStep:
+            XOR  A
+            LD   (RewriteControlPendingMode),A
+            CALL RewriteParserPeek
+            CP   TokenPlus
+            JR   Z,_RewriteControlStepConsumeSign
+            CP   TokenMinus
+            JR   NZ,_RewriteControlStepMagnitude
+            LD   A,2
+            LD   (RewriteControlPendingMode),A
+_RewriteControlStepConsumeSign:
+            CALL RewriteParserTake
+_RewriteControlStepMagnitude:
+            CALL RewriteParserTake
+            CP   TokenNumber
+            JR   Z,_RewriteControlStepNumber
+            CP   TokenName
+            JP   NZ,RewriteControlStepFailure
+            CALL RewriteSymbolFindCurrent
+            JR   C,_RewriteControlStepNamed
+            CALL RewritePredefinedFindCurrent
+            JP   NC,RewriteControlStepFailure
+            CP   6
+            JP   C,RewriteControlStepFailure
+            SUB  5
+            LD   E,A
+            LD   D,0
+            JR   _RewriteControlStepReady
+_RewriteControlStepNamed:
+            LD   BC,RewriteSymbolClass
+            ADD  HL,BC
+            LD   A,(HL)
+            CP   RewriteSymbolClassConstant
+            JP   NZ,RewriteControlStepFailure
+            INC  HL
+            LD   A,(HL)
+            BIT  5,A
+            JP   NZ,RewriteControlStepFailure
+            AND  RewriteTypeIdentityMask
+            CP   RewriteScalarTypeBoolean
+            JP   Z,RewriteControlStepFailure
+            CP   RewriteFirstOwnedTypeId
+            JP   NC,RewriteControlStepFailure
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            JR   _RewriteControlStepReady
+_RewriteControlStepNumber:
+            LD   D,B
+            LD   E,C
+_RewriteControlStepReady:
+            LD   A,D
+            OR   E
+            JP   Z,RewriteControlStepFailure
+            LD   A,(RewriteControlPendingMode)
+            LD   B,A
+            XOR  A
+            RET
+
+; Start and bound expressions are evaluated exactly once and left on the
+; semantic value stack for ForSetup. Mode bit 0 is inclusive `to`; bit 1 is a
+; negative step. Bits 2 and 3 are filled from counter width and signedness.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlParseForRange:
+            LD   A,(RewriteControlPendingType)
+            CALL RewriteExpressionEvaluateRuntime
+            LD   B,A
+            LD   A,(RewriteControlPendingType)
+            LD   C,A
+            LD   A,B
+            CALL RewriteExpressionCheckRuntimeAssignable
+            CALL RewriteParserTake
+            CP   TokenTo
+            LD   B,1
+            JR   Z,_RewriteControlForBoundReady
+            CP   TokenUntil
+            JP   NZ,RewriteControlForBoundFailure
+            LD   B,0
+_RewriteControlForBoundReady:
+            PUSH BC
+            CALL RewriteParserPeek
+            POP  BC
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteStatementFailureContext
+            PUSH BC
+            LD   A,(RewriteControlPendingType)
+            CALL RewriteExpressionEvaluateRuntime
+            LD   B,A
+            LD   A,(RewriteControlPendingType)
+            LD   C,A
+            LD   A,B
+            CALL RewriteExpressionCheckRuntimeAssignable
+            POP  BC
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteStatementFailureContext
+            LD   DE,1
+            PUSH BC
+            PUSH DE
+            CALL RewriteParserPeek
+            POP  DE
+            POP  BC
+            CP   TokenStep
+            JR   NZ,_RewriteControlForStepReady
+            PUSH BC
+            CALL RewriteParserTake
+            CALL RewriteControlParseStep
+            LD   A,B
+            POP  BC
+            OR   B
+            LD   B,A
+_RewriteControlForStepReady:
+            LD   A,B
+            LD   (RewriteControlPendingMode),A
+            LD   (RewriteControlPendingStep),DE
+            XOR  A
+            RET
+
+; Publish a complete fixed-width counted-loop record from the current frame.
+.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlEmitForPrefix:
+            LD   B,A
+            PUSH HL
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+1),A
+            POP  HL
+            LD   A,B
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlBeginForBody:
+            LD   B,RewriteControlKindFor
+            CALL RewriteControlPushFrame
+            LD   B,RewriteControlFrameLabelA
+            CALL RewriteControlAllocateLabel
+            LD   B,RewriteControlFrameContinue
+            CALL RewriteControlAllocateLabel
+            LD   B,RewriteControlFrameExit
+            CALL RewriteControlAllocateLabel
+            CALL RewriteControlTopFrame
+            PUSH HL
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            LD   A,(RewriteControlPendingCounter)
+            LD   (HL),A
+            INC  HL
+            LD   A,(RewriteControlPendingMode)
+            LD   B,A
+            LD   A,(RewriteControlPendingType)
+            BIT  1,A
+            JR   Z,_RewriteControlForModeWidthReady
+            SET  2,B
+_RewriteControlForModeWidthReady:
+            BIT  4,A
+            JR   Z,_RewriteControlForModeReady
+            SET  3,B
+_RewriteControlForModeReady:
+            LD   (HL),B
+            INC  HL
+            LD   DE,(RewriteControlPendingStep)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            INC  HL
+            LD   DE,(RewriteControlPendingSourceOffset)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            POP  HL
+            LD   A,RewriteSemanticForSetup
+            CALL RewriteControlEmitForPrefix
+            LD   B,RewriteControlFrameLabelA
+            CALL RewriteControlTopField
+            LD   C,(HL)
+            CALL RewriteControlEmitLabelDirect
+            CALL RewriteControlTopFrame
+            PUSH HL
+            LD   DE,RewriteControlFrameCounter
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+1),A
+            POP  HL
+            LD   DE,RewriteControlFrameExit
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+2),A
+            LD   A,RewriteSemanticForTest
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            LD   A,1
+            LD   (RewriteControlSequenceFallsThrough),A
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteControlEndFor:
+            LD   B,RewriteControlFrameContinue
+            CALL RewriteControlTopField
+            LD   C,(HL)
+            CALL RewriteControlEmitLabelEnclosing
+            CALL RewriteControlTopFrame
+            PUSH HL
+            LD   DE,RewriteControlFrameLabelA
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea),A
+            INC  HL
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+1),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+2),A
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteSemanticOperandArea+3),A
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (RewriteSemanticOperandArea+4),DE
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   (RewriteSemanticOperandArea+6),DE
+            POP  HL
+            LD   A,RewriteSemanticForNext
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            LD   B,RewriteControlFrameExit
+            CALL RewriteControlTopField
+            LD   C,(HL)
+            CALL RewriteControlEmitLabelEnclosing
+            LD   A,RewriteSemanticForCleanup
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteControlPopRestore

@@ -278,6 +278,22 @@ describe("ground-up rewrite front action machine", () => {
       { name: "EndWhile", target: "RewriteControlEndWhile", id: 47 },
       { name: "EmitExit", target: "RewriteControlEmitExit", id: 48 },
       { name: "EmitContinue", target: "RewriteControlEmitContinue", id: 49 },
+      {
+        name: "BeginForCounter",
+        target: "RewriteControlBeginForCounter",
+        id: 50,
+      },
+      {
+        name: "ParseForRange",
+        target: "RewriteControlParseForRange",
+        id: 51,
+      },
+      {
+        name: "BeginForBody",
+        target: "RewriteControlBeginForBody",
+        id: 52,
+      },
+      { name: "EndFor", target: "RewriteControlEndFor", id: 53 },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
       ["ScalarConstant", 19],
@@ -312,6 +328,8 @@ describe("ground-up rewrite front action machine", () => {
       ["WhileEnd", 9],
       ["Exit", 9],
       ["Continue", 9],
+      ["ForHeader", 19],
+      ["ForEnd", 9],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -327,7 +345,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 227, immutable: 412, core: 11_806, workspace: 3_418 });
+    }).toEqual({ code: 235, immutable: 440, core: 12_406, workspace: 3_425 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
@@ -336,10 +354,10 @@ describe("ground-up rewrite front action machine", () => {
     ).toEqual([0, 3, 5]);
     expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 50, 0])),
+      decodeRewriteActionProgram(new Uint8Array([2, 54, 0])),
     ).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
-    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 50]))).toThrow();
+    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 54]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([0, 0]))).toThrow();
   });
 });

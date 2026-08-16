@@ -282,6 +282,26 @@ export const rewriteActionEscapes = [
         "name": "EmitContinue",
         "target": "RewriteControlEmitContinue",
         "id": 49
+    },
+    {
+        "name": "BeginForCounter",
+        "target": "RewriteControlBeginForCounter",
+        "id": 50
+    },
+    {
+        "name": "ParseForRange",
+        "target": "RewriteControlParseForRange",
+        "id": 51
+    },
+    {
+        "name": "BeginForBody",
+        "target": "RewriteControlBeginForBody",
+        "id": 52
+    },
+    {
+        "name": "EndFor",
+        "target": "RewriteControlEndFor",
+        "id": 53
     }
 ];
 export const rewriteActionPrograms = [
@@ -1917,6 +1937,116 @@ export const rewriteActionPrograms = [
                 ],
                 "id": 1,
                 "width": 3
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "ForHeader",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenFor",
+                    "DiagnosticLoopCounter"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticLoopCounter"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginForCounter"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticLoopCounter"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseForRange"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginForBody"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 19
+    },
+    {
+        "name": "ForEnd",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEnd",
+                    "DiagnosticExpectedEnd"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEndFor"
+                ],
+                "id": 2,
+                "width": 2
             },
             {
                 "instruction": "End",
