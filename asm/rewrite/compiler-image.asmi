@@ -16,6 +16,9 @@ RewriteTokenizerCodeEnd:
 RewriteSemanticCodeStart:
             .include "semantic.asm"
 RewriteSemanticCodeEnd:
+RewriteMetadataCodeStart:
+            .include "types-symbols.asm"
+RewriteMetadataCodeEnd:
 CompilerCodeEnd:
 RewriteCompilerCodeEnd:
 

@@ -337,8 +337,8 @@ describe("ground-up rewrite tokenizer", () => {
         );
       }
     }
-    expect(instructions).toBe(47_263);
-    expect(cycles).toBe(451_302);
+    expect(instructions).toBe(47_265);
+    expect(cycles).toBe(451_328);
   });
 
   it("matches baseline lexical diagnostics through the Host API seam", async () => {
@@ -706,6 +706,9 @@ describe("ground-up rewrite tokenizer", () => {
       const semanticBytes =
         (zero.symbols.RewriteSemanticCodeEnd ?? 0) -
         (zero.symbols.RewriteSemanticCodeStart ?? 0);
+      const metadataBytes =
+        (zero.symbols.RewriteMetadataCodeEnd ?? 0) -
+        (zero.symbols.RewriteMetadataCodeStart ?? 0);
       const workspaceBytes =
         (zero.symbols.RewriteWorkspaceEnd ?? 0) -
         (zero.symbols.RewriteStateBase ?? 0);
@@ -716,19 +719,21 @@ describe("ground-up rewrite tokenizer", () => {
         keywordBytes,
         operationBytes,
         semanticBytes,
+        metadataBytes,
         sourceTokenBytes: sourceBytes + tokenizerBytes + keywordBytes,
         coreBytes,
         workspaceBytes,
       }).toEqual({
-        shellBytes: 81,
+        shellBytes: 87,
         sourceBytes: 94,
         tokenizerBytes: 822,
         keywordBytes: 184,
         operationBytes: 594,
         semanticBytes: 220,
+        metadataBytes: 324,
         sourceTokenBytes: 1_100,
-        coreBytes: 1_995,
-        workspaceBytes: 879,
+        coreBytes: 2_325,
+        workspaceBytes: 1_049,
       });
       const layouts: readonly {
         readonly origin: number;

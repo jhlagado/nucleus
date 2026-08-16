@@ -606,6 +606,30 @@ including action programs and interpreter share, must be at least 20 percent
 smaller than its baseline resident account before the action-machine design is
 accepted.
 
+R3 substrate checkpoint (Measured, in progress):
+
+- primitive identities retain explicit width, signedness, and Boolean bits;
+  eight owned composite identities index four-byte descriptors plus separate
+  full-word extents;
+- records append nominal identities, while arrays and bounded strings intern
+  by descriptor and complete extent. A nested `u8[3][2]` proof constructs the
+  inner row before the outer array and recovers the six-byte outer extent;
+- `string[]` and `T[]` remain parameter-only identities. Their compact type
+  encodings contain no address bits; dynamic capacity or count belongs to the
+  activation representation introduced with routine parameters;
+- one seven-byte symbol record retains a complete source pointer, name length,
+  class, type metadata, and full-word payload. Exact constants retain a
+  negative-domain bit, so `-1` and `65535` remain distinct even though both
+  payload words are `$FFFF`. The sixteenth committed symbol succeeds, the
+  seventeenth fails, and a provisional symbol remains invisible until commit;
+- nominal/structural identity, exact duplicate and capacity diagnostics,
+  diagnostic recovery, and a retained name at `$9000` execute under strict
+  register contracts; and
+- the metadata engine is 324 code bytes. Reset integration adds six code bytes,
+  making the current shipping rewrite 1,547 code + 778 immutable = 2,325 core
+  bytes. Workspace is 1,049 bytes. These are intermediate R3 accounts, not the
+  complete declaration-family measurement or the R3 exit gate.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,

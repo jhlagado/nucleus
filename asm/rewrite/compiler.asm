@@ -15,6 +15,8 @@ RewriteReset:
             LD   (RewriteSemanticReadCursor),HL
             LD   (RewriteSemanticBufferBase),A
             LD   (RewriteSemanticReadRemaining),A
+            LD   (RewriteTypeCount),A
+            LD   (RewriteSymbolCount),A
             RET
 
 .routine noreturn

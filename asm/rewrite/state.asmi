@@ -76,7 +76,69 @@ RewriteSemanticPendingOperands .equ RewriteSemanticPendingOperation+1 ; word
 RewriteSemanticOperandArea   .equ RewriteSemanticPendingOperands+2
 RewriteSemanticOperandCapacity .equ 9
 RewriteSemanticOperandLimit  .equ RewriteSemanticOperandArea+RewriteSemanticOperandCapacity
-RewriteWorkspaceEnd          .equ RewriteSemanticOperandLimit
+
+; R3 type metadata. Primitive identities are self-describing. Owned composite
+; identities index eight four-byte descriptors and a parallel full-word
+; extent. The open-view encodings below are type metadata, never pointers; no
+; source or compiler address sacrifices a bit.
+RewriteScalarTypeExact       .equ $00
+RewriteScalarTypeU8          .equ $01
+RewriteScalarTypeU16         .equ $02
+RewriteScalarTypeBoolean     .equ $10
+RewriteScalarTypeI8          .equ $11
+RewriteScalarTypeI16         .equ $12
+RewriteScalarTypeBaseMask    .equ $03
+RewriteScalarTypeSignedFlag  .equ $10
+RewriteTypeMetaNegative      .equ $20
+RewriteTypeIdentityMask      .equ $DF
+RewriteFirstOwnedTypeId      .equ $40
+RewriteOwnedTypeCapacity     .equ 8
+RewriteOwnedTypeLimitId      .equ RewriteFirstOwnedTypeId+RewriteOwnedTypeCapacity
+RewriteOpenStringTypeId      .equ $7C
+RewriteOpenArrayFlag         .equ $80
+RewriteOpenArrayElementMask  .equ $7F
+
+RewriteTypeKindRecord        .equ 4
+RewriteTypeKindString        .equ 5
+RewriteTypeKindArray         .equ 6
+RewriteTypeDescriptorSize    .equ 4
+RewriteTypeKindOffset        .equ 0
+RewriteTypeAuxOffset         .equ 1
+RewriteTypeCountOffset       .equ 2 ; word
+
+RewriteTypeCount             .equ RewriteSemanticOperandLimit
+RewriteTypeCandidate         .equ RewriteTypeCount+1
+RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
+RewriteTypeCandidateAux      .equ RewriteTypeCandidate+RewriteTypeAuxOffset
+RewriteTypeCandidateCount    .equ RewriteTypeCandidate+RewriteTypeCountOffset ; word
+RewriteTypeCandidateExtent   .equ RewriteTypeCandidate+RewriteTypeDescriptorSize ; word
+RewriteTypeTableBase         .equ RewriteTypeCandidateExtent+2
+RewriteTypeTableLimit        .equ RewriteTypeTableBase+RewriteTypeDescriptorSize*RewriteOwnedTypeCapacity
+RewriteTypeExtentBase        .equ RewriteTypeTableLimit
+RewriteTypeExtentLimit       .equ RewriteTypeExtentBase+2*RewriteOwnedTypeCapacity
+
+; R3 symbols retain exact source spelling by full pointer and length. The
+; provisional entry at RewriteSymbolCount is invisible until commit, keeping
+; failed initializers from publishing a declaration.
+RewriteSymbolCount           .equ RewriteTypeExtentLimit
+RewriteSymbolEntrySize       .equ 7
+RewriteSymbolCapacity        .equ 16
+RewriteSymbolNamePointer     .equ 0 ; word
+RewriteSymbolNameLength      .equ 2
+RewriteSymbolClass           .equ 3
+RewriteSymbolType            .equ 4 ; type identity plus constant metadata
+RewriteSymbolPayload         .equ 5 ; word
+RewriteSymbolClassConstant   .equ 0
+RewriteSymbolClassProgram    .equ 1
+RewriteSymbolClassLocal      .equ 2
+RewriteSymbolClassParameter  .equ 3
+RewriteSymbolClassRecordType .equ 4
+RewriteSymbolClassRoutine    .equ 5
+RewriteSymbolTableBase       .equ RewriteSymbolCount+1
+RewriteSymbolTableLimit      .equ RewriteSymbolTableBase+RewriteSymbolEntrySize*RewriteSymbolCapacity
+RewriteSymbolCompareEntry    .equ RewriteSymbolTableLimit ; word
+
+RewriteWorkspaceEnd          .equ RewriteSymbolCompareEntry+2
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never
@@ -150,7 +212,10 @@ TokenKeywordCount            .equ 35
 DiagnosticNone               .equ 0
 DiagnosticLexical            .equ 1
 DiagnosticSemanticCapacity   .equ 40
+DiagnosticDuplicateName      .equ 55
+DiagnosticSymbolCapacity     .equ 56
 DiagnosticInternalOperation  .equ 67
+DiagnosticTypeMetadataCapacity .equ 76
 DiagnosticSourcePartCapacity .equ 88
 
 DebugTraceSemanticStartPort  .equ $DD
