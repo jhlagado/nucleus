@@ -288,24 +288,28 @@ matrix.
 
 The semantic transcript remains the atomic boundary between parsing and target
 generation. The rewrite may renumber or reshape internal operations, but one
-checked descriptor table defines every operation:
+checked generated authority defines every operation. Its per-operation
+descriptor contains:
 
 - complete record width;
 - operand count and operand widths;
 - recipe or handwritten backend class;
 - stack-value effect;
-- source-attribution eligibility; and
-- debugging trace behaviour.
+- source-attribution class; and
+- a selector in the recipe or handwritten-backend namespace.
 
-The descriptor uses ordinary bytes and full addresses or directory indices.
-It does not assume that four operand shapes cover the language. The dispatcher
-validates the record boundary before reading any operand and prefetches the
-declared fields into a fixed operand area. Handlers never advance the live
-semantic cursor themselves.
+The top-level authority separately defines the global debugging trace policy.
+Descriptors contain ordinary bytes and one-byte directory selectors, never
+shortened addresses. Later backend milestones construct full-address
+directories from those selectors. The format does not assume that four
+operand shapes cover the language. The dispatcher validates the record
+boundary before reading any operand and prefetches the declared fields into a
+fixed operand area. Handlers never advance the live semantic cursor themselves.
 
 The grammar/action generator and D8 decoder consume the same generated
-operation-format authority. A build fails if a producer, dispatcher, recipe,
-or D8 width disagrees. The transcript keeps its current published capacity
+operation-format authority. The generated-authority and publication checks
+fail if a producer, dispatcher, recipe, or D8 width disagrees. The transcript
+keeps its current published capacity
 until a separately measured change updates the specification, tests, and first
 overflow diagnostic together.
 
@@ -530,8 +534,63 @@ descriptors, D8 widths, and recipe boundaries. Implement transcript reset,
 append, exact fill, first overflow, validation, semantic trace start, and the
 single success end event.
 
-Exit gate: deliberate width, key, count, and boundary corruptions all prevent
-generation or D8 publication; recovery compilation starts from clean state.
+R2 exit gate: stale generated authority fails the generated-authority and
+publication checks; the Z80 boundary
+rejects invalid ordinals, truncation, trailing bytes, and capacity overflow
+before dispatch or tracing; the TypeScript boundary rejects wrong observed
+keys and counts. Recovery starts from clean state. Production D8 publication
+uses this authority only after the replacement reaches the later backend and
+D8 integration gate.
+
+Checkpoint result, measured on 16 August 2026:
+
+- one JSON authority defines 99 compact operations, their named byte or word
+  operands, backend recipe or escape selector, abstract stack effect,
+  source-attribution class, and one global operation-start trace policy;
+- all operation records have fixed declared widths from one to ten bytes.
+  Source and service calls, local and program handlers, and direct and
+  forwarded open arguments are separate operations rather than records whose
+  length depends on an operand value;
+- width, storage, signed-promotion, and direct/enclosing control variants keep
+  the production record widths while sharing backend selectors. The common
+  literal-plus-program-store pair remains six transcript bytes, so the signed
+  exact-fill corpus does not lose accepted source;
+- direct and enclosing labels, jumps, ordinary routine ends, and failable
+  routine ends have separate ordinals. Their record widths and backend
+  selectors remain shared, while source attribution no longer has to guess
+  whether an operation came from source or from compiler-generated closure;
+- divide, modulo, conversion, aggregate copy, and index operations retain the
+  source offsets required by runtime traps. Open string capacity and writable
+  length records carry activation displacements, not invented literal
+  capacities;
+- the generator produces Z80 ordinals, named producer offsets and widths, a
+  99-byte width table, a 495-byte descriptor table, recipe and escape selector
+  namespaces, and the TypeScript boundary decoder. The checked operation-data
+  account is 594 bytes;
+- the shipping transcript code is 220 bytes. Together with 15 bytes added to
+  reset and the generated data, R2 adds 829 bytes and brings the replacement
+  to 1,995 bytes. The instrumented image adds only the two conditional trace
+  instructions and is 1,999 bytes;
+- workspace is 879 bytes: the R1 account plus the published 512-byte counted
+  transcript, two complete cursors, validation state, and a nine-byte
+  operand-prefetch area;
+- a producer checks the operation and complete record capacity before writing
+  any byte. The exact-fill proof publishes 128 operations occupying all 511
+  payload bytes, rejects the next operation with diagnostic 40, and then
+  completes a clean one-operation transcript after reset;
+- separate proofs reject a four-byte record atomically when only three payload
+  bytes remain, and distinguish 255 accepted one-byte operations from the
+  rejected 256th operation while 256 payload bytes are still free;
+- the dispatcher validates the complete counted stream before copying any
+  operands. Z80 proofs reject invalid ordinals, truncated records, and trailing
+  bytes before any trace; TypeScript separately rejects supplied wrong event
+  keys and counts; and
+- the four-operation instrumented proof completes in 483 instructions and
+  5,567 T-states and reports keys 0, 1, 4, and 14 through four `$DD` events,
+  followed by exactly one `$DE` event. No trace event is emitted for a rejected
+  transcript; and
+- the complete serial suite passes 26 files and 268 tests, including all
+  frozen-oracle, production proof, relocation, diagnostic, and artifact gates.
 
 ### R3 — Types, declarations, and static storage
 
@@ -673,7 +732,6 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 
 ## Next implementation move
 
-R0 and R1 are complete. R2 begins with one generated semantic-operation source
-that supplies producer widths, dispatcher descriptors, backend recipe
-boundaries, and D8 decoding data. The replacement remains test-selected until
-the complete cutover gate passes.
+R0, R1, and R2 are complete. R3 begins with the replacement type descriptors,
+symbol records, declaration actions, and static-storage accounting. The
+replacement remains test-selected until the complete cutover gate passes.

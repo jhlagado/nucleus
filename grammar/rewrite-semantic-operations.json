@@ -1,0 +1,676 @@
+{
+  "version": 1,
+  "tracePolicy": "operation-start",
+  "operations": [
+    {
+      "name": "DefineProgramU8",
+      "operands": [
+        ["offset", "byte"],
+        ["initial", "byte"]
+      ],
+      "backend": ["recipe", "defineProgramU8"],
+      "stack": [0, 0],
+      "source": "none"
+    },
+    {
+      "name": "DeclareLocalU8",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "declareLocalU8"],
+      "stack": [0, 0],
+      "source": "none"
+    },
+    {
+      "name": "LoadProgramU8",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadProgramU8"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadLocalU8",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "loadLocalU8"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "StoreProgramU8",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "storeProgramU8"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreLocalU8",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "storeLocalU8"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "DefineProgram16",
+      "operands": [
+        ["offset", "byte"],
+        ["initial", "word"]
+      ],
+      "backend": ["recipe", "defineProgram16"],
+      "stack": [0, 0],
+      "source": "none"
+    },
+    {
+      "name": "DeclareLocal16",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "declareLocal16"],
+      "stack": [0, 0],
+      "source": "none"
+    },
+    {
+      "name": "Literal16",
+      "operands": [["value", "word"]],
+      "backend": ["recipe", "literal16"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadProgram16",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadProgram16"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadLocal16",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "loadLocal16"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+
+    {
+      "names": ["Add8", "Subtract8", "Multiply8", "And8", "Or8", "Xor8"],
+      "operands": [],
+      "backend": ["recipe", "binary8"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "names": ["Negate8", "Not8"],
+      "operands": [],
+      "backend": ["recipe", "unary8"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "names": ["Add16", "Subtract16", "Multiply16", "And16", "Or16", "Xor16"],
+      "operands": [],
+      "backend": ["recipe", "binary16"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "names": ["Negate16", "Not16"],
+      "operands": [],
+      "backend": ["recipe", "unary16"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "NotBoolean",
+      "operands": [],
+      "backend": ["recipe", "notBoolean"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "names": ["Divide8", "Divide16", "Modulo8", "Modulo16"],
+      "operands": [["sourceOffset", "word"]],
+      "backend": ["escape", "divideUnsigned"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "names": ["Compare8", "Compare16", "CompareBoolean"],
+      "operands": [["comparison", "byte"]],
+      "backend": ["recipe", "compare"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "NarrowU8",
+      "operands": [["sourceOffset", "word"]],
+      "backend": ["escape", "narrowU8"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "StoreProgram16",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "storeProgram16"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreLocal16",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "storeLocal16"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "names": ["BeginBooleanAnd", "BeginBooleanOr"],
+      "operands": [],
+      "backend": ["escape", "booleanBegin"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "EndBoolean",
+      "operands": [],
+      "backend": ["escape", "booleanEnd"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+
+    {
+      "name": "ControlLabelDirect",
+      "operands": [["label", "byte"]],
+      "backend": ["recipe", "controlLabel"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ControlLabelEnclosing",
+      "operands": [["label", "byte"]],
+      "backend": ["recipe", "controlLabel"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "BranchFalse",
+      "operands": [["label", "byte"]],
+      "backend": ["recipe", "branchFalse"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "JumpDirect",
+      "operands": [["label", "byte"]],
+      "backend": ["recipe", "jump"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "JumpEnclosing",
+      "operands": [["label", "byte"]],
+      "backend": ["recipe", "jump"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "ForSetup",
+      "operands": [
+        ["counter", "byte"],
+        ["mode", "byte"]
+      ],
+      "backend": ["escape", "forSetup"],
+      "stack": [2, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ForTest",
+      "operands": [
+        ["counter", "byte"],
+        ["mode", "byte"],
+        ["exitLabel", "byte"]
+      ],
+      "backend": ["escape", "forTest"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ForNext",
+      "operands": [
+        ["testLabel", "byte"],
+        ["exitLabel", "byte"],
+        ["counter", "byte"],
+        ["mode", "byte"],
+        ["step", "word"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "forNext"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "ForCleanup",
+      "operands": [],
+      "backend": ["escape", "forCleanup"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+
+    {
+      "name": "LoadParameter8",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "loadLocalU8"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadParameter16",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "loadLocal16"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "ReturnScalar",
+      "operands": [],
+      "backend": ["recipe", "returnScalar"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreParameter8",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "storeLocalU8"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreParameter16",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "storeLocal16"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+
+    {
+      "name": "BeginGeneralRoutine",
+      "operands": [
+        ["label", "byte"],
+        ["parameterCount", "byte"],
+        ["bank", "byte"]
+      ],
+      "backend": ["escape", "beginRoutine"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "BindParameter",
+      "operands": [
+        ["type", "byte"],
+        ["localOffset", "byte"],
+        ["argumentOffset", "byte"]
+      ],
+      "backend": ["escape", "bindParameter"],
+      "stack": [0, 0],
+      "source": "none"
+    },
+    {
+      "name": "CallSource",
+      "operands": [
+        ["selector", "byte"],
+        ["argumentWords", "byte"],
+        ["resultType", "byte"],
+        ["routineFlags", "byte"],
+        ["sourceOffset", "word"],
+        ["callMode", "byte"],
+        ["handlerLabel", "byte"],
+        ["retainedCarriers", "byte"]
+      ],
+      "backend": ["escape", "callSource"],
+      "stack": ["dynamic", "dynamic"],
+      "source": "direct"
+    },
+    {
+      "name": "CallService",
+      "operands": [
+        ["selector", "byte"],
+        ["sourceOffset", "word"],
+        ["callMode", "byte"],
+        ["handlerLabel", "byte"],
+        ["retainedCarriers", "byte"]
+      ],
+      "backend": ["escape", "callService"],
+      "stack": ["dynamic", "dynamic"],
+      "source": "direct"
+    },
+    {
+      "name": "ReturnAggregate",
+      "operands": [],
+      "backend": ["recipe", "returnScalar"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "EndGeneralRoutineDirect",
+      "operands": [["resultType", "byte"]],
+      "backend": ["escape", "endRoutine"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "EndGeneralRoutineEnclosing",
+      "operands": [["resultType", "byte"]],
+      "backend": ["escape", "endRoutine"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "LoadProgramAlias",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadProgramAlias"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadParameterAlias",
+      "operands": [["offset", "byte"]],
+      "backend": ["recipe", "loadParameterAlias"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "SelectField",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "selectField"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "SelectIndex",
+      "operands": [
+        ["count", "word"],
+        ["elementExtent", "word"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "selectIndex"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadIndirect8",
+      "operands": [],
+      "backend": ["recipe", "loadIndirect8"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadIndirect16",
+      "operands": [],
+      "backend": ["recipe", "loadIndirect16"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "StoreIndirect8",
+      "operands": [],
+      "backend": ["recipe", "storeIndirect8"],
+      "stack": [2, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreIndirect16",
+      "operands": [],
+      "backend": ["recipe", "storeIndirect16"],
+      "stack": [2, 0],
+      "source": "direct"
+    },
+    {
+      "name": "CopyAggregate",
+      "operands": [
+        ["extent", "word"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "copyAggregate"],
+      "stack": [2, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StringLength",
+      "operands": [
+        ["capacity", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["recipe", "stringLength"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "StringIndex",
+      "operands": [
+        ["capacity", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["recipe", "stringIndex"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "FailRoutine",
+      "operands": [["sourceOffset", "word"]],
+      "backend": ["escape", "failRoutine"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "FailMain",
+      "operands": [["sourceOffset", "word"]],
+      "backend": ["escape", "failMain"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ReturnFailableScalar",
+      "operands": [],
+      "backend": ["escape", "returnFailable"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ReturnFailableAggregate",
+      "operands": [],
+      "backend": ["escape", "returnFailable"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "EndFailableRoutineDirect",
+      "operands": [["resultType", "byte"]],
+      "backend": ["escape", "endFailableRoutine"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "EndFailableRoutineEnclosing",
+      "operands": [["resultType", "byte"]],
+      "backend": ["escape", "endFailableRoutine"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "SkipHandler",
+      "operands": [["label", "byte"]],
+      "backend": ["escape", "skipHandler"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "BeginHandlerProgram",
+      "operands": [
+        ["label", "byte"],
+        ["symbolInfo", "byte"],
+        ["address", "word"]
+      ],
+      "backend": ["escape", "beginHandler"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "BeginHandlerLocal",
+      "operands": [
+        ["label", "byte"],
+        ["symbolInfo", "byte"],
+        ["offset", "byte"]
+      ],
+      "backend": ["escape", "beginHandler"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "EndHandler",
+      "operands": [["label", "byte"]],
+      "backend": ["escape", "endHandler"],
+      "stack": [0, 0],
+      "source": "enclosing"
+    },
+    {
+      "name": "BeginCallableMain",
+      "operands": [
+        ["flags", "byte"],
+        ["bank", "byte"]
+      ],
+      "backend": ["escape", "beginCallableMain"],
+      "stack": [0, 0],
+      "source": "direct"
+    },
+    {
+      "name": "LoadReadOnlyAlias",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadReadOnlyAlias"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "OpenStringLength",
+      "operands": [
+        ["capacityOffset", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "openStringLength"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "OpenStringIndex",
+      "operands": [
+        ["capacityOffset", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "openStringIndex"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "PrepareOpenStringDirect",
+      "operands": [
+        ["argumentMode", "byte"],
+        ["capacity", "byte"]
+      ],
+      "backend": ["escape", "prepareOpenArgument"],
+      "stack": [1, 2],
+      "source": "direct"
+    },
+    {
+      "name": "PrepareOpenStringForward",
+      "operands": [
+        ["argumentMode", "byte"],
+        ["capacityOffset", "byte"]
+      ],
+      "backend": ["escape", "prepareOpenArgument"],
+      "stack": [1, 2],
+      "source": "direct"
+    },
+    {
+      "name": "PrepareOpenArrayDirect",
+      "operands": [
+        ["argumentMode", "byte"],
+        ["count", "word"]
+      ],
+      "backend": ["escape", "prepareOpenArgument"],
+      "stack": [1, 2],
+      "source": "direct"
+    },
+    {
+      "name": "PrepareOpenArrayForward",
+      "operands": [
+        ["argumentMode", "byte"],
+        ["countOffset", "word"]
+      ],
+      "backend": ["escape", "prepareOpenArgument"],
+      "stack": [1, 2],
+      "source": "direct"
+    },
+    {
+      "name": "OpenStringCapacity",
+      "operands": [["capacityOffset", "byte"]],
+      "backend": ["recipe", "openStringCapacity"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "OpenStringResize",
+      "operands": [
+        ["capacityOffset", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "openStringResize"],
+      "stack": [2, 0],
+      "source": "direct"
+    },
+    {
+      "name": "ArrayLength",
+      "operands": [["count", "word"]],
+      "backend": ["recipe", "arrayLength"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "OpenArrayLength",
+      "operands": [["countOffset", "byte"]],
+      "backend": ["recipe", "openArrayLength"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "OpenArrayIndex",
+      "operands": [
+        ["countOffset", "byte"],
+        ["elementExtent", "word"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "openArrayIndex"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "ConvertInteger",
+      "operands": [
+        ["sourceType", "byte"],
+        ["targetType", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "convertInteger"],
+      "stack": [1, 1],
+      "source": "direct"
+    },
+    {
+      "name": "DivideSigned",
+      "operands": [
+        ["mode", "byte"],
+        ["sourceOffset", "word"]
+      ],
+      "backend": ["escape", "divideSigned"],
+      "stack": [2, 1],
+      "source": "direct"
+    },
+    {
+      "name": "PromoteI8Pair",
+      "operands": [["mode", "byte"]],
+      "backend": ["escape", "promoteI8Pair"],
+      "stack": [2, 2],
+      "source": "direct"
+    }
+  ]
+}

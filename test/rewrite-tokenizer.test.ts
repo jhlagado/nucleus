@@ -337,8 +337,8 @@ describe("ground-up rewrite tokenizer", () => {
         );
       }
     }
-    expect(instructions).toBe(47_258);
-    expect(cycles).toBe(451_234);
+    expect(instructions).toBe(47_263);
+    expect(cycles).toBe(451_302);
   });
 
   it("matches baseline lexical diagnostics through the Host API seam", async () => {
@@ -675,6 +675,7 @@ describe("ground-up rewrite tokenizer", () => {
             "SourceLimit .equ $5800",
             `RewriteAdapterBase .equ $${adapterBase.toString(16)}`,
             `RewriteAdapterLimit .equ $${(adapterBase + 0x100).toString(16)}`,
+            "DebugHooks .equ 0",
             `.org $${origin.toString(16)}`,
             `.include ${JSON.stringify(relativeImage)}`,
             "",
@@ -696,9 +697,15 @@ describe("ground-up rewrite tokenizer", () => {
       const tokenizerBytes =
         (zero.symbols.RewriteTokenizerCodeEnd ?? 0) -
         (zero.symbols.RewriteTokenizerCodeStart ?? 0);
-      const immutableBytes =
-        (zero.symbols.RewriteCompilerImmutableEnd ?? 0) -
-        (zero.symbols.RewriteCompilerImmutableStart ?? 0);
+      const keywordBytes =
+        (zero.symbols.RewriteKeywordImmutableEnd ?? 0) -
+        (zero.symbols.RewriteKeywordImmutableStart ?? 0);
+      const operationBytes =
+        (zero.symbols.RewriteOperationImmutableEnd ?? 0) -
+        (zero.symbols.RewriteOperationImmutableStart ?? 0);
+      const semanticBytes =
+        (zero.symbols.RewriteSemanticCodeEnd ?? 0) -
+        (zero.symbols.RewriteSemanticCodeStart ?? 0);
       const workspaceBytes =
         (zero.symbols.RewriteWorkspaceEnd ?? 0) -
         (zero.symbols.RewriteStateBase ?? 0);
@@ -706,18 +713,22 @@ describe("ground-up rewrite tokenizer", () => {
         shellBytes,
         sourceBytes,
         tokenizerBytes,
-        immutableBytes,
-        sourceTokenBytes: sourceBytes + tokenizerBytes + immutableBytes,
+        keywordBytes,
+        operationBytes,
+        semanticBytes,
+        sourceTokenBytes: sourceBytes + tokenizerBytes + keywordBytes,
         coreBytes,
         workspaceBytes,
       }).toEqual({
-        shellBytes: 66,
+        shellBytes: 81,
         sourceBytes: 94,
         tokenizerBytes: 822,
-        immutableBytes: 184,
+        keywordBytes: 184,
+        operationBytes: 594,
+        semanticBytes: 220,
         sourceTokenBytes: 1_100,
-        coreBytes: 1_166,
-        workspaceBytes: 350,
+        coreBytes: 1_995,
+        workspaceBytes: 879,
       });
       const layouts: readonly {
         readonly origin: number;

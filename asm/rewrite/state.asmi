@@ -62,7 +62,21 @@ AdapterCapturedContext       .equ AdapterCapturedMap+$28
 ; address bit or on the compiler's origin. Depth 255 is the published limit.
 RewriteDelimiterStack        .equ AdapterCapturedContext+$12
 RewriteDelimiterCapacity     .equ 255
-RewriteWorkspaceEnd          .equ RewriteDelimiterStack+RewriteDelimiterCapacity
+; The transcript retains the published 511-byte payload and one operation-
+; count byte. Producers stage the largest fixed record's operands before an
+; atomic append, so a capacity failure never leaves a partial operation.
+RewriteSemanticBufferBase    .equ RewriteDelimiterStack+RewriteDelimiterCapacity
+RewriteSemanticPayloadBase   .equ RewriteSemanticBufferBase+1
+RewriteSemanticBufferLimit   .equ RewriteSemanticBufferBase+$200
+RewriteSemanticSinkCursor    .equ RewriteSemanticBufferLimit ; word
+RewriteSemanticReadCursor    .equ RewriteSemanticSinkCursor+2 ; word
+RewriteSemanticReadRemaining .equ RewriteSemanticReadCursor+2
+RewriteSemanticPendingOperation .equ RewriteSemanticReadRemaining+1
+RewriteSemanticPendingOperands .equ RewriteSemanticPendingOperation+1 ; word
+RewriteSemanticOperandArea   .equ RewriteSemanticPendingOperands+2
+RewriteSemanticOperandCapacity .equ 9
+RewriteSemanticOperandLimit  .equ RewriteSemanticOperandArea+RewriteSemanticOperandCapacity
+RewriteWorkspaceEnd          .equ RewriteSemanticOperandLimit
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never
@@ -135,7 +149,11 @@ TokenKeywordCount            .equ 35
 
 DiagnosticNone               .equ 0
 DiagnosticLexical            .equ 1
+DiagnosticSemanticCapacity   .equ 40
 DiagnosticInternalOperation  .equ 67
 DiagnosticSourcePartCapacity .equ 88
+
+DebugTraceSemanticStartPort  .equ $DD
+DebugTraceSemanticEndPort    .equ $DE
 
 SourcePartCapacity           .equ 8

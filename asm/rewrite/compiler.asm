@@ -10,6 +10,11 @@ RewriteReset:
             LD   DE,RewriteStateBase+1
             LD   BC,CompilerAbortSp-RewriteStateBase-1
             LDIR
+            LD   HL,RewriteSemanticPayloadBase
+            LD   (RewriteSemanticSinkCursor),HL
+            LD   (RewriteSemanticReadCursor),HL
+            LD   (RewriteSemanticBufferBase),A
+            LD   (RewriteSemanticReadRemaining),A
             RET
 
 .routine noreturn

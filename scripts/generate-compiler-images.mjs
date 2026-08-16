@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { compile } from "@jhlagado/azm/compile";
 
 await import("./check-azm-toolchain.mjs");
+await import("./generate-rewrite-operations.mjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(root, "asm", "vertical-slice");

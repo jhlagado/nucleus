@@ -13,12 +13,20 @@ RewriteSourceCodeEnd:
 RewriteTokenizerCodeStart:
             .include "tokenizer.asm"
 RewriteTokenizerCodeEnd:
+RewriteSemanticCodeStart:
+            .include "semantic.asm"
+RewriteSemanticCodeEnd:
 CompilerCodeEnd:
 RewriteCompilerCodeEnd:
 
 CompilerImmutableStart:
 RewriteCompilerImmutableStart:
+RewriteKeywordImmutableStart:
             .include "keywords.asmi"
+RewriteKeywordImmutableEnd:
+RewriteOperationImmutableStart:
+            .include "operations-generated.asmi"
+RewriteOperationImmutableEnd:
 CompilerImmutableEnd:
 RewriteCompilerImmutableEnd:
 CompilerCoreEnd:

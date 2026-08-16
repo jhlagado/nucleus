@@ -7,6 +7,7 @@ SourceBase          .equ $5000
 SourceLimit         .equ $5800
 RewriteAdapterBase  .equ $A000
 RewriteAdapterLimit .equ $A100
+DebugHooks           .equ 0
 
             .org $1000
 ProofStart:
