@@ -641,6 +641,31 @@ names, eight dynamic types, twelve fields, and four zero-parameter routines in
 one program; four routines with sixteen retained parameters in another; each
 first overflow diagnostic; and the independent four/five suffix boundary.
 
+R3 directory checkpoint (Measured, in progress):
+
+- the replacement now owns separate five-entry record, twelve-entry field,
+  four-entry non-main routine, sixteen-entry retained-parameter, and four-entry
+  suffix directories. Their record widths are 2, 6, 8, 4, and 4 bytes;
+- routine entry publishes remain provisional until commit. Active parameter
+  symbols are rewound to the saved global prefix, while the retained spelling,
+  type, parameter start, and count survive for calls and forward matching;
+- parameter actions have an explicit three-step diagnostic order: reject a
+  duplicate name without reserving it, append to the retained directory, then
+  reserve the scoped symbol. A duplicate seventeenth parameter therefore
+  reports 55, while a distinct seventeenth reports 85;
+- record fields preserve full source pointers, one-byte types, and word
+  offsets. The proof retains `$1234`, so a byte-truncated field layout cannot
+  pass. Suffix entries likewise retain `$0100` counts and word source offsets;
+- exact record/field/routine/parameter/suffix fills and first overflows,
+  duplicate field/routine names, empty records, repeated open suffixes, and an
+  open suffix following a concrete suffix execute through the nonreturning
+  diagnostic path and clean reset; and
+- directory code adds 412 bytes and the generalized control-prefix reset adds
+  six bytes. The shipping rewrite is now 1,965 code + 778 immutable = 2,743
+  core bytes, with 1,262 bytes of workspace. R3 declaration grammar, static
+  initialization, signature reconciliation, and the complete 20-percent
+  comparison remain ahead.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,

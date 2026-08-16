@@ -106,8 +106,26 @@ RewriteTypeKindOffset        .equ 0
 RewriteTypeAuxOffset         .equ 1
 RewriteTypeCountOffset       .equ 2 ; word
 
-RewriteTypeCount             .equ RewriteSemanticOperandLimit
-RewriteTypeCandidate         .equ RewriteTypeCount+1
+; Counts and cursors form one reset prefix. Tables need not be cleared because
+; every lookup is bounded by its corresponding committed count.
+RewriteMetadataControlBase   .equ RewriteSemanticOperandLimit
+RewriteTypeCount             .equ RewriteMetadataControlBase+$00
+RewriteSymbolCount           .equ RewriteMetadataControlBase+$01
+RewriteRecordCount           .equ RewriteMetadataControlBase+$02
+RewriteCurrentRecord         .equ RewriteMetadataControlBase+$03
+RewriteFieldCount            .equ RewriteMetadataControlBase+$04
+RewriteRoutineCount          .equ RewriteMetadataControlBase+$05
+RewriteCurrentRoutine        .equ RewriteMetadataControlBase+$06
+RewriteParameterCount        .equ RewriteMetadataControlBase+$07
+RewriteSymbolScopeBase       .equ RewriteMetadataControlBase+$08
+RewriteSuffixCount           .equ RewriteMetadataControlBase+$09
+RewriteSuffixOpen            .equ RewriteMetadataControlBase+$0A
+RewriteStaticInitializedLength .equ RewriteMetadataControlBase+$0B ; word
+RewriteStaticBssLength       .equ RewriteMetadataControlBase+$0D ; word
+RewriteStaticConstantLength  .equ RewriteMetadataControlBase+$0F ; word
+RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$11
+
+RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
 RewriteTypeCandidateAux      .equ RewriteTypeCandidate+RewriteTypeAuxOffset
 RewriteTypeCandidateCount    .equ RewriteTypeCandidate+RewriteTypeCountOffset ; word
@@ -120,7 +138,6 @@ RewriteTypeExtentLimit       .equ RewriteTypeExtentBase+2*RewriteOwnedTypeCapaci
 ; R3 symbols retain exact source spelling by full pointer and length. The
 ; provisional entry at RewriteSymbolCount is invisible until commit, keeping
 ; failed initializers from publishing a declaration.
-RewriteSymbolCount           .equ RewriteTypeExtentLimit
 RewriteSymbolEntrySize       .equ 7
 RewriteSymbolCapacity        .equ 16
 RewriteSymbolNamePointer     .equ 0 ; word
@@ -134,11 +151,61 @@ RewriteSymbolClassLocal      .equ 2
 RewriteSymbolClassParameter  .equ 3
 RewriteSymbolClassRecordType .equ 4
 RewriteSymbolClassRoutine    .equ 5
-RewriteSymbolTableBase       .equ RewriteSymbolCount+1
+RewriteSymbolTableBase       .equ RewriteTypeExtentLimit
 RewriteSymbolTableLimit      .equ RewriteSymbolTableBase+RewriteSymbolEntrySize*RewriteSymbolCapacity
 RewriteSymbolCompareEntry    .equ RewriteSymbolTableLimit ; word
 
-RewriteWorkspaceEnd          .equ RewriteSymbolCompareEntry+2
+; Record layouts and fields are separate from the shared source-name table.
+RewriteRecordEntrySize       .equ 2
+RewriteRecordCapacity        .equ 5
+RewriteRecordFieldStart      .equ 0
+RewriteRecordFieldCount      .equ 1
+RewriteRecordTableBase       .equ RewriteSymbolCompareEntry+2
+RewriteRecordTableLimit      .equ RewriteRecordTableBase+RewriteRecordEntrySize*RewriteRecordCapacity
+
+RewriteFieldEntrySize        .equ 6
+RewriteFieldCapacity         .equ 12
+RewriteFieldNamePointer      .equ 0 ; word
+RewriteFieldNameLength       .equ 2
+RewriteFieldType             .equ 3
+RewriteFieldOffset           .equ 4 ; word
+RewriteFieldTableBase        .equ RewriteRecordTableLimit
+RewriteFieldTableLimit       .equ RewriteFieldTableBase+RewriteFieldEntrySize*RewriteFieldCapacity
+
+; Routine and retained-parameter directories survive scope rewinds. Main is
+; not charged against the four non-main routine entries.
+RewriteRoutineEntrySize      .equ 8
+RewriteRoutineCapacity       .equ 4
+RewriteRoutineNamePointer    .equ 0 ; word
+RewriteRoutineNameLength     .equ 2
+RewriteRoutineParameterStart .equ 3
+RewriteRoutineParameterCount .equ 4
+RewriteRoutineResultType     .equ 5
+RewriteRoutineLabel          .equ 6
+RewriteRoutineFlags          .equ 7
+RewriteRoutineTableBase      .equ RewriteFieldTableLimit
+RewriteRoutineTableLimit     .equ RewriteRoutineTableBase+RewriteRoutineEntrySize*RewriteRoutineCapacity
+
+RewriteParameterEntrySize    .equ 4
+RewriteParameterCapacity     .equ 16
+RewriteParameterNamePointer  .equ 0 ; word
+RewriteParameterNameLength   .equ 2
+RewriteParameterType         .equ 3
+RewriteParameterTableBase    .equ RewriteRoutineTableLimit
+RewriteParameterTableLimit   .equ RewriteParameterTableBase+RewriteParameterEntrySize*RewriteParameterCapacity
+
+; Array suffixes are retained outermost-first and resolved innermost-first.
+; Each entry preserves a full count and exact source byte offset.
+RewriteSuffixEntrySize       .equ 4
+RewriteSuffixCapacity        .equ 4
+RewriteSuffixLength          .equ 0 ; word
+RewriteSuffixSourceOffset    .equ 2 ; word
+RewriteSuffixTableBase       .equ RewriteParameterTableLimit
+RewriteSuffixTableLimit      .equ RewriteSuffixTableBase+RewriteSuffixEntrySize*RewriteSuffixCapacity
+RewriteSuffixResumeOffset    .equ RewriteSuffixTableLimit ; word
+RewriteSuffixOpenOffset      .equ RewriteSuffixResumeOffset+2 ; word
+
+RewriteWorkspaceEnd          .equ RewriteSuffixOpenOffset+2
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never
@@ -216,6 +283,10 @@ DiagnosticDuplicateName      .equ 55
 DiagnosticSymbolCapacity     .equ 56
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
+DiagnosticRecordEmpty        .equ 82
+DiagnosticTypeBound          .equ 83
+DiagnosticRoutineCapacity    .equ 84
+DiagnosticParameterCapacity  .equ 85
 DiagnosticSourcePartCapacity .equ 88
 
 DebugTraceSemanticStartPort  .equ $DD

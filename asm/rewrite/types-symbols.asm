@@ -216,6 +216,16 @@ RewriteSymbolFindLoop:
             OR   A
             RET
 
+; Reject a name without reserving an entry. Parameter actions use this before
+; retained-capacity checking so duplicate-name 55 precedes parameter-capacity
+; 85, while a distinct seventeenth parameter reaches the latter diagnostic.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteSymbolRejectCurrent:
+            CALL RewriteSymbolFindCurrent
+            RET  NC
+            LD   A,DiagnosticDuplicateName
+            JP   RewriteRaiseDiagnostic
+
 ; Prepare the current NAME as a provisional symbol. A is class, D is type,
 ; and BC is the complete class-specific payload.
 .routine in A,D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
@@ -223,8 +233,7 @@ RewriteSymbolPrepareCurrent:
             PUSH AF
             PUSH BC
             PUSH DE
-            CALL RewriteSymbolFindCurrent
-            JR   C,RewriteSymbolPrepareDuplicate
+            CALL RewriteSymbolRejectCurrent
             POP  DE
             POP  BC
             POP  AF
@@ -254,17 +263,9 @@ RewriteSymbolPrepareCurrent:
             LD   (HL),B
             OR   A
             RET
-RewriteSymbolPrepareDuplicate:
-            POP  DE
-            POP  BC
-            POP  AF
-            JR   RewriteSymbolDuplicateFailure
 RewriteSymbolPrepareFull:
             POP  AF
             LD   A,DiagnosticSymbolCapacity
-            JP   RewriteRaiseDiagnostic
-RewriteSymbolDuplicateFailure:
-            LD   A,DiagnosticDuplicateName
             JP   RewriteRaiseDiagnostic
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL

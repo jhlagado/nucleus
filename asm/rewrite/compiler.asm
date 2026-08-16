@@ -15,8 +15,11 @@ RewriteReset:
             LD   (RewriteSemanticReadCursor),HL
             LD   (RewriteSemanticBufferBase),A
             LD   (RewriteSemanticReadRemaining),A
-            LD   (RewriteTypeCount),A
-            LD   (RewriteSymbolCount),A
+            LD   HL,RewriteMetadataControlBase
+            LD   (HL),A
+            LD   DE,RewriteMetadataControlBase+1
+            LD   BC,RewriteMetadataControlLimit-RewriteMetadataControlBase-1
+            LDIR
             RET
 
 .routine noreturn
