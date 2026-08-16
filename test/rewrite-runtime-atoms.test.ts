@@ -75,6 +75,10 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedCallStatementSemantics ?? -1;
   const expectedCallStatementEnd =
     image.symbols.ProofExpectedCallStatementSemanticsEnd ?? -1;
+  const expectedRoutineExitStart =
+    image.symbols.ProofExpectedRoutineExitSemantics ?? -1;
+  const expectedRoutineExitEnd =
+    image.symbols.ProofExpectedRoutineExitSemanticsEnd ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
@@ -100,6 +104,9 @@ const run = (entryName: string) => {
     expectedCallStatementSemantics: Array.from(
       memory.slice(expectedCallStatementStart, expectedCallStatementEnd),
     ),
+    expectedRoutineExitSemantics: Array.from(
+      memory.slice(expectedRoutineExitStart, expectedRoutineExitEnd),
+    ),
   };
 };
 
@@ -108,8 +115,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 64_690,
-      cycles: 584_256,
+      instructions: 64_706,
+      cycles: 584_474,
     });
   });
 
@@ -120,8 +127,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 127_189,
-      cycles: 1_140_622,
+      instructions: 127_205,
+      cycles: 1_140_840,
     });
   });
 
@@ -133,8 +140,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 108_533,
-      cycles: 965_600,
+      instructions: 108_540,
+      cycles: 965_719,
     });
   });
 
@@ -146,8 +153,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 98_382,
-      cycles: 882_937,
+      instructions: 98_416,
+      cycles: 883_365,
     });
   });
 
@@ -157,8 +164,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_291,
-      cycles: 111_643,
+      instructions: 12_296,
+      cycles: 111_732,
     });
   });
 
@@ -168,8 +175,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_486,
-      cycles: 201_701,
+      instructions: 22_495,
+      cycles: 201_846,
     });
   });
 
@@ -179,8 +186,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 39_865,
-      cycles: 360_791,
+      instructions: 39_878,
+      cycles: 360_988,
     });
   });
 
@@ -190,8 +197,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_397,
-      cycles: 130_650,
+      instructions: 14_404,
+      cycles: 130_769,
     });
   });
 
@@ -202,8 +209,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 39_631,
-      cycles: 354_091,
+      instructions: 39_638,
+      cycles: 354_210,
     });
   });
 
@@ -218,6 +225,49 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     },
   );
 
+  it("publishes success, failure, bare, main, and enclosing routine exits", () => {
+    const result = run("ProofRuntimeRoutineExits");
+    expect(result.semanticOperations).toBe(14);
+    expect(result.semantics).toEqual(result.expectedRoutineExitSemantics);
+    expect(result).toMatchObject({
+      status: 0xde,
+      diagnostic: 0,
+      instructions: 35_510,
+      cycles: 319_312,
+    });
+  });
+
+  it("returns an exact aggregate alias without copying its representation", () => {
+    expect(run("ProofRuntimeAggregateReturn")).toMatchObject({
+      status: 0xe4,
+      diagnostic: 0,
+      semanticOperations: 3,
+      instructions: 10_091,
+      cycles: 92_735,
+    });
+  });
+
+  it("rejects a failable invocation as a success return expression", () => {
+    expect(run("ProofRuntimeReturnFailableCall")).toMatchObject({
+      status: 0xe5,
+      diagnostic: 87,
+      part: 1,
+    });
+  });
+
+  it.each([
+    ["ProofRuntimeBareValueReturn", 0xdf, 75],
+    ["ProofRuntimeValueInVoidReturn", 0xe0, 75],
+    ["ProofRuntimeFailInfallible", 0xe1, 87],
+    ["ProofRuntimeValueFallthrough", 0xe2, 75],
+    ["ProofRuntimeFailWrongType", 0xe3, 60],
+  ] as const)(
+    "preserves the frozen routine-exit diagnostic at %s",
+    (entry, status, diagnostic) => {
+      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1 });
+    },
+  );
+
   it("publishes source and service call statements with immediate propagation", () => {
     const result = run("ProofRuntimeCallStatements");
     expect(result.semanticOperations).toBe(5);
@@ -225,8 +275,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 28_028,
-      cycles: 251_329,
+      instructions: 28_057,
+      cycles: 251_672,
     });
   });
 
@@ -328,16 +378,16 @@ describe("ground-up rewrite runtime scalar expressions", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       operations: 103,
-      escapes: 33,
-      actionCode: 309,
-      actionData: 286,
+      escapes: 37,
+      actionCode: 333,
+      actionData: 322,
       expression: 4_250,
-      statements: 217,
-      declarations: 1_519,
-      code: 9_737,
-      immutable: 1_293,
-      core: 11_030,
-      workspace: 3_414,
+      statements: 441,
+      declarations: 1_528,
+      code: 10_030,
+      immutable: 1_329,
+      core: 11_359,
+      workspace: 3_416,
     });
   });
 });

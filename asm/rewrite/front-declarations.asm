@@ -842,7 +842,10 @@ RewriteDeclarationPublishRoutineHeader:
             JP   NZ,RewriteRoutineCommit
             LD   A,(RewritePendingRoutineFlags)
             LD   (RewriteCurrentRoutineFlags),A
-            JP   RewriteRoutinePublish
+            LD   A,(RewriteForwardParameterType)
+            LD   (RewriteCurrentRoutineResultType),A
+            CALL RewriteRoutinePublish
+            JP   RewriteRoutineBeginBody
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteDeclarationExpectHeaderNewline:

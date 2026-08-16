@@ -1253,6 +1253,34 @@ R5 call-statement checkpoint (Measured):
   replacement is 11,034 core bytes. Workspace remains 3,414 bytes, leaving
   5,354 core bytes and 682 workspace bytes beneath their gates.
 
+R5 routine-exit checkpoint (Measured):
+
+- four generated action programs now cover `return expression`, bare
+  `return`, explicit `fail`, and a routine body's closing `end`. Ordinary and
+  failable success returns, ordinary and main failure, and direct/enclosing
+  routine-end records remain distinct in the semantic authority;
+- active routine state retains the declared result type, effect flags, and one
+  structured fallthrough byte independently of the routine directory. Direct,
+  forwarded, and `main` bodies therefore use the same statement contract,
+  while scope close clears the complete active summary;
+- the accepted scalar proof checks fourteen operation records byte for byte in
+  35,510 instructions and 319,312 T-states. A separate aggregate proof returns
+  an exact `string[5]` alias without copying its representation and checks
+  three records in 10,091 instructions and 92,735 T-states;
+- exact frozen diagnostics cover bare return from a value routine (75), value
+  return from a result-free routine (75), fail in an infallible routine (87),
+  reachable value-routine close (75), an incompatible failure code (60), and
+  a failable invocation used as a success return (87). Each proof checks the
+  source part and exact byte offset through the nonreturning diagnostic path;
+  and
+- the action authority contains 37 escapes, 333 code bytes, and 322 immutable
+  bytes. The statement region is 441 code bytes. The shipping replacement is
+  10,030 code + 1,329 immutable = 11,359 core bytes; the instrumented
+  replacement is 11,363 core bytes. Workspace is 3,416 bytes. These accounts
+  leave 5,025 bytes below 16 KiB and 680 workspace bytes, but the owner has
+  explicitly deferred size compression until the complete language path is
+  present.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1332,6 +1360,12 @@ The rewrite uses measurements to decide architecture before broad migration:
 - A milestone that cannot reproduce exact diagnostics or failure atomicity is
   repaired before size work continues.
 
+The owner approved a feature-first construction phase on 17 August 2026.
+Intermediate replacement images may exceed 16 KiB while the language and
+backend are being completed. Measurements remain mandatory at every
+checkpoint; the final cutover still requires a later whole-system compression
+pass and the published acceptance gates.
+
 The 14 KiB target is a design goal, not permission to claim unmeasured savings.
 If the complete conforming replacement finishes between 14,337 and 16,384
 bytes, it remains a valid replacement and receives a second architecture
@@ -1370,6 +1404,10 @@ completeness. R4 now has runtime atoms, complete scalar precedence reduction,
 mixed signed promotion, conversions, comparisons, Boolean short-circuiting,
 explicit expression-initialized locals, the shared postfix path engine, typed
 source/service calls, concrete and forwarded open arguments, nested calls, and
-immediate `else fail` propagation. The next work is the R4 size comparison and
-focused compression review before R5 begins statement and control parsing. The
-replacement remains test-selected until the complete cutover gate passes.
+immediate `else fail` propagation. R5 now has scalar assignments, source and
+service call statements, scalar and aggregate returns, explicit routine/main
+failure, bare return, and routine-end fallthrough validation. The next work is
+the structured control-frame substrate for `if`, `while`, and counted loops,
+followed by `exit`, `continue`, and immediate handlers. Compression follows
+semantic and backend completion. The replacement remains test-selected until
+the complete cutover gate passes.

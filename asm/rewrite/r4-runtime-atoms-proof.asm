@@ -3,8 +3,8 @@
 ; compiler-executed instruction uses an ordinary Z80 mnemonic.
 
 CompilerWorkBase    .equ $6000
-SourceBase          .equ $5000
-SourceLimit         .equ $5800
+SourceBase          .equ $7000
+SourceLimit         .equ $8200
 RewriteAdapterBase  .equ $A000
 RewriteAdapterLimit .equ $A100
 DebugHooks          .equ 0
@@ -573,6 +573,179 @@ _ProofCallStatementCallReady:
 _ProofCallStatementSkipFirstRoutine:
             JP   ProofFailure
 
+; Scalar success returns, explicit failure, bare return, and routine closing
+; share one active result/effect summary. The exact transcript distinguishes
+; direct exits from the enclosing closing `end`.
+ProofRuntimeRoutineExits:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsRoutineExits
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunReturnValue
+            CALL ProofRunRoutineBodyEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunReturnValue
+            CALL ProofRunRoutineBodyEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunFail
+            CALL ProofRunRoutineBodyEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunBareReturn
+            CALL ProofRunRoutineBodyEnd
+            CALL ProofRunDirectHeader
+            CALL ProofRunFail
+            CALL ProofRunRoutineBodyEnd
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   ProofExpectedRoutineExitOperationCount
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedRoutineExitSemantics
+            LD   B,ProofExpectedRoutineExitSemanticsEnd-ProofExpectedRoutineExitSemantics
+_ProofRuntimeRoutineExitCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeRoutineExitCompare
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,(RewriteControlSequenceFallsThrough)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$DE
+            LD   (ProofStatus),A
+            HALT
+
+; Aggregate results retain one opaque alias carrier and exact referent type.
+ProofRuntimeAggregateReturn:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsAggregateReturn
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunReturnValue
+            CALL ProofRunRoutineBodyEnd
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   3
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedAggregateReturnSemantics
+            LD   B,ProofExpectedAggregateReturnSemanticsEnd-ProofExpectedAggregateReturnSemantics
+_ProofRuntimeAggregateReturnCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeAggregateReturnCompare
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$E4
+            LD   (ProofStatus),A
+            HALT
+
+ProofRuntimeBareValueReturn:
+            LD   HL,ProofPartsBareValueReturn
+            LD   BC,(DiagnosticRoutineFlow<<8)|$DF
+            LD   DE,ProofBareValueReturnAnchor-ProofSourceBareValueReturn
+            LD   A,0
+            JP   ProofArmRoutineExitDiagnostic
+ProofRuntimeValueInVoidReturn:
+            LD   HL,ProofPartsValueInVoidReturn
+            LD   BC,(DiagnosticRoutineFlow<<8)|$E0
+            LD   DE,ProofValueInVoidReturnAnchor-ProofSourceValueInVoidReturn
+            LD   A,1
+            JP   ProofArmRoutineExitDiagnostic
+ProofRuntimeFailInfallible:
+            LD   HL,ProofPartsFailInfallible
+            LD   BC,(DiagnosticFailureContext<<8)|$E1
+            LD   DE,ProofFailInfallibleAnchor-ProofSourceFailInfallible
+            LD   A,2
+            JP   ProofArmRoutineExitDiagnostic
+ProofRuntimeValueFallthrough:
+            LD   HL,ProofPartsValueFallthrough
+            LD   BC,(DiagnosticRoutineFlow<<8)|$E2
+            LD   DE,ProofValueFallthroughAnchor-ProofSourceValueFallthrough
+            LD   A,3
+            JP   ProofArmRoutineExitDiagnostic
+ProofRuntimeFailWrongType:
+            LD   HL,ProofPartsFailWrongType
+            LD   BC,(DiagnosticTypeMismatch<<8)|$E3
+            LD   DE,ProofFailWrongTypeAnchor-ProofSourceFailWrongType
+            LD   A,2
+            JP   ProofArmRoutineExitDiagnostic
+ProofRuntimeReturnFailableCall:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   A,DiagnosticFailureContext
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,$E5
+            LD   (ProofExpectedStatus),A
+            LD   HL,ProofReturnFailableCallAnchor-ProofSourceReturnFailableCall
+            LD   (ProofExpectedOffset),HL
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsReturnFailableCall
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunForwardHeader
+            CALL ProofRunDirectHeader
+            CALL ProofRunReturnValue
+            JP   ProofFailure
+ProofArmRoutineExitDiagnostic:
+            LD   (ProofExpectedForwardCount),A
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            PUSH HL
+            CALL RewriteReset
+            POP  DE
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            EX   DE,HL
+            LD   A,1
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            LD   A,(ProofExpectedForwardCount)
+            OR   A
+            JR   Z,_ProofRoutineExitBare
+            DEC  A
+            JR   Z,_ProofRoutineExitValue
+            DEC  A
+            JR   Z,_ProofRoutineExitFail
+            CALL ProofRunRoutineBodyEnd
+            JP   ProofFailure
+_ProofRoutineExitBare:
+            CALL ProofRunBareReturn
+            JP   ProofFailure
+_ProofRoutineExitValue:
+            CALL ProofRunReturnValue
+            JP   ProofFailure
+_ProofRoutineExitFail:
+            CALL ProofRunFail
+            JP   ProofFailure
+
 ; Install five owned types, two nominal record layouts, four fields, one BSS
 ; aggregate root, and one read-only aggregate constant. These blocks are
 ; metadata fixtures, not instructions.
@@ -890,6 +1063,22 @@ ProofRunScalarAssignment:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunCallStatement:
             LD   HL,RewriteActionProgramCallStatement
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunReturnValue:
+            LD   HL,RewriteActionProgramReturnValue
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunBareReturn:
+            LD   HL,RewriteActionProgramBareReturn
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunFail:
+            LD   HL,RewriteActionProgramFail
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunRoutineBodyEnd:
+            LD   HL,RewriteActionProgramRoutineBodyEnd
             JP   RewriteActionRun
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunRoutineEnd:
@@ -1272,7 +1461,34 @@ ProofExpectedCallStatementSemantics:
             .db RewriteCallModeInfallible,0,0
 ProofExpectedCallStatementSemanticsEnd:
 
-            .org $5000
+ProofExpectedRoutineExitOperationCount .equ 14
+ProofExpectedRoutineExitSemantics:
+            .db RewriteSemanticLiteral16,7,0
+            .db RewriteSemanticReturnScalar
+            .db RewriteSemanticEndGeneralRoutineEnclosing,RewriteScalarTypeU16
+            .db RewriteSemanticLiteral16,3,0
+            .db RewriteSemanticReturnFailableScalar
+            .db RewriteSemanticEndFailableRoutineEnclosing,RewriteScalarTypeU8
+            .db RewriteSemanticLiteral16,5,0
+            .db RewriteSemanticFailRoutine
+            .dw ProofRoutineFailAnchor-ProofSourceRoutineExits
+            .db RewriteSemanticEndFailableRoutineEnclosing,RewriteScalarTypeU8
+            .db RewriteSemanticEndGeneralRoutineDirect,RewriteScalarTypeExact
+            .db RewriteSemanticEndGeneralRoutineEnclosing,RewriteScalarTypeExact
+            .db RewriteSemanticLiteral16,9,0
+            .db RewriteSemanticFailMain
+            .dw ProofMainFailAnchor-ProofSourceRoutineExits
+            .db RewriteSemanticEndFailableRoutineEnclosing,RewriteScalarTypeExact
+ProofExpectedRoutineExitSemanticsEnd:
+
+ProofExpectedAggregateReturnSemantics:
+            .db RewriteSemanticLoadReadOnlyAlias
+            .dw 301
+            .db RewriteSemanticReturnAggregate
+            .db RewriteSemanticEndGeneralRoutineEnclosing,RewriteFirstOwnedTypeId
+ProofExpectedAggregateReturnSemanticsEnd:
+
+            .org $7000
 ProofSourceAccepted:
             .db "const five = 5",10
             .db "var initialized as u8 = 3",10
@@ -1503,6 +1719,53 @@ ProofSourceCallStatementInfallibleElse:
             .db "sub main() fails",10,"done() else fail",10
 ProofSourceCallStatementInfallibleElseEnd:
 
+ProofSourceRoutineExits:
+            .db "sub scalar() as u16",10,"return 7",10,"end",10
+            .db "sub success() as u8 fails",10,"return 3",10,"end",10
+            .db "sub failed() as u8 fails",10
+ProofRoutineFailAnchor:
+            .db "fail 5",10,"end",10
+            .db "sub empty()",10,"return",10,"end",10
+            .db "sub main() fails",10
+ProofMainFailAnchor:
+            .db "fail 9",10,"end",10
+ProofSourceRoutineExitsEnd:
+
+ProofSourceBareValueReturn:
+            .db "sub bad() as u8",10,"return"
+ProofBareValueReturnAnchor:
+            .db 10
+ProofSourceBareValueReturnEnd:
+ProofSourceValueInVoidReturn:
+            .db "sub bad()",10,"return 1"
+ProofValueInVoidReturnAnchor:
+            .db 10
+ProofSourceValueInVoidReturnEnd:
+ProofSourceFailInfallible:
+            .db "sub bad()",10
+ProofFailInfallibleAnchor:
+            .db "fail 1",10
+ProofSourceFailInfallibleEnd:
+ProofSourceValueFallthrough:
+            .db "sub bad() as u8 fails",10,"end"
+ProofValueFallthroughAnchor:
+            .db 10
+ProofSourceValueFallthroughEnd:
+ProofSourceFailWrongType:
+            .db "sub bad() fails",10,"fail true"
+ProofFailWrongTypeAnchor:
+            .db 10
+ProofSourceFailWrongTypeEnd:
+ProofSourceAggregateReturn:
+            .db "sub text() as string[5]",10,"return ro",10,"end",10
+ProofSourceAggregateReturnEnd:
+ProofSourceReturnFailableCall:
+            .db "forward sub maybe() as u8 fails",10
+            .db "sub bad() as u8 fails",10,"return maybe()"
+ProofReturnFailableCallAnchor:
+            .db 10
+ProofSourceReturnFailableCallEnd:
+
 ProofSourceCallMissingConsumer:
             .db "forward sub maybe() as u8 fails",10
             .db "sub work() fails",10
@@ -1619,7 +1882,7 @@ ProofSourceCallBinaryFailureEnd:
             ; Descriptor and metadata fixtures live outside both the source
             ; corpus and the compiler workspace. Their full pointers also
             ; discriminate any accidental address narrowing.
-            .org $8000
+            .org $9000
 ProofPartsAccepted:      .db 1
                          .dw ProofSourceAccepted,ProofSourceAcceptedEnd
 ProofPartsMismatch:      .db 1
@@ -1676,6 +1939,22 @@ ProofPartsCallStatementMissingElse: .db 1
                          .dw ProofSourceCallStatementMissingElse,ProofSourceCallStatementMissingElseEnd
 ProofPartsCallStatementInfallibleElse: .db 1
                          .dw ProofSourceCallStatementInfallibleElse,ProofSourceCallStatementInfallibleElseEnd
+ProofPartsRoutineExits:   .db 1
+                         .dw ProofSourceRoutineExits,ProofSourceRoutineExitsEnd
+ProofPartsBareValueReturn: .db 1
+                         .dw ProofSourceBareValueReturn,ProofSourceBareValueReturnEnd
+ProofPartsValueInVoidReturn: .db 1
+                         .dw ProofSourceValueInVoidReturn,ProofSourceValueInVoidReturnEnd
+ProofPartsFailInfallible: .db 1
+                         .dw ProofSourceFailInfallible,ProofSourceFailInfallibleEnd
+ProofPartsValueFallthrough: .db 1
+                         .dw ProofSourceValueFallthrough,ProofSourceValueFallthroughEnd
+ProofPartsFailWrongType: .db 1
+                         .dw ProofSourceFailWrongType,ProofSourceFailWrongTypeEnd
+ProofPartsAggregateReturn: .db 1
+                         .dw ProofSourceAggregateReturn,ProofSourceAggregateReturnEnd
+ProofPartsReturnFailableCall: .db 1
+                         .dw ProofSourceReturnFailableCall,ProofSourceReturnFailableCallEnd
 ProofPartsCallMissingConsumer: .db 1
                          .dw ProofSourceCallMissingConsumer,ProofSourceCallMissingConsumerEnd
 ProofPartsCallInfallibleElse: .db 1

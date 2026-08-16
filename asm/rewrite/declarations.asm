@@ -502,6 +502,17 @@ RewriteRoutineCloseScope:
             LD   (RewriteSymbolCount),A
             XOR  A
             LD   (RewriteCurrentRoutineFlags),A
+            LD   (RewriteCurrentRoutineResultType),A
+            LD   (RewriteControlSequenceFallsThrough),A
+            RET
+
+; Every direct or completed-forward body starts with a reachable empty
+; statement sequence. Structured statements refine this one-byte summary.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+RewriteRoutineBeginBody:
+            LD   A,1
+            LD   (RewriteControlSequenceFallsThrough),A
+            XOR  A
             RET
 
 ; Forward declarations publish and close in one action. Direct declarations
@@ -564,6 +575,12 @@ RewriteRoutineSelectForwardFound:
             POP  DE
             POP  BC
             LD   (RewriteCurrentRoutine),A
+            PUSH HL
+            LD   DE,RewriteRoutineResultType
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   (RewriteCurrentRoutineResultType),A
+            POP  HL
             LD   DE,RewriteRoutineFlags
             ADD  HL,DE
             BIT  2,(HL)
@@ -573,7 +590,8 @@ RewriteRoutineSelectForwardFound:
             LD   (RewriteCurrentRoutineFlags),A
             LD   A,(RewriteSymbolCount)
             LD   (RewriteSymbolScopeBase),A
-            JP   RewriteRoutinePrepareParameterInstall
+            CALL RewriteRoutinePrepareParameterInstall
+            JP   RewriteRoutineBeginBody
 RewriteRoutineSelectForwardDuplicate:
             LD   A,DiagnosticDuplicateName
             OR   A
@@ -678,7 +696,8 @@ RewriteMainBeginCurrent:
             LD   (RewriteMainFlags),A
             LD   (RewriteCurrentRoutineFlags),A
             XOR  A
-            RET
+            LD   (RewriteCurrentRoutineResultType),A
+            JP   RewriteRoutineBeginBody
 
 .routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteMainBeginForwardCurrent:
@@ -706,7 +725,8 @@ RewriteMainOpenForwardCurrent:
             LD   (RewriteSymbolScopeBase),A
             XOR  A
             LD   (RewriteCurrentLocalOffset),A
-            RET
+            LD   (RewriteCurrentRoutineResultType),A
+            JP   RewriteRoutineBeginBody
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 RewriteSuffixBegin:

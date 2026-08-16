@@ -2,8 +2,8 @@
 ; retained proof data, never a raw Z80 instruction encoding.
 
 CompilerWorkBase    .equ $6000
-SourceBase          .equ $5000
-SourceLimit         .equ $5800
+SourceBase          .equ $7000
+SourceLimit         .equ $7800
 RewriteAdapterBase  .equ $A000
 RewriteAdapterLimit .equ $A100
 DebugHooks          .equ 0
@@ -508,7 +508,7 @@ ProofPlacementMode:          .db 0
 ProofDiagnosticContinuation: .dw 0
 ProofInstallSymbol:           .db 0
 
-            .org $4000
+            .org $7000
 ProofRecordName: .db "R"
 ProofWrongClassName: .db "Missing"
 ProofNegativeName: .db "negative"

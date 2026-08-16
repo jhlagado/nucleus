@@ -138,6 +138,22 @@
     {
       "name": "ParseCallStatement",
       "target": "RewriteStatementParseCall"
+    },
+    {
+      "name": "ParseReturnValue",
+      "target": "RewriteStatementParseReturnValue"
+    },
+    {
+      "name": "CommitBareReturn",
+      "target": "RewriteStatementCommitBareReturn"
+    },
+    {
+      "name": "ParseFail",
+      "target": "RewriteStatementParseFail"
+    },
+    {
+      "name": "FinishRoutine",
+      "target": "RewriteStatementFinishRoutine"
     }
   ],
   "programs": [
@@ -302,6 +318,15 @@
       ]
     },
     {
+      "name": "RoutineBodyEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishRoutine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
       "name": "LocalDefault",
       "steps": [
         { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
@@ -348,6 +373,33 @@
       "steps": [
         { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeParseCallStatement"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ReturnValue",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenReturn", "DiagnosticExpectedReturn"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseReturnValue"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "BareReturn",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenReturn", "DiagnosticExpectedReturn"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitBareReturn"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "Fail",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenFail", "DiagnosticExpectedFail"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseFail"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "End", "operands": [] }
       ]

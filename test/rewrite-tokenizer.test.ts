@@ -338,7 +338,7 @@ describe("ground-up rewrite tokenizer", () => {
       }
     }
     expect(instructions).toBe(47_268);
-    expect(cycles).toBe(452_675);
+    expect(cycles).toBe(452_717);
   }, 15_000);
 
   it("matches baseline lexical diagnostics through the Host API seam", async () => {
@@ -730,10 +730,10 @@ describe("ground-up rewrite tokenizer", () => {
         keywordBytes: 184,
         operationBytes: 618,
         semanticBytes: 220,
-        metadataBytes: 8_200,
+        metadataBytes: 8_469,
         sourceTokenBytes: 1_099,
-        coreBytes: 11_030,
-        workspaceBytes: 3_414,
+        coreBytes: 11_359,
+        workspaceBytes: 3_416,
       });
       const layouts: readonly {
         readonly origin: number;

@@ -46,7 +46,11 @@ RewriteActionEscapeBeginScalarAssignment .equ 29
 RewriteActionEscapeFinishScalarAssignmentExpression .equ 30
 RewriteActionEscapeEmitScalarAssignment .equ 31
 RewriteActionEscapeParseCallStatement .equ 32
-RewriteActionEscapeCount .equ 33
+RewriteActionEscapeParseReturnValue .equ 33
+RewriteActionEscapeCommitBareReturn .equ 34
+RewriteActionEscapeParseFail .equ 35
+RewriteActionEscapeFinishRoutine .equ 36
+RewriteActionEscapeCount .equ 37
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -194,6 +198,14 @@ RewriteActionProgramRoutineEnd:
 RewriteActionProgramRoutineEndEnd:
 RewriteActionProgramRoutineEndWidth .equ 9
 
+RewriteActionProgramRoutineBodyEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeFinishRoutine
+            .db RewriteActionEnd
+RewriteActionProgramRoutineBodyEndEnd:
+RewriteActionProgramRoutineBodyEndWidth .equ 9
+
 RewriteActionProgramLocalDefault:
             .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
             .db RewriteActionExpect,TokenName,DiagnosticExpectedName
@@ -240,3 +252,27 @@ RewriteActionProgramCallStatement:
             .db RewriteActionEnd
 RewriteActionProgramCallStatementEnd:
 RewriteActionProgramCallStatementWidth .equ 9
+
+RewriteActionProgramReturnValue:
+            .db RewriteActionExpect,TokenReturn,DiagnosticExpectedReturn
+            .db RewriteActionEscape,RewriteActionEscapeParseReturnValue
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramReturnValueEnd:
+RewriteActionProgramReturnValueWidth .equ 9
+
+RewriteActionProgramBareReturn:
+            .db RewriteActionExpect,TokenReturn,DiagnosticExpectedReturn
+            .db RewriteActionEscape,RewriteActionEscapeCommitBareReturn
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramBareReturnEnd:
+RewriteActionProgramBareReturnWidth .equ 9
+
+RewriteActionProgramFail:
+            .db RewriteActionExpect,TokenFail,DiagnosticExpectedFail
+            .db RewriteActionEscape,RewriteActionEscapeParseFail
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramFailEnd:
+RewriteActionProgramFailWidth .equ 9

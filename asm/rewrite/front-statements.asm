@@ -131,3 +131,146 @@ RewriteStatementParseCall:
 _RewriteStatementParseSourceCall:
             CALL RewriteCallParseSource
             JP   RewriteCallConsumeLocalFailure
+
+; Successful and failed routine exits share the same streaming fallthrough
+; summary. A terminal statement can occur before later unreachable source;
+; later ordinary statements never restore this byte to one.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+RewriteStatementMarkNoFallthrough:
+            XOR  A
+            LD   (RewriteControlSequenceFallsThrough),A
+            RET
+
+.routine noreturn
+RewriteStatementFailureContext:
+            LD   A,DiagnosticFailureContext
+            JP   RewriteRaiseDiagnostic
+
+.routine noreturn
+RewriteStatementRoutineFlowFailure:
+            LD   A,DiagnosticRoutineFlow
+            JP   RewriteRaiseDiagnostic
+
+; Append one routine-end operation. A selects direct source attribution when
+; nonzero and enclosing attribution when zero. The operand is the active
+; result type, including exact/zero for result-free routines and main.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementEmitRoutineEnd:
+            LD   B,A
+            LD   A,(RewriteCurrentRoutineResultType)
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,(RewriteCurrentRoutineFlags)
+            AND  RewriteRoutineFlagFails
+            LD   A,B
+            JR   Z,_RewriteStatementGeneralRoutineEnd
+            OR   A
+            LD   A,RewriteSemanticEndFailableRoutineEnclosing
+            JR   Z,_RewriteStatementRoutineEndReady
+            LD   A,RewriteSemanticEndFailableRoutineDirect
+            JR   _RewriteStatementRoutineEndReady
+_RewriteStatementGeneralRoutineEnd:
+            OR   A
+            LD   A,RewriteSemanticEndGeneralRoutineEnclosing
+            JR   Z,_RewriteStatementRoutineEndReady
+            LD   A,RewriteSemanticEndGeneralRoutineDirect
+_RewriteStatementRoutineEndReady:
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
+; `return expression` is success-only. Scalar results use the ordinary
+; assignability matrix; aggregate aliases require exact referent identity.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementParseReturnValue:
+            LD   A,(RewriteCurrentRoutineResultType)
+            CALL RewriteExpressionEvaluateRuntime
+            LD   B,A
+            LD   A,(RewriteCurrentRoutineResultType)
+            OR   A
+            JP   Z,RewriteStatementRoutineFlowFailure
+            LD   C,A
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,_RewriteStatementReturnAggregateCheck
+            LD   A,B
+            CALL RewriteExpressionCheckRuntimeAssignable
+            JR   _RewriteStatementReturnFailureCheck
+_RewriteStatementReturnAggregateCheck:
+            LD   A,B
+            CP   C
+            JP   NZ,RewriteStatementAssignmentTypeFailure
+_RewriteStatementReturnFailureCheck:
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteStatementFailureContext
+            LD   A,(RewriteCurrentRoutineResultType)
+            CP   RewriteFirstOwnedTypeId
+            LD   A,(RewriteCurrentRoutineFlags)
+            LD   B,A
+            LD   A,RewriteSemanticReturnScalar
+            JR   C,_RewriteStatementReturnKindReady
+            LD   A,RewriteSemanticReturnAggregate
+_RewriteStatementReturnKindReady:
+            BIT  0,B
+            JR   Z,_RewriteStatementReturnAppend
+            CP   RewriteSemanticReturnAggregate
+            LD   A,RewriteSemanticReturnFailableScalar
+            JR   NZ,_RewriteStatementReturnAppend
+            LD   A,RewriteSemanticReturnFailableAggregate
+_RewriteStatementReturnAppend:
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteStatementMarkNoFallthrough
+
+; Bare return is admitted only in result-free routines. It lowers through the
+; same direct routine-end operation as the frozen compiler.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementCommitBareReturn:
+            CALL RewriteParserPeek
+            LD   A,(RewriteCurrentRoutineResultType)
+            OR   A
+            JP   NZ,RewriteStatementRoutineFlowFailure
+            LD   A,1
+            CALL RewriteStatementEmitRoutineEnd
+            JP   RewriteStatementMarkNoFallthrough
+
+; The fail keyword's own source offset is retained before parsing its u8 code.
+; Main selects the dedicated unhandled-error lowering operation.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementParseFail:
+            LD   A,(RewriteCurrentRoutineFlags)
+            AND  RewriteRoutineFlagFails
+            JP   Z,RewriteStatementFailureContext
+            LD   DE,(TokenStartOffset)
+            LD   (RewriteStatementExitSourceOffset),DE
+            LD   A,RewriteScalarTypeU8
+            CALL RewriteExpressionEvaluateRuntime
+            LD   C,RewriteScalarTypeU8
+            CALL RewriteExpressionCheckRuntimeAssignable
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteStatementFailureContext
+            LD   DE,(RewriteStatementExitSourceOffset)
+            LD   (RewriteSemanticOperandArea),DE
+            LD   A,(RewriteCurrentRoutineFlags)
+            AND  RewriteRoutineFlagMain
+            LD   A,RewriteSemanticFailRoutine
+            JR   Z,_RewriteStatementFailAppend
+            LD   A,RewriteSemanticFailMain
+_RewriteStatementFailAppend:
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteStatementMarkNoFallthrough
+
+; A closing end emits an enclosing-attributed routine end. A result-bearing
+; body may close only when the structured fallthrough summary is false.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteStatementFinishRoutine:
+            LD   A,(RewriteCurrentRoutineResultType)
+            OR   A
+            JR   Z,_RewriteStatementFinishRoutineEmit
+            LD   A,(RewriteControlSequenceFallsThrough)
+            OR   A
+            JP   NZ,RewriteStatementRoutineFlowFailure
+_RewriteStatementFinishRoutineEmit:
+            XOR  A
+            CALL RewriteStatementEmitRoutineEnd
+            JP   RewriteRoutineCloseScope

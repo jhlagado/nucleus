@@ -183,7 +183,11 @@ RewritePendingCallModePointer  .equ RewriteMetadataControlBase+$3C ; word
 RewriteCurrentRoutineFlags     .equ RewriteMetadataControlBase+$3E
 RewriteExpressionAggregateCountOffset .equ RewriteMetadataControlBase+$3F
 RewritePendingFailureOffset    .equ RewriteMetadataControlBase+$40 ; word
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$42
+; The active routine summary is independent of directory representation so
+; main and ordinary/forward bodies use one statement contract.
+RewriteCurrentRoutineResultType .equ RewriteMetadataControlBase+$42
+RewriteControlSequenceFallsThrough .equ RewriteMetadataControlBase+$43
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$44
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
 RewriteCallFrameCapacity       .equ 4
@@ -306,6 +310,7 @@ RewriteStaticPendingLimit    .equ RewriteStaticPendingByte+1
 RewriteStatementTargetPayload .equ RewriteStaticPendingOffset ; word
 RewriteStatementTargetStorage .equ RewriteStaticPendingLength
 RewriteStatementTargetClass   .equ RewriteStaticPendingByte
+RewriteStatementExitSourceOffset .equ RewriteStaticPendingOffset ; word
 RewriteInitializerCapacity  .equ 1024
 RewriteInitializerBase       .equ RewriteStaticPendingLimit
 RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapacity
@@ -413,6 +418,7 @@ DiagnosticTypeBound          .equ 83
 DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
 DiagnosticFailureContext     .equ 87
+DiagnosticRoutineFlow        .equ 75
 DiagnosticSourcePartCapacity .equ 88
 DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
@@ -431,6 +437,7 @@ DiagnosticExpectedLeftBracket .equ $80+18
 DiagnosticExpectedRightBracket .equ $80+19
 DiagnosticExpectedComma      .equ $80+20
 DiagnosticExpectedFail       .equ $80+11
+DiagnosticExpectedReturn     .equ $80+22
 DiagnosticExpectedStringLiteral .equ $80+47
 
 RewriteCallModeInfallible       .equ 0
