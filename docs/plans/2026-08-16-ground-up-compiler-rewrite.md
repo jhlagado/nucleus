@@ -1497,7 +1497,7 @@ prototype is recorded and removed rather than extended on hope.
 
 R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
 
-- one 2,117-byte backend engine reads generated recipe and escape directories
+- one 2,278-byte backend engine reads generated recipe and escape directories
   through complete 16-bit addresses. Its recipe vocabulary emits target literal runs,
   semantic operand bytes and words, complemented IX displacements,
   identity-fixed runtime calls, nested relative fixups, and operation-family
@@ -1508,7 +1508,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   plus entry and output banks. This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 74 semantic ordinals: byte and word local
+- the current cohort covers 78 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1545,6 +1545,12 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   retained carrier, and a result-bearing call statement that discards success;
   it takes 2,018 compiler instructions and 20,533 T-states. Reserved selector
   metadata is rejected before the first output byte;
+- fixed and open arrays share one checked index tail. Fixed arrays load their
+  static bound; open arrays load the retained full-word count from the
+  activation without narrowing either byte. Static and open `.length` paths
+  discard the evaluated base and return the declared full-word count. The
+  130-byte proof covers both index forms and both length forms in 3,994 compiler
+  instructions and 38,667 T-states, including exact bounds-trap provenance;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
   and 66,004 T-states for the first cohort, and 10,959 instructions and 96,405
@@ -1565,8 +1571,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
 - the recipe data plus 44-entry recipe and 29-entry escape directories occupy
-  709 immutable bytes. The shipping replacement is 14,337 code + 2,173
-  immutable = 16,510 core bytes; the instrumented replacement is 16,514 core
+  738 immutable bytes. The shipping replacement is 14,498 code + 2,202
+  immutable = 16,700 core bytes; the instrumented replacement is 16,704 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step

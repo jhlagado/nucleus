@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 74
+RewriteBackendSupportedOperationCount .equ 78
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -55,8 +55,8 @@ RewriteBackendRecipeDirectory:
             .dw 0 ; stringIndex
             .dw RewriteBackendRecipeSelectorLoadReadOnlyAlias ; loadReadOnlyAlias
             .dw 0 ; openStringCapacity
-            .dw 0 ; arrayLength
-            .dw 0 ; openArrayLength
+            .dw RewriteBackendRecipeSelectorArrayLength ; arrayLength
+            .dw RewriteBackendRecipeSelectorOpenArrayLength ; openArrayLength
             .dw RewriteBackendRecipeSelectorPromoteI8Pair ; promoteI8Pair
             .dw RewriteBackendRecipeSelectorLoadBssU8 ; loadBssU8
             .dw RewriteBackendRecipeSelectorLoadBss16 ; loadBss16
@@ -76,7 +76,7 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeCallSource ; callSource
             .dw RewriteBackendEscapeCallService ; callService
             .dw RewriteBackendEscapeEndRoutine ; endRoutine
-            .dw 0 ; selectIndex
+            .dw RewriteBackendEscapeSelectIndex ; selectIndex
             .dw 0 ; copyAggregate
             .dw 0 ; failRoutine
             .dw 0 ; failMain
@@ -91,7 +91,7 @@ RewriteBackendEscapeDirectory:
             .dw 0 ; openStringIndex
             .dw 0 ; prepareOpenArgument
             .dw 0 ; openStringResize
-            .dw 0 ; openArrayIndex
+            .dw RewriteBackendEscapeOpenArrayIndex ; openArrayIndex
             .dw RewriteBackendEscapeConvertInteger ; convertInteger
             .dw RewriteBackendEscapeDivideSigned ; divideSigned
 RewriteBackendEscapeDirectoryEnd:
@@ -260,6 +260,18 @@ RewriteBackendRecipeSelectorJump:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorReturnScalar:
             .db RewriteBackendRecipeEmit,6,$E1,$DD,$F9,$DD,$E1,$C9
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorArrayLength:
+            .db RewriteBackendRecipeEmit,2,$E1,$21
+            .db RewriteBackendRecipeOperandWord,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorOpenArrayLength:
+            .db RewriteBackendRecipeEmit,3,$E1,$DD,$6E
+            .db RewriteBackendRecipeComplementByte,0,0
+            .db RewriteBackendRecipeEmit,2,$DD,$66
+            .db RewriteBackendRecipeComplementByte,0,1
+            .db RewriteBackendRecipeEmit,1,$E5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentAdd8:
             .db RewriteBackendRecipeEmit,8,$D1,$E1,$7D,$83,$6F,$26,$00,$E5

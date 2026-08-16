@@ -712,6 +712,21 @@ RewriteBackendEmitTrapJump:
 RewriteBackendEscapePatchSuccess:
             JP   RewriteBackendPatchRelative
 
+; HL is the exact source offset for a runtime bounds check that has just
+; returned carry clear on success. The generated failure arm traps with reason
+; one and the success arm resumes without changing the checked carriers.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitBoundsGuard:
+            LD   (RewriteBackendTrapSourceOffset),HL
+            LD   A,$30                    ; JR NC,checked
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteBackendTrapSourceOffset)
+            LD   A,1                      ; bounds trap
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            JP   RewriteBackendPatchRelative
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteBackendEscapeNarrowU8:
             LD   A,$E1                    ; POP HL / LD A,H / OR A
@@ -1270,6 +1285,71 @@ RewriteBackendCallServiceFailureReady:
             CALL RewriteBackendEmitByte
             LD   A,$E5
             JP   RewriteBackendEmitByte
+
+; Emit the shared checked-array tail after generated code has loaded base HL,
+; index DE, and bound BC. The runtime preserves the base/index pair through the
+; bound check; scaling then produces and retains the selected element carrier.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitArrayIndexTail:
+            LD   (RewriteBackendTrapSourceOffset),HL
+            LD   DE,NucleusRuntimeCheckArrayIndexOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   HL,(RewriteBackendTrapSourceOffset)
+            CALL RewriteBackendEmitBoundsGuard
+            LD   A,$E5                    ; PUSH HL base
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandElementExtentOffset)
+            LD   A,(RewriteBackendCurrentOperation)
+            CP   RewriteSemanticOpenArrayIndex
+            JR   NZ,RewriteBackendArrayIndexExtentReady
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandElementExtentOffset)
+RewriteBackendArrayIndexExtentReady:
+            LD   A,$21                    ; LD HL,element extent
+            CALL RewriteBackendEmitOpcodeWord
+            LD   DE,NucleusRuntimeMultiplyU16Offset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$D1                    ; POP DE base / ADD HL,DE / PUSH HL
+            CALL RewriteBackendEmitByte
+            LD   A,$19
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            JP   RewriteBackendEmitByte
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeSelectIndex:
+            LD   A,$D1                    ; POP DE index / POP HL base
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandCountOffset)
+            LD   A,$01                    ; LD BC,count
+            CALL RewriteBackendEmitOpcodeWord
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitArrayIndexTail
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeOpenArrayIndex:
+            LD   A,$D1                    ; POP DE index / POP HL base
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD C,(IX-countOffset)
+            CALL RewriteBackendEmitByte
+            LD   A,$4E
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandCountOffsetOffset)
+            CPL
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD B,(IX-countOffset-1)
+            CALL RewriteBackendEmitByte
+            LD   A,$46
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandCountOffsetOffset)
+            INC  A
+            CPL
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitArrayIndexTail
 
 .routine noreturn
 RewriteBackendCapacity:

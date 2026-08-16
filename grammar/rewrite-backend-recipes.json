@@ -9,7 +9,9 @@
     "bindParameter": "RewriteBackendEscapeBindParameter",
     "endRoutine": "RewriteBackendEscapeEndRoutine",
     "callSource": "RewriteBackendEscapeCallSource",
-    "callService": "RewriteBackendEscapeCallService"
+    "callService": "RewriteBackendEscapeCallService",
+    "selectIndex": "RewriteBackendEscapeSelectIndex",
+    "openArrayIndex": "RewriteBackendEscapeOpenArrayIndex"
   },
   "selectors": {
     "defineProgramU8": [],
@@ -170,7 +172,19 @@
       { "absoluteFixup": ["label", 202] }
     ],
     "jump": [{ "absoluteFixup": ["label", 195] }],
-    "returnScalar": [{ "emit": [225, 221, 249, 221, 225, 201] }]
+    "returnScalar": [{ "emit": [225, 221, 249, 221, 225, 201] }],
+    "arrayLength": [
+      { "emit": [225, 33] },
+      { "operandWord": "count" },
+      { "emit": [229] }
+    ],
+    "openArrayLength": [
+      { "emit": [225, 221, 110] },
+      { "complementByte": ["countOffset", 0] },
+      { "emit": [221, 102] },
+      { "complementByte": ["countOffset", 1] },
+      { "emit": [229] }
+    ]
   },
   "fragments": {
     "add8": [{ "emit": [209, 225, 125, 131, 111, 38, 0, 229] }],

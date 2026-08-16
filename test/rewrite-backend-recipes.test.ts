@@ -174,6 +174,19 @@ describe("ground-up rewrite backend recipes", () => {
     ).toBe(18);
   });
 
+  it("emits fixed/open array length and checked index paths", () => {
+    const { memory, instructions, cycles } = run("ProofBackendArrayPaths");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa7);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 3_994,
+      cycles: 38_667,
+    });
+    expect(
+      (image.symbols.ProofExpectedArrayPathsEnd ?? 0) -
+        (image.symbols.ProofExpectedArrayPaths ?? 0),
+    ).toBe(130);
+  });
+
   it("emits the canonical routine frame and all retained parameter widths", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
@@ -409,13 +422,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 2_117,
-      recipes: 709,
-      code: 14_337,
-      immutable: 2_173,
-      core: 16_510,
+      engine: 2_278,
+      recipes: 738,
+      code: 14_498,
+      immutable: 2_202,
+      core: 16_700,
       workspace: 3_425,
-      supported: 74,
+      supported: 78,
     });
   });
 });

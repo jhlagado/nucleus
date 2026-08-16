@@ -691,6 +691,66 @@ ProofBackendSourceCallCompare:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendArrayPaths:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   HL,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandCountOffset),HL
+            LD   HL,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandElementExtentOffset),HL
+            LD   HL,$1111
+            LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticSelectIndex
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,300
+            LD   (RewriteSemanticOperandArea+RewriteSemanticArrayLengthOperandCountOffset),HL
+            LD   A,RewriteSemanticArrayLength
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,9
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayLengthOperandCountOffsetOffset),A
+            LD   A,RewriteSemanticOpenArrayLength
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,6
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandCountOffsetOffset),A
+            LD   HL,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandElementExtentOffset),HL
+            LD   HL,$2222
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticOpenArrayIndex
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedArrayPathsEnd-ProofExpectedArrayPaths
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedArrayPaths
+            LD   BC,ProofExpectedArrayPathsEnd-ProofExpectedArrayPaths
+ProofBackendArrayPathCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendArrayPathCompare
+            LD   A,$A7
+            LD   (ProofStatus),A
+            HALT
+
 ProofBackendSourceCallMissingBank:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1335,6 +1395,73 @@ ProofExpectedRoutineFrame:
             POP  IX
             RET
 ProofExpectedRoutineFrameEnd:
+
+ProofExpectedArrayPaths:
+            POP  DE
+            POP  HL
+            LD   BC,3
+            CALL ProofRuntimeBase+NucleusRuntimeCheckArrayIndexOffset
+            JR   NC,ProofExpectedFixedArrayIndexReady
+            LD   HL,$1111
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedFixedArrayIndexReady:
+            PUSH HL
+            LD   HL,2
+            CALL ProofRuntimeBase+NucleusRuntimeMultiplyU16Offset
+            POP  DE
+            ADD  HL,DE
+            PUSH HL
+
+            POP  HL
+            LD   HL,300
+            PUSH HL
+            POP  HL
+            LD   L,(IX-10)
+            LD   H,(IX-11)
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            LD   C,(IX-7)
+            LD   B,(IX-8)
+            CALL ProofRuntimeBase+NucleusRuntimeCheckArrayIndexOffset
+            JR   NC,ProofExpectedOpenArrayIndexReady
+            LD   HL,$2222
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenArrayIndexReady:
+            PUSH HL
+            LD   HL,4
+            CALL ProofRuntimeBase+NucleusRuntimeMultiplyU16Offset
+            POP  DE
+            ADD  HL,DE
+            PUSH HL
+ProofExpectedArrayPathsEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset
