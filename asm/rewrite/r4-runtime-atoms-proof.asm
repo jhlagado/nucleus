@@ -161,7 +161,7 @@ ProofRuntimePathLocalLoop:
             JP   NZ,ProofFailure
             CALL RewriteSemanticValidate
             LD   A,(RewriteSemanticBufferBase)
-            CP   61
+            CP   63
             JP   NZ,ProofFailure
             LD   HL,RewriteSemanticPayloadBase
             LD   DE,ProofExpectedPathSemantics
@@ -233,6 +233,59 @@ ProofRuntimeCallSemanticDone:
             SBC  HL,DE
             JP   NZ,ProofFailure
             LD   A,$CA
+            LD   (ProofStatus),A
+            HALT
+
+; Writable postfix targets retain one alias carrier across a failable right
+; call. The same path engine selects fixed/open array elements, bounded/open
+; string bytes, open-string length, and an exact aggregate representation.
+ProofRuntimePostfixAssignments:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsPostfixAssignments
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunForwardHeader
+            CALL ProofRunDirectHeader
+            XOR  A
+            LD   (RewriteSemanticBufferBase),A
+            LD   HL,RewriteSemanticPayloadBase
+            LD   (RewriteSemanticSinkCursor),HL
+            LD   B,6
+_ProofRuntimePostfixAssignmentLoop:
+            PUSH BC
+            CALL ProofRunScalarAssignment
+            POP  BC
+            DJNZ _ProofRuntimePostfixAssignmentLoop
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   ProofExpectedPostfixAssignmentOperationCount
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedPostfixAssignmentSemantics
+            LD   BC,ProofExpectedPostfixAssignmentSemanticsEnd-ProofExpectedPostfixAssignmentSemantics
+_ProofRuntimePostfixAssignmentCompare:
+            LD   A,B
+            OR   C
+            JR   Z,_ProofRuntimePostfixAssignmentDone
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            JR   _ProofRuntimePostfixAssignmentCompare
+_ProofRuntimePostfixAssignmentDone:
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$E7
             LD   (ProofStatus),A
             HALT
 
@@ -931,6 +984,45 @@ ProofRuntimeCallBinaryFailure:
             LD   A,1
             JP   ProofArmCallDiagnostic
 
+ProofRuntimeAssignmentReadOnlyAggregate:
+            LD   HL,ProofPartsAssignmentReadOnlyAggregate
+            LD   BC,(DiagnosticReadOnlyAssignment<<8)|$E8
+            LD   DE,ProofAssignmentReadOnlyTarget-ProofSourceAssignmentReadOnlyAggregate
+            JP   ProofArmPostfixAssignmentDiagnostic
+ProofRuntimeAssignmentFixedStringLength:
+            LD   HL,ProofPartsAssignmentFixedStringLength
+            LD   BC,(DiagnosticTypeMismatch<<8)|$E9
+            LD   DE,ProofAssignmentFixedLengthName-ProofSourceAssignmentFixedStringLength
+            JP   ProofArmPostfixAssignmentDiagnostic
+ProofRuntimeAssignmentOpenWhole:
+            LD   HL,ProofPartsAssignmentOpenWhole
+            LD   BC,(DiagnosticTypeMismatch<<8)|$EA
+            LD   DE,ProofAssignmentOpenWholeLine-ProofSourceAssignmentOpenWhole
+            JP   ProofArmPostfixAssignmentDiagnostic
+
+; HL source descriptor, B diagnostic, C status, DE exact offset. Aggregate
+; path metadata is installed before the source-visible routine and assignment.
+.routine noreturn
+ProofArmPostfixAssignmentDiagnostic:
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            PUSH HL
+            CALL RewriteReset
+            CALL ProofInstallPathMetadata
+            POP  DE
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            EX   DE,HL
+            LD   A,1
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunScalarAssignment
+            JP   ProofFailure
+
 ; HL source descriptor, B diagnostic, C status, DE exact offset. Path metadata
 ; is installed after reset and before the source-visible routine is parsed.
 .routine noreturn
@@ -1262,7 +1354,7 @@ ProofExpectedExpressionSemanticsEnd:
 ProofExpectedPathSemantics:
             ; root.inner.values[1]
             .db RewriteSemanticDeclareLocal16,11
-            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticLoadBssAlias,0,0
             .db RewriteSemanticSelectField,0,0
             .db RewriteSemanticSelectField,7,0
             .db RewriteSemanticLiteral16,1,0
@@ -1273,7 +1365,7 @@ ProofExpectedPathSemantics:
 
             ; root.items[1].values.length
             .db RewriteSemanticDeclareLocal16,13
-            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticLoadBssAlias,0,0
             .db RewriteSemanticSelectField,13,0
             .db RewriteSemanticLiteral16,1,0
             .db RewriteSemanticSelectIndex,2,0,13,0
@@ -1284,17 +1376,18 @@ ProofExpectedPathSemantics:
 
             ; root.inner.text[2]
             .db RewriteSemanticDeclareLocalU8,15
-            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticLoadBssAlias,0,0
             .db RewriteSemanticSelectField,0,0
             .db RewriteSemanticSelectField,0,0
             .db RewriteSemanticLiteral16,2,0
             .db RewriteSemanticStringIndex,5
             .dw ProofPathTextIndex-ProofSourcePaths
+            .db RewriteSemanticLoadIndirect8
             .db RewriteSemanticStoreLocalU8,15
 
             ; root.inner.text.length
             .db RewriteSemanticDeclareLocalU8,16
-            .db RewriteSemanticLoadProgramAlias,0,0
+            .db RewriteSemanticLoadBssAlias,0,0
             .db RewriteSemanticSelectField,0,0
             .db RewriteSemanticSelectField,0,0
             .db RewriteSemanticStringLength,5
@@ -1345,8 +1438,71 @@ ProofExpectedPathSemantics:
             .db RewriteSemanticLiteral16,1,0
             .db RewriteSemanticOpenStringIndex,6
             .dw ProofPathOpenTextIndex-ProofSourcePaths
+            .db RewriteSemanticLoadIndirect8
             .db RewriteSemanticStoreLocalU8,23
 ProofExpectedPathSemanticsEnd:
+
+ProofExpectedPostfixAssignmentOperationCount .equ 35
+ProofExpectedPostfixAssignmentSemantics:
+            ; root.inner.values[1] = maybe() else fail
+            .db RewriteSemanticLoadBssAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticSelectField,7,0
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticSelectIndex,3,0,2,0
+            .dw ProofPostfixFixedIndex-ProofSourcePostfixAssignments
+            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails
+            .dw ProofPostfixCall-ProofSourcePostfixAssignments
+            .db RewriteCallModePropagateRoutine,0,1
+            .db RewriteSemanticStoreIndirect16
+
+            ; root.inner.text[2] = 65
+            .db RewriteSemanticLoadBssAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticLiteral16,2,0
+            .db RewriteSemanticStringIndex,5
+            .dw ProofPostfixStringIndex-ProofSourcePostfixAssignments
+            .db RewriteSemanticLiteral16,65,0
+            .db RewriteSemanticStoreIndirect8
+
+            ; xs[1] = 7
+            .db RewriteSemanticLoadParameterAlias,0
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticOpenArrayIndex,2,2,0
+            .dw ProofPostfixOpenArrayIndex-ProofSourcePostfixAssignments
+            .db RewriteSemanticLiteral16,7,0
+            .db RewriteSemanticStoreIndirect16
+
+            ; text[1] = 66
+            .db RewriteSemanticLoadParameterAlias,4
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticOpenStringIndex,6
+            .dw ProofPostfixOpenStringIndex-ProofSourcePostfixAssignments
+            .db RewriteSemanticLiteral16,66,0
+            .db RewriteSemanticStoreIndirect8
+
+            ; text.length = 3
+            .db RewriteSemanticLoadParameterAlias,4
+            .db RewriteSemanticLiteral16,3,0
+            .db RewriteSemanticOpenStringResize,6
+            .dw ProofPostfixResizeValue-ProofSourcePostfixAssignments
+
+            ; root.inner = root.inner
+            .db RewriteSemanticLoadBssAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticLoadBssAlias,0,0
+            .db RewriteSemanticSelectField,0,0
+            .db RewriteSemanticCopyAggregate,13,0
+            .dw ProofPostfixCopySource-ProofSourcePostfixAssignments
+
+            ; A following local call does not inherit the retained carrier.
+            .db RewriteSemanticDeclareLocal16,7
+            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails
+            .dw ProofPostfixFreshCall-ProofSourcePostfixAssignments
+            .db RewriteCallModePropagateRoutine,0,0
+            .db RewriteSemanticStoreLocal16,7
+ProofExpectedPostfixAssignmentSemanticsEnd:
 
 ; Exact call transcript. Every .db/.dw item is semantic data and the word
 ; operands are source-relative offsets, never assembled instruction addresses.
@@ -1377,7 +1533,7 @@ ProofExpectedCallSemantics:
             .db RewriteSemanticLoadReadOnlyAlias
             .dw 301
             .db RewriteSemanticPrepareOpenStringDirect,0,5
-            .db RewriteSemanticLoadProgramAlias
+            .db RewriteSemanticLoadBssAlias
             .dw 0
             .db RewriteSemanticSelectField
             .dw 0
@@ -1588,6 +1744,34 @@ ProofPathReadOnlyLength:
 ProofPathOpenTextIndex:
             .db "[1]",10
 ProofSourcePathsEnd:
+
+ProofSourcePostfixAssignments:
+            .db "forward sub maybe() as u16 fails",10
+            .db "sub work(xs as u16[], text as string[]) fails",10
+            .db "root.inner.values"
+ProofPostfixFixedIndex:
+            .db "[1] = "
+ProofPostfixCall:
+            .db "maybe() else fail",10
+            .db "root.inner.text"
+ProofPostfixStringIndex:
+            .db "[2] = 65",10
+            .db "xs"
+ProofPostfixOpenArrayIndex:
+            .db "[1] = 7",10
+            .db "text"
+ProofPostfixOpenStringIndex:
+            .db "[1] = 66",10
+            .db "text.length = "
+ProofPostfixResizeValue:
+            .db "3",10
+            .db "root.inner = "
+ProofPostfixCopySource:
+            .db "root.inner",10
+            .db "var result as u16 = "
+ProofPostfixFreshCall:
+            .db "maybe() else fail",10
+ProofSourcePostfixAssignmentsEnd:
 
 ProofSourcePathCapacity:
             .db "sub work()",10,"var x as u8 = root.inner.text."
@@ -1879,6 +2063,24 @@ ProofCallBinaryFailureAnchor:
             .db "+ 1 else fail",10
 ProofSourceCallBinaryFailureEnd:
 
+ProofSourceAssignmentReadOnlyAggregate:
+            .db "sub work()",10
+ProofAssignmentReadOnlyTarget:
+            .db "ro = ro",10
+ProofSourceAssignmentReadOnlyAggregateEnd:
+ProofSourceAssignmentFixedStringLength:
+            .db "sub work()",10,"root.inner.text."
+ProofAssignmentFixedLengthName:
+            .db "length = 1",10
+ProofSourceAssignmentFixedStringLengthEnd:
+ProofSourceAssignmentOpenWhole:
+            .db "sub work(text as string[])",10,"text = "
+ProofAssignmentOpenWholeValue:
+            .db "text"
+ProofAssignmentOpenWholeLine:
+            .db 10
+ProofSourceAssignmentOpenWholeEnd:
+
             ; Descriptor and metadata fixtures live outside both the source
             ; corpus and the compiler workspace. Their full pointers also
             ; discriminate any accidental address narrowing.
@@ -1903,6 +2105,8 @@ ProofPartsExpressions:   .db 1
                          .dw ProofSourceExpressions,ProofSourceExpressionsEnd
 ProofPartsPaths:         .db 1
                          .dw ProofSourcePaths,ProofSourcePathsEnd
+ProofPartsPostfixAssignments: .db 1
+                         .dw ProofSourcePostfixAssignments,ProofSourcePostfixAssignmentsEnd
 ProofPartsPathCapacity:  .db 1
                          .dw ProofSourcePathCapacity,ProofSourcePathCapacityEnd
 ProofPartsPathRange:     .db 1
@@ -1983,6 +2187,12 @@ ProofPartsCallIndexFailure: .db 1
                          .dw ProofSourceCallIndexFailure,ProofSourceCallIndexFailureEnd
 ProofPartsCallBinaryFailure: .db 1
                          .dw ProofSourceCallBinaryFailure,ProofSourceCallBinaryFailureEnd
+ProofPartsAssignmentReadOnlyAggregate: .db 1
+                         .dw ProofSourceAssignmentReadOnlyAggregate,ProofSourceAssignmentReadOnlyAggregateEnd
+ProofPartsAssignmentFixedStringLength: .db 1
+                         .dw ProofSourceAssignmentFixedStringLength,ProofSourceAssignmentFixedStringLengthEnd
+ProofPartsAssignmentOpenWhole: .db 1
+                         .dw ProofSourceAssignmentOpenWhole,ProofSourceAssignmentOpenWholeEnd
 
 ; Path metadata fixtures. Each .db/.dw block is a type, record, field, or
 ; symbol table image and never executes as Z80 code.

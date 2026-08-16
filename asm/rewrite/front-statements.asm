@@ -40,8 +40,9 @@ _RewriteControlActiveCounterFailure:
             LD   A,DiagnosticActiveCounter
             JP   RewriteRaiseDiagnostic
 
-; The current token is the assignment NAME. Retain a writable scalar target
-; until the complete right-hand expression and line have been validated.
+; The current token is the assignment NAME. A scalar root retains its explicit
+; destination. An aggregate root publishes one alias carrier, then the shared
+; postfix engine selects a scalar/aggregate address or open-string length.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteStatementBeginScalarAssignment:
             CALL RewriteSymbolFindCurrent
@@ -49,22 +50,25 @@ RewriteStatementBeginScalarAssignment:
             LD   DE,RewriteSymbolClass
             ADD  HL,DE
             LD   A,(HL)
-            CP   RewriteSymbolClassProgram
-            JR   Z,_RewriteStatementAssignmentClassReady
-            CP   RewriteSymbolClassLocal
-            JR   Z,_RewriteStatementAssignmentClassReady
-            CP   RewriteSymbolClassParameter
-            JR   NZ,RewriteStatementAssignmentTypeFailure
-_RewriteStatementAssignmentClassReady:
-            LD   (RewriteStatementTargetClass),A
+            LD   B,A
             INC  HL
             LD   A,(HL)
+            LD   C,A
             LD   (RewriteCurrentType),A
             AND  RewriteTypeIdentityMask
             OR   A
             JR   Z,RewriteStatementAssignmentTypeFailure
             CP   RewriteFirstOwnedTypeId
-            JR   NC,RewriteStatementAssignmentTypeFailure
+            JR   NC,_RewriteStatementBeginAggregateAssignment
+            LD   A,B
+            CP   RewriteSymbolClassProgram
+            JR   Z,_RewriteStatementScalarClassReady
+            CP   RewriteSymbolClassLocal
+            JR   Z,_RewriteStatementScalarClassReady
+            CP   RewriteSymbolClassParameter
+            JP   NZ,RewriteStatementAssignmentTypeFailure
+_RewriteStatementScalarClassReady:
+            LD   (RewriteStatementTargetClass),A
             INC  HL
             LD   E,(HL)
             INC  HL
@@ -73,6 +77,10 @@ _RewriteStatementAssignmentClassReady:
             INC  HL
             LD   A,(HL)
             LD   (RewriteStatementTargetStorage),A
+            XOR  A
+            LD   (RewriteStatementTargetMode),A
+            LD   (RewritePathAssignmentMode),A
+            LD   (RewriteStatementRetainedCarriers),A
             LD   A,(RewriteStatementTargetClass)
             CP   RewriteSymbolClassLocal
             JR   NZ,_RewriteStatementAssignmentTargetReady
@@ -80,6 +88,35 @@ _RewriteStatementAssignmentClassReady:
             CALL RewriteControlCheckActiveCounter
 _RewriteStatementAssignmentTargetReady:
             XOR  A
+            RET
+
+_RewriteStatementBeginAggregateAssignment:
+            LD   A,B
+            CP   RewriteSymbolClassConstant
+            JR   Z,RewriteStatementReadOnlyAssignment
+            CP   RewriteSymbolClassProgram
+            JR   Z,_RewriteStatementAggregateClassReady
+            CP   RewriteSymbolClassParameter
+            JR   NZ,RewriteStatementAssignmentTypeFailure
+_RewriteStatementAggregateClassReady:
+            INC  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteExpressionRightMeta),A
+            CALL RewriteExpressionBeginRuntime
+            LD   A,1
+            LD   (RewriteStatementTargetMode),A
+            LD   (RewritePathAssignmentMode),A
+            LD   (RewriteStatementRetainedCarriers),A
+            LD   A,C
+            CALL RewritePathEmitRoot
+            CALL RewriteExpressionParsePostfix
+            LD   (RewriteCurrentType),A
+            XOR  A
+            LD   (RewritePathAssignmentMode),A
             RET
 
 RewriteStatementUnknownName:
@@ -90,6 +127,10 @@ RewriteStatementAssignmentTypeFailure:
             LD   A,DiagnosticTypeMismatch
             JP   RewriteRaiseDiagnostic
 
+RewriteStatementReadOnlyAssignment:
+            LD   A,DiagnosticReadOnlyAssignment
+            JP   RewriteRaiseDiagnostic
+
 ; Parse and type-check the right-hand side. Failable calls are consumed before
 ; the generated action program validates the terminating newline.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -97,10 +138,35 @@ RewriteStatementFinishScalarAssignmentExpression:
             LD   A,(RewriteCurrentType)
             CALL RewriteExpressionEvaluateRuntime
             LD   B,A
+            LD   A,(RewriteStatementTargetMode)
+            OR   A
+            JR   Z,_RewriteStatementFinishSourceReady
+            LD   (RewriteStatementTargetSourceOffset),DE
+_RewriteStatementFinishSourceReady:
             LD   A,(RewriteCurrentType)
             LD   C,A
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,_RewriteStatementFinishAggregateExpression
             LD   A,B
             CALL RewriteExpressionCheckRuntimeAssignable
+            LD   A,(RewriteStatementTargetMode)
+            OR   A
+            JR   Z,_RewriteStatementFinishRetainedReady
+            LD   A,1
+_RewriteStatementFinishRetainedReady:
+            LD   (RewriteStatementRetainedCarriers),A
+            XOR  A
+            RET
+_RewriteStatementFinishAggregateExpression:
+            CP   RewriteOpenStringTypeId
+            JP   Z,RewriteStatementAssignmentTypeFailure
+            CP   RewriteOpenArrayFlag
+            JP   NC,RewriteStatementAssignmentTypeFailure
+            LD   A,B
+            CP   C
+            JP   NZ,RewriteStatementAssignmentTypeFailure
+            LD   A,1
+            LD   (RewriteStatementRetainedCarriers),A
             XOR  A
             RET
 
@@ -108,6 +174,9 @@ RewriteStatementFinishScalarAssignmentExpression:
 ; payloads are words; activation payloads are the published byte offsets.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteStatementEmitScalarAssignment:
+            LD   A,(RewriteStatementTargetMode)
+            OR   A
+            JR   NZ,_RewriteStatementEmitSelectedStore
             LD   A,(RewriteStatementTargetClass)
             CP   RewriteSymbolClassProgram
             JR   Z,_RewriteStatementEmitProgramStore
@@ -136,7 +205,7 @@ _RewriteStatementEmitProgramStore:
             CP   RewriteSymbolStorageBss
             JR   Z,_RewriteStatementEmitBssStore
             CP   RewriteSymbolStorageInitialized
-            JR   NZ,RewriteStatementAssignmentTypeFailure
+            JP   NZ,RewriteStatementAssignmentTypeFailure
             LD   A,(RewriteCurrentType)
             BIT  1,A
             LD   A,RewriteSemanticStoreProgramU8
@@ -152,6 +221,32 @@ _RewriteStatementEmitBssStore:
 _RewriteStatementEmitStoreReady:
             LD   HL,RewriteSemanticOperandArea
             JP   RewriteSemanticAppend
+_RewriteStatementEmitSelectedStore:
+            CP   2
+            JR   Z,_RewriteStatementEmitOpenStringResize
+            LD   A,(RewriteCurrentType)
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,_RewriteStatementEmitAggregateCopy
+            BIT  1,A
+            LD   A,RewriteSemanticStoreIndirect8
+            JR   Z,_RewriteStatementEmitStoreReady
+            LD   A,RewriteSemanticStoreIndirect16
+            JR   _RewriteStatementEmitStoreReady
+_RewriteStatementEmitAggregateCopy:
+            CALL RewriteTypeStaticExtent
+            JP   C,RewriteStatementAssignmentTypeFailure
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandExtentOffset),HL
+            LD   DE,(RewriteStatementTargetSourceOffset)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandSourceOffsetOffset),DE
+            LD   A,RewriteSemanticCopyAggregate
+            JR   _RewriteStatementEmitStoreReady
+_RewriteStatementEmitOpenStringResize:
+            LD   A,(RewriteStatementTargetClass)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandCapacityOffsetOffset),A
+            LD   DE,(RewriteStatementTargetSourceOffset)
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandSourceOffsetOffset),DE
+            LD   A,RewriteSemanticOpenStringResize
+            JR   _RewriteStatementEmitStoreReady
 
 ; The current NAME begins a source or predefined-service call statement.
 ; Result-bearing calls retain their declared result metadata exactly as the
@@ -163,6 +258,7 @@ RewriteStatementParseCall:
             LD   DE,(TokenStartOffset)
             LD   (RewriteExpressionAtomOffset),DE
             XOR  A
+            LD   (RewriteStatementRetainedCarriers),A
             LD   (RewriteExpressionExpectedType),A
             CALL RewriteExpressionBeginRuntime
             CALL RewriteRoutineFindCurrent

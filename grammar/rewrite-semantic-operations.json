@@ -365,6 +365,13 @@
       "source": "direct"
     },
     {
+      "name": "LoadBssAlias",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadBssAlias"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
       "name": "LoadParameterAlias",
       "operands": [["offset", "byte"]],
       "backend": ["recipe", "loadParameterAlias"],

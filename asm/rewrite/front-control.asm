@@ -379,7 +379,7 @@ RewriteControlPrepareHandler:
             POP  HL
             LD   (HL),A
             INC  HL
-            XOR  A
+            LD   A,(RewriteStatementRetainedCarriers)
             LD   (HL),A
             LD   A,2
             LD   (RewritePendingFailure),A

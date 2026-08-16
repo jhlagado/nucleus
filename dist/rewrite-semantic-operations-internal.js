@@ -1632,6 +1632,32 @@ export const rewriteSemanticOperations = [
     },
     {
         "id": 64,
+        "name": "LoadBssAlias",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadBssAlias",
+            "index": 24
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 65,
         "name": "LoadParameterAlias",
         "operands": [
             {
@@ -1646,7 +1672,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "loadParameterAlias",
-            "index": 24
+            "index": 25
         },
         "stack": {
             "in": 0,
@@ -1657,7 +1683,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 65,
+        "id": 66,
         "name": "SelectField",
         "operands": [
             {
@@ -1672,7 +1698,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "selectField",
-            "index": 25
+            "index": 26
         },
         "stack": {
             "in": 1,
@@ -1683,7 +1709,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 66,
+        "id": 67,
         "name": "SelectIndex",
         "operands": [
             {
@@ -1723,31 +1749,13 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 67,
+        "id": 68,
         "name": "LoadIndirect8",
         "operands": [],
         "width": 1,
         "backend": {
             "kind": "recipe",
             "name": "loadIndirect8",
-            "index": 26
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 68,
-        "name": "LoadIndirect16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadIndirect16",
             "index": 27
         },
         "stack": {
@@ -1760,30 +1768,30 @@ export const rewriteSemanticOperations = [
     },
     {
         "id": 69,
-        "name": "StoreIndirect8",
+        "name": "LoadIndirect16",
         "operands": [],
         "width": 1,
         "backend": {
             "kind": "recipe",
-            "name": "storeIndirect8",
+            "name": "loadIndirect16",
             "index": 28
         },
         "stack": {
-            "in": 2,
-            "out": 0,
-            "encoded": 32
+            "in": 1,
+            "out": 1,
+            "encoded": 17
         },
         "source": "direct",
         "trace": "operation-start"
     },
     {
         "id": 70,
-        "name": "StoreIndirect16",
+        "name": "StoreIndirect8",
         "operands": [],
         "width": 1,
         "backend": {
             "kind": "recipe",
-            "name": "storeIndirect16",
+            "name": "storeIndirect8",
             "index": 29
         },
         "stack": {
@@ -1796,6 +1804,24 @@ export const rewriteSemanticOperations = [
     },
     {
         "id": 71,
+        "name": "StoreIndirect16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeIndirect16",
+            "index": 30
+        },
+        "stack": {
+            "in": 2,
+            "out": 0,
+            "encoded": 32
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 72,
         "name": "CopyAggregate",
         "operands": [
             {
@@ -1828,7 +1854,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 72,
+        "id": 73,
         "name": "StringLength",
         "operands": [
             {
@@ -1850,7 +1876,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "stringLength",
-            "index": 30
+            "index": 31
         },
         "stack": {
             "in": 1,
@@ -1861,7 +1887,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 73,
+        "id": 74,
         "name": "StringIndex",
         "operands": [
             {
@@ -1883,7 +1909,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "stringIndex",
-            "index": 31
+            "index": 32
         },
         "stack": {
             "in": 2,
@@ -1894,7 +1920,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 74,
+        "id": 75,
         "name": "FailRoutine",
         "operands": [
             {
@@ -1920,7 +1946,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 75,
+        "id": 76,
         "name": "FailMain",
         "operands": [
             {
@@ -1946,7 +1972,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 76,
+        "id": 77,
         "name": "ReturnFailableScalar",
         "operands": [],
         "width": 1,
@@ -1964,7 +1990,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 77,
+        "id": 78,
         "name": "ReturnFailableAggregate",
         "operands": [],
         "width": 1,
@@ -1982,7 +2008,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 78,
+        "id": 79,
         "name": "EndFailableRoutineDirect",
         "operands": [
             {
@@ -2008,7 +2034,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 79,
+        "id": 80,
         "name": "EndFailableRoutineEnclosing",
         "operands": [
             {
@@ -2034,7 +2060,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 80,
+        "id": 81,
         "name": "SkipHandler",
         "operands": [
             {
@@ -2060,7 +2086,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 81,
+        "id": 82,
         "name": "BeginHandlerProgram",
         "operands": [
             {
@@ -2100,7 +2126,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 82,
+        "id": 83,
         "name": "BeginHandlerBss",
         "operands": [
             {
@@ -2140,7 +2166,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 83,
+        "id": 84,
         "name": "BeginHandlerLocal",
         "operands": [
             {
@@ -2180,7 +2206,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 84,
+        "id": 85,
         "name": "EndHandler",
         "operands": [
             {
@@ -2206,7 +2232,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 85,
+        "id": 86,
         "name": "BeginCallableMain",
         "operands": [
             {
@@ -2239,7 +2265,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 86,
+        "id": 87,
         "name": "LoadReadOnlyAlias",
         "operands": [
             {
@@ -2254,7 +2280,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "loadReadOnlyAlias",
-            "index": 32
+            "index": 33
         },
         "stack": {
             "in": 0,
@@ -2265,7 +2291,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 87,
+        "id": 88,
         "name": "OpenStringLength",
         "operands": [
             {
@@ -2298,7 +2324,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 88,
+        "id": 89,
         "name": "OpenStringIndex",
         "operands": [
             {
@@ -2331,7 +2357,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 89,
+        "id": 90,
         "name": "PrepareOpenStringDirect",
         "operands": [
             {
@@ -2364,7 +2390,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 90,
+        "id": 91,
         "name": "PrepareOpenStringForward",
         "operands": [
             {
@@ -2397,7 +2423,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 91,
+        "id": 92,
         "name": "PrepareOpenArrayDirect",
         "operands": [
             {
@@ -2430,7 +2456,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 92,
+        "id": 93,
         "name": "PrepareOpenArrayForward",
         "operands": [
             {
@@ -2463,7 +2489,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 93,
+        "id": 94,
         "name": "OpenStringCapacity",
         "operands": [
             {
@@ -2478,7 +2504,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "openStringCapacity",
-            "index": 33
+            "index": 34
         },
         "stack": {
             "in": 1,
@@ -2489,7 +2515,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 94,
+        "id": 95,
         "name": "OpenStringResize",
         "operands": [
             {
@@ -2522,7 +2548,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 95,
+        "id": 96,
         "name": "ArrayLength",
         "operands": [
             {
@@ -2537,7 +2563,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "arrayLength",
-            "index": 34
+            "index": 35
         },
         "stack": {
             "in": 1,
@@ -2548,7 +2574,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 96,
+        "id": 97,
         "name": "OpenArrayLength",
         "operands": [
             {
@@ -2563,7 +2589,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "openArrayLength",
-            "index": 35
+            "index": 36
         },
         "stack": {
             "in": 1,
@@ -2574,7 +2600,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 97,
+        "id": 98,
         "name": "OpenArrayIndex",
         "operands": [
             {
@@ -2614,7 +2640,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 98,
+        "id": 99,
         "name": "ConvertInteger",
         "operands": [
             {
@@ -2654,7 +2680,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 99,
+        "id": 100,
         "name": "DivideSigned",
         "operands": [
             {
@@ -2687,7 +2713,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 100,
+        "id": 101,
         "name": "PromoteI8Pair",
         "operands": [
             {
@@ -2713,7 +2739,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 101,
+        "id": 102,
         "name": "LoadBssU8",
         "operands": [
             {
@@ -2728,7 +2754,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "loadBssU8",
-            "index": 36
+            "index": 37
         },
         "stack": {
             "in": 0,
@@ -2739,7 +2765,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 102,
+        "id": 103,
         "name": "LoadBss16",
         "operands": [
             {
@@ -2754,7 +2780,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "loadBss16",
-            "index": 37
+            "index": 38
         },
         "stack": {
             "in": 0,
@@ -2765,7 +2791,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 103,
+        "id": 104,
         "name": "StoreBssU8",
         "operands": [
             {
@@ -2780,7 +2806,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "storeBssU8",
-            "index": 38
+            "index": 39
         },
         "stack": {
             "in": 1,
@@ -2791,7 +2817,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 104,
+        "id": 105,
         "name": "StoreBss16",
         "operands": [
             {
@@ -2806,7 +2832,7 @@ export const rewriteSemanticOperations = [
         "backend": {
             "kind": "recipe",
             "name": "storeBss16",
-            "index": 39
+            "index": 40
         },
         "stack": {
             "in": 1,
@@ -2818,7 +2844,7 @@ export const rewriteSemanticOperations = [
     }
 ];
 export const rewriteSemanticOperationMaximumWidth = 10;
-const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
+const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
 export const rewriteSemanticOperationKeys = (payload, operationCount) => {
     if (!Number.isInteger(operationCount) || operationCount < 0 || operationCount > 255) {
         throw new Error(`invalid rewrite semantic operation count ${operationCount}`);

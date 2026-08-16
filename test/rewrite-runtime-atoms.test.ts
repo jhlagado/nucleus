@@ -65,6 +65,10 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedExpressionSemanticsEnd ?? -1;
   const expectedPathStart = image.symbols.ProofExpectedPathSemantics ?? -1;
   const expectedPathEnd = image.symbols.ProofExpectedPathSemanticsEnd ?? -1;
+  const expectedPostfixAssignmentStart =
+    image.symbols.ProofExpectedPostfixAssignmentSemantics ?? -1;
+  const expectedPostfixAssignmentEnd =
+    image.symbols.ProofExpectedPostfixAssignmentSemanticsEnd ?? -1;
   const expectedCallStart = image.symbols.ProofExpectedCallSemantics ?? -1;
   const expectedCallEnd = image.symbols.ProofExpectedCallSemanticsEnd ?? -1;
   const expectedAssignmentStart =
@@ -95,6 +99,12 @@ const run = (entryName: string) => {
     expectedPathSemantics: Array.from(
       memory.slice(expectedPathStart, expectedPathEnd),
     ),
+    expectedPostfixAssignmentSemantics: Array.from(
+      memory.slice(
+        expectedPostfixAssignmentStart,
+        expectedPostfixAssignmentEnd,
+      ),
+    ),
     expectedCallSemantics: Array.from(
       memory.slice(expectedCallStart, expectedCallEnd),
     ),
@@ -115,8 +125,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 62_959,
-      cycles: 575_386,
+      instructions: 62_973,
+      cycles: 575_568,
     });
   });
 
@@ -127,21 +137,35 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 124_386,
-      cycles: 1_125_947,
+      instructions: 124_410,
+      cycles: 1_126_259,
     });
   });
 
   it("iterates record, fixed/open array, and bounded/open string postfixes", () => {
     const result = run("ProofRuntimePaths");
-    expect(result.semanticOperations).toBe(61);
+    expect(result.semanticOperations).toBe(63);
     expect(result.semantics).toEqual(result.expectedPathSemantics);
     expect(result).toMatchObject({
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 106_522,
-      cycles: 955_108,
+      instructions: 106_793,
+      cycles: 957_748,
+    });
+  });
+
+  it("assigns through fixed/open postfixes and retains the target across failure", () => {
+    const result = run("ProofRuntimePostfixAssignments");
+    expect(result.semanticOperations).toBe(35);
+    expect(result.semantics).toEqual(
+      result.expectedPostfixAssignmentSemantics,
+    );
+    expect(result).toMatchObject({
+      status: 0xe7,
+      diagnostic: 0,
+      instructions: 64_504,
+      cycles: 579_229,
     });
   });
 
@@ -153,8 +177,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 97_084,
-      cycles: 876_436,
+      instructions: 97_103,
+      cycles: 876_642,
     });
   });
 
@@ -164,8 +188,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_046,
-      cycles: 110_585,
+      instructions: 12_052,
+      cycles: 110_643,
     });
   });
 
@@ -175,8 +199,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_214,
-      cycles: 200_535,
+      instructions: 22_216,
+      cycles: 200_561,
     });
   });
 
@@ -186,8 +210,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 39_535,
-      cycles: 359_349,
+      instructions: 39_537,
+      cycles: 359_375,
     });
   });
 
@@ -197,8 +221,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_154,
-      cycles: 129_622,
+      instructions: 14_156,
+      cycles: 129_648,
     });
   });
 
@@ -209,8 +233,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 38_599,
-      cycles: 348_998,
+      instructions: 38_704,
+      cycles: 349_957,
     });
   });
 
@@ -225,6 +249,17 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     },
   );
 
+  it.each([
+    ["ProofRuntimeAssignmentReadOnlyAggregate", 0xe8, 94],
+    ["ProofRuntimeAssignmentFixedStringLength", 0xe9, 60],
+    ["ProofRuntimeAssignmentOpenWhole", 0xea, 60],
+  ] as const)(
+    "preserves the frozen postfix-assignment diagnostic at %s",
+    (entry, status, diagnostic) => {
+      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1 });
+    },
+  );
+
   it("publishes success, failure, bare, main, and enclosing routine exits", () => {
     const result = run("ProofRuntimeRoutineExits");
     expect(result.semanticOperations).toBe(14);
@@ -232,8 +267,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xde,
       diagnostic: 0,
-      instructions: 34_745,
-      cycles: 315_416,
+      instructions: 34_753,
+      cycles: 315_520,
     });
   });
 
@@ -242,8 +277,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xe4,
       diagnostic: 0,
       semanticOperations: 3,
-      instructions: 9_940,
-      cycles: 92_118,
+      instructions: 9_942,
+      cycles: 92_144,
     });
   });
 
@@ -275,8 +310,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 27_818,
-      cycles: 250_926,
+      instructions: 27_835,
+      cycles: 251_107,
     });
   });
 
@@ -377,16 +412,16 @@ describe("ground-up rewrite runtime scalar expressions", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      operations: 104,
+      operations: 105,
       escapes: 56,
       actionCode: 239,
       actionData: 445,
-      expression: 4_250,
-      statements: 530,
+      expression: 4_339,
+      statements: 717,
       declarations: 1_528,
-      code: 11_274,
-      immutable: 1_458,
-      core: 12_732,
+      code: 11_552,
+      immutable: 1_464,
+      core: 13_016,
       workspace: 3_425,
     });
   });

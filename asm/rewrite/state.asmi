@@ -318,6 +318,16 @@ RewriteStatementTargetPayload .equ RewriteStaticPendingOffset ; word
 RewriteStatementTargetStorage .equ RewriteStaticPendingLength
 RewriteStatementTargetClass   .equ RewriteStaticPendingByte
 RewriteStatementExitSourceOffset .equ RewriteStaticPendingOffset ; word
+; Statement-only assignment state overlays the dead static-construction
+; staging prefix. PathAssignmentMode is nonzero only while the left postfix
+; chain is being selected. TargetMode survives the right expression: zero is
+; a direct scalar, one is an indirect scalar/aggregate carrier, and two is an
+; open-string length carrier. RetainedCarriers is copied into the declared
+; call operand when a failable right expression is consumed.
+RewriteStatementTargetMode      .equ RewriteStaticPendingSource
+RewritePathAssignmentMode       .equ RewriteStaticPendingSource+1
+RewriteStatementRetainedCarriers .equ RewriteStaticPendingLength+1
+RewriteStatementTargetSourceOffset .equ RewriteStaticPendingOffset ; word
 RewriteInitializerCapacity  .equ 1024
 RewriteInitializerBase       .equ RewriteStaticPendingLimit
 RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapacity
@@ -462,6 +472,7 @@ DiagnosticLoopStep           .equ 74
 DiagnosticSourcePartCapacity .equ 88
 DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
+DiagnosticReadOnlyAssignment .equ 94
 DiagnosticAssertionFailed    .equ 91
 
 ; Expected-token diagnostics retain the published production-token ordinals,

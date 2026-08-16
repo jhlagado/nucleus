@@ -66,47 +66,48 @@ RewriteSemanticReturnAggregate .equ 60
 RewriteSemanticEndGeneralRoutineDirect .equ 61
 RewriteSemanticEndGeneralRoutineEnclosing .equ 62
 RewriteSemanticLoadProgramAlias .equ 63
-RewriteSemanticLoadParameterAlias .equ 64
-RewriteSemanticSelectField .equ 65
-RewriteSemanticSelectIndex .equ 66
-RewriteSemanticLoadIndirect8 .equ 67
-RewriteSemanticLoadIndirect16 .equ 68
-RewriteSemanticStoreIndirect8 .equ 69
-RewriteSemanticStoreIndirect16 .equ 70
-RewriteSemanticCopyAggregate .equ 71
-RewriteSemanticStringLength .equ 72
-RewriteSemanticStringIndex .equ 73
-RewriteSemanticFailRoutine .equ 74
-RewriteSemanticFailMain .equ 75
-RewriteSemanticReturnFailableScalar .equ 76
-RewriteSemanticReturnFailableAggregate .equ 77
-RewriteSemanticEndFailableRoutineDirect .equ 78
-RewriteSemanticEndFailableRoutineEnclosing .equ 79
-RewriteSemanticSkipHandler .equ 80
-RewriteSemanticBeginHandlerProgram .equ 81
-RewriteSemanticBeginHandlerBss .equ 82
-RewriteSemanticBeginHandlerLocal .equ 83
-RewriteSemanticEndHandler .equ 84
-RewriteSemanticBeginCallableMain .equ 85
-RewriteSemanticLoadReadOnlyAlias .equ 86
-RewriteSemanticOpenStringLength .equ 87
-RewriteSemanticOpenStringIndex .equ 88
-RewriteSemanticPrepareOpenStringDirect .equ 89
-RewriteSemanticPrepareOpenStringForward .equ 90
-RewriteSemanticPrepareOpenArrayDirect .equ 91
-RewriteSemanticPrepareOpenArrayForward .equ 92
-RewriteSemanticOpenStringCapacity .equ 93
-RewriteSemanticOpenStringResize .equ 94
-RewriteSemanticArrayLength .equ 95
-RewriteSemanticOpenArrayLength .equ 96
-RewriteSemanticOpenArrayIndex .equ 97
-RewriteSemanticConvertInteger .equ 98
-RewriteSemanticDivideSigned .equ 99
-RewriteSemanticPromoteI8Pair .equ 100
-RewriteSemanticLoadBssU8 .equ 101
-RewriteSemanticLoadBss16 .equ 102
-RewriteSemanticStoreBssU8 .equ 103
-RewriteSemanticStoreBss16 .equ 104
+RewriteSemanticLoadBssAlias .equ 64
+RewriteSemanticLoadParameterAlias .equ 65
+RewriteSemanticSelectField .equ 66
+RewriteSemanticSelectIndex .equ 67
+RewriteSemanticLoadIndirect8 .equ 68
+RewriteSemanticLoadIndirect16 .equ 69
+RewriteSemanticStoreIndirect8 .equ 70
+RewriteSemanticStoreIndirect16 .equ 71
+RewriteSemanticCopyAggregate .equ 72
+RewriteSemanticStringLength .equ 73
+RewriteSemanticStringIndex .equ 74
+RewriteSemanticFailRoutine .equ 75
+RewriteSemanticFailMain .equ 76
+RewriteSemanticReturnFailableScalar .equ 77
+RewriteSemanticReturnFailableAggregate .equ 78
+RewriteSemanticEndFailableRoutineDirect .equ 79
+RewriteSemanticEndFailableRoutineEnclosing .equ 80
+RewriteSemanticSkipHandler .equ 81
+RewriteSemanticBeginHandlerProgram .equ 82
+RewriteSemanticBeginHandlerBss .equ 83
+RewriteSemanticBeginHandlerLocal .equ 84
+RewriteSemanticEndHandler .equ 85
+RewriteSemanticBeginCallableMain .equ 86
+RewriteSemanticLoadReadOnlyAlias .equ 87
+RewriteSemanticOpenStringLength .equ 88
+RewriteSemanticOpenStringIndex .equ 89
+RewriteSemanticPrepareOpenStringDirect .equ 90
+RewriteSemanticPrepareOpenStringForward .equ 91
+RewriteSemanticPrepareOpenArrayDirect .equ 92
+RewriteSemanticPrepareOpenArrayForward .equ 93
+RewriteSemanticOpenStringCapacity .equ 94
+RewriteSemanticOpenStringResize .equ 95
+RewriteSemanticArrayLength .equ 96
+RewriteSemanticOpenArrayLength .equ 97
+RewriteSemanticOpenArrayIndex .equ 98
+RewriteSemanticConvertInteger .equ 99
+RewriteSemanticDivideSigned .equ 100
+RewriteSemanticPromoteI8Pair .equ 101
+RewriteSemanticLoadBssU8 .equ 102
+RewriteSemanticLoadBss16 .equ 103
+RewriteSemanticStoreBssU8 .equ 104
+RewriteSemanticStoreBss16 .equ 105
 RewriteSemanticDefineProgramU8RecordWidth .equ 3
 RewriteSemanticDefineProgramU8OperandOffsetOffset .equ 0
 RewriteSemanticDefineProgramU8OperandInitialOffset .equ 1
@@ -365,6 +366,10 @@ RewriteSemanticLoadProgramAliasRecordWidth .equ 3
 RewriteSemanticLoadProgramAliasOperandOffsetOffset .equ 0
 RewriteSemanticLoadProgramAliasRecordOperandOffsetOffset .equ 1
 RewriteSemanticLoadProgramAliasOperandOffsetWidth .equ 2
+RewriteSemanticLoadBssAliasRecordWidth .equ 3
+RewriteSemanticLoadBssAliasOperandOffsetOffset .equ 0
+RewriteSemanticLoadBssAliasRecordOperandOffsetOffset .equ 1
+RewriteSemanticLoadBssAliasOperandOffsetWidth .equ 2
 RewriteSemanticLoadParameterAliasRecordWidth .equ 2
 RewriteSemanticLoadParameterAliasOperandOffsetOffset .equ 0
 RewriteSemanticLoadParameterAliasRecordOperandOffsetOffset .equ 1
@@ -583,7 +588,7 @@ RewriteSemanticStoreBss16RecordWidth .equ 3
 RewriteSemanticStoreBss16OperandOffsetOffset .equ 0
 RewriteSemanticStoreBss16RecordOperandOffsetOffset .equ 1
 RewriteSemanticStoreBss16OperandOffsetWidth .equ 2
-RewriteSemanticOperationCount .equ 104
+RewriteSemanticOperationCount .equ 105
 RewriteSemanticDescriptorSize .equ 5
 RewriteSemanticMaximumRecordWidth .equ 10
 RewriteSemanticSourceNone .equ 0
@@ -615,23 +620,24 @@ RewriteRecipeBranchFalse .equ 20
 RewriteRecipeJump .equ 21
 RewriteRecipeReturnScalar .equ 22
 RewriteRecipeLoadProgramAlias .equ 23
-RewriteRecipeLoadParameterAlias .equ 24
-RewriteRecipeSelectField .equ 25
-RewriteRecipeLoadIndirect8 .equ 26
-RewriteRecipeLoadIndirect16 .equ 27
-RewriteRecipeStoreIndirect8 .equ 28
-RewriteRecipeStoreIndirect16 .equ 29
-RewriteRecipeStringLength .equ 30
-RewriteRecipeStringIndex .equ 31
-RewriteRecipeLoadReadOnlyAlias .equ 32
-RewriteRecipeOpenStringCapacity .equ 33
-RewriteRecipeArrayLength .equ 34
-RewriteRecipeOpenArrayLength .equ 35
-RewriteRecipeLoadBssU8 .equ 36
-RewriteRecipeLoadBss16 .equ 37
-RewriteRecipeStoreBssU8 .equ 38
-RewriteRecipeStoreBss16 .equ 39
-RewriteRecipeCount .equ 40
+RewriteRecipeLoadBssAlias .equ 24
+RewriteRecipeLoadParameterAlias .equ 25
+RewriteRecipeSelectField .equ 26
+RewriteRecipeLoadIndirect8 .equ 27
+RewriteRecipeLoadIndirect16 .equ 28
+RewriteRecipeStoreIndirect8 .equ 29
+RewriteRecipeStoreIndirect16 .equ 30
+RewriteRecipeStringLength .equ 31
+RewriteRecipeStringIndex .equ 32
+RewriteRecipeLoadReadOnlyAlias .equ 33
+RewriteRecipeOpenStringCapacity .equ 34
+RewriteRecipeArrayLength .equ 35
+RewriteRecipeOpenArrayLength .equ 36
+RewriteRecipeLoadBssU8 .equ 37
+RewriteRecipeLoadBss16 .equ 38
+RewriteRecipeStoreBssU8 .equ 39
+RewriteRecipeStoreBss16 .equ 40
+RewriteRecipeCount .equ 41
 RewriteEscapeDivideUnsigned .equ 0
 RewriteEscapeNarrowU8 .equ 1
 RewriteEscapeBooleanBegin .equ 2
@@ -730,6 +736,7 @@ RewriteSemanticOperationWidthTable:
             .db 2 ; EndGeneralRoutineDirect
             .db 2 ; EndGeneralRoutineEnclosing
             .db 3 ; LoadProgramAlias
+            .db 3 ; LoadBssAlias
             .db 2 ; LoadParameterAlias
             .db 3 ; SelectField
             .db 7 ; SelectIndex
@@ -835,16 +842,17 @@ RewriteSemanticOperationDescriptorTable:
             .db $02,$91,$00,$0C,$00 ; EndGeneralRoutineDirect
             .db $02,$A1,$00,$0C,$00 ; EndGeneralRoutineEnclosing
             .db $03,$11,$01,$17,$01 ; LoadProgramAlias
-            .db $02,$11,$00,$18,$01 ; LoadParameterAlias
-            .db $03,$11,$01,$19,$11 ; SelectField
+            .db $03,$11,$01,$18,$01 ; LoadBssAlias
+            .db $02,$11,$00,$19,$01 ; LoadParameterAlias
+            .db $03,$11,$01,$1A,$11 ; SelectField
             .db $07,$93,$07,$0D,$21 ; SelectIndex
-            .db $01,$10,$00,$1A,$11 ; LoadIndirect8
-            .db $01,$10,$00,$1B,$11 ; LoadIndirect16
-            .db $01,$10,$00,$1C,$20 ; StoreIndirect8
-            .db $01,$10,$00,$1D,$20 ; StoreIndirect16
+            .db $01,$10,$00,$1B,$11 ; LoadIndirect8
+            .db $01,$10,$00,$1C,$11 ; LoadIndirect16
+            .db $01,$10,$00,$1D,$20 ; StoreIndirect8
+            .db $01,$10,$00,$1E,$20 ; StoreIndirect16
             .db $05,$92,$03,$0E,$20 ; CopyAggregate
-            .db $04,$12,$02,$1E,$11 ; StringLength
-            .db $04,$12,$02,$1F,$21 ; StringIndex
+            .db $04,$12,$02,$1F,$11 ; StringLength
+            .db $04,$12,$02,$20,$21 ; StringIndex
             .db $03,$91,$01,$0F,$10 ; FailRoutine
             .db $03,$91,$01,$10,$10 ; FailMain
             .db $01,$90,$00,$11,$10 ; ReturnFailableScalar
@@ -857,23 +865,23 @@ RewriteSemanticOperationDescriptorTable:
             .db $04,$93,$00,$14,$00 ; BeginHandlerLocal
             .db $02,$A1,$00,$16,$00 ; EndHandler
             .db $03,$92,$00,$17,$00 ; BeginCallableMain
-            .db $03,$11,$01,$20,$01 ; LoadReadOnlyAlias
+            .db $03,$11,$01,$21,$01 ; LoadReadOnlyAlias
             .db $04,$92,$02,$18,$11 ; OpenStringLength
             .db $04,$92,$02,$19,$21 ; OpenStringIndex
             .db $03,$92,$00,$1A,$12 ; PrepareOpenStringDirect
             .db $03,$92,$00,$1A,$12 ; PrepareOpenStringForward
             .db $04,$92,$02,$1A,$12 ; PrepareOpenArrayDirect
             .db $04,$92,$02,$1A,$12 ; PrepareOpenArrayForward
-            .db $02,$11,$00,$21,$11 ; OpenStringCapacity
+            .db $02,$11,$00,$22,$11 ; OpenStringCapacity
             .db $04,$92,$02,$1B,$20 ; OpenStringResize
-            .db $03,$11,$01,$22,$11 ; ArrayLength
-            .db $02,$11,$00,$23,$11 ; OpenArrayLength
+            .db $03,$11,$01,$23,$11 ; ArrayLength
+            .db $02,$11,$00,$24,$11 ; OpenArrayLength
             .db $06,$93,$06,$1C,$21 ; OpenArrayIndex
             .db $05,$93,$04,$1D,$11 ; ConvertInteger
             .db $04,$92,$02,$1E,$21 ; DivideSigned
             .db $02,$91,$00,$1F,$22 ; PromoteI8Pair
-            .db $03,$11,$01,$24,$01 ; LoadBssU8
-            .db $03,$11,$01,$25,$01 ; LoadBss16
-            .db $03,$11,$01,$26,$10 ; StoreBssU8
-            .db $03,$11,$01,$27,$10 ; StoreBss16
+            .db $03,$11,$01,$25,$01 ; LoadBssU8
+            .db $03,$11,$01,$26,$01 ; LoadBss16
+            .db $03,$11,$01,$27,$10 ; StoreBssU8
+            .db $03,$11,$01,$28,$10 ; StoreBss16
 RewriteSemanticOperationDescriptorTableEnd:

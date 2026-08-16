@@ -111,11 +111,11 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       semanticBytes: 224,
-      operationBytes: 624,
-      coreBytes: 12_736,
+      operationBytes: 630,
+      coreBytes: 13_020,
       workspaceBytes: 3_425,
     });
-    expect(rewriteSemanticOperations).toHaveLength(104);
+    expect(rewriteSemanticOperations).toHaveLength(105);
     expect(rewriteSemanticOperationMaximumWidth).toBe(10);
     expect(image.symbols.RewriteSemanticOperandCapacity).toBe(
       rewriteSemanticOperationMaximumWidth - 1,
@@ -395,6 +395,7 @@ describe("ground-up rewrite semantic authority", () => {
       "StoreProgram16",
       "ForSetup",
       "LoadProgramAlias",
+      "LoadBssAlias",
       "SelectField",
       "FailRoutine",
       "FailMain",
@@ -434,7 +435,7 @@ describe("ground-up rewrite semantic authority", () => {
     expectWidth(9, ["ForNext"]);
     expectWidth(10, ["CallSource"]);
 
-    expect(widths.size).toBe(104);
+    expect(widths.size).toBe(105);
     expect([...checked].sort()).toEqual([...widths.keys()].sort());
     expect(
       (widths.get("Literal16") ?? 0) + (widths.get("StoreProgram16") ?? 0),
@@ -596,6 +597,7 @@ describe("ground-up rewrite semantic authority", () => {
       "LoadBss16",
       "StoreBssU8",
       "StoreBss16",
+      "LoadBssAlias",
       "BeginHandlerBss",
     ]);
     const frozenOperations = rewriteSemanticOperations.filter(

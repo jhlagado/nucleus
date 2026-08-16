@@ -62,6 +62,8 @@ RewriteExpressionBeginRuntime:
             LD   A,1
             LD   (RewriteExpressionMode),A
             XOR  A
+            LD   (RewritePathAssignmentMode),A
+            LD   (RewriteStatementRetainedCarriers),A
             LD   (RewritePendingFailure),A
             LD   (RewritePendingFailureOffset),A
             LD   (RewritePendingFailureOffset+1),A
@@ -371,9 +373,18 @@ _RewritePathRootOpenParameter:
 _RewritePathRootProgram:
             LD   A,(RewriteExpressionRightMeta)
             CP   RewriteSymbolStorageReadOnly
-            LD   A,RewriteSemanticLoadReadOnlyAlias
-            JR   Z,_RewritePathRootProgramReady
+            JR   Z,_RewritePathRootProgramReadOnly
+            CP   RewriteSymbolStorageBss
+            JR   Z,_RewritePathRootProgramBss
+            CP   RewriteSymbolStorageInitialized
+            JR   NZ,_RewritePathRootTypeFailure
             LD   A,RewriteSemanticLoadProgramAlias
+            JR   _RewritePathRootProgramReady
+_RewritePathRootProgramReadOnly:
+            LD   A,RewriteSemanticLoadReadOnlyAlias
+            JR   _RewritePathRootProgramReady
+_RewritePathRootProgramBss:
+            LD   A,RewriteSemanticLoadBssAlias
             JR   _RewritePathRootProgramReady
 _RewritePathRootReadOnly:
             LD   A,RewriteSemanticLoadReadOnlyAlias
@@ -968,6 +979,10 @@ _RewriteCallConsumePending:
 _RewriteCallConsumeModeReady:
             LD   HL,(RewritePendingCallModePointer)
             LD   (HL),A
+            INC  HL
+            INC  HL
+            LD   A,(RewriteStatementRetainedCarriers)
+            LD   (HL),A
             XOR  A
             LD   (RewritePendingFailure),A
             RET
@@ -982,6 +997,9 @@ RewritePathFinishScalar:
             JR   Z,_RewritePathFinishTypeFailure
             CP   TokenLeftBracket
             JR   Z,_RewritePathFinishTypeFailure
+            LD   A,(RewritePathAssignmentMode)
+            OR   A
+            JR   NZ,_RewritePathFinishSelected
             LD   A,(RewritePathType)
             BIT  1,A
             LD   A,RewriteSemanticLoadIndirect8
@@ -990,6 +1008,7 @@ RewritePathFinishScalar:
 _RewritePathFinishAppend:
             LD   HL,RewriteSemanticOperandArea
             CALL RewriteSemanticAppend
+_RewritePathFinishSelected:
             XOR  A
             LD   (RewriteExpressionKnown),A
             LD   A,(RewritePathType)
@@ -1094,6 +1113,9 @@ _RewritePathStringProperty:
             LD   B,8
             CALL RewritePathNameEquals
             JP   NC,_RewritePathDotTypeFailure
+            LD   A,(RewritePathAssignmentMode)
+            OR   A
+            JP   NZ,_RewritePathDotTypeFailure
             LD   A,(RewritePathType)
             CP   RewriteOpenStringTypeId
             JP   NZ,_RewritePathDotTypeFailure
@@ -1104,6 +1126,19 @@ _RewritePathStringProperty:
             CALL RewriteSemanticAppend
             JR   _RewritePathPropertyReady
 _RewritePathStringLength:
+            LD   A,(RewritePathAssignmentMode)
+            OR   A
+            JR   Z,_RewritePathStringLengthRead
+            LD   A,(RewritePathType)
+            CP   RewriteOpenStringTypeId
+            JP   NZ,_RewritePathDotTypeFailure
+            LD   A,(RewritePathCountOffset)
+            LD   (RewriteStatementTargetClass),A
+            LD   A,2
+            LD   (RewriteStatementTargetMode),A
+            LD   A,RewriteScalarTypeU8
+            JP   RewritePathReturnScalarValue
+_RewritePathStringLengthRead:
             LD   A,(RewritePathType)
             CP   RewriteOpenStringTypeId
             JR   Z,_RewritePathOpenStringLength
@@ -1136,6 +1171,9 @@ _RewritePathArrayProperty:
             LD   B,6
             CALL RewritePathNameEquals
             JP   NC,_RewritePathDotTypeFailure
+            LD   A,(RewritePathAssignmentMode)
+            OR   A
+            JP   NZ,_RewritePathDotTypeFailure
             LD   A,(RewritePathType)
             CP   RewriteOpenArrayFlag
             JR   NC,_RewritePathOpenArrayLength
@@ -1167,6 +1205,10 @@ _RewritePathIndex:
             LD   C,A
             PUSH BC
             PUSH HL
+            LD   A,(RewritePathAssignmentMode)
+            PUSH AF
+            XOR  A
+            LD   (RewritePathAssignmentMode),A
             CALL RewriteParserTake
             LD   A,(RewriteExpressionExpectedType)
             LD   DE,0
@@ -1193,6 +1235,8 @@ _RewritePathIndex:
             LD   HL,(RewriteExpressionRightValue)
             LD   DE,(RewriteExpressionRightOffset)
             CALL RewritePathPrepareIndex
+            POP  AF
+            LD   (RewritePathAssignmentMode),A
             POP  DE
             LD   (RewritePathSourceOffset),DE
             POP  BC
@@ -1272,7 +1316,7 @@ _RewritePathStringIndexAppend:
             LD   HL,RewriteSemanticOperandArea
             CALL RewriteSemanticAppend
             LD   A,RewriteScalarTypeU8
-            JP   RewritePathReturnScalarValue
+            JP   RewritePathFinishScalar
 
 _RewritePathIndexRangeAtValue:
             LD   A,(RewriteExpressionSuppressFault)
@@ -1284,6 +1328,7 @@ _RewritePathExpectedName:
             LD   A,DiagnosticExpectedName
             JP   RewriteRaiseDiagnostic
 _RewritePathExpectedRightBracket:
+            POP  AF
             LD   A,DiagnosticExpectedRightBracket
             JP   RewriteRaiseDiagnostic
 _RewritePathDotTypeFailure:

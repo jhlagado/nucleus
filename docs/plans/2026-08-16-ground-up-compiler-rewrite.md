@@ -1358,9 +1358,9 @@ R5 local-handler checkpoint (Measured):
 - the accepted proof checks sixteen semantic records byte for byte across a
   same-destination scalar assignment and call statements handled by a local,
   an initialized program variable, and a BSS program variable. It compiles in
-  50,139 instructions and 451,608 T-states. A second 15-operation proof routes
-  `continue` and `exit` through an intervening handler frame in 32,837
-  instructions and 293,671 T-states;
+  50,166 instructions and 451,903 T-states. A second 15-operation proof routes
+  `continue` and `exit` through an intervening handler frame in 32,845
+  instructions and 293,793 T-states;
 - initialized and BSS program destinations use separate, equal-width handler
   operations. The distinction is an explicit storage identity: no payload or
   instruction-address bit is borrowed, and each program-handler record keeps
@@ -1371,13 +1371,53 @@ R5 local-handler checkpoint (Measured):
   counted-loop counter (36), and a missing destination name (130). Every case
   retains the frozen source part and byte offset;
 - the control region is 1,249 code bytes and the statement region is 530 code
-  bytes. The operation authority contains 104 operations; 56 generated
+  bytes. At this checkpoint the operation authority contained 104 operations;
+  56 generated
   escapes and 35 generated programs use 239 code bytes and 445 immutable
   bytes. The shipping replacement is 11,274 code + 1,458 immutable = 12,732
   core bytes; the instrumented replacement is 12,736 core bytes. Workspace is
   3,425 bytes. The interim 3,652-byte margin below 16 KiB remains
   observational only: frontend and backend completion may exceed it, and
   compression remains a later phase.
+
+R5 writable-postfix checkpoint (Measured):
+
+- the same iterative postfix engine now serves both reads and writes. Record
+  fields, fixed-array elements, open-array elements, bounded-string bytes, and
+  open-string bytes retain an address carrier until a width-specific indirect
+  store is published. Nested index expressions temporarily suspend assignment
+  mode, so their own paths remain ordinary values;
+- open `string[]` length assignment publishes `OpenStringResize` with the
+  hidden capacity activation offset and the complete right-expression source
+  offset. Fixed-string length, array length, and capacity remain read-only;
+- exact concrete aggregate assignment publishes `CopyAggregate` with its full
+  static extent and source offset. Open views cannot be whole-assignment
+  sources or destinations. Aggregate constants retain diagnostic 94 rather
+  than being mistaken for writable aliases;
+- a failable right expression patches the already-published source call with
+  one retained carrier for either propagation or local handling. The accepted
+  proof checks 35 semantic records byte for byte: 32 assignment records plus
+  a following three-record local initializer, including
+  `retainedCarriers = 1`. A following failable local initializer proves that
+  the retained count returns to zero. The complete proof executes in 64,504
+  compiler instructions and 579,229 T-states;
+- BSS aggregate roots now use a distinct `LoadBssAlias` operation instead of
+  sharing the initialized-program operation. Both records retain the same
+  three-byte width, and the distinction is explicit storage identity rather
+  than a donated address bit;
+- bounded and open string reads now append the required indirect byte load
+  after their checked index operation. The earlier replacement transcript had
+  retained the selected address but omitted that materialisation step; the
+  fixed proof now checks 63 records byte for byte; and
+- exact rejected cases cover an aggregate constant destination (94), fixed
+  bounded-string length assignment (60), and whole open-string assignment
+  (60), with frozen part and byte-offset provenance; and
+- the expression region is 4,339 code bytes and the statement region is 717
+  code bytes. The operation authority contains 105 operations. The shipping
+  replacement is 11,552 code + 1,464 immutable = 13,016 core bytes; the
+  instrumented replacement is 13,020 core bytes. Workspace remains 3,425
+  bytes. The nominal 3,368-byte margin below 16 KiB is an observation, not an
+  acceptance restriction during feature completion.
 
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
@@ -1502,8 +1542,9 @@ completeness. R4 now has runtime atoms, complete scalar precedence reduction,
 mixed signed promotion, conversions, comparisons, Boolean short-circuiting,
 explicit expression-initialized locals, the shared postfix path engine, typed
 source/service calls, concrete and forwarded open arguments, nested calls, and
-immediate `else fail` propagation. R5 now has scalar assignments, source and
-service call statements, scalar and aggregate returns, explicit routine/main
+immediate `else fail` propagation. R5 now has direct and postfix scalar
+assignments, exact aggregate assignment, open-string length assignment,
+source and service call statements, scalar and aggregate returns, explicit routine/main
 failure, bare return, routine-end fallthrough validation, complete
 `if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops,
 nearest-loop `exit`/`continue`, and local `handle` blocks. The next work is the
