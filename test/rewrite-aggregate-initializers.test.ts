@@ -128,9 +128,9 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
       escapes: 56,
       actionCode: 239,
       actionData: 445,
-      code: 12_594,
-      immutable: 1_918,
-      core: 14_512,
+      code: 13_143,
+      immutable: 1_976,
+      core: 15_119,
       workspace: 3_425,
     });
   });

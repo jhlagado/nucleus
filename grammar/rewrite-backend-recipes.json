@@ -1,5 +1,11 @@
 {
   "version": 1,
+  "escapes": {
+    "divideUnsigned": "RewriteBackendEscapeDivideUnsigned",
+    "narrowU8": "RewriteBackendEscapeNarrowU8",
+    "convertInteger": "RewriteBackendEscapeConvertInteger",
+    "divideSigned": "RewriteBackendEscapeDivideSigned"
+  },
   "selectors": {
     "declareLocalU8": [{ "emit": [59] }],
     "declareLocal16": [{ "emit": [59, 59] }],

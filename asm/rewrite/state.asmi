@@ -338,10 +338,28 @@ RewriteBackendOutputCursor   .equ RewriteInitializerBase ; word
 RewriteBackendOutputLimit    .equ RewriteInitializerBase+2 ; word
 RewriteBackendCurrentOperation .equ RewriteInitializerBase+4
 RewriteBackendRuntimeBase    .equ RewriteInitializerBase+5 ; word
-RewriteBackendRuntimeCallAddress .equ RewriteInitializerBase+7 ; word
-RewriteBackendBooleanFixupDepth .equ RewriteInitializerBase+9
-RewriteBackendBooleanFixupBase .equ RewriteInitializerBase+10
+RewriteBackendVectorBase     .equ RewriteInitializerBase+7 ; word
+RewriteBackendStateBase      .equ RewriteInitializerBase+9 ; word
+RewriteBackendTerminalAddress .equ RewriteInitializerBase+11 ; word
+RewriteBackendEntryBank      .equ RewriteInitializerBase+13
+RewriteBackendOutputBank     .equ RewriteInitializerBase+14
+RewriteBackendContextLimit   .equ RewriteInitializerBase+15
+RewriteBackendRuntimeCallAddress .equ RewriteBackendContextLimit ; word
+RewriteBackendTrapReason     .equ RewriteBackendContextLimit+2
+RewriteBackendTrapSourceOffset .equ RewriteBackendContextLimit+3 ; word
+RewriteBackendRelativeOperand .equ RewriteBackendContextLimit+5 ; word
+RewriteBackendBooleanFixupDepth .equ RewriteBackendContextLimit+7
+RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+8
 RewriteBackendBooleanFixupCapacity .equ 16
+
+; Deployment supplies this full-width record to RewriteBackendInitialize.
+RewriteBackendContextRuntimeBase .equ 0 ; word
+RewriteBackendContextVectorBase  .equ 2 ; word
+RewriteBackendContextStateBase   .equ 4 ; word
+RewriteBackendContextTerminal    .equ 6 ; word
+RewriteBackendContextEntryBank   .equ 8
+RewriteBackendContextOutputBank  .equ 9
+RewriteBackendContextSize        .equ 10
 RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity

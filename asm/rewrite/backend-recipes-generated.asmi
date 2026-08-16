@@ -60,6 +60,38 @@ RewriteBackendRecipeDirectory:
             .dw 0 ; storeBss16
 RewriteBackendRecipeDirectoryEnd:
 
+RewriteBackendEscapeDirectory:
+            .dw RewriteBackendEscapeDivideUnsigned ; divideUnsigned
+            .dw RewriteBackendEscapeNarrowU8 ; narrowU8
+            .dw 0 ; forSetup
+            .dw 0 ; forTest
+            .dw 0 ; forNext
+            .dw 0 ; forCleanup
+            .dw 0 ; beginRoutine
+            .dw 0 ; bindParameter
+            .dw 0 ; callSource
+            .dw 0 ; callService
+            .dw 0 ; endRoutine
+            .dw 0 ; selectIndex
+            .dw 0 ; copyAggregate
+            .dw 0 ; failRoutine
+            .dw 0 ; failMain
+            .dw 0 ; returnFailable
+            .dw 0 ; endFailableRoutine
+            .dw 0 ; skipHandler
+            .dw 0 ; beginHandler
+            .dw 0 ; beginHandlerBss
+            .dw 0 ; endHandler
+            .dw 0 ; beginCallableMain
+            .dw 0 ; openStringLength
+            .dw 0 ; openStringIndex
+            .dw 0 ; prepareOpenArgument
+            .dw 0 ; openStringResize
+            .dw 0 ; openArrayIndex
+            .dw RewriteBackendEscapeConvertInteger ; convertInteger
+            .dw RewriteBackendEscapeDivideSigned ; divideSigned
+RewriteBackendEscapeDirectoryEnd:
+
 RewriteBackendRecipeSelectorDeclareLocalU8:
             .db RewriteBackendRecipeEmit,1,$3B
             .db RewriteBackendRecipeEnd

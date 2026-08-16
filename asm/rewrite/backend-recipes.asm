@@ -4,13 +4,17 @@
 
             .include "../vertical-slice/nucleus-runtime-identity.asmi"
 
-; HL is the first writable target byte, DE its exclusive limit, and BC the
-; linked runtime base used by identity-fixed helper calls.
-.routine in HL,DE,BC out A,carry,zero clobbers sign,parity,halfCarry
+; HL is the first writable target byte, DE its exclusive limit, and IX a
+; complete RewriteBackendContextSize-byte deployment link context.
+.routine in HL,DE,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 RewriteBackendInitialize:
             LD   (RewriteBackendOutputCursor),HL
             LD   (RewriteBackendOutputLimit),DE
-            LD   (RewriteBackendRuntimeBase),BC
+            PUSH IX
+            POP  HL
+            LD   DE,RewriteBackendRuntimeBase
+            LD   BC,RewriteBackendContextSize
+            LDIR
             XOR  A
             LD   (RewriteBackendBooleanFixupDepth),A
             RET
@@ -34,9 +38,9 @@ RewriteBackendEmitByte:
             RET
 
 ; Dispatch one already-prefetched semantic operation in A. The semantic
-; descriptor supplies a dense recipe selector; the generated selector
-; directory supplies a complete recipe address. Escape-class and unavailable
-; recipes are rejected rather than silently skipped.
+; descriptor supplies a dense recipe or escape selector. Both generated
+; directories retain complete handler addresses; no compiler origin bits are
+; packed into either selector.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteBackendDispatchOperation:
             LD   (RewriteBackendCurrentOperation),A
@@ -55,11 +59,12 @@ RewriteBackendDispatchOperation:
             LD   DE,RewriteSemanticOperationDescriptorTable
             ADD  HL,DE
             INC  HL
-            BIT  7,(HL)
-            JP   NZ,RewriteBackendInvalid
+            LD   B,(HL)
             INC  HL
             INC  HL
             LD   A,(HL)
+            BIT  7,B
+            JR   NZ,RewriteBackendDispatchEscape
             CP   RewriteRecipeCount
             JP   NC,RewriteBackendInvalid
             LD   L,A
@@ -74,6 +79,24 @@ RewriteBackendDispatchOperation:
             OR   E
             JP   Z,RewriteBackendInvalid
             EX   DE,HL
+            JP   RewriteBackendRunRecipe
+
+RewriteBackendDispatchEscape:
+            CP   RewriteEscapeCount
+            JP   NC,RewriteBackendInvalid
+            LD   L,A
+            LD   H,0
+            ADD  HL,HL
+            LD   DE,RewriteBackendEscapeDirectory
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   A,D
+            OR   E
+            JP   Z,RewriteBackendInvalid
+            EX   DE,HL
+            JP   (HL)
 
 ; HL is the current generated recipe instruction. Literal target bytes and
 ; address-directory words are recipe data, not compiler-executed opcodes.
@@ -267,6 +290,278 @@ RewriteBackendRecipePatchRelativeFixup:
             LD   (DE),A
             POP  HL
             JP   RewriteBackendRecipeNext
+
+; Shared escape-emission primitives. These produce target instruction bytes;
+; the compiler executes only the mnemonics below. Full addresses always come
+; from the deployment context or the semantic operand buffer.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitWord:
+            LD   (RewriteBackendRuntimeCallAddress),HL
+            LD   A,(RewriteBackendRuntimeCallAddress)
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendRuntimeCallAddress+1)
+            JP   RewriteBackendEmitByte
+
+.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitOpcodeWord:
+            PUSH HL
+            CALL RewriteBackendEmitByte
+            POP  HL
+            JP   RewriteBackendEmitWord
+
+.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitRuntimeOffset:
+            LD   HL,(RewriteBackendRuntimeBase)
+            ADD  HL,DE
+            LD   A,$CD                    ; CALL nn
+            JP   RewriteBackendEmitOpcodeWord
+
+; A is a target JR opcode. DE returns the displacement-byte address.
+.routine in A out A,DE,carry,zero clobbers sign,parity,halfCarry,B,HL
+RewriteBackendEmitRelativePlaceholder:
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   D,H
+            LD   E,L
+            PUSH DE
+            XOR  A
+            CALL RewriteBackendEmitByte
+            POP  DE
+            RET
+
+; DE is a previously emitted JR displacement byte.
+.routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
+RewriteBackendPatchRelative:
+            LD   HL,(RewriteBackendOutputCursor)
+            INC  DE
+            OR   A
+            SBC  HL,DE
+            LD   C,L
+            LD   A,C
+            ADD  A,A
+            SBC  A,A
+            CP   H
+            JP   NZ,RewriteBackendFixupRangeFailure
+            DEC  DE
+            LD   A,C
+            LD   (DE),A
+            XOR  A
+            RET
+
+; Emit LD A,n for a byte retained in RewriteBackendTrapReason.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitLoadAImmediate:
+            LD   (RewriteBackendTrapReason),A
+            LD   A,$3E
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendTrapReason)
+            JP   RewriteBackendEmitByte
+
+; DE is a target-state-relative byte address; runtime A is stored there.
+.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitStateStoreA:
+            LD   HL,(RewriteBackendStateBase)
+            ADD  HL,DE
+            LD   A,$32                    ; LD (nn),A
+            JP   RewriteBackendEmitOpcodeWord
+
+; A is the runtime trap reason and HL is the source offset. The emitted tail
+; restores the root frame, publishes the complete trap record, and transfers
+; to the local terminal or the identity-defined far-jump vector.
+.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitTrap:
+            LD   (RewriteBackendTrapReason),A
+            LD   (RewriteBackendTrapSourceOffset),HL
+
+            LD   A,$21                    ; LD HL,sourceOffset
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,(RewriteBackendTrapReason)
+            CALL RewriteBackendEmitLoadAImmediate
+
+            LD   A,$ED                    ; LD SP,(nn)
+            CALL RewriteBackendEmitByte
+            LD   A,$7B
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,17                    ; RootSP-StateBase
+            ADD  HL,DE
+            CALL RewriteBackendEmitWord
+
+            LD   A,$DD                    ; LD IX,(nn)
+            CALL RewriteBackendEmitByte
+            LD   A,$2A
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,19                    ; RootIX-StateBase
+            ADD  HL,DE
+            CALL RewriteBackendEmitWord
+
+            LD   A,$F5                    ; PUSH AF
+            CALL RewriteBackendEmitByte
+            LD   A,$AF                    ; XOR A
+            CALL RewriteBackendEmitByte
+            LD   DE,6                     ; ActivationDepth-StateBase
+            CALL RewriteBackendEmitStateStoreA
+            LD   A,$F1                    ; POP AF
+            CALL RewriteBackendEmitByte
+            LD   DE,1                     ; TrapNumber-StateBase
+            CALL RewriteBackendEmitStateStoreA
+            LD   A,$AF                    ; XOR A
+            CALL RewriteBackendEmitByte
+            LD   DE,2                     ; TrapRoutine-StateBase
+            CALL RewriteBackendEmitStateStoreA
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,3                     ; TrapOffset-StateBase
+            ADD  HL,DE
+            LD   A,$22                    ; LD (nn),HL
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,3                      ; RunTrapped
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   DE,0                     ; RunState-StateBase
+            CALL RewriteBackendEmitStateStoreA
+
+            LD   A,(RewriteBackendEntryBank)
+            LD   B,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   B
+            JR   Z,RewriteBackendEmitTrapLocal
+            LD   A,B
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   HL,(RewriteBackendTerminalAddress)
+            LD   A,$21                    ; LD HL,nn
+            CALL RewriteBackendEmitOpcodeWord
+            LD   HL,(RewriteBackendVectorBase)
+            LD   DE,30                    ; far-jump vector ordinal 10 * 3
+            ADD  HL,DE
+            JR   RewriteBackendEmitTrapJump
+RewriteBackendEmitTrapLocal:
+            LD   HL,(RewriteBackendTerminalAddress)
+RewriteBackendEmitTrapJump:
+            LD   A,$C3                    ; JP nn
+            JP   RewriteBackendEmitOpcodeWord
+
+; Patch the retained success branch after a terminal trap body.
+.routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
+RewriteBackendEscapePatchSuccess:
+            JP   RewriteBackendPatchRelative
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeNarrowU8:
+            LD   A,$E1                    ; POP HL / LD A,H / OR A
+            CALL RewriteBackendEmitByte
+            LD   A,$7C
+            CALL RewriteBackendEmitByte
+            LD   A,$B7
+            CALL RewriteBackendEmitByte
+            LD   A,$28                    ; JR Z,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticNarrowU8OperandSourceOffsetOffset)
+            LD   A,2                      ; narrowing trap
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendEscapePatchSuccess
+            LD   A,$E5                    ; PUSH HL
+            JP   RewriteBackendEmitByte
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeConvertInteger:
+            LD   A,$E1                    ; POP HL
+            CALL RewriteBackendEmitByte
+            LD   A,$3E                    ; LD A,sourceType
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset)
+            CALL RewriteBackendEmitByte
+            LD   A,$0E                    ; LD C,targetType
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset)
+            CALL RewriteBackendEmitByte
+            LD   DE,NucleusRuntimeConvertIntegerOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceOffsetOffset)
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset)
+            RLCA
+            LD   A,2                      ; ordinary narrowing
+            JR   NC,RewriteBackendEscapeConvertTrapReady
+            DEC  A                        ; signed index conversion is bounds
+RewriteBackendEscapeConvertTrapReady:
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendEscapePatchSuccess
+            LD   A,$E5                    ; PUSH HL
+            JP   RewriteBackendEmitByte
+
+; Common unsigned divide/modulo lowering. Operation identity selects the
+; runtime helper and whether the canonical result is one or two bytes wide.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeDivideUnsigned:
+            LD   A,(RewriteBackendCurrentOperation)
+            SUB  RewriteSemanticDivide8
+            CP   4
+            JP   NC,RewriteBackendInvalid
+            LD   (RewriteBackendTrapReason),A
+            LD   A,$D1                    ; POP DE / POP HL
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendTrapReason)
+            BIT  1,A
+            LD   DE,NucleusRuntimeDivideU16Offset
+            JR   Z,RewriteBackendEscapeDivideHelperReady
+            LD   DE,NucleusRuntimeModuloU16Offset
+RewriteBackendEscapeDivideHelperReady:
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticDivide8OperandSourceOffsetOffset)
+            LD   A,3                      ; division trap
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendEscapePatchSuccess
+            LD   A,(RewriteBackendCurrentOperation)
+            SUB  RewriteSemanticDivide8
+            AND  1
+            JR   NZ,RewriteBackendEscapeDividePush
+            LD   A,$26                    ; LD H,0 for byte result
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+RewriteBackendEscapeDividePush:
+            LD   A,$E5                    ; PUSH HL
+            JP   RewriteBackendEmitByte
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeDivideSigned:
+            LD   A,$D1                    ; POP DE / POP HL
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandModeOffset)
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   DE,NucleusRuntimeDivideSignedOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandSourceOffsetOffset)
+            LD   A,3
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendEscapePatchSuccess
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandModeOffset)
+            BIT  7,A
+            JR   Z,RewriteBackendEscapeDivideSignedPush
+            LD   A,$26                    ; LD H,0 for byte result
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+RewriteBackendEscapeDivideSignedPush:
+            LD   A,$E5
+            JP   RewriteBackendEmitByte
 
 .routine noreturn
 RewriteBackendCapacity:

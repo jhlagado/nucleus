@@ -18,7 +18,7 @@ ProofBackendRecipes:
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
             LD   DE,ProofBackendOutputLimit
-            LD   BC,ProofRuntimeBase
+            LD   IX,ProofBackendContext
             CALL RewriteBackendInitialize
             LD   HL,$1234
             LD   (RewriteSemanticOperandArea),HL
@@ -145,7 +145,7 @@ ProofBackendCapacity:
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
             LD   DE,ProofBackendOutput+3
-            LD   BC,ProofRuntimeBase
+            LD   IX,ProofBackendContext
             CALL RewriteBackendInitialize
             LD   HL,$1234
             LD   (RewriteSemanticOperandArea),HL
@@ -153,19 +153,121 @@ ProofBackendCapacity:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
-ProofBackendUnsupported:
+ProofBackendEscapeCapacity:
             LD   SP,$FF00
             CALL RewriteReset
             LD   HL,ProofExpectedDiagnostic
             PUSH HL
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
-            LD   DE,ProofBackendOutputLimit
-            LD   BC,ProofRuntimeBase
+            LD   DE,ProofBackendOutput+4
+            LD   IX,ProofBackendContext
             CALL RewriteBackendInitialize
-            LD   A,RewriteSemanticDivide8
+            LD   HL,$1111
+            LD   (RewriteSemanticOperandArea+RewriteSemanticNarrowU8OperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticNarrowU8
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
+
+ProofBackendEscapes:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            LD   HL,$1111
+            LD   (RewriteSemanticOperandArea+RewriteSemanticNarrowU8OperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticNarrowU8
+            CALL RewriteBackendDispatchOperation
+
+            LD   A,RewriteScalarTypeI8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset),A
+            LD   A,RewriteScalarTypeU16+$80
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset),A
+            LD   HL,$2222
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticConvertInteger
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,$3333
+            LD   (RewriteSemanticOperandArea+RewriteSemanticDivide8OperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticDivide8
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,$4444
+            LD   (RewriteSemanticOperandArea+RewriteSemanticModulo16OperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticModulo16
+            CALL RewriteBackendDispatchOperation
+
+            LD   A,$C1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandModeOffset),A
+            LD   HL,$5555
+            LD   (RewriteSemanticOperandArea+RewriteSemanticDivideSignedOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticDivideSigned
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedEscapesEnd-ProofExpectedEscapes
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedEscapes
+            LD   BC,ProofExpectedEscapesEnd-ProofExpectedEscapes
+ProofBackendEscapeCompareLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendEscapeCompareLoop
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendBankedTrap:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendBankedContext
+            CALL RewriteBackendInitialize
+            LD   HL,$6666
+            LD   (RewriteSemanticOperandArea+RewriteSemanticNarrowU8OperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticNarrowU8
+            CALL RewriteBackendDispatchOperation
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedBankedTrapEnd-ProofExpectedBankedTrap
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedBankedTrap
+            LD   BC,ProofExpectedBankedTrapEnd-ProofExpectedBankedTrap
+ProofBackendBankedCompareLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendBankedCompareLoop
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
 
 ProofExpectedDiagnostic:
             HALT
@@ -181,6 +283,12 @@ ProofFailure:
             .include "compiler-image.asmi"
 
 ProofStatus: .db 0
+ProofBackendContext:
+            .dw ProofRuntimeBase,$A000,$A100,$A200
+            .db 0,0
+ProofBackendBankedContext:
+            .dw ProofRuntimeBase,$A000,$A100,$A200
+            .db 2,5
 
             .org $B000
 ProofBackendOutput:
@@ -372,3 +480,148 @@ ProofExpectedBooleanOrContinue:
 ProofExpectedBooleanInnerEnd:
 ProofExpectedBooleanOuterEnd:
 ProofExpectedBackendEnd:
+
+; Five escape paths cover ordinary narrowing, bounds-mode conversion,
+; unsigned divide, unsigned modulo, and signed byte modulo. Conditional
+; branches skip complete inline trap bodies assembled only from mnemonics.
+ProofExpectedEscapes:
+            POP  HL
+            LD   A,H
+            OR   A
+            JR   Z,ProofExpectedNarrowSuccess
+            LD   HL,$1111
+            LD   A,2
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedNarrowSuccess:
+            PUSH HL
+
+            POP  HL
+            LD   A,RewriteScalarTypeI8
+            LD   C,RewriteScalarTypeU16+$80
+            CALL ProofRuntimeBase+NucleusRuntimeConvertIntegerOffset
+            JR   NC,ProofExpectedConvertSuccess
+            LD   HL,$2222
+            LD   A,1
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedConvertSuccess:
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            CALL ProofRuntimeBase+NucleusRuntimeDivideU16Offset
+            JR   NC,ProofExpectedDivide8Success
+            LD   HL,$3333
+            LD   A,3
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedDivide8Success:
+            LD   H,0
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            CALL ProofRuntimeBase+NucleusRuntimeModuloU16Offset
+            JR   NC,ProofExpectedModulo16Success
+            LD   HL,$4444
+            LD   A,3
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedModulo16Success:
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            LD   A,$C1
+            CALL ProofRuntimeBase+NucleusRuntimeDivideSignedOffset
+            JR   NC,ProofExpectedDivideSignedSuccess
+            LD   HL,$5555
+            LD   A,3
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedDivideSignedSuccess:
+            LD   H,0
+            PUSH HL
+ProofExpectedEscapesEnd:
+
+ProofExpectedBankedTrap:
+            POP  HL
+            LD   A,H
+            OR   A
+            JR   Z,ProofExpectedBankedSuccess
+            LD   HL,$6666
+            LD   A,2
+            LD   SP,($A111)
+            LD   IX,($A113)
+            PUSH AF
+            XOR  A
+            LD   ($A106),A
+            POP  AF
+            LD   ($A101),A
+            XOR  A
+            LD   ($A102),A
+            LD   ($A103),HL
+            LD   A,3
+            LD   ($A100),A
+            LD   A,2
+            LD   HL,$A200
+            JP   $A01E
+ProofExpectedBankedSuccess:
+            PUSH HL
+ProofExpectedBankedTrapEnd:

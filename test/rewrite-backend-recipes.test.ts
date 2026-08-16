@@ -69,8 +69,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 10_712,
-      cycles: 94_254,
+      instructions: 10_792,
+      cycles: 94_868,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -96,15 +96,41 @@ describe("ground-up rewrite backend recipes", () => {
     });
   });
 
-  it("rejects an escape-class operation before any target output", () => {
-    const { memory } = run("ProofBackendUnsupported");
+  it("reports escape capacity failure at the first placeholder operand", () => {
+    const { memory } = run("ProofBackendEscapeCapacity");
     const output = image.symbols.ProofBackendOutput ?? -1;
     const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
     expect({
       diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
       cursor: memory[cursor] | (memory[cursor + 1] << 8),
-      firstByte: memory[output],
-    }).toEqual({ diagnostic: 67, cursor: output, firstByte: 0 });
+      bytes: Array.from(memory.slice(output, output + 5)),
+    }).toEqual({
+      diagnostic: 96,
+      cursor: output + 4,
+      bytes: [0xe1, 0x7c, 0xb7, 0x28, 0],
+    });
+  });
+
+  it("emits byte-identical conversion and division escape paths", () => {
+    const { memory, instructions, cycles } = run("ProofBackendEscapes");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 6_432,
+      cycles: 61_212,
+    });
+    expect(
+      (image.symbols.ProofExpectedEscapesEnd ?? 0) -
+        (image.symbols.ProofExpectedEscapes ?? 0),
+    ).toBe(232);
+  });
+
+  it("emits the full-address far-jump trap ending across banks", () => {
+    const { memory, instructions, cycles } = run("ProofBackendBankedTrap");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 1_359,
+      cycles: 14_814,
+    });
   });
 
   it("uses complete recipe addresses at separated compiler origins", async () => {
@@ -140,11 +166,16 @@ describe("ground-up rewrite backend recipes", () => {
             " PUSH HL",
             " LD (CompilerAbortSp),SP",
             " LD HL,ProofRelocatedOutput",
-            " LD DE,ProofRelocatedOutput+4",
+            " LD DE,ProofRelocatedOutput+$80",
+            " LD IX,ProofRelocatedContext",
             " CALL RewriteBackendInitialize",
             " LD HL,$1234",
             " LD (RewriteSemanticOperandArea),HL",
             " LD A,RewriteSemanticLiteral16",
+            " CALL RewriteBackendDispatchOperation",
+            " LD HL,$1234",
+            " LD (RewriteSemanticOperandArea+RewriteSemanticNarrowU8OperandSourceOffsetOffset),HL",
+            " LD A,RewriteSemanticNarrowU8",
             " CALL RewriteBackendDispatchOperation",
             " LD HL,ProofRelocatedOutput",
             " LD A,(HL)",
@@ -162,6 +193,10 @@ describe("ground-up rewrite backend recipes", () => {
             " LD A,(HL)",
             " CP $E5",
             " JP NZ,ProofRelocatedFailure",
+            " INC HL",
+            " LD A,(HL)",
+            " CP $E1",
+            " JP NZ,ProofRelocatedFailure",
             " LD A,$A5",
             " LD (ProofRelocatedStatus),A",
             " HALT",
@@ -170,7 +205,10 @@ describe("ground-up rewrite backend recipes", () => {
             " LD (ProofRelocatedStatus),A",
             " HALT",
             "ProofRelocatedStatus: .db 0",
-            "ProofRelocatedOutput: .ds 4",
+            "ProofRelocatedContext:",
+            " .dw $9000,$A000,$A100,$F100",
+            " .db 0,0",
+            "ProofRelocatedOutput: .ds $80",
             "",
           ].join("\n"),
           "utf8",
@@ -228,11 +266,11 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      engine: 391,
-      recipes: 454,
-      code: 12_594,
-      immutable: 1_918,
-      core: 14_512,
+      engine: 940,
+      recipes: 512,
+      code: 13_143,
+      immutable: 1_976,
+      core: 15_119,
       workspace: 3_425,
     });
   });

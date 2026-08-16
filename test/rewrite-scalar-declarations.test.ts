@@ -125,7 +125,7 @@ describe("ground-up rewrite generated scalar declarations", () => {
       actions: 239,
       declarations: 1_528,
       actionData: 445,
-      core: 14_512,
+      core: 15_119,
       workspace: 3_425,
     });
   });
