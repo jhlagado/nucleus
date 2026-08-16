@@ -751,6 +751,73 @@ ProofBackendArrayPathCompare:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendStringPaths:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandCapacityOffset),A
+            LD   HL,$3333
+            LD   (RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticStringLength
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandCapacityOffset),A
+            LD   HL,$4444
+            LD   (RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticStringIndex
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandCapacityOffsetOffset),A
+            LD   HL,$5555
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticOpenStringLength
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandCapacityOffsetOffset),A
+            LD   HL,$6666
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticOpenStringIndex
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,4
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandCapacityOffsetOffset),A
+            LD   HL,$7777
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticOpenStringResize
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedStringPathsEnd-ProofExpectedStringPaths
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedStringPaths
+            LD   BC,ProofExpectedStringPathsEnd-ProofExpectedStringPaths
+ProofBackendStringPathCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendStringPathCompare
+            LD   A,$A8
+            LD   (ProofStatus),A
+            HALT
+
 ProofBackendSourceCallMissingBank:
             LD   SP,$FF00
             CALL RewriteReset
@@ -956,10 +1023,10 @@ ProofFailure:
 
 ProofStatus: .db 0
 ProofBackendContext:
-            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500
+            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500,$0040
             .db 0,0
 ProofBackendBankedContext:
-            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500
+            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500,$0040
             .db 2,5
 
             .org $B000
@@ -1462,6 +1529,250 @@ ProofExpectedOpenArrayIndexReady:
             ADD  HL,DE
             PUSH HL
 ProofExpectedArrayPathsEnd:
+
+ProofExpectedStringPaths:
+            POP  HL
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   BC,5
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedStringLengthRegionReady
+            LD   HL,$3333
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedStringLengthRegionReady:
+            POP  HL
+            LD   C,3
+            CALL ProofRuntimeBase+NucleusRuntimeCheckStringLengthOffset
+            JR   NC,ProofExpectedStringLengthReady
+            LD   HL,$3333
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedStringLengthReady:
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            PUSH DE
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   BC,5
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedStringIndexRegionReady
+            LD   HL,$4444
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedStringIndexRegionReady:
+            POP  HL
+            POP  DE
+            LD   C,3
+            CALL ProofRuntimeBase+NucleusRuntimeCheckStringIndexOffset
+            JR   NC,ProofExpectedStringIndexReady
+            LD   HL,$4444
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedStringIndexReady:
+            PUSH HL
+
+            POP  HL
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   C,(IX-5)
+            LD   B,0
+            INC  BC
+            INC  BC
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedOpenStringLengthRegionReady
+            LD   HL,$5555
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringLengthRegionReady:
+            POP  HL
+            LD   C,(IX-5)
+            CALL ProofRuntimeBase+NucleusRuntimeCheckStringLengthOffset
+            JR   NC,ProofExpectedOpenStringLengthReady
+            LD   HL,$5555
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringLengthReady:
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            PUSH DE
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   C,(IX-5)
+            LD   B,0
+            INC  BC
+            INC  BC
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedOpenStringIndexRegionReady
+            LD   HL,$6666
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringIndexRegionReady:
+            POP  HL
+            POP  DE
+            LD   C,(IX-5)
+            CALL ProofRuntimeBase+NucleusRuntimeCheckStringIndexOffset
+            JR   NC,ProofExpectedOpenStringIndexReady
+            LD   HL,$6666
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringIndexReady:
+            PUSH HL
+
+            POP  DE
+            POP  HL
+            PUSH DE
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   C,(IX-5)
+            LD   B,0
+            INC  BC
+            INC  BC
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedOpenStringResizeRegionReady
+            LD   HL,$7777
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringResizeRegionReady:
+            POP  HL
+            POP  DE
+            LD   C,(IX-5)
+            CALL ProofRuntimeBase+NucleusRuntimeResizeStringOffset
+            JR   NC,ProofExpectedOpenStringResizeReady
+            LD   HL,$7777
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenStringResizeReady:
+ProofExpectedStringPathsEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset

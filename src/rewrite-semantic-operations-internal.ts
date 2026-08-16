@@ -1876,9 +1876,9 @@ export const rewriteSemanticOperations = [
     ],
     "width": 4,
     "backend": {
-      "kind": "recipe",
+      "kind": "escape",
       "name": "stringLength",
-      "index": 33
+      "index": 13
     },
     "stack": {
       "in": 1,
@@ -1909,9 +1909,9 @@ export const rewriteSemanticOperations = [
     ],
     "width": 4,
     "backend": {
-      "kind": "recipe",
+      "kind": "escape",
       "name": "stringIndex",
-      "index": 34
+      "index": 14
     },
     "stack": {
       "in": 2,
@@ -1937,7 +1937,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "failRoutine",
-      "index": 13
+      "index": 15
     },
     "stack": {
       "in": 1,
@@ -1963,7 +1963,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "failMain",
-      "index": 14
+      "index": 16
     },
     "stack": {
       "in": 1,
@@ -1981,7 +1981,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "returnFailable",
-      "index": 15
+      "index": 17
     },
     "stack": {
       "in": 1,
@@ -1999,7 +1999,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "returnFailable",
-      "index": 15
+      "index": 17
     },
     "stack": {
       "in": 1,
@@ -2025,7 +2025,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "endFailableRoutine",
-      "index": 16
+      "index": 18
     },
     "stack": {
       "in": 0,
@@ -2051,7 +2051,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "endFailableRoutine",
-      "index": 16
+      "index": 18
     },
     "stack": {
       "in": 0,
@@ -2077,7 +2077,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "skipHandler",
-      "index": 17
+      "index": 19
     },
     "stack": {
       "in": 0,
@@ -2117,7 +2117,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "beginHandler",
-      "index": 18
+      "index": 20
     },
     "stack": {
       "in": 0,
@@ -2157,7 +2157,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "beginHandlerBss",
-      "index": 19
+      "index": 21
     },
     "stack": {
       "in": 0,
@@ -2197,7 +2197,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "beginHandler",
-      "index": 18
+      "index": 20
     },
     "stack": {
       "in": 0,
@@ -2223,7 +2223,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "endHandler",
-      "index": 20
+      "index": 22
     },
     "stack": {
       "in": 0,
@@ -2256,7 +2256,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "beginCallableMain",
-      "index": 21
+      "index": 23
     },
     "stack": {
       "in": 0,
@@ -2282,7 +2282,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "loadReadOnlyAlias",
-      "index": 35
+      "index": 33
     },
     "stack": {
       "in": 0,
@@ -2315,7 +2315,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "openStringLength",
-      "index": 22
+      "index": 24
     },
     "stack": {
       "in": 1,
@@ -2348,7 +2348,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "openStringIndex",
-      "index": 23
+      "index": 25
     },
     "stack": {
       "in": 2,
@@ -2381,7 +2381,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "prepareOpenArgument",
-      "index": 24
+      "index": 26
     },
     "stack": {
       "in": 1,
@@ -2414,7 +2414,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "prepareOpenArgument",
-      "index": 24
+      "index": 26
     },
     "stack": {
       "in": 1,
@@ -2447,7 +2447,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "prepareOpenArgument",
-      "index": 24
+      "index": 26
     },
     "stack": {
       "in": 1,
@@ -2480,7 +2480,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "prepareOpenArgument",
-      "index": 24
+      "index": 26
     },
     "stack": {
       "in": 1,
@@ -2506,7 +2506,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "openStringCapacity",
-      "index": 36
+      "index": 34
     },
     "stack": {
       "in": 1,
@@ -2539,7 +2539,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "openStringResize",
-      "index": 25
+      "index": 27
     },
     "stack": {
       "in": 2,
@@ -2565,7 +2565,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "arrayLength",
-      "index": 37
+      "index": 35
     },
     "stack": {
       "in": 1,
@@ -2591,7 +2591,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "openArrayLength",
-      "index": 38
+      "index": 36
     },
     "stack": {
       "in": 1,
@@ -2631,7 +2631,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "openArrayIndex",
-      "index": 26
+      "index": 28
     },
     "stack": {
       "in": 2,
@@ -2671,7 +2671,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "convertInteger",
-      "index": 27
+      "index": 29
     },
     "stack": {
       "in": 1,
@@ -2704,7 +2704,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "escape",
       "name": "divideSigned",
-      "index": 28
+      "index": 30
     },
     "stack": {
       "in": 2,
@@ -2730,7 +2730,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "promoteI8Pair",
-      "index": 39
+      "index": 37
     },
     "stack": {
       "in": 2,
@@ -2756,7 +2756,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "loadBssU8",
-      "index": 40
+      "index": 38
     },
     "stack": {
       "in": 0,
@@ -2782,7 +2782,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "loadBss16",
-      "index": 41
+      "index": 39
     },
     "stack": {
       "in": 0,
@@ -2808,7 +2808,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "storeBssU8",
-      "index": 42
+      "index": 40
     },
     "stack": {
       "in": 1,
@@ -2834,7 +2834,7 @@ export const rewriteSemanticOperations = [
     "backend": {
       "kind": "recipe",
       "name": "storeBss16",
-      "index": 43
+      "index": 41
     },
     "stack": {
       "in": 1,

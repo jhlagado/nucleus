@@ -70,7 +70,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 10_959,
-      cycles: 96_405,
+      cycles: 96_447,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -131,7 +131,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 6_597,
-      cycles: 62_767,
+      cycles: 62_809,
     });
     expect(
       (image.symbols.ProofExpectedEscapesEnd ?? 0) -
@@ -144,7 +144,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 1_524,
-      cycles: 16_369,
+      cycles: 16_411,
     });
   });
 
@@ -153,7 +153,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 4_359,
-      cycles: 39_695,
+      cycles: 39_737,
     });
     expect(
       (image.symbols.ProofExpectedAddressesEnd ?? 0) -
@@ -166,7 +166,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 1_567,
-      cycles: 16_045,
+      cycles: 16_087,
     });
     expect(
       (image.symbols.ProofExpectedControlEnd ?? 0) -
@@ -179,7 +179,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa7);
     expect({ instructions, cycles }).toEqual({
       instructions: 3_994,
-      cycles: 38_667,
+      cycles: 38_709,
     });
     expect(
       (image.symbols.ProofExpectedArrayPathsEnd ?? 0) -
@@ -187,12 +187,25 @@ describe("ground-up rewrite backend recipes", () => {
     ).toBe(130);
   });
 
+  it("checks complete fixed/open string regions before access or resize", () => {
+    const { memory, instructions, cycles } = run("ProofBackendStringPaths");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa8);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 14_311,
+      cycles: 133_929,
+    });
+    expect(
+      (image.symbols.ProofExpectedStringPathsEnd ?? 0) -
+        (image.symbols.ProofExpectedStringPaths ?? 0),
+    ).toBe(523);
+  });
+
   it("emits the canonical routine frame and all retained parameter widths", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 1_998,
-      cycles: 19_931,
+      cycles: 19_973,
     });
     expect(
       (image.symbols.ProofExpectedRoutineFrameEnd ?? 0) -
@@ -219,7 +232,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 5_907,
-      cycles: 56_202,
+      cycles: 56_244,
     });
     expect(
       (image.symbols.ProofExpectedSourceCallsEnd ?? 0) -
@@ -246,7 +259,7 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa6);
     expect({ instructions, cycles }).toEqual({
       instructions: 2_018,
-      cycles: 20_533,
+      cycles: 20_575,
     });
     expect(
       (image.symbols.ProofExpectedServiceCallsEnd ?? 0) -
@@ -422,13 +435,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 2_278,
+      engine: 2_670,
       recipes: 738,
-      code: 14_498,
+      code: 14_890,
       immutable: 2_202,
-      core: 16_700,
+      core: 17_092,
       workspace: 3_425,
-      supported: 78,
+      supported: 83,
     });
   });
 });

@@ -629,18 +629,16 @@ RewriteRecipeLoadIndirect8 .equ 29
 RewriteRecipeLoadIndirect16 .equ 30
 RewriteRecipeStoreIndirect8 .equ 31
 RewriteRecipeStoreIndirect16 .equ 32
-RewriteRecipeStringLength .equ 33
-RewriteRecipeStringIndex .equ 34
-RewriteRecipeLoadReadOnlyAlias .equ 35
-RewriteRecipeOpenStringCapacity .equ 36
-RewriteRecipeArrayLength .equ 37
-RewriteRecipeOpenArrayLength .equ 38
-RewriteRecipePromoteI8Pair .equ 39
-RewriteRecipeLoadBssU8 .equ 40
-RewriteRecipeLoadBss16 .equ 41
-RewriteRecipeStoreBssU8 .equ 42
-RewriteRecipeStoreBss16 .equ 43
-RewriteRecipeCount .equ 44
+RewriteRecipeLoadReadOnlyAlias .equ 33
+RewriteRecipeOpenStringCapacity .equ 34
+RewriteRecipeArrayLength .equ 35
+RewriteRecipeOpenArrayLength .equ 36
+RewriteRecipePromoteI8Pair .equ 37
+RewriteRecipeLoadBssU8 .equ 38
+RewriteRecipeLoadBss16 .equ 39
+RewriteRecipeStoreBssU8 .equ 40
+RewriteRecipeStoreBss16 .equ 41
+RewriteRecipeCount .equ 42
 RewriteEscapeDivideUnsigned .equ 0
 RewriteEscapeNarrowU8 .equ 1
 RewriteEscapeForSetup .equ 2
@@ -654,23 +652,25 @@ RewriteEscapeCallService .equ 9
 RewriteEscapeEndRoutine .equ 10
 RewriteEscapeSelectIndex .equ 11
 RewriteEscapeCopyAggregate .equ 12
-RewriteEscapeFailRoutine .equ 13
-RewriteEscapeFailMain .equ 14
-RewriteEscapeReturnFailable .equ 15
-RewriteEscapeEndFailableRoutine .equ 16
-RewriteEscapeSkipHandler .equ 17
-RewriteEscapeBeginHandler .equ 18
-RewriteEscapeBeginHandlerBss .equ 19
-RewriteEscapeEndHandler .equ 20
-RewriteEscapeBeginCallableMain .equ 21
-RewriteEscapeOpenStringLength .equ 22
-RewriteEscapeOpenStringIndex .equ 23
-RewriteEscapePrepareOpenArgument .equ 24
-RewriteEscapeOpenStringResize .equ 25
-RewriteEscapeOpenArrayIndex .equ 26
-RewriteEscapeConvertInteger .equ 27
-RewriteEscapeDivideSigned .equ 28
-RewriteEscapeCount .equ 29
+RewriteEscapeStringLength .equ 13
+RewriteEscapeStringIndex .equ 14
+RewriteEscapeFailRoutine .equ 15
+RewriteEscapeFailMain .equ 16
+RewriteEscapeReturnFailable .equ 17
+RewriteEscapeEndFailableRoutine .equ 18
+RewriteEscapeSkipHandler .equ 19
+RewriteEscapeBeginHandler .equ 20
+RewriteEscapeBeginHandlerBss .equ 21
+RewriteEscapeEndHandler .equ 22
+RewriteEscapeBeginCallableMain .equ 23
+RewriteEscapeOpenStringLength .equ 24
+RewriteEscapeOpenStringIndex .equ 25
+RewriteEscapePrepareOpenArgument .equ 26
+RewriteEscapeOpenStringResize .equ 27
+RewriteEscapeOpenArrayIndex .equ 28
+RewriteEscapeConvertInteger .equ 29
+RewriteEscapeDivideSigned .equ 30
+RewriteEscapeCount .equ 31
 
 RewriteSemanticOperationWidthTable:
             .db 3 ; DefineProgramU8
@@ -851,37 +851,37 @@ RewriteSemanticOperationDescriptorTable:
             .db $01,$10,$00,$1F,$20 ; StoreIndirect8
             .db $01,$10,$00,$20,$20 ; StoreIndirect16
             .db $05,$92,$03,$0C,$20 ; CopyAggregate
-            .db $04,$12,$02,$21,$11 ; StringLength
-            .db $04,$12,$02,$22,$21 ; StringIndex
-            .db $03,$91,$01,$0D,$10 ; FailRoutine
-            .db $03,$91,$01,$0E,$10 ; FailMain
-            .db $01,$90,$00,$0F,$10 ; ReturnFailableScalar
-            .db $01,$90,$00,$0F,$10 ; ReturnFailableAggregate
-            .db $02,$91,$00,$10,$00 ; EndFailableRoutineDirect
-            .db $02,$A1,$00,$10,$00 ; EndFailableRoutineEnclosing
-            .db $02,$91,$00,$11,$00 ; SkipHandler
-            .db $05,$93,$04,$12,$00 ; BeginHandlerProgram
-            .db $05,$93,$04,$13,$00 ; BeginHandlerBss
-            .db $04,$93,$00,$12,$00 ; BeginHandlerLocal
-            .db $02,$A1,$00,$14,$00 ; EndHandler
-            .db $03,$92,$00,$15,$00 ; BeginCallableMain
-            .db $03,$11,$01,$23,$01 ; LoadReadOnlyAlias
-            .db $04,$92,$02,$16,$11 ; OpenStringLength
-            .db $04,$92,$02,$17,$21 ; OpenStringIndex
-            .db $03,$92,$00,$18,$12 ; PrepareOpenStringDirect
-            .db $03,$92,$00,$18,$12 ; PrepareOpenStringForward
-            .db $04,$92,$02,$18,$12 ; PrepareOpenArrayDirect
-            .db $04,$92,$02,$18,$12 ; PrepareOpenArrayForward
-            .db $02,$11,$00,$24,$11 ; OpenStringCapacity
-            .db $04,$92,$02,$19,$20 ; OpenStringResize
-            .db $03,$11,$01,$25,$11 ; ArrayLength
-            .db $02,$11,$00,$26,$11 ; OpenArrayLength
-            .db $06,$93,$06,$1A,$21 ; OpenArrayIndex
-            .db $05,$93,$04,$1B,$11 ; ConvertInteger
-            .db $04,$92,$02,$1C,$21 ; DivideSigned
-            .db $02,$11,$00,$27,$22 ; PromoteI8Pair
-            .db $03,$11,$01,$28,$01 ; LoadBssU8
-            .db $03,$11,$01,$29,$01 ; LoadBss16
-            .db $03,$11,$01,$2A,$10 ; StoreBssU8
-            .db $03,$11,$01,$2B,$10 ; StoreBss16
+            .db $04,$92,$02,$0D,$11 ; StringLength
+            .db $04,$92,$02,$0E,$21 ; StringIndex
+            .db $03,$91,$01,$0F,$10 ; FailRoutine
+            .db $03,$91,$01,$10,$10 ; FailMain
+            .db $01,$90,$00,$11,$10 ; ReturnFailableScalar
+            .db $01,$90,$00,$11,$10 ; ReturnFailableAggregate
+            .db $02,$91,$00,$12,$00 ; EndFailableRoutineDirect
+            .db $02,$A1,$00,$12,$00 ; EndFailableRoutineEnclosing
+            .db $02,$91,$00,$13,$00 ; SkipHandler
+            .db $05,$93,$04,$14,$00 ; BeginHandlerProgram
+            .db $05,$93,$04,$15,$00 ; BeginHandlerBss
+            .db $04,$93,$00,$14,$00 ; BeginHandlerLocal
+            .db $02,$A1,$00,$16,$00 ; EndHandler
+            .db $03,$92,$00,$17,$00 ; BeginCallableMain
+            .db $03,$11,$01,$21,$01 ; LoadReadOnlyAlias
+            .db $04,$92,$02,$18,$11 ; OpenStringLength
+            .db $04,$92,$02,$19,$21 ; OpenStringIndex
+            .db $03,$92,$00,$1A,$12 ; PrepareOpenStringDirect
+            .db $03,$92,$00,$1A,$12 ; PrepareOpenStringForward
+            .db $04,$92,$02,$1A,$12 ; PrepareOpenArrayDirect
+            .db $04,$92,$02,$1A,$12 ; PrepareOpenArrayForward
+            .db $02,$11,$00,$22,$11 ; OpenStringCapacity
+            .db $04,$92,$02,$1B,$20 ; OpenStringResize
+            .db $03,$11,$01,$23,$11 ; ArrayLength
+            .db $02,$11,$00,$24,$11 ; OpenArrayLength
+            .db $06,$93,$06,$1C,$21 ; OpenArrayIndex
+            .db $05,$93,$04,$1D,$11 ; ConvertInteger
+            .db $04,$92,$02,$1E,$21 ; DivideSigned
+            .db $02,$11,$00,$25,$22 ; PromoteI8Pair
+            .db $03,$11,$01,$26,$01 ; LoadBssU8
+            .db $03,$11,$01,$27,$01 ; LoadBss16
+            .db $03,$11,$01,$28,$10 ; StoreBssU8
+            .db $03,$11,$01,$29,$10 ; StoreBss16
 RewriteSemanticOperationDescriptorTableEnd:

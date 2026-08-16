@@ -1351,6 +1351,205 @@ RewriteBackendEscapeOpenArrayIndex:
             LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandSourceOffsetOffset)
             JP   RewriteBackendEmitArrayIndexTail
 
+; Region-sensitive string operations share this complete deployment prefix.
+; DE receives the bank-local read-only base and IY its independent full-word
+; capacity; neither value is packed into an address or constrained by origin.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitRegionPrefix:
+            LD   HL,(RewriteBackendReadOnlyBase)
+            LD   A,$11                    ; LD DE,read-only base
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,$FD                    ; LD IY,read-only capacity
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendReadOnlyCapacity)
+            LD   A,$21
+            JP   RewriteBackendEmitOpcodeWord
+
+; HL is the exact source offset. Target HL, BC, DE and IY have already been
+; prepared for the complete-region helper. No later string helper may run
+; until this guard has branched around its exact bounds trap.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitRegionInvoke:
+            LD   (RewriteBackendTrapSourceOffset),HL
+            LD   DE,NucleusRuntimeCheckAggregateRegionOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   HL,(RewriteBackendTrapSourceOffset)
+            JP   RewriteBackendEmitBoundsGuard
+
+; A is an activation-local open-string capacity offset. Emit the hidden
+; capacity byte into C using the common -(offset+1) IX convention.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitOpenStringCapacityC:
+            CPL
+            LD   (RewriteBackendTrapReason),A
+            LD   A,$DD                    ; LD C,(IX-displacement)
+            CALL RewriteBackendEmitByte
+            LD   A,$4E
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendTrapReason)
+            JP   RewriteBackendEmitByte
+
+; A is a concrete bounded-string capacity. Its complete representation is
+; capacity+2 bytes and always fits a word because source capacities stop at253.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitFixedStringExtent:
+            LD   L,A
+            LD   H,0
+            INC  HL
+            INC  HL
+            LD   A,$01                    ; LD BC,capacity+2
+            JP   RewriteBackendEmitOpcodeWord
+
+; A is an open-string capacity offset. Form the complete dynamic extent in BC
+; without allowing the capacity-253 case to wrap through an eight-bit add.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitOpenStringExtent:
+            CALL RewriteBackendEmitOpenStringCapacityC
+            LD   A,$06                    ; LD B,0 / INC BC / INC BC
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$03
+            CALL RewriteBackendEmitByte
+            LD   A,$03
+            JP   RewriteBackendEmitByte
+
+; A is a concrete capacity. Emit the byte immediate consumed by the canonical
+; string length/index helpers.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+RewriteBackendEmitStringCapacityC:
+            LD   (RewriteBackendTrapReason),A
+            LD   A,$0E                    ; LD C,capacity
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendTrapReason)
+            JP   RewriteBackendEmitByte
+
+; DE selects CheckStringLength or CheckStringIndex and HL is the exact source
+; offset. Both helpers return their result in HL; bounds is checked before the
+; result is published on the target stack.
+.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitCheckedStringResult:
+            LD   (RewriteBackendTrapSourceOffset),HL
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   HL,(RewriteBackendTrapSourceOffset)
+            CALL RewriteBackendEmitBoundsGuard
+            LD   A,$E5                    ; PUSH HL result
+            JP   RewriteBackendEmitByte
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeStringLength:
+            LD   A,$E1                    ; POP HL carrier / PUSH HL retained
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandCapacityOffset)
+            CALL RewriteBackendEmitFixedStringExtent
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; POP HL carrier
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandCapacityOffset)
+            CALL RewriteBackendEmitStringCapacityC
+            LD   DE,NucleusRuntimeCheckStringLengthOffset
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitCheckedStringResult
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeStringIndex:
+            LD   A,$D1                    ; POP DE index / POP HL carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$D5                    ; retain index / carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandCapacityOffset)
+            CALL RewriteBackendEmitFixedStringExtent
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; restore carrier / index
+            CALL RewriteBackendEmitByte
+            LD   A,$D1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandCapacityOffset)
+            CALL RewriteBackendEmitStringCapacityC
+            LD   DE,NucleusRuntimeCheckStringIndexOffset
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitCheckedStringResult
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeOpenStringLength:
+            LD   A,$E1                    ; POP HL carrier / PUSH HL retained
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringExtent
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; POP HL carrier
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringCapacityC
+            LD   DE,NucleusRuntimeCheckStringLengthOffset
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitCheckedStringResult
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeOpenStringIndex:
+            LD   A,$D1                    ; POP DE index / POP HL carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$D5                    ; retain index / carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringExtent
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; restore carrier / index
+            CALL RewriteBackendEmitByte
+            LD   A,$D1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringCapacityC
+            LD   DE,NucleusRuntimeCheckStringIndexOffset
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitCheckedStringResult
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeOpenStringResize:
+            LD   A,$D1                    ; POP DE new length / POP HL carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$D5                    ; retain new length / carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringExtent
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; restore carrier / new length
+            CALL RewriteBackendEmitByte
+            LD   A,$D1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringCapacityC
+            LD   DE,NucleusRuntimeResizeStringOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitBoundsGuard
+
 .routine noreturn
 RewriteBackendCapacity:
             LD   A,DiagnosticTargetCapacity

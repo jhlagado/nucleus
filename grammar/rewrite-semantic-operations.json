@@ -440,7 +440,7 @@
         ["capacity", "byte"],
         ["sourceOffset", "word"]
       ],
-      "backend": ["recipe", "stringLength"],
+      "backend": ["escape", "stringLength"],
       "stack": [1, 1],
       "source": "direct"
     },
@@ -450,7 +450,7 @@
         ["capacity", "byte"],
         ["sourceOffset", "word"]
       ],
-      "backend": ["recipe", "stringIndex"],
+      "backend": ["escape", "stringIndex"],
       "stack": [2, 1],
       "source": "direct"
     },

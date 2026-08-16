@@ -349,9 +349,10 @@ RewriteBackendTerminalAddress .equ RewriteInitializerBase+11 ; word
 RewriteBackendDataBase       .equ RewriteInitializerBase+13 ; word
 RewriteBackendBssBase        .equ RewriteInitializerBase+15 ; word
 RewriteBackendReadOnlyBase   .equ RewriteInitializerBase+17 ; word
-RewriteBackendEntryBank      .equ RewriteInitializerBase+19
-RewriteBackendOutputBank     .equ RewriteInitializerBase+20
-RewriteBackendContextLimit   .equ RewriteInitializerBase+21
+RewriteBackendReadOnlyCapacity .equ RewriteInitializerBase+19 ; word
+RewriteBackendEntryBank      .equ RewriteInitializerBase+21
+RewriteBackendOutputBank     .equ RewriteInitializerBase+22
+RewriteBackendContextLimit   .equ RewriteInitializerBase+23
 RewriteBackendRuntimeCallAddress .equ RewriteBackendContextLimit ; word
 RewriteBackendTrapReason     .equ RewriteBackendContextLimit+2
 RewriteBackendTrapSourceOffset .equ RewriteBackendContextLimit+3 ; word
@@ -381,9 +382,10 @@ RewriteBackendContextTerminal    .equ 6 ; word
 RewriteBackendContextDataBase    .equ 8 ; word
 RewriteBackendContextBssBase     .equ 10 ; word
 RewriteBackendContextReadOnlyBase .equ 12 ; word
-RewriteBackendContextEntryBank   .equ 14
-RewriteBackendContextOutputBank  .equ 15
-RewriteBackendContextSize        .equ 16
+RewriteBackendContextReadOnlyCapacity .equ 14 ; word
+RewriteBackendContextEntryBank   .equ 16
+RewriteBackendContextOutputBank  .equ 17
+RewriteBackendContextSize        .equ 18
 RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity

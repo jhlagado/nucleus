@@ -11,7 +11,12 @@
     "callSource": "RewriteBackendEscapeCallSource",
     "callService": "RewriteBackendEscapeCallService",
     "selectIndex": "RewriteBackendEscapeSelectIndex",
-    "openArrayIndex": "RewriteBackendEscapeOpenArrayIndex"
+    "openArrayIndex": "RewriteBackendEscapeOpenArrayIndex",
+    "stringLength": "RewriteBackendEscapeStringLength",
+    "stringIndex": "RewriteBackendEscapeStringIndex",
+    "openStringLength": "RewriteBackendEscapeOpenStringLength",
+    "openStringIndex": "RewriteBackendEscapeOpenStringIndex",
+    "openStringResize": "RewriteBackendEscapeOpenStringResize"
   },
   "selectors": {
     "defineProgramU8": [],

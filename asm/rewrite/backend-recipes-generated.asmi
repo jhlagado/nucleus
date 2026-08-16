@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 78
+RewriteBackendSupportedOperationCount .equ 83
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -51,8 +51,6 @@ RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorLoadIndirect16 ; loadIndirect16
             .dw RewriteBackendRecipeSelectorStoreIndirect8 ; storeIndirect8
             .dw RewriteBackendRecipeSelectorStoreIndirect16 ; storeIndirect16
-            .dw 0 ; stringLength
-            .dw 0 ; stringIndex
             .dw RewriteBackendRecipeSelectorLoadReadOnlyAlias ; loadReadOnlyAlias
             .dw 0 ; openStringCapacity
             .dw RewriteBackendRecipeSelectorArrayLength ; arrayLength
@@ -78,6 +76,8 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeEndRoutine ; endRoutine
             .dw RewriteBackendEscapeSelectIndex ; selectIndex
             .dw 0 ; copyAggregate
+            .dw RewriteBackendEscapeStringLength ; stringLength
+            .dw RewriteBackendEscapeStringIndex ; stringIndex
             .dw 0 ; failRoutine
             .dw 0 ; failMain
             .dw 0 ; returnFailable
@@ -87,10 +87,10 @@ RewriteBackendEscapeDirectory:
             .dw 0 ; beginHandlerBss
             .dw 0 ; endHandler
             .dw 0 ; beginCallableMain
-            .dw 0 ; openStringLength
-            .dw 0 ; openStringIndex
+            .dw RewriteBackendEscapeOpenStringLength ; openStringLength
+            .dw RewriteBackendEscapeOpenStringIndex ; openStringIndex
             .dw 0 ; prepareOpenArgument
-            .dw 0 ; openStringResize
+            .dw RewriteBackendEscapeOpenStringResize ; openStringResize
             .dw RewriteBackendEscapeOpenArrayIndex ; openArrayIndex
             .dw RewriteBackendEscapeConvertInteger ; convertInteger
             .dw RewriteBackendEscapeDivideSigned ; divideSigned

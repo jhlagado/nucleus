@@ -1497,18 +1497,19 @@ prototype is recorded and removed rather than extended on hope.
 
 R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
 
-- one 2,278-byte backend engine reads generated recipe and escape directories
+- one 2,670-byte backend engine reads generated recipe and escape directories
   through complete 16-bit addresses. Its recipe vocabulary emits target literal runs,
   semantic operand bytes and words, complemented IX displacements,
   identity-fixed runtime calls, nested relative fixups, and operation-family
   fragments. Handwritten escape handlers cover the irregular trap and call paths.
   The engine assumes no compiler origin and packs no metadata into an address;
 - deployment now supplies one full-width context containing runtime, vector,
-  writable-state, terminal, initialized-data, BSS, and read-only addresses
-  plus entry and output banks. This is copied into backend state without
+  writable-state, terminal, initialized-data, BSS, and read-only addresses,
+  an independent full-word read-only capacity, plus entry and output banks.
+  This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 78 semantic ordinals: byte and word local
+- the current cohort covers 83 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1528,7 +1529,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   and restore result-free frames at ordinary fallthrough. Open arrays retain
   their existing two-word representation as two `u16` bindings. The proof
   compares 55 assembled target bytes in 1,998 compiler instructions and
-  19,931 T-states, verifies the full label address and bank, and rejects a
+  19,973 T-states, verifies the full label address and bank, and rejects a
   routine presented to the wrong selected output bank before emitting a byte;
 - source-call lowering predeclares each routine bank in a separate table,
   retains full label addresses for later fixup, and selects ordinary or
@@ -1536,30 +1537,39 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   The 182-byte proof covers local failure propagation, a cross-bank
   result-bearing call whose result is discarded, local handling, activation
   claim/release, result carriers, argument cleanup, and retained-carrier cleanup
-  in 5,907 compiler instructions and 56,202 T-states. A missing declaration-bank
+  in 5,907 compiler instructions and 56,244 T-states. A missing declaration-bank
   pass is rejected before the first output byte;
 - service-call lowering validates the dense selector independently of its
   keep-result metadata, consumes byte and word arguments, calls the full-width
   deployment vector, and shares the settled propagate/handle outcome contract.
   Its 51-byte proof covers a retained `u8` result, handled byte argument with a
   retained carrier, and a result-bearing call statement that discards success;
-  it takes 2,018 compiler instructions and 20,533 T-states. Reserved selector
+  it takes 2,018 compiler instructions and 20,575 T-states. Reserved selector
   metadata is rejected before the first output byte;
 - fixed and open arrays share one checked index tail. Fixed arrays load their
   static bound; open arrays load the retained full-word count from the
   activation without narrowing either byte. Static and open `.length` paths
   discard the evaluated base and return the declared full-word count. The
   130-byte proof covers both index forms and both length forms in 3,994 compiler
-  instructions and 38,667 T-states, including exact bounds-trap provenance;
+  instructions and 38,709 T-states, including exact bounds-trap provenance;
+- concrete and open bounded strings now establish their complete fixed or
+  dynamic region before reading a stored length, selecting a payload byte, or
+  resizing an open view. The dynamic `capacity + 2` extent is formed in a word,
+  so capacity 253 cannot wrap. The 523-byte AZM reference covers fixed/open
+  length and index plus atomic open resize in 14,311 compiler instructions and
+  133,929 T-states. Open `.capacity` remains deliberately outside this cohort:
+  its frozen compact operation has no offset operand, so it will use R7's
+  retained current-source attribution rather than publishing a false trap
+  position or widening the 511-byte transcript format;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
-  and 66,004 T-states for the first cohort, and 10,959 instructions and 96,405
+  and 66,046 T-states for the first cohort, and 10,959 instructions and 96,447
   T-states after runtime calls and Boolean fixups. A second proof compares 232
-  conversion/division bytes in 6,597 instructions and 62,767 T-states. A
-  banked trap proof takes 1,524 instructions and 16,369 T-states. Separate
+  conversion/division bytes in 6,597 instructions and 62,809 T-states. A
+  banked trap proof takes 1,524 instructions and 16,411 T-states. Separate
   capacity proofs distinguish the first rejected recipe byte and the first
   rejected escape placeholder operand. A third proof compares 84 address-
-  bearing target bytes in 4,359 instructions and 39,695 T-states, and rejects
+  bearing target bytes in 4,359 instructions and 39,737 T-states, and rejects
   an address word after admitting only its opcode and low byte;
 - recipe and escape dispatch execute under strict register contracts with
   compiler origins `$0000` and `$8000`. The relocated proof exercises both
@@ -1570,9 +1580,9 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   explicit call-metadata bit determines whether successful lowering retains or
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
-- the recipe data plus 44-entry recipe and 29-entry escape directories occupy
-  738 immutable bytes. The shipping replacement is 14,498 code + 2,202
-  immutable = 16,700 core bytes; the instrumented replacement is 16,704 core
+- the recipe data plus 42-entry recipe and 31-entry escape directories occupy
+  738 immutable bytes. The shipping replacement is 14,890 code + 2,202
+  immutable = 17,092 core bytes; the instrumented replacement is 17,096 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step
