@@ -22,7 +22,9 @@
     "./d8": "./dist/d8.js",
     "./host": "./dist/host.js",
     "./nobj": "./dist/nobj.js",
-    "./publication": "./dist/publication.js"
+    "./publication": "./dist/publication.js",
+    "./source-imports": "./dist/source-imports.js",
+    "./source-plan": "./dist/source-plan.js"
   },
   "files": [
     "asm/",

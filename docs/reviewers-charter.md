@@ -101,8 +101,9 @@ need a complete syntax tree or general whole-program inference.
 
 Declarations precede use. Explicit forward routine declarations permit direct
 and mutual call cycles without a second source pass. An external build driver
-reads a flat ordered manifest and supplies a multipart logical source stream;
-the compiler contains no filesystem search, import resolver, or dependency
+either reads a compatibility flat manifest or resolves leading comment-shaped
+imports, then supplies the resulting multipart logical source stream. The
+compiler contains no filesystem search, import resolver, or dependency
 reordering algorithm.
 
 Generated output follows the same single-pass boundary. The compiler consumes
@@ -211,10 +212,11 @@ A forward declaration supplies the complete routine signature once. Its later
 definition uses the abbreviated `sub NAME` body header. Do not restore a
 second copy of the parameter list merely to imitate another language.
 
-Nucleus source has no `import` or `include` statement. A flat ordered manifest
-belongs to the external build driver. Missing files, forgotten dependencies,
-and incorrect order receive explicit diagnostics; the compiler does not search
-for alternative files or reorder source parts.
+Nucleus source has no `import` or `include` statement. The external build
+driver may read a flat ordered manifest or recognize the packaging directive
+encoded in a leading `//` comment. Missing files, forgotten dependencies, and
+incorrect order receive explicit diagnostics; the compiler does not search for
+alternative files or reorder source parts.
 
 ### Scalar types
 

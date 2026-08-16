@@ -47,6 +47,12 @@ The ordinal is the part's position in the manifest. The mapping does not key on
 filenames and does not alter manifest order, declaration visibility, or source
 identity.
 
+A packaging project may use stable logical source identities while preparing
+that mapping. After dependency discovery fixes the final order, the adapter
+joins those project entries to source-part ordinals exactly once. Only the
+resulting `partBank[partCount]` array crosses the compiler boundary. The target
+profile and compact compiler descriptor contain no filename or source identity.
+
 ### 2.2 Physical placement
 
 The target profile contains no source names. The adapter supplies region bases
@@ -117,6 +123,12 @@ manifest ordinal to one of those banks.
 `writableCapacity` are unsigned 16-bit words. `imageFill` is one byte.
 `bankCount` is in the range 2 through 4. `entryBank` and each `partBank` entry
 are bounded byte ordinals within that count. `establishStack` remains Boolean.
+
+A project-v2 authoring file may refer to a banked target layout document that
+omits `partBank`. The project supplies optional logical source-to-bank choices;
+the adapter discovers the source order, derives the ordinal array, and then
+validates the complete target configuration above. The incomplete layout
+document is not a compiler target profile and cannot be passed to the compiler.
 
 `imageFill` remains adapter-owned and is written to NOBJ layout metadata. It is
 not a field in the compact 15-byte descriptor passed to the Z80 compiler. The

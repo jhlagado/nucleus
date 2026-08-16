@@ -65,6 +65,23 @@ nucleus target validate nucleus-target.json
 nucleus capabilities --json
 ```
 
+With one positional source, the Node host reads leading dependency comments:
+
+```nucleus
+//% import "lib/console.nu"
+
+sub main()
+end
+```
+
+Dependencies are emitted before their importer as separate source parts. The
+host passes every source byte unchanged, so the compiler treats the directive
+as an ordinary `//` comment and retains exact diagnostics and D8 positions.
+Projects may use `nucleus-project/v2` with one `entry`; version 1 and multiple
+positional sources retain explicit written ordering. [Nucleus source
+packaging](docs/source-packaging.md) defines discovery and the generated SP1
+plan for filesystem-aware hosts.
+
 A launch target profile supplies image and writable layout plus every external
 service destination. The compiler library retains its synthetic default target
 for conformance and tooling, but a host must not mistake those proof addresses
@@ -86,6 +103,7 @@ The current authorities are:
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
 - [Nucleus Host API 1](docs/host-api.md)
+- [Nucleus source packaging and SP1 source plans](docs/source-packaging.md)
 - [Nucleus D8 Source Maps](docs/d8-source-maps.md)
 - [Nucleus host and Debug80 integration](docs/host-integration.md)
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
@@ -103,8 +121,9 @@ specification. The packed parser uses the machine-readable Stage 7 grammar in
 service assignments are checked against the direct-Z80 contract. The
 type-metadata model covers every Nucleus type, including arrays of records and
 bounded strings, without turning aggregate aliases into runtime types.
-The flat-manifest adapter preserves ordered source-part identities and
-diagnostic names outside the compiler core.
+The host preserves ordered source-part identities and diagnostic names outside
+the compiler core, whether order comes from a compatibility flat manifest or
+import-directed packaging.
 
 The host NOBJ boundary encodes, validates, and materializes the strict
 append-only object stream. Image and patch records use independent sequential

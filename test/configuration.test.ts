@@ -4,6 +4,7 @@ import {
   NUCLEUS_TARGET_PROFILE_SCHEMA,
   NucleusConfigurationError,
   parseNucleusTargetProfile,
+  validateNucleusTargetLayoutProfileDocument,
   validateNucleusTarget,
 } from "../src/configuration.js";
 
@@ -56,6 +57,26 @@ describe("Nucleus target profiles", () => {
       path: "$.partBanks",
       message: "must contain 2 entries for this build",
     });
+  });
+
+  it("never asserts an incomplete banked authoring profile as a compiler target", () => {
+    const incomplete = JSON.stringify({
+      bankCount: 2,
+      entryBank: 0,
+      services,
+    });
+
+    expect(() =>
+      parseNucleusTargetProfile(incomplete, {
+        sourcePartCount: 2,
+        ...({ allowMissingPartBanks: true } as object),
+      }),
+    ).toThrowError(NucleusConfigurationError);
+    expect(() =>
+      validateNucleusTargetLayoutProfileDocument(incomplete, {
+        requireServices: true,
+      }),
+    ).not.toThrow();
   });
 
   it("reserves bank fields for targets with at least two banks", () => {

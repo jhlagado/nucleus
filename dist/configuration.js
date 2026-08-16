@@ -53,7 +53,7 @@ const validateWord = (issues, path, value) => {
     }
     return true;
 };
-export const validateNucleusTarget = (value, options = {}) => {
+const validateNucleusTargetInternal = (value, options, allowMissingPartBanks) => {
     const issues = [];
     if (!isObject(value)) {
         return [{ path: "$", message: "must be a JSON object" }];
@@ -165,10 +165,10 @@ export const validateNucleusTarget = (value, options = {}) => {
                 value.entryBank >= bankCount)) {
             issue(issues, "$.entryBank", "must identify a bank within bankCount");
         }
-        if (!Array.isArray(value.partBanks)) {
+        if (!Array.isArray(value.partBanks) && !allowMissingPartBanks) {
             issue(issues, "$.partBanks", "must be an array of source-part bank ordinals");
         }
-        else {
+        else if (Array.isArray(value.partBanks)) {
             if (options.sourcePartCount !== undefined &&
                 value.partBanks.length !== options.sourcePartCount) {
                 issue(issues, "$.partBanks", `must contain ${options.sourcePartCount} entries for this build`);
@@ -185,6 +185,7 @@ export const validateNucleusTarget = (value, options = {}) => {
     }
     return issues;
 };
+export const validateNucleusTarget = (value, options = {}) => validateNucleusTargetInternal(value, options, false);
 export const assertNucleusTarget = (value, options = {}) => {
     const issues = validateNucleusTarget(value, options);
     if (issues.length > 0) {
@@ -199,6 +200,10 @@ export const assertNucleusTarget = (value, options = {}) => {
     return target;
 };
 export const parseNucleusTargetProfile = (text, options = {}) => {
+    const value = parseNucleusTargetProfileJson(text);
+    return assertNucleusTarget(value, options);
+};
+const parseNucleusTargetProfileJson = (text) => {
     let value;
     try {
         value = JSON.parse(text);
@@ -211,5 +216,19 @@ export const parseNucleusTargetProfile = (text, options = {}) => {
             },
         ]);
     }
-    return assertNucleusTarget(value, options);
+    return value;
+};
+export const validateNucleusTargetProfileDocument = (text, options = {}) => {
+    const value = parseNucleusTargetProfileJson(text);
+    const issues = validateNucleusTarget(value, options);
+    if (issues.length > 0) {
+        throw new NucleusConfigurationError("Invalid Nucleus target profile", issues);
+    }
+};
+export const validateNucleusTargetLayoutProfileDocument = (text, options = {}) => {
+    const value = parseNucleusTargetProfileJson(text);
+    const issues = validateNucleusTargetInternal(value, options, true);
+    if (issues.length > 0) {
+        throw new NucleusConfigurationError("Invalid Nucleus target profile", issues);
+    }
 };

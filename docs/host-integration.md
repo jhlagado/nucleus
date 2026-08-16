@@ -34,11 +34,15 @@ A launch adapter supplies a target profile with real implementations of all
 eleven vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
 
-Debug80 loads either an explicit Nucleus project or its conventional project
-layout, reads every source part in manifest order, and calls the standalone
-compiler in process. It translates structured failures into editor
+The standalone Nucleus host now resolves a project-v2 entry and its leading
+`//% import` comments. Debug80 has not yet adopted that project path. A later
+integration increment can call the same exported resolver or a shared package;
+it must preserve the ordered source parts and unchanged bytes supplied to the
+compiler.
+
+The existing Debug80 backend translates structured failures into editor
 diagnostics, validates returned D8 through its ordinary importer, stores the
-map beside the launch artifact, and uses that same map for line-level source
+map beside the launch artifact, and uses that map for line-level source
 breakpoints and PC lookup. The sidecar retains byte columns even though the
 current debugger behavior is line-oriented.
 
@@ -68,6 +72,9 @@ unpublished registry package.
 - NOBJ and flat launch-artifact publication;
 - D8 validation, storage, source breakpoints, and PC lookup; and
 - generated documentation reading editions pinned to standalone revisions.
+
+Import-directed project-v2 discovery remains a planned Debug80 adoption item.
+The implementation currently belongs to the standalone Nucleus host package.
 
 ## Compiler authority
 

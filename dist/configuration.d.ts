@@ -17,3 +17,5 @@ export interface ValidateNucleusTargetOptions {
 export declare const validateNucleusTarget: (value: unknown, options?: ValidateNucleusTargetOptions) => readonly NucleusConfigurationIssue[];
 export declare const assertNucleusTarget: (value: unknown, options?: ValidateNucleusTargetOptions) => NucleusTarget;
 export declare const parseNucleusTargetProfile: (text: string, options?: ValidateNucleusTargetOptions) => NucleusTarget;
+export declare const validateNucleusTargetProfileDocument: (text: string, options?: ValidateNucleusTargetOptions) => void;
+export declare const validateNucleusTargetLayoutProfileDocument: (text: string, options?: Pick<ValidateNucleusTargetOptions, "requireServices">) => void;

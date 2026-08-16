@@ -8,3 +8,5 @@ export * from "./project.js";
 export * from "./publication.js";
 export * from "./runtime-contract.js";
 export * from "./source-manifest.js";
+export * from "./source-imports.js";
+export * from "./source-plan.js";
