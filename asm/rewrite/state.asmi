@@ -153,7 +153,8 @@ RewriteExpressionOperator     .equ RewriteMetadataControlBase+$2C
 RewriteExpressionOperatorOffset .equ RewriteMetadataControlBase+$2D ; word
 RewriteCurrentType            .equ RewriteMetadataControlBase+$2F
 RewriteDeclarationAnchor      .equ RewriteMetadataControlBase+$30 ; word
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$32
+RewriteExpressionAtomOffset   .equ RewriteMetadataControlBase+$32 ; word
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$34
 RewriteExpressionDepthCapacity .equ 16
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
@@ -368,6 +369,7 @@ DiagnosticExpectedRight      .equ $80+6
 DiagnosticExpectedName       .equ $80+2
 DiagnosticExpectedLine       .equ $80+1
 DiagnosticExpectedEqual      .equ $80+7
+DiagnosticExpectedAs         .equ $80+14
 DiagnosticExpectedLeftBracket .equ $80+18
 DiagnosticExpectedRightBracket .equ $80+19
 

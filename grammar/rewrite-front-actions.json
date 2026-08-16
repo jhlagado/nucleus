@@ -30,6 +30,22 @@
     {
       "name": "FinishAssert",
       "target": "RewriteDeclarationFinishAssert"
+    },
+    {
+      "name": "BeginProgram",
+      "target": "RewriteDeclarationBeginProgram"
+    },
+    {
+      "name": "ParseOwnedType",
+      "target": "RewriteDeclarationParseOwnedType"
+    },
+    {
+      "name": "FinishProgramBss",
+      "target": "RewriteDeclarationFinishProgramBss"
+    },
+    {
+      "name": "FinishProgramScalar",
+      "target": "RewriteDeclarationFinishProgramScalar"
     }
   ],
   "programs": [
@@ -53,6 +69,35 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginAssert"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishAssert"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ProgramBss",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginProgram"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseOwnedType"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishProgramBss"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ProgramScalarInitialized",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginProgram"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseOwnedType"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishProgramScalar"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
         { "instruction": "End", "operands": [] }
       ]
     }

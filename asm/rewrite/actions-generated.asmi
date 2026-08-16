@@ -19,7 +19,11 @@ RewriteActionEscapeFinishScalarConstant .equ 2
 RewriteActionEscapeCommitSymbol .equ 3
 RewriteActionEscapeBeginAssert .equ 4
 RewriteActionEscapeFinishAssert .equ 5
-RewriteActionEscapeCount .equ 6
+RewriteActionEscapeBeginProgram .equ 6
+RewriteActionEscapeParseOwnedType .equ 7
+RewriteActionEscapeFinishProgramBss .equ 8
+RewriteActionEscapeFinishProgramScalar .equ 9
+RewriteActionEscapeCount .equ 10
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -41,3 +45,30 @@ RewriteActionProgramAssert:
             .db RewriteActionEnd
 RewriteActionProgramAssertEnd:
 RewriteActionProgramAssertWidth .equ 11
+
+RewriteActionProgramProgramBss:
+            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginProgram
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseOwnedType
+            .db RewriteActionEscape,RewriteActionEscapeFinishProgramBss
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramProgramBssEnd:
+RewriteActionProgramProgramBssWidth .equ 21
+
+RewriteActionProgramProgramScalarInitialized:
+            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginProgram
+            .db RewriteActionExpect,TokenAs,DiagnosticExpectedAs
+            .db RewriteActionEscape,RewriteActionEscapeParseOwnedType
+            .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
+            .db RewriteActionEscape,RewriteActionEscapeFinishProgramScalar
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCommitSymbol
+            .db RewriteActionEnd
+RewriteActionProgramProgramScalarInitializedEnd:
+RewriteActionProgramProgramScalarInitializedWidth .equ 24

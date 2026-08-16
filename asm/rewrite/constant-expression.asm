@@ -199,6 +199,7 @@ _RewriteExpressionPrefixOperator:
 RewriteExpressionParsePrimary:
             CALL RewriteParserTake
             LD   DE,(TokenStartOffset)
+            LD   (RewriteExpressionAtomOffset),DE
             CP   TokenNumber
             JR   Z,_RewriteExpressionPrimaryNumber
             CP   TokenCharacter

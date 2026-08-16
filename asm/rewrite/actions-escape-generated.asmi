@@ -13,7 +13,15 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeCommitSymbol
             DEC  A
             JR   Z,_RewriteActionEscapeBeginAssert
-            JP   RewriteDeclarationFinishAssert
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishAssert
+            DEC  A
+            JR   Z,_RewriteActionEscapeBeginProgram
+            DEC  A
+            JR   Z,_RewriteActionEscapeParseOwnedType
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishProgramBss
+            JP   RewriteDeclarationFinishProgramScalar
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -24,3 +32,11 @@ _RewriteActionEscapeCommitSymbol:
             JP   RewriteSymbolCommit
 _RewriteActionEscapeBeginAssert:
             JP   RewriteDeclarationBeginAssert
+_RewriteActionEscapeFinishAssert:
+            JP   RewriteDeclarationFinishAssert
+_RewriteActionEscapeBeginProgram:
+            JP   RewriteDeclarationBeginProgram
+_RewriteActionEscapeParseOwnedType:
+            JP   RewriteDeclarationParseOwnedType
+_RewriteActionEscapeFinishProgramBss:
+            JP   RewriteDeclarationFinishProgramBss

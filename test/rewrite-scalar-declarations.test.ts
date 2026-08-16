@@ -72,6 +72,8 @@ describe("ground-up rewrite generated scalar declarations", () => {
   it.each([
     ["ProofScalarDeclarations", 0xc6],
     ["ProofScalarDeclarationDiagnostics", 0xc7],
+    ["ProofProgramVariables", 0xc8],
+    ["ProofProgramVariableDiagnostics", 0xc9],
   ] as const)("executes %s", (entry, expected) => {
     const result = run(entry);
     expect(
@@ -86,12 +88,23 @@ describe("ground-up rewrite generated scalar declarations", () => {
     expect({
       instructions: accepted.instructions,
       cycles: accepted.cycles,
-    }).toEqual({ instructions: 21_370, cycles: 194_224 });
+    }).toEqual({ instructions: 21_384, cycles: 194_498 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 5, instructions: 16_820, cycles: 161_193 });
+    }).toEqual({ cases: 5, instructions: 16_830, cycles: 161_597 });
+    const programs = run("ProofProgramVariables");
+    const programDiagnostics = run("ProofProgramVariableDiagnostics");
+    expect({
+      instructions: programs.instructions,
+      cycles: programs.cycles,
+    }).toEqual({ instructions: 35_095, cycles: 323_647 });
+    expect({
+      cases: programDiagnostics.proofCase,
+      instructions: programDiagnostics.instructions,
+      cycles: programDiagnostics.cycles,
+    }).toEqual({ cases: 7, instructions: 28_595, cycles: 271_482 });
     expect({
       actions:
         (image.symbols.RewriteActionCodeEnd ?? 0) -
@@ -109,11 +122,11 @@ describe("ground-up rewrite generated scalar declarations", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      actions: 147,
-      declarations: 110,
-      actionData: 34,
-      core: 6_211,
-      workspace: 3_366,
+      actions: 171,
+      declarations: 304,
+      actionData: 79,
+      core: 6_478,
+      workspace: 3_368,
     });
   });
 });

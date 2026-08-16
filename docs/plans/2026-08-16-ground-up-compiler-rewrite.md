@@ -859,6 +859,43 @@ R3 generated scalar-declaration checkpoint (Measured):
   instrumented replacement is 6,215 core bytes. Workspace is 3,366 bytes,
   leaving 10,173 core bytes and 730 workspace bytes beneath their gates.
 
+R3 generated program-variable checkpoint (Measured):
+
+- two additional generated action programs compile uninitialised program
+  variables and explicitly initialised scalar program variables. Both use the
+  shared source-type parser and keep the provisional symbol unpublished until
+  the complete source line has passed;
+- uninitialised variables reserve their complete static extent in the BSS
+  account. Scalar initialisers append one or two bytes to the initialised
+  image and publish an explicit storage-segment tag plus a full 16-bit
+  segment-relative offset. The proof distinguishes equal offsets in the two
+  segments rather than deriving storage identity from any address bit;
+- the scalar path supplies the declared type as the expected expression type,
+  so `u8 = 255 + 1` uses byte-width modular arithmetic. It then applies the
+  source compatibility rule without narrowing an already typed operand. The
+  permanent proof covers exact negative adoption, all three implicit integer
+  widenings (`u8` to `u16`, `u8` to `i16`, and `i8` to `i16`), Boolean
+  initialisation, and complete emitted initial bytes;
+- the expression engine retains the full source offset of the last
+  value-producing atom. Declaration-time range failures therefore identify
+  the numeric operand through unary prefixes and nested parentheses instead
+  of attributing the failure to a grouping delimiter;
+- exact diagnostics cover owning-position rejection of `T[]` and `string[]`,
+  typed incompatibility, integer range at the offending operand,
+  self-reference while the provisional symbol is invisible, and duplicate
+  publication while preserving the first committed entry;
+- eight successful variables execute in 35,095 instructions and 323,647
+  T-states. Seven diagnostic cases execute in 28,595 instructions and 271,482
+  T-states. The longer escape dispatcher also moves the retained scalar
+  constant proof to 21,384 instructions and 194,498 T-states and its five-case
+  diagnostic proof to 16,830 instructions and 161,597 T-states; and
+- the action interpreter and dispatcher are 171 code bytes, the front
+  declaration region is 304 code bytes, and the generated action authority is
+  79 immutable bytes. The shipping replacement is 5,436 code + 1,042
+  immutable = 6,478 core bytes; the instrumented replacement is 6,482 core
+  bytes. Workspace is 3,368 bytes. The checkpoint therefore leaves 9,906 core
+  bytes and 728 workspace bytes beneath their gates.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -988,8 +1025,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
 routine-lifecycle, static-storage, front-action, scalar constant-expression,
 and shared source-type substrates. Generated programs now cover scalar
-constants and assertions. The next checkpoint extends the same mechanism to
-aggregate constants, records, variables, formal parameters, results, and
-locals, all calling the single type parser and type-directed initializer
-escape. The replacement remains test-selected until the complete cutover gate
-passes.
+constants, assertions, uninitialised program variables, and scalar-initialised
+program variables. The next checkpoint adds record declarations and fields,
+then the recursive type-directed initializer for aggregate constants and
+program variables. Formal parameters, results, and locals follow on the same
+generated action substrate. The replacement remains test-selected until the
+complete cutover gate passes.
