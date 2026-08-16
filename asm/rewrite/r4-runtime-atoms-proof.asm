@@ -1451,7 +1451,7 @@ ProofExpectedPostfixAssignmentSemantics:
             .db RewriteSemanticLiteral16,1,0
             .db RewriteSemanticSelectIndex,3,0,2,0
             .dw ProofPostfixFixedIndex-ProofSourcePostfixAssignments
-            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails
+            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails+RewriteCallFlagKeepResult
             .dw ProofPostfixCall-ProofSourcePostfixAssignments
             .db RewriteCallModePropagateRoutine,0,1
             .db RewriteSemanticStoreIndirect16
@@ -1498,7 +1498,7 @@ ProofExpectedPostfixAssignmentSemantics:
 
             ; A following local call does not inherit the retained carrier.
             .db RewriteSemanticDeclareLocal16,7
-            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails
+            .db RewriteSemanticCallSource,0,0,RewriteScalarTypeU16,RewriteRoutineFlagFails+RewriteCallFlagKeepResult
             .dw ProofPostfixFreshCall-ProofSourcePostfixAssignments
             .db RewriteCallModePropagateRoutine,0,0
             .db RewriteSemanticStoreLocal16,7
@@ -1511,21 +1511,21 @@ ProofExpectedCallSemantics:
             .db RewriteSemanticLiteral16,1,0
             .db RewriteSemanticLiteral16,2,0
             .db RewriteSemanticLiteral16,3,0
-            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,0
+            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,RewriteCallFlagKeepResult
             .dw ProofCallSumNested-ProofSourceCalls
             .db RewriteCallModeInfallible,0,0
-            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,0
+            .db RewriteSemanticCallSource,0,2,RewriteScalarTypeU16,RewriteCallFlagKeepResult
             .dw ProofCallSum-ProofSourceCalls
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticStoreLocal16,7
             .db RewriteSemanticDeclareLocalU8,9
             .db RewriteSemanticLiteral16,3,0
-            .db RewriteSemanticCallSource,1,1,RewriteScalarTypeU8,RewriteRoutineFlagFails
+            .db RewriteSemanticCallSource,1,1,RewriteScalarTypeU8,RewriteRoutineFlagFails+RewriteCallFlagKeepResult
             .dw ProofCallMaybe-ProofSourceCalls
             .db RewriteCallModePropagateRoutine,0,0
             .db RewriteSemanticStoreLocalU8,9
             .db RewriteSemanticDeclareLocalU8,10
-            .db RewriteSemanticCallService,0
+            .db RewriteSemanticCallService,RewriteCallFlagKeepResult
             .dw ProofCallService-ProofSourceCalls
             .db RewriteCallModePropagateRoutine,0,0
             .db RewriteSemanticStoreLocalU8,10
@@ -1541,7 +1541,7 @@ ProofExpectedCallSemantics:
             .dw 7
             .db RewriteSemanticPrepareOpenArrayDirect,2
             .dw 3
-            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,RewriteCallFlagKeepResult
             .dw ProofCallMeasure-ProofSourceCalls
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticStoreLocal16,11
@@ -1551,7 +1551,7 @@ ProofExpectedCallSemantics:
             .db RewriteSemanticLoadParameterAlias,3
             .db RewriteSemanticPrepareOpenArrayForward,3
             .dw 5
-            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,RewriteCallFlagKeepResult
             .dw ProofCallMeasureForward-ProofSourceCalls
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticStoreLocal16,13
@@ -1559,16 +1559,16 @@ ProofExpectedCallSemanticsEnd:
 
 ProofExpectedCallTransientSemantics:
             .db RewriteSemanticDeclareLocal16,0
-            .db RewriteSemanticCallSource,0,0,RewriteFirstOwnedTypeId,0
+            .db RewriteSemanticCallSource,0,0,RewriteFirstOwnedTypeId,RewriteCallFlagKeepResult
             .dw ProofCallTransientText-ProofSourceCallTransientViews
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticPrepareOpenStringDirect,0,5
-            .db RewriteSemanticCallSource,1,0,RewriteFirstOwnedTypeId+1,0
+            .db RewriteSemanticCallSource,1,0,RewriteFirstOwnedTypeId+1,RewriteCallFlagKeepResult
             .dw ProofCallTransientRow-ProofSourceCallTransientViews
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticPrepareOpenArrayDirect,2
             .dw 3
-            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,0
+            .db RewriteSemanticCallSource,2,4,RewriteScalarTypeU16,RewriteCallFlagKeepResult
             .dw ProofCallTransientMeasure-ProofSourceCallTransientViews
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticStoreLocal16,0
@@ -1577,7 +1577,7 @@ ProofExpectedCallTransientSemanticsEnd:
 ProofExpectedRecursiveCallSemantics:
             .db RewriteSemanticDeclareLocalU8,1
             .db RewriteSemanticLoadParameter8,0
-            .db RewriteSemanticCallSource,0,1,RewriteScalarTypeU8,0
+            .db RewriteSemanticCallSource,0,1,RewriteScalarTypeU8,RewriteCallFlagKeepResult
             .dw ProofRecursiveCallName-ProofSourceRecursiveCall
             .db RewriteCallModeInfallible,0,0
             .db RewriteSemanticStoreLocalU8,1

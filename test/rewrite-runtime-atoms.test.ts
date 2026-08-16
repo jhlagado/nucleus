@@ -164,8 +164,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xe7,
       diagnostic: 0,
-      instructions: 64_504,
-      cycles: 579_229,
+      instructions: 64_510,
+      cycles: 579_275,
     });
   });
 
@@ -177,8 +177,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 97_103,
-      cycles: 876_642,
+      instructions: 97_124,
+      cycles: 876_805,
     });
   });
 
@@ -188,8 +188,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_052,
-      cycles: 110_643,
+      instructions: 12_058,
+      cycles: 110_691,
     });
   });
 
@@ -199,8 +199,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_216,
-      cycles: 200_561,
+      instructions: 22_228,
+      cycles: 200_653,
     });
   });
 
@@ -210,8 +210,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 39_537,
-      cycles: 359_375,
+      instructions: 39_546,
+      cycles: 359_444,
     });
   });
 
@@ -221,8 +221,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_156,
-      cycles: 129_648,
+      instructions: 14_159,
+      cycles: 129_671,
     });
   });
 
@@ -310,8 +310,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 27_835,
-      cycles: 251_107,
+      instructions: 27_844,
+      cycles: 251_165,
     });
   });
 
@@ -416,12 +416,12 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 56,
       actionCode: 239,
       actionData: 445,
-      expression: 4_339,
+      expression: 4_356,
       statements: 717,
       declarations: 1_528,
-      code: 13_672,
+      code: 14_150,
       immutable: 2_173,
-      core: 15_845,
+      core: 16_323,
       workspace: 3_425,
     });
   });

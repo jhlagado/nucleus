@@ -570,6 +570,150 @@ ProofBackendRoutineBankMismatch:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+ProofBackendSourceCalls:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            ; The declaration prepass publishes banks before any call emits.
+            LD   A,5
+            LD   B,0
+            CALL RewriteBackendEnsureLabelBank
+            LD   A,5
+            CALL RewriteBackendDefineLabel
+            LD   A,6
+            LD   B,2
+            CALL RewriteBackendEnsureLabelBank
+            LD   A,1
+            LD   (RewriteBackendLabelValidBase+6),A
+            LD   HL,$C234
+            LD   (RewriteBackendLabelAddressBase+12),HL
+
+            ; Local failable value call, propagated by the current routine.
+            LD   A,5
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
+            LD   A,RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
+            LD   A,RewriteRoutineFlagFails+RewriteCallFlagKeepResult
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
+            LD   HL,$3333
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),HL
+            LD   A,RewriteCallModePropagateRoutine
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallSource
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            ; Infallible cross-bank value call discarded as a complete call
+            ; statement. The declared result type remains in the transcript,
+            ; while the absent keep-result bit prevents a result carrier.
+            LD   A,6
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
+            LD   A,RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
+            LD   HL,$2222
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),HL
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallSource
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            ; Local handled failure discards one argument and one retained
+            ; carrier before the branch, but only the argument on success.
+            LD   A,5
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
+            LD   A,RewriteRoutineFlagFails
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
+            LD   HL,$4444
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),HL
+            LD   A,RewriteCallModeHandle
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
+            LD   A,7
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallSource
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,7
+            CALL RewriteBackendDefineLabel
+            CALL RewriteBackendResolveFixups
+
+            LD   HL,ProofBackendOutput
+            LD   (ProofExpectedSourceCall1+1),HL
+            LD   (ProofExpectedSourceCall3+1),HL
+            LD   HL,ProofBackendOutput+ProofExpectedSourceCallsEnd-ProofExpectedSourceCalls
+            LD   (ProofExpectedSourceHandler+1),HL
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedSourceCallsEnd-ProofExpectedSourceCalls
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedSourceCalls
+            LD   BC,ProofExpectedSourceCallsEnd-ProofExpectedSourceCalls
+ProofBackendSourceCallCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendSourceCallCompare
+            LD   A,(RewriteBackendFixupCount)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendSourceCallMissingBank:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,5
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
+            LD   A,RewriteSemanticCallSource
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendUndefinedLabel:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1091,3 +1235,97 @@ ProofExpectedRoutineFrame:
             POP  IX
             RET
 ProofExpectedRoutineFrameEnd:
+
+ProofExpectedSourceCalls:
+            CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset
+            JR   NC,ProofExpectedSourceCall1Ready
+            LD   HL,$3333
+            LD   A,5
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedSourceCall1Ready:
+ProofExpectedSourceCall1:
+            CALL 0
+            PUSH AF
+            CALL ProofRuntimeBase+NucleusRuntimeActivationReleaseOffset
+            POP  AF
+            JR   NC,ProofExpectedSourceCall1Success
+            LD   HL,$3333
+            LD   ($A100+3),HL
+            LD   SP,IX
+            POP  IX
+            SCF
+            RET
+ProofExpectedSourceCall1Success:
+            PUSH HL
+            LD   L,A
+            LD   H,0
+            PUSH HL
+
+            CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset
+            JR   NC,ProofExpectedSourceCall2Ready
+            LD   HL,$2222
+            LD   A,5
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedSourceCall2Ready:
+            LD   A,2
+            LD   HL,$C234
+            CALL $A000+RewriteBackendFarCallVectorOffset
+            CALL ProofRuntimeBase+NucleusRuntimeActivationReleaseOffset
+
+            CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset
+            JR   NC,ProofExpectedSourceCall3Ready
+            LD   HL,$4444
+            LD   A,5
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedSourceCall3Ready:
+ProofExpectedSourceCall3:
+            CALL 0
+            PUSH AF
+            CALL ProofRuntimeBase+NucleusRuntimeActivationReleaseOffset
+            POP  AF
+            JR   NC,ProofExpectedSourceCall3Success
+            LD   C,A
+            POP  DE
+            POP  DE
+            LD   A,C
+ProofExpectedSourceHandler:
+            JP   0
+ProofExpectedSourceCall3Success:
+            POP  DE
+ProofExpectedSourceCallsEnd:

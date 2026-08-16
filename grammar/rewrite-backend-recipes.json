@@ -7,7 +7,8 @@
     "divideSigned": "RewriteBackendEscapeDivideSigned",
     "beginRoutine": "RewriteBackendEscapeBeginRoutine",
     "bindParameter": "RewriteBackendEscapeBindParameter",
-    "endRoutine": "RewriteBackendEscapeEndRoutine"
+    "endRoutine": "RewriteBackendEscapeEndRoutine",
+    "callSource": "RewriteBackendEscapeCallSource"
   },
   "selectors": {
     "defineProgramU8": [],

@@ -267,9 +267,9 @@ RewriteStatementParseCall:
             JP   NC,RewriteStatementUnknownName
             CP   6
             JP   NC,RewriteStatementUnknownName
-            JP   RewriteCallParseService
+            JP   RewriteCallParseServiceDiscard
 _RewriteStatementParseSourceCall:
-            JP   RewriteCallParseSource
+            JP   RewriteCallParseSourceDiscard
 
 ; Statement consumers are selected only after the complete direct call has
 ; been parsed. The line ending is consumed here because a handler header sits

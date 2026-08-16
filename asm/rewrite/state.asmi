@@ -266,6 +266,11 @@ RewriteRoutineFlags          .equ 7
 RewriteRoutineFlagFails      .equ 1
 RewriteRoutineFlagMain       .equ 2
 RewriteRoutineFlagIncomplete .equ 4
+; Call records reuse a high metadata bit to distinguish an expression result
+; from a complete call statement that discards the result. For CallSource it
+; lives in routineFlags; for CallService it lives in selector. It never tags,
+; shortens, or otherwise constrains an address.
+RewriteCallFlagKeepResult    .equ $80
 RewriteRoutineTableBase      .equ RewriteFieldTableLimit
 RewriteRoutineTableLimit     .equ RewriteRoutineTableBase+RewriteRoutineEntrySize*RewriteRoutineCapacity
 
@@ -356,13 +361,17 @@ RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+8
 RewriteBackendBooleanFixupCapacity .equ 16
 RewriteBackendLabelCapacity    .equ RewriteControlLabelLimit
 RewriteBackendLabelValidBase   .equ RewriteBackendBooleanFixupBase+RewriteBackendBooleanFixupCapacity*2
-RewriteBackendLabelBankBase    .equ RewriteBackendLabelValidBase+RewriteBackendLabelCapacity
+RewriteBackendLabelBankKnownBase .equ RewriteBackendLabelValidBase+RewriteBackendLabelCapacity
+RewriteBackendLabelBankBase    .equ RewriteBackendLabelBankKnownBase+RewriteBackendLabelCapacity
 RewriteBackendLabelAddressBase .equ RewriteBackendLabelBankBase+RewriteBackendLabelCapacity
 RewriteBackendFixupCount       .equ RewriteBackendLabelAddressBase+RewriteBackendLabelCapacity*2
 RewriteBackendFixupBase        .equ RewriteBackendFixupCount+1
-RewriteBackendFixupSize        .equ 4 ; label, site bank, full operand address
+RewriteBackendFixupSize        .equ 5 ; label, site bank, kind, full operand address
 RewriteBackendFixupCapacity    .equ 32
 RewriteBackendFixupLimit       .equ RewriteBackendFixupBase+RewriteBackendFixupSize*RewriteBackendFixupCapacity
+RewriteBackendFixupSameBank    .equ 0
+RewriteBackendFixupAnyBank     .equ 1
+RewriteBackendFarCallVectorOffset .equ 27 ; vector ordinal 9 * 3
 
 ; Deployment supplies this full-width record to RewriteBackendInitialize.
 RewriteBackendContextRuntimeBase .equ 0 ; word

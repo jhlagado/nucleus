@@ -69,8 +69,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 10_878,
-      cycles: 95_703,
+      instructions: 10_959,
+      cycles: 96_405,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -130,8 +130,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendEscapes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 6_516,
-      cycles: 62_065,
+      instructions: 6_597,
+      cycles: 62_767,
     });
     expect(
       (image.symbols.ProofExpectedEscapesEnd ?? 0) -
@@ -143,8 +143,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendBankedTrap");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_443,
-      cycles: 15_667,
+      instructions: 1_524,
+      cycles: 16_369,
     });
   });
 
@@ -152,8 +152,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendAddresses");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 4_278,
-      cycles: 38_993,
+      instructions: 4_359,
+      cycles: 39_695,
     });
     expect(
       (image.symbols.ProofExpectedAddressesEnd ?? 0) -
@@ -165,8 +165,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendControl");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_382,
-      cycles: 14_435,
+      instructions: 1_567,
+      cycles: 16_045,
     });
     expect(
       (image.symbols.ProofExpectedControlEnd ?? 0) -
@@ -178,8 +178,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_895,
-      cycles: 19_054,
+      instructions: 1_998,
+      cycles: 19_931,
     });
     expect(
       (image.symbols.ProofExpectedRoutineFrameEnd ?? 0) -
@@ -189,6 +189,33 @@ describe("ground-up rewrite backend recipes", () => {
 
   it("rejects a routine emitted through the wrong selected bank", () => {
     const { memory } = run("ProofBackendRoutineBankMismatch");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted:
+        (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({
+      diagnostic: 67,
+      emitted: 0,
+    });
+  });
+
+  it("emits local, far, propagated, and handled source-call paths", () => {
+    const { memory, instructions, cycles } = run("ProofBackendSourceCalls");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 5_907,
+      cycles: 56_202,
+    });
+    expect(
+      (image.symbols.ProofExpectedSourceCallsEnd ?? 0) -
+        (image.symbols.ProofExpectedSourceCalls ?? 0),
+    ).toBe(182);
+  });
+
+  it("requires the declaration bank pass before source-call emission", () => {
+    const { memory } = run("ProofBackendSourceCallMissingBank");
     const output = image.symbols.ProofBackendOutput ?? -1;
     const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
     expect({
@@ -356,13 +383,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 1_469,
+      engine: 1_930,
       recipes: 709,
-      code: 13_672,
+      code: 14_150,
       immutable: 2_173,
-      core: 15_845,
+      core: 16_323,
       workspace: 3_425,
-      supported: 72,
+      supported: 73,
     });
   });
 });

@@ -19,7 +19,7 @@ RewriteBackendInitialize:
             LD   (RewriteBackendBooleanFixupDepth),A
             LD   (RewriteBackendFixupCount),A
             LD   HL,RewriteBackendLabelValidBase
-            LD   B,RewriteBackendLabelCapacity
+            LD   B,RewriteBackendLabelCapacity*2
 RewriteBackendInitializeLabels:
             LD   (HL),A
             INC  HL
@@ -374,10 +374,44 @@ RewriteBackendRecipePatchRelativeFixup:
 
 ; Define and later resolve absolute control-flow operands without packing the
 ; label ordinal, bank, or either address. All three remain separate fields.
+.routine in A,B out A,B,carry,zero clobbers sign,parity,halfCarry,C,D,DE,HL
+RewriteBackendEnsureLabelBank:
+            CP   RewriteBackendLabelCapacity
+            JP   NC,RewriteBackendControlLabelCapacityFailure
+            LD   C,A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteBackendLabelBankKnownBase
+            ADD  HL,DE
+            LD   A,(HL)
+            OR   A
+            JR   Z,RewriteBackendDeclareLabelBank
+            LD   HL,RewriteBackendLabelBankBase
+            ADD  HL,DE
+            LD   A,(HL)
+            CP   B
+            JP   NZ,RewriteBackendInvalid
+            LD   A,C
+            OR   A
+            RET
+RewriteBackendDeclareLabelBank:
+            INC  (HL)
+            LD   HL,RewriteBackendLabelBankBase
+            ADD  HL,DE
+            LD   (HL),B
+            LD   A,C
+            OR   A
+            RET
+
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 RewriteBackendDefineLabel:
             CP   RewriteBackendLabelCapacity
             JP   NC,RewriteBackendControlLabelCapacityFailure
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
             LD   C,A
             LD   B,0
             LD   HL,RewriteBackendLabelValidBase
@@ -404,16 +438,32 @@ RewriteBackendDefineLabel:
 
 .routine in A,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteBackendRecordFixup:
+            LD   C,RewriteBackendFixupSameBank
+            JP   RewriteBackendRecordFixupKind
+.routine in A,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendRecordFarFixup:
+            LD   C,RewriteBackendFixupAnyBank
+            JP   RewriteBackendRecordFixupKind
+.routine in A,C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendRecordFixupKind:
+            LD   (RewriteBackendTrapReason),A
+            LD   A,C
+            LD   (RewriteBackendTrapSourceOffset),A
+            LD   A,(RewriteBackendTrapReason)
             CP   RewriteBackendLabelCapacity
             JP   NC,RewriteBackendControlLabelCapacityFailure
             LD   C,A
             LD   A,(RewriteBackendFixupCount)
             CP   RewriteBackendFixupCapacity
             JP   NC,RewriteBackendControlFixupCapacityFailure
+            PUSH DE
+            LD   E,A
+            LD   D,0
             LD   L,A
             LD   H,0
             ADD  HL,HL
             ADD  HL,HL
+            ADD  HL,DE
             LD   B,0
             LD   A,C
             LD   BC,RewriteBackendFixupBase
@@ -423,6 +473,10 @@ RewriteBackendRecordFixup:
             LD   A,(RewriteBackendOutputBank)
             LD   (HL),A
             INC  HL
+            LD   A,(RewriteBackendTrapSourceOffset)
+            LD   (HL),A
+            INC  HL
+            POP  DE
             LD   (HL),E
             INC  HL
             LD   (HL),D
@@ -431,9 +485,9 @@ RewriteBackendRecordFixup:
             XOR  A
             RET
 
-; Resolve all label operands only after semantic emission completes. A bank
-; mismatch is an internal lowering error: source-level structured control may
-; not cross a generated bank boundary.
+; Resolve all label operands only after semantic emission completes. Ordinary
+; structured fixups must remain in one bank; far-call address fixups carry an
+; explicit any-bank kind in a separate byte.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteBackendResolveFixups:
             LD   A,(RewriteBackendFixupCount)
@@ -449,11 +503,17 @@ RewriteBackendResolveFixupNext:
             LD   A,(HL)
             OR   A
             JP   Z,RewriteBackendInvalid
+            LD   A,(IX+2)
+            CP   RewriteBackendFixupAnyBank
+            JR   Z,RewriteBackendResolveFixupBankReady
+            OR   A
+            JP   NZ,RewriteBackendInvalid
             LD   HL,RewriteBackendLabelBankBase
             ADD  HL,BC
             LD   A,(HL)
             CP   (IX+1)
             JP   NZ,RewriteBackendInvalid
+RewriteBackendResolveFixupBankReady:
             LD   L,C
             LD   H,0
             ADD  HL,HL
@@ -463,13 +523,14 @@ RewriteBackendResolveFixupNext:
             INC  HL
             LD   H,(HL)
             LD   L,C
-            LD   E,(IX+2)
-            LD   D,(IX+3)
+            LD   E,(IX+3)
+            LD   D,(IX+4)
             LD   A,L
             LD   (DE),A
             INC  DE
             LD   A,H
             LD   (DE),A
+            INC  IX
             INC  IX
             INC  IX
             INC  IX
@@ -889,6 +950,212 @@ RewriteBackendEscapeEndRoutine:
             LD   A,$E1
             CALL RewriteBackendEmitByte
             LD   A,$C9                    ; RET
+            JP   RewriteBackendEmitByte
+
+; Return the predeclared bank for label A. Source-routine banks are collected
+; in a declaration pass before code emission so a forward call never guesses
+; from an address or changes instruction shape after publication.
+.routine in A out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendRequireLabelBank:
+            CP   RewriteBackendLabelCapacity
+            JP   NC,RewriteBackendControlLabelCapacityFailure
+            LD   C,A
+            LD   B,0
+            LD   HL,RewriteBackendLabelBankKnownBase
+            ADD  HL,BC
+            LD   A,(HL)
+            OR   A
+            JP   Z,RewriteBackendInvalid
+            LD   HL,RewriteBackendLabelBankBase
+            ADD  HL,BC
+            LD   A,(HL)
+            OR   A
+            RET
+
+; Emit one same-bank absolute instruction and retain its complete operand
+; address for the ordinary label resolver. A is the label and B the opcode.
+.routine in A,B out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitLocalFixup:
+            LD   (RewriteBackendTrapReason),A
+            LD   A,B
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   D,H
+            LD   E,L
+            PUSH DE
+            XOR  A
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            POP  DE
+            LD   A,(RewriteBackendTrapReason)
+            JP   RewriteBackendRecordFixup
+
+; Select local CALL or the identity-defined far-call vector from separately
+; retained bank metadata. Both forms retain the complete target address as a
+; fixup; the selector contains no address or bank bits.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitSourceCall:
+            CALL RewriteBackendRequireLabelBank
+            LD   B,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   B
+            JR   NZ,RewriteBackendEmitFarSourceCall
+            LD   A,C
+            LD   B,$CD                    ; CALL nn
+            JP   RewriteBackendEmitLocalFixup
+RewriteBackendEmitFarSourceCall:
+            LD   A,B
+            LD   (RewriteBackendTrapSourceOffset),A
+            LD   A,$3E                    ; LD A,destination bank
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendTrapSourceOffset)
+            CALL RewriteBackendEmitByte
+            LD   A,$21                    ; LD HL,target address
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   D,H
+            LD   E,L
+            PUSH DE
+            XOR  A
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            POP  DE
+            LD   A,C
+            CALL RewriteBackendRecordFarFixup
+            LD   HL,(RewriteBackendVectorBase)
+            LD   DE,RewriteBackendFarCallVectorOffset
+            ADD  HL,DE
+            LD   A,$CD                    ; CALL far-call vector
+            JP   RewriteBackendEmitOpcodeWord
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitDiscardWords:
+            OR   A
+            RET  Z
+            LD   C,A
+RewriteBackendEmitDiscardWordNext:
+            LD   A,$D1                    ; POP DE
+            CALL RewriteBackendEmitByte
+            DEC  C
+            JR   NZ,RewriteBackendEmitDiscardWordNext
+            XOR  A
+            RET
+
+; Publish the source position at which a recoverable error propagates, restore
+; the callable frame, and return carry plus A to the caller.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitFailureReturn:
+            LD   A,$21                    ; LD HL,sourceOffset
+            CALL RewriteBackendEmitOpcodeWord
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,3                     ; TrapOffset-StateBase
+            ADD  HL,DE
+            LD   A,$22                    ; LD (nn),HL
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,$DD                    ; LD SP,IX / POP IX
+            CALL RewriteBackendEmitByte
+            LD   A,$F9
+            CALL RewriteBackendEmitByte
+            LD   A,$DD
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$37                    ; SCF / RET
+            CALL RewriteBackendEmitByte
+            LD   A,$C9
+            JP   RewriteBackendEmitByte
+
+; Lower a source-routine call after argument evaluation has left canonical
+; words on the target stack. Claim occurs before the call and all caller
+; mutation. Failable paths preserve A/carry across release, then propagate or
+; branch to the handler exactly once.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeCallSource:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset)
+            CALL RewriteBackendRequireLabelBank
+            LD   DE,NucleusRuntimeActivationClaimOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$30                    ; JR NC,activation ready
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset)
+            LD   A,5                      ; activation-capacity trap
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchRelative
+
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset)
+            CALL RewriteBackendEmitSourceCall
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset)
+            AND  RewriteRoutineFlagFails
+            JR   NZ,RewriteBackendCallSourceFailable
+            LD   DE,NucleusRuntimeActivationReleaseOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            JR   RewriteBackendCallSourceSuccess
+
+RewriteBackendCallSourceFailable:
+            LD   A,$F5                    ; PUSH AF
+            CALL RewriteBackendEmitByte
+            LD   DE,NucleusRuntimeActivationReleaseOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$F1                    ; POP AF
+            CALL RewriteBackendEmitByte
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset)
+            CP   RewriteCallModeHandle
+            JR   Z,RewriteBackendCallSourceHandle
+            CP   RewriteCallModePropagateRoutine
+            JR   Z,RewriteBackendCallSourcePropagate
+            CP   RewriteCallModePropagateMain
+            JP   NZ,RewriteBackendInvalid
+RewriteBackendCallSourcePropagate:
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitFailureReturn
+            JR   RewriteBackendCallSourceFailureReady
+
+RewriteBackendCallSourceHandle:
+            LD   A,$4F                    ; LD C,A
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset)
+            LD   HL,RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset
+            ADD  A,(HL)
+            CALL RewriteBackendEmitDiscardWords
+            LD   A,$79                    ; LD A,C
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
+            LD   B,$C3                    ; JP handler
+            CALL RewriteBackendEmitLocalFixup
+RewriteBackendCallSourceFailureReady:
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchRelative
+
+RewriteBackendCallSourceSuccess:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset)
+            CALL RewriteBackendEmitDiscardWords
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset)
+            OR   A
+            RET  Z
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset)
+            AND  RewriteCallFlagKeepResult
+            RET  Z
+            LD   A,$E5                    ; PUSH HL result
+            CALL RewriteBackendEmitByte
+            LD   A,$6F                    ; LD L,A / LD H,0 / PUSH HL
+            CALL RewriteBackendEmitByte
+            LD   A,$26
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
             JP   RewriteBackendEmitByte
 
 .routine noreturn

@@ -489,9 +489,10 @@ RewriteCallFailureAtPending:
             LD   (TokenStartOffset),HL
             JP   RewriteCallFailureContext
 
-; A is a retained routine ordinal. Publish its signature into the next call
-; frame before parsing any argument so nested infallible calls are independent.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+; A is a retained routine ordinal and C is call metadata. Publish its signature
+; into the next call frame before parsing any argument so nested infallible
+; calls are independent.
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteCallPushSourceFrame:
             LD   B,A
             LD   A,(RewriteCallDepth)
@@ -529,6 +530,7 @@ RewriteCallPushSourceFrame:
             INC  DE
             LD   A,(HL)
             AND  RewriteRoutineFlagFails
+            OR   C
             LD   (DE),A
             INC  DE
             LD   HL,(RewriteExpressionAtomOffset)
@@ -820,9 +822,18 @@ _RewriteCallFinishReady:
             LD   HL,0
             RET
 
-; Parse all actuals for the current retained source signature.
+; Parse all actuals for the current retained source signature. The expression
+; entry retains a successful result; the statement entry explicitly discards
+; it without changing the declared result type in the call record.
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteCallParseSource:
+            LD   C,RewriteCallFlagKeepResult
+            JR   RewriteCallParseSourceMode
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseSourceDiscard:
+            LD   C,0
+.routine in A,C out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseSourceMode:
             CALL RewriteCallPushSourceFrame
             LD   A,TokenLeftParen
             LD   C,DiagnosticExpectedLeft
@@ -864,10 +875,19 @@ _RewriteCallSourceClose:
             JP   RewriteCallPublishSource
 
 ; A is one of the six dense service ordinals. Their fixed scalar signatures
-; share the same argument checker and every service is failable.
+; share the same argument checker and every service is failable. The expression
+; entry sets the selector metadata bit; the statement entry leaves it clear.
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteCallParseService:
+            LD   C,RewriteCallFlagKeepResult
+            JR   RewriteCallParseServiceMode
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseServiceDiscard:
+            LD   C,0
+.routine in A,C out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallParseServiceMode:
             LD   B,A
+            PUSH BC
             LD   A,(RewriteCallDepth)
             CP   RewriteCallFrameCapacity
             JP   NC,RewriteCallCapacityFailure
@@ -907,7 +927,10 @@ _RewriteCallServiceCountReady:
 _RewriteCallServiceResultReady:
             LD   (HL),A
             INC  HL
-            LD   (HL),B
+            POP  DE
+            LD   A,B
+            OR   E
+            LD   (HL),A
             INC  HL
             LD   A,RewriteRoutineFlagFails
             LD   (HL),A
