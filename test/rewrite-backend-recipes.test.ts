@@ -69,8 +69,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 10_792,
-      cycles: 94_868,
+      instructions: 10_794,
+      cycles: 95_008,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -111,12 +111,27 @@ describe("ground-up rewrite backend recipes", () => {
     });
   });
 
+  it("reports address capacity failure after the admitted low byte", () => {
+    const { memory } = run("ProofBackendAddressCapacity");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+      bytes: Array.from(memory.slice(output, output + 3)),
+    }).toEqual({
+      diagnostic: 96,
+      cursor: output + 2,
+      bytes: [0x3a, 0x12, 0],
+    });
+  });
+
   it("emits byte-identical conversion and division escape paths", () => {
     const { memory, instructions, cycles } = run("ProofBackendEscapes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 6_432,
-      cycles: 61_212,
+      cycles: 61_338,
     });
     expect(
       (image.symbols.ProofExpectedEscapesEnd ?? 0) -
@@ -129,8 +144,21 @@ describe("ground-up rewrite backend recipes", () => {
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
       instructions: 1_359,
-      cycles: 14_814,
+      cycles: 14_940,
     });
+  });
+
+  it("emits full-width initialized, BSS, read-only, and indirect addresses", () => {
+    const { memory, instructions, cycles } = run("ProofBackendAddresses");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 4_183,
+      cycles: 38_193,
+    });
+    expect(
+      (image.symbols.ProofExpectedAddressesEnd ?? 0) -
+        (image.symbols.ProofExpectedAddresses ?? 0),
+    ).toBe(84);
   });
 
   it("uses complete recipe addresses at separated compiler origins", async () => {
@@ -206,7 +234,7 @@ describe("ground-up rewrite backend recipes", () => {
             " HALT",
             "ProofRelocatedStatus: .db 0",
             "ProofRelocatedContext:",
-            " .dw $9000,$A000,$A100,$F100",
+            " .dw $9000,$A000,$A100,$F100,$B000,$B800,$C000",
             " .db 0,0",
             "ProofRelocatedOutput: .ds $80",
             "",
@@ -266,11 +294,11 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      engine: 940,
-      recipes: 512,
-      code: 13_143,
-      immutable: 1_976,
-      core: 15_119,
+      engine: 978,
+      recipes: 684,
+      code: 13_181,
+      immutable: 2_148,
+      core: 15_329,
       workspace: 3_425,
     });
   });

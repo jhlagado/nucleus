@@ -123,7 +123,9 @@ RewriteBackendRecipeNext:
             JP   Z,RewriteBackendRecipeEmitRuntimeCall
             CP   RewriteBackendRecipeRelativeFixupPush
             JP   Z,RewriteBackendRecipePushRelativeFixup
-            JP   RewriteBackendRecipePatchRelativeFixup
+            CP   RewriteBackendRecipeRelativeFixupPatch
+            JP   Z,RewriteBackendRecipePatchRelativeFixup
+            JP   RewriteBackendRecipeEmitAddressWord
 
 RewriteBackendRecipeEmitLiteral:
             LD   B,(HL)
@@ -187,6 +189,34 @@ RewriteBackendRecipeEmitComplement:
             CALL RewriteBackendEmitByte
             POP  HL
             JR   RewriteBackendRecipeNext
+
+; Add a semantic word operand to one full-width deployment base and emit the
+; complete target address. The recipe stores context and operand offsets, not
+; address bits or placement assumptions.
+RewriteBackendRecipeEmitAddressWord:
+            LD   E,(HL)
+            INC  HL
+            LD   C,(HL)
+            INC  HL
+            PUSH HL
+            LD   D,0
+            LD   HL,RewriteBackendRuntimeBase
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   L,C
+            LD   H,0
+            LD   BC,RewriteSemanticOperandArea
+            ADD  HL,BC
+            LD   C,(HL)
+            INC  HL
+            LD   B,(HL)
+            EX   DE,HL
+            ADD  HL,BC
+            CALL RewriteBackendEmitWord
+            POP  HL
+            JP   RewriteBackendRecipeNext
 
 ; A family recipe selects an operation-specific fragment through an inline
 ; full-address directory. Zero is an explicit unavailable-family member.

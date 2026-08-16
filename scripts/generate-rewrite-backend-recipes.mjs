@@ -56,6 +56,12 @@ const instruction = {
   runtimeCall: 6,
   relativeFixupPush: 7,
   relativeFixupPatch: 8,
+  addressWord: 9,
+};
+const contextOffsets = {
+  dataBase: "RewriteBackendContextDataBase",
+  bssBase: "RewriteBackendContextBssBase",
+  readOnlyBase: "RewriteBackendContextReadOnlyBase",
 };
 const byte = (value, description) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) {
@@ -143,6 +149,21 @@ const encodeSteps = (ownerKind, ownerName, selector, steps) => {
       const offset = operandOffset(selector, name);
       lines.push(
         `            .db RewriteBackendRecipeComplementByte,${offset},${byte(adjustment, ownerName)}`,
+      );
+      continue;
+    }
+    if (kind === "addressWord") {
+      if (ownerKind !== "Selector") {
+        throw new Error(`addressWord is not valid in fragment ${ownerName}`);
+      }
+      const [contextName, operandName] = step.addressWord ?? [];
+      const contextOffset = contextOffsets[contextName];
+      if (contextOffset === undefined) {
+        throw new Error(`unknown address context ${contextName} in ${ownerName}`);
+      }
+      const offset = operandOffset(selector, operandName);
+      lines.push(
+        `            .db RewriteBackendRecipeAddressWord,${contextOffset},${offset}`,
       );
       continue;
     }
@@ -237,7 +258,8 @@ const asm = [
   "RewriteBackendRecipeRuntimeCall .equ 6",
   "RewriteBackendRecipeRelativeFixupPush .equ 7",
   "RewriteBackendRecipeRelativeFixupPatch .equ 8",
-  "RewriteBackendRecipeInstructionCount .equ 9",
+  "RewriteBackendRecipeAddressWord .equ 9",
+  "RewriteBackendRecipeInstructionCount .equ 10",
   "",
   "RewriteBackendRecipeDirectory:",
   ...recipeSelectors.map((selector) =>

@@ -1497,39 +1497,45 @@ prototype is recorded and removed rather than extended on hope.
 
 R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
 
-- one 940-byte backend engine reads generated recipe and escape directories
+- one 978-byte backend engine reads generated recipe and escape directories
   through complete 16-bit addresses. Its recipe vocabulary emits target literal runs,
   semantic operand bytes and words, complemented IX displacements,
   identity-fixed runtime calls, nested relative fixups, and operation-family
   fragments. Four handwritten escape handlers cover the irregular trap paths.
   The engine assumes no compiler origin and packs no metadata into an address;
 - deployment now supplies one full-width context containing runtime, vector,
-  writable-state, and terminal addresses plus entry and output banks. This is
-  copied into backend state without narrowing. The same context drives local
-  terminal jumps and identity-defined far-jump vector transfers;
-- the current cohort covers 45 semantic ordinals: byte and word local
+  writable-state, terminal, initialized-data, BSS, and read-only addresses
+  plus entry and output banks. This is copied into backend state without
+  narrowing. The same context drives local terminal jumps, identity-defined
+  far-jump vector transfers, and segment-relative object addresses;
+- the current cohort covers 64 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
   mixed-`i8` pair promotion, nested Boolean short circuit, four unsigned
-  divide/modulo forms, `u8` narrowing, general integer conversion, and signed
-  divide/modulo;
+  divide/modulo forms, `u8` narrowing, general integer conversion, signed
+  divide/modulo, initialized and BSS scalar access, program/BSS/read-only and
+  parameter aliases, field selection, and indirect scalar access. Static
+  definition records are consumed as no-code recipes because the replacement
+  already retains their bytes in its independent static-image account;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
-  and 66,004 T-states for the first cohort, and 10,792 instructions and 94,868
+  and 66,004 T-states for the first cohort, and 10,794 instructions and 95,008
   T-states after runtime calls and Boolean fixups. A second proof compares 232
-  conversion/division bytes in 6,432 instructions and 61,212 T-states. A
-  banked trap proof takes 1,359 instructions and 14,814 T-states. Separate
+  conversion/division bytes in 6,432 instructions and 61,338 T-states. A
+  banked trap proof takes 1,359 instructions and 14,940 T-states. Separate
   capacity proofs distinguish the first rejected recipe byte and the first
-  rejected escape placeholder operand;
+  rejected escape placeholder operand. A third proof compares 84 address-
+  bearing target bytes in 4,183 instructions and 38,193 T-states, and rejects
+  an address word after admitting only its opcode and low byte;
 - recipe and escape dispatch execute under strict register contracts with
   compiler origins `$0000` and `$8000`. The relocated proof exercises both
   classes. Generated recipe `.db` rows are
   interpreter data or emitted target bytes, while `.dw` rows are complete
   addresses. No compiler-executed instruction is hidden in data; and
 - the recipe data plus 44-entry recipe and 29-entry escape directories occupy
-  512 immutable bytes. The shipping replacement is 13,143 code + 1,976
-  immutable = 15,119 core bytes; the instrumented replacement is 15,123 core
+  684 immutable bytes. The shipping replacement is 13,181 code + 2,148
+  immutable = 15,329 core bytes; the instrumented replacement is 15,333 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step
@@ -1653,8 +1659,8 @@ routine-body grammar, and the source-driven compilation-unit driver that
 selects every existing top-level declaration program. R6 now has the generated
 recipe authority, interpreter, bounded sink, relocation proof, runtime-call
 linking, nested relative fixups, a full deployment link context, local and
-banked trap endings, and a 45-operation scalar cohort including conversion and
-division/modulo escapes with exact trap attribution. The next work measures
+banked trap endings, and a 64-operation scalar/storage cohort including
+conversion and division/modulo escapes with exact trap attribution. The next work measures
 the complete prototype against equivalent frozen handlers and then advances
 the next backend cohort. Compression follows semantic and backend
 completion. The replacement remains test-selected until the complete cutover

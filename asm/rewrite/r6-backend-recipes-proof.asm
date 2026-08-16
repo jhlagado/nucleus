@@ -169,6 +169,22 @@ ProofBackendEscapeCapacity:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+ProofBackendAddressCapacity:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutput+2
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   HL,$0012
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadProgramU8
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendEscapes:
             LD   SP,$FF00
             CALL RewriteReset
@@ -269,6 +285,107 @@ ProofBackendBankedCompareLoop:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendAddresses:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            LD   A,RewriteSemanticDefineProgramU8
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticDefineProgram16
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,$0012
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadProgramU8
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0134
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadProgram16
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0020
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticStoreProgramU8
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0030
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticStoreProgram16
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,$0040
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadBssU8
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0050
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadBss16
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0060
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticStoreBssU8
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0070
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticStoreBss16
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,$0080
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadProgramAlias
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$0090
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadBssAlias
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$00A0
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLoadReadOnlyAlias
+            CALL RewriteBackendDispatchOperation
+            LD   A,2
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticLoadParameterAlias
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$1234
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticSelectField
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticLoadIndirect8
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticLoadIndirect16
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticStoreIndirect8
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticStoreIndirect16
+            CALL RewriteBackendDispatchOperation
+
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedAddressesEnd-ProofExpectedAddresses
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedAddresses
+            LD   BC,ProofExpectedAddressesEnd-ProofExpectedAddresses
+ProofBackendAddressCompareLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendAddressCompareLoop
+            LD   A,$A5
+            LD   (ProofStatus),A
+            HALT
+
 ProofExpectedDiagnostic:
             HALT
 ProofUnexpectedDiagnostic:
@@ -284,10 +401,10 @@ ProofFailure:
 
 ProofStatus: .db 0
 ProofBackendContext:
-            .dw ProofRuntimeBase,$A000,$A100,$A200
+            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500
             .db 0,0
 ProofBackendBankedContext:
-            .dw ProofRuntimeBase,$A000,$A100,$A200
+            .dw ProofRuntimeBase,$A000,$A100,$A200,$A300,$A400,$A500
             .db 2,5
 
             .org $B000
@@ -625,3 +742,59 @@ ProofExpectedBankedTrap:
 ProofExpectedBankedSuccess:
             PUSH HL
 ProofExpectedBankedTrapEnd:
+
+ProofExpectedAddresses:
+            LD   A,($A312)
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            LD   HL,($A434)
+            PUSH HL
+            POP  HL
+            LD   A,L
+            LD   ($A320),A
+            POP  HL
+            LD   ($A330),HL
+            LD   A,($A440)
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            LD   HL,($A450)
+            PUSH HL
+            POP  HL
+            LD   A,L
+            LD   ($A460),A
+            POP  HL
+            LD   ($A470),HL
+            LD   HL,$A380
+            PUSH HL
+            LD   HL,$A490
+            PUSH HL
+            LD   HL,$A5A0
+            PUSH HL
+            LD   L,(IX-3)
+            LD   H,(IX-4)
+            PUSH HL
+            POP  HL
+            LD   DE,$1234
+            ADD  HL,DE
+            PUSH HL
+            POP  HL
+            LD   A,(HL)
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            POP  HL
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            PUSH DE
+            POP  DE
+            POP  HL
+            LD   (HL),E
+            POP  DE
+            POP  HL
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+ProofExpectedAddressesEnd:

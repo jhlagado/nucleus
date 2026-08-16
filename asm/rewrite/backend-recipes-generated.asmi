@@ -11,19 +11,20 @@ RewriteBackendRecipeDispatch .equ 5
 RewriteBackendRecipeRuntimeCall .equ 6
 RewriteBackendRecipeRelativeFixupPush .equ 7
 RewriteBackendRecipeRelativeFixupPatch .equ 8
-RewriteBackendRecipeInstructionCount .equ 9
+RewriteBackendRecipeAddressWord .equ 9
+RewriteBackendRecipeInstructionCount .equ 10
 
 RewriteBackendRecipeDirectory:
-            .dw 0 ; defineProgramU8
+            .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
             .dw RewriteBackendRecipeSelectorDeclareLocalU8 ; declareLocalU8
-            .dw 0 ; loadProgramU8
+            .dw RewriteBackendRecipeSelectorLoadProgramU8 ; loadProgramU8
             .dw RewriteBackendRecipeSelectorLoadLocalU8 ; loadLocalU8
-            .dw 0 ; storeProgramU8
+            .dw RewriteBackendRecipeSelectorStoreProgramU8 ; storeProgramU8
             .dw RewriteBackendRecipeSelectorStoreLocalU8 ; storeLocalU8
-            .dw 0 ; defineProgram16
+            .dw RewriteBackendRecipeSelectorDefineProgram16 ; defineProgram16
             .dw RewriteBackendRecipeSelectorDeclareLocal16 ; declareLocal16
             .dw RewriteBackendRecipeSelectorLiteral16 ; literal16
-            .dw 0 ; loadProgram16
+            .dw RewriteBackendRecipeSelectorLoadProgram16 ; loadProgram16
             .dw RewriteBackendRecipeSelectorLoadLocal16 ; loadLocal16
             .dw RewriteBackendRecipeSelectorBinary8 ; binary8
             .dw RewriteBackendRecipeSelectorUnary8 ; unary8
@@ -31,7 +32,7 @@ RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorUnary16 ; unary16
             .dw RewriteBackendRecipeSelectorNotBoolean ; notBoolean
             .dw RewriteBackendRecipeSelectorCompare ; compare
-            .dw 0 ; storeProgram16
+            .dw RewriteBackendRecipeSelectorStoreProgram16 ; storeProgram16
             .dw RewriteBackendRecipeSelectorStoreLocal16 ; storeLocal16
             .dw RewriteBackendRecipeSelectorBooleanBegin ; booleanBegin
             .dw RewriteBackendRecipeSelectorBooleanEnd ; booleanEnd
@@ -39,25 +40,25 @@ RewriteBackendRecipeDirectory:
             .dw 0 ; branchFalse
             .dw 0 ; jump
             .dw 0 ; returnScalar
-            .dw 0 ; loadProgramAlias
-            .dw 0 ; loadBssAlias
-            .dw 0 ; loadParameterAlias
-            .dw 0 ; selectField
-            .dw 0 ; loadIndirect8
-            .dw 0 ; loadIndirect16
-            .dw 0 ; storeIndirect8
-            .dw 0 ; storeIndirect16
+            .dw RewriteBackendRecipeSelectorLoadProgramAlias ; loadProgramAlias
+            .dw RewriteBackendRecipeSelectorLoadBssAlias ; loadBssAlias
+            .dw RewriteBackendRecipeSelectorLoadParameterAlias ; loadParameterAlias
+            .dw RewriteBackendRecipeSelectorSelectField ; selectField
+            .dw RewriteBackendRecipeSelectorLoadIndirect8 ; loadIndirect8
+            .dw RewriteBackendRecipeSelectorLoadIndirect16 ; loadIndirect16
+            .dw RewriteBackendRecipeSelectorStoreIndirect8 ; storeIndirect8
+            .dw RewriteBackendRecipeSelectorStoreIndirect16 ; storeIndirect16
             .dw 0 ; stringLength
             .dw 0 ; stringIndex
-            .dw 0 ; loadReadOnlyAlias
+            .dw RewriteBackendRecipeSelectorLoadReadOnlyAlias ; loadReadOnlyAlias
             .dw 0 ; openStringCapacity
             .dw 0 ; arrayLength
             .dw 0 ; openArrayLength
             .dw RewriteBackendRecipeSelectorPromoteI8Pair ; promoteI8Pair
-            .dw 0 ; loadBssU8
-            .dw 0 ; loadBss16
-            .dw 0 ; storeBssU8
-            .dw 0 ; storeBss16
+            .dw RewriteBackendRecipeSelectorLoadBssU8 ; loadBssU8
+            .dw RewriteBackendRecipeSelectorLoadBss16 ; loadBss16
+            .dw RewriteBackendRecipeSelectorStoreBssU8 ; storeBssU8
+            .dw RewriteBackendRecipeSelectorStoreBss16 ; storeBss16
 RewriteBackendRecipeDirectoryEnd:
 
 RewriteBackendEscapeDirectory:
@@ -92,6 +93,10 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeDivideSigned ; divideSigned
 RewriteBackendEscapeDirectoryEnd:
 
+RewriteBackendRecipeSelectorDefineProgramU8:
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorDefineProgram16:
+            .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorDeclareLocalU8:
             .db RewriteBackendRecipeEmit,1,$3B
             .db RewriteBackendRecipeEnd
@@ -101,6 +106,16 @@ RewriteBackendRecipeSelectorDeclareLocal16:
 RewriteBackendRecipeSelectorLiteral16:
             .db RewriteBackendRecipeEmit,1,$21
             .db RewriteBackendRecipeOperandWord,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadProgramU8:
+            .db RewriteBackendRecipeEmit,1,$3A
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextDataBase,0
+            .db RewriteBackendRecipeEmit,4,$6F,$26,$00,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadProgram16:
+            .db RewriteBackendRecipeEmit,1,$2A
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextDataBase,0
             .db RewriteBackendRecipeEmit,1,$E5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorLoadLocalU8:
@@ -124,6 +139,71 @@ RewriteBackendRecipeSelectorStoreLocal16:
             .db RewriteBackendRecipeComplementByte,0,0
             .db RewriteBackendRecipeEmit,2,$DD,$74
             .db RewriteBackendRecipeComplementByte,0,1
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreProgramU8:
+            .db RewriteBackendRecipeEmit,3,$E1,$7D,$32
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextDataBase,0
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreProgram16:
+            .db RewriteBackendRecipeEmit,2,$E1,$22
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextDataBase,0
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadBssU8:
+            .db RewriteBackendRecipeEmit,1,$3A
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextBssBase,0
+            .db RewriteBackendRecipeEmit,4,$6F,$26,$00,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadBss16:
+            .db RewriteBackendRecipeEmit,1,$2A
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextBssBase,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreBssU8:
+            .db RewriteBackendRecipeEmit,3,$E1,$7D,$32
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextBssBase,0
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreBss16:
+            .db RewriteBackendRecipeEmit,2,$E1,$22
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextBssBase,0
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadProgramAlias:
+            .db RewriteBackendRecipeEmit,1,$21
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextDataBase,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadBssAlias:
+            .db RewriteBackendRecipeEmit,1,$21
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextBssBase,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadReadOnlyAlias:
+            .db RewriteBackendRecipeEmit,1,$21
+            .db RewriteBackendRecipeAddressWord,RewriteBackendContextReadOnlyBase,0
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadParameterAlias:
+            .db RewriteBackendRecipeEmit,2,$DD,$6E
+            .db RewriteBackendRecipeComplementByte,0,0
+            .db RewriteBackendRecipeEmit,2,$DD,$66
+            .db RewriteBackendRecipeComplementByte,0,1
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorSelectField:
+            .db RewriteBackendRecipeEmit,2,$E1,$11
+            .db RewriteBackendRecipeOperandWord,0
+            .db RewriteBackendRecipeEmit,2,$19,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadIndirect8:
+            .db RewriteBackendRecipeEmit,6,$E1,$7E,$6F,$26,$00,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorLoadIndirect16:
+            .db RewriteBackendRecipeEmit,5,$E1,$5E,$23,$56,$D5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreIndirect8:
+            .db RewriteBackendRecipeEmit,3,$D1,$E1,$73
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorStoreIndirect16:
+            .db RewriteBackendRecipeEmit,5,$D1,$E1,$73,$23,$72
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBinary8:
             .db RewriteBackendRecipeDispatch,12,6

@@ -133,9 +133,9 @@ describe("ground-up rewrite default local declarations", () => {
       actionCode: 239,
       actionData: 445,
       declarations: 1_528,
-      code: 13_143,
-      immutable: 1_976,
-      core: 15_119,
+      code: 13_181,
+      immutable: 2_148,
+      core: 15_329,
       workspace: 3_425,
     });
   });

@@ -7,11 +7,23 @@
     "divideSigned": "RewriteBackendEscapeDivideSigned"
   },
   "selectors": {
+    "defineProgramU8": [],
+    "defineProgram16": [],
     "declareLocalU8": [{ "emit": [59] }],
     "declareLocal16": [{ "emit": [59, 59] }],
     "literal16": [
       { "emit": [33] },
       { "operandWord": "value" },
+      { "emit": [229] }
+    ],
+    "loadProgramU8": [
+      { "emit": [58] },
+      { "addressWord": ["dataBase", "offset"] },
+      { "emit": [111, 38, 0, 229] }
+    ],
+    "loadProgram16": [
+      { "emit": [42] },
+      { "addressWord": ["dataBase", "offset"] },
       { "emit": [229] }
     ],
     "loadLocalU8": [
@@ -36,6 +48,63 @@
       { "emit": [221, 116] },
       { "complementByte": ["offset", 1] }
     ],
+    "storeProgramU8": [
+      { "emit": [225, 125, 50] },
+      { "addressWord": ["dataBase", "offset"] }
+    ],
+    "storeProgram16": [
+      { "emit": [225, 34] },
+      { "addressWord": ["dataBase", "offset"] }
+    ],
+    "loadBssU8": [
+      { "emit": [58] },
+      { "addressWord": ["bssBase", "offset"] },
+      { "emit": [111, 38, 0, 229] }
+    ],
+    "loadBss16": [
+      { "emit": [42] },
+      { "addressWord": ["bssBase", "offset"] },
+      { "emit": [229] }
+    ],
+    "storeBssU8": [
+      { "emit": [225, 125, 50] },
+      { "addressWord": ["bssBase", "offset"] }
+    ],
+    "storeBss16": [
+      { "emit": [225, 34] },
+      { "addressWord": ["bssBase", "offset"] }
+    ],
+    "loadProgramAlias": [
+      { "emit": [33] },
+      { "addressWord": ["dataBase", "offset"] },
+      { "emit": [229] }
+    ],
+    "loadBssAlias": [
+      { "emit": [33] },
+      { "addressWord": ["bssBase", "offset"] },
+      { "emit": [229] }
+    ],
+    "loadReadOnlyAlias": [
+      { "emit": [33] },
+      { "addressWord": ["readOnlyBase", "offset"] },
+      { "emit": [229] }
+    ],
+    "loadParameterAlias": [
+      { "emit": [221, 110] },
+      { "complementByte": ["offset", 0] },
+      { "emit": [221, 102] },
+      { "complementByte": ["offset", 1] },
+      { "emit": [229] }
+    ],
+    "selectField": [
+      { "emit": [225, 17] },
+      { "operandWord": "offset" },
+      { "emit": [25, 229] }
+    ],
+    "loadIndirect8": [{ "emit": [225, 126, 111, 38, 0, 229] }],
+    "loadIndirect16": [{ "emit": [225, 94, 35, 86, 213] }],
+    "storeIndirect8": [{ "emit": [209, 225, 115] }],
+    "storeIndirect16": [{ "emit": [209, 225, 115, 35, 114] }],
     "binary8": [
       {
         "dispatch": {
