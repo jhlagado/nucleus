@@ -122,6 +122,18 @@
     {
       "name": "EmitLocalStore",
       "target": "RewriteDeclarationEmitLocalStore"
+    },
+    {
+      "name": "BeginScalarAssignment",
+      "target": "RewriteStatementBeginScalarAssignment"
+    },
+    {
+      "name": "FinishScalarAssignmentExpression",
+      "target": "RewriteStatementFinishScalarAssignmentExpression"
+    },
+    {
+      "name": "EmitScalarAssignment",
+      "target": "RewriteStatementEmitScalarAssignment"
     }
   ],
   "programs": [
@@ -312,6 +324,18 @@
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitLocalStore"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitLocal"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ScalarAssignment",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginScalarAssignment"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishScalarAssignmentExpression"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitScalarAssignment"] },
         { "instruction": "End", "operands": [] }
       ]
     }

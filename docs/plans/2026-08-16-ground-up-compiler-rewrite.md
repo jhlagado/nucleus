@@ -1173,6 +1173,29 @@ R4 call and immediate-failure checkpoint (Measured):
   3,414 bytes, leaving 5,636 core bytes and 682 workspace bytes beneath their
   gates.
 
+R4 architectural stop-rule review (Measured):
+
+- AZM source mappings put the active frozen typed-expression parser at 2,525
+  bytes. The parameter-offset, postfix-path, source/service-call, and primary
+  extension in `aggregate-call-parser.asm` contributes another 1,572 bytes.
+  The comparable frozen family is therefore 4,097 bytes. Structured control
+  is mapped separately and is not credited to this comparison;
+- the replacement expression/path/call region is 4,246 bytes: 149 bytes, or
+  3.6 percent, larger than the comparable frozen family. It therefore does
+  not meet the provisional 25 percent local-saving threshold. The earlier
+  5,457-byte estimate included structured control and was not an
+  apples-to-apples R4 baseline;
+- this result triggers the required design review. The 4,246-byte R4
+  implementation remains the proved semantic reference, not the accepted
+  size architecture. R4.1 must replace repeated postfix, call-frame, and
+  integer-resolution control code with compact data-directed machinery before
+  the replacement is declared locally smaller; and
+- R5 may establish independent statement semantics against that reference.
+  Production cutover still requires the combined front end and backend to
+  meet the final core gate. No placement assumption, address-bit
+  donation, or encoded-instruction data is an admissible way to close the
+  difference.
+
 Exit gate: accepted source, exact diagnostics, transcript intent, target
 behaviour, traps, and stack restoration match. The complete expression/path/
 call region must be at least 25 percent smaller than its measured baseline
@@ -1185,6 +1208,28 @@ Complete routine bodies, assignment, calls, `if`/`elseif`/`else`, `while`, all
 counted loops, `return`, `fail`, `exit`, `continue`, `else fail`, and `handle`.
 Use front-end action programs for regular sequencing and handwritten escapes
 for stateful control-frame transitions.
+
+R5 scalar-assignment checkpoint (Measured):
+
+- one generated action program and three origin-independent escapes parse,
+  validate, and publish scalar assignments to initialized program storage,
+  BSS, routine locals, and parameters. The target retains an explicit class,
+  storage segment, scalar type, and full payload; no address bit is metadata;
+- `StoreBssU8` and `StoreBss16` are now distinct semantic operations, so equal
+  initialized/BSS offsets cannot select the wrong target segment. The accepted
+  proof checks thirteen operation records byte for byte, including all four
+  destination classes, including both byte- and word-width activation stores,
+  in 39,611 instructions and 353,876 T-states;
+- exact frozen diagnostics cover an unknown target (57 at byte 11), a constant
+  target (60 at byte 23), and an incompatible value (60 at byte 31). Store
+  publication occurs only after expression, failure-consumer, and newline
+  validation have all succeeded; and
+- the statement region is 174 code bytes. The operation authority contains
+  103 operations, the action authority contains 32 escapes and 277 immutable
+  bytes, and its interpreter/dispatch code is 303 bytes. The shipping
+  replacement is 9,684 code + 1,284 immutable = 10,968 core bytes; the
+  instrumented replacement is 10,972 core bytes. Workspace remains 3,414
+  bytes, leaving 5,416 core bytes and 682 workspace bytes beneath their gates.
 
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,

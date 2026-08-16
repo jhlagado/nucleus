@@ -120,7 +120,7 @@ describe("ground-up rewrite constant-expression engine", () => {
       code: 4_246,
       immutable: 48,
       pendingCapacity: 16,
-      core: 10_748,
+      core: 10_968,
       workspace: 3_414,
     });
   });

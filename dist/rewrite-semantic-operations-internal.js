@@ -2723,10 +2723,62 @@ export const rewriteSemanticOperations = [
         },
         "source": "direct",
         "trace": "operation-start"
+    },
+    {
+        "id": 102,
+        "name": "StoreBssU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeBssU8",
+            "index": 38
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 103,
+        "name": "StoreBss16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeBss16",
+            "index": 39
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
     }
 ];
 export const rewriteSemanticOperationMaximumWidth = 10;
-const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3);
+const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
 export const rewriteSemanticOperationKeys = (payload, operationCount) => {
     if (!Number.isInteger(operationCount) || operationCount < 0 || operationCount > 255) {
         throw new Error(`invalid rewrite semantic operation count ${operationCount}`);

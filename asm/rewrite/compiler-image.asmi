@@ -24,6 +24,9 @@ RewriteMetadataCodeStart:
 RewriteExpressionCodeStart:
             .include "constant-expression.asm"
 RewriteExpressionCodeEnd:
+RewriteStatementCodeStart:
+            .include "front-statements.asm"
+RewriteStatementCodeEnd:
             .include "declarations.asm"
 RewriteSourceTypeCodeStart:
             .include "source-types.asm"

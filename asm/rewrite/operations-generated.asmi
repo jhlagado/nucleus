@@ -104,6 +104,8 @@ RewriteSemanticDivideSigned .equ 98
 RewriteSemanticPromoteI8Pair .equ 99
 RewriteSemanticLoadBssU8 .equ 100
 RewriteSemanticLoadBss16 .equ 101
+RewriteSemanticStoreBssU8 .equ 102
+RewriteSemanticStoreBss16 .equ 103
 RewriteSemanticDefineProgramU8RecordWidth .equ 3
 RewriteSemanticDefineProgramU8OperandOffsetOffset .equ 0
 RewriteSemanticDefineProgramU8OperandInitialOffset .equ 1
@@ -562,7 +564,15 @@ RewriteSemanticLoadBss16RecordWidth .equ 3
 RewriteSemanticLoadBss16OperandOffsetOffset .equ 0
 RewriteSemanticLoadBss16RecordOperandOffsetOffset .equ 1
 RewriteSemanticLoadBss16OperandOffsetWidth .equ 2
-RewriteSemanticOperationCount .equ 101
+RewriteSemanticStoreBssU8RecordWidth .equ 3
+RewriteSemanticStoreBssU8OperandOffsetOffset .equ 0
+RewriteSemanticStoreBssU8RecordOperandOffsetOffset .equ 1
+RewriteSemanticStoreBssU8OperandOffsetWidth .equ 2
+RewriteSemanticStoreBss16RecordWidth .equ 3
+RewriteSemanticStoreBss16OperandOffsetOffset .equ 0
+RewriteSemanticStoreBss16RecordOperandOffsetOffset .equ 1
+RewriteSemanticStoreBss16OperandOffsetWidth .equ 2
+RewriteSemanticOperationCount .equ 103
 RewriteSemanticDescriptorSize .equ 5
 RewriteSemanticMaximumRecordWidth .equ 10
 RewriteSemanticSourceNone .equ 0
@@ -608,7 +618,9 @@ RewriteRecipeArrayLength .equ 34
 RewriteRecipeOpenArrayLength .equ 35
 RewriteRecipeLoadBssU8 .equ 36
 RewriteRecipeLoadBss16 .equ 37
-RewriteRecipeCount .equ 38
+RewriteRecipeStoreBssU8 .equ 38
+RewriteRecipeStoreBss16 .equ 39
+RewriteRecipeCount .equ 40
 RewriteEscapeDivideUnsigned .equ 0
 RewriteEscapeNarrowU8 .equ 1
 RewriteEscapeBooleanBegin .equ 2
@@ -744,6 +756,8 @@ RewriteSemanticOperationWidthTable:
             .db 2 ; PromoteI8Pair
             .db 3 ; LoadBssU8
             .db 3 ; LoadBss16
+            .db 3 ; StoreBssU8
+            .db 3 ; StoreBss16
 RewriteSemanticOperationDescriptorTable:
             .db $03,$02,$00,$00,$00 ; DefineProgramU8
             .db $02,$01,$00,$01,$00 ; DeclareLocalU8
@@ -846,4 +860,6 @@ RewriteSemanticOperationDescriptorTable:
             .db $02,$91,$00,$1E,$22 ; PromoteI8Pair
             .db $03,$11,$01,$24,$01 ; LoadBssU8
             .db $03,$11,$01,$25,$01 ; LoadBss16
+            .db $03,$11,$01,$26,$10 ; StoreBssU8
+            .db $03,$11,$01,$27,$10 ; StoreBss16
 RewriteSemanticOperationDescriptorTableEnd:

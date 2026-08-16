@@ -177,6 +177,21 @@ export const rewriteActionEscapes = [
         "name": "EmitLocalStore",
         "target": "RewriteDeclarationEmitLocalStore",
         "id": 28
+    },
+    {
+        "name": "BeginScalarAssignment",
+        "target": "RewriteStatementBeginScalarAssignment",
+        "id": 29
+    },
+    {
+        "name": "FinishScalarAssignmentExpression",
+        "target": "RewriteStatementFinishScalarAssignmentExpression",
+        "id": 30
+    },
+    {
+        "name": "EmitScalarAssignment",
+        "target": "RewriteStatementEmitScalarAssignment",
+        "id": 31
     }
 ];
 export const rewriteActionPrograms = [
@@ -1176,6 +1191,69 @@ export const rewriteActionPrograms = [
             }
         ],
         "width": 26
+    },
+    {
+        "name": "ScalarAssignment",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticExpectedName"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginScalarAssignment"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticExpectedEqual"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishScalarAssignmentExpression"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEmitScalarAssignment"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 16
     }
 ];
 export const decodeRewriteActionProgram = (bytes) => {

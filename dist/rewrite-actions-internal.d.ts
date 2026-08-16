@@ -121,6 +121,18 @@ export declare const rewriteActionEscapes: readonly [{
     readonly name: "EmitLocalStore";
     readonly target: "RewriteDeclarationEmitLocalStore";
     readonly id: 28;
+}, {
+    readonly name: "BeginScalarAssignment";
+    readonly target: "RewriteStatementBeginScalarAssignment";
+    readonly id: 29;
+}, {
+    readonly name: "FinishScalarAssignmentExpression";
+    readonly target: "RewriteStatementFinishScalarAssignmentExpression";
+    readonly id: 30;
+}, {
+    readonly name: "EmitScalarAssignment";
+    readonly target: "RewriteStatementEmitScalarAssignment";
+    readonly id: 31;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -736,5 +748,44 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 26;
+}, {
+    readonly name: "ScalarAssignment";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginScalarAssignment"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignmentExpression"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEmitScalarAssignment"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 16;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

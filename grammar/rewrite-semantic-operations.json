@@ -685,6 +685,20 @@
       "backend": ["recipe", "loadBss16"],
       "stack": [0, 1],
       "source": "direct"
+    },
+    {
+      "name": "StoreBssU8",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "storeBssU8"],
+      "stack": [1, 0],
+      "source": "direct"
+    },
+    {
+      "name": "StoreBss16",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "storeBss16"],
+      "stack": [1, 0],
+      "source": "direct"
     }
   ]
 }

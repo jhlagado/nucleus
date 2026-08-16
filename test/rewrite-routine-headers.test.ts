@@ -119,13 +119,13 @@ describe("ground-up rewrite generated routine headers", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      escapes: 29,
-      actionCode: 285,
-      actionData: 261,
+      escapes: 32,
+      actionCode: 303,
+      actionData: 277,
       declarations: 1_519,
-      code: 9_492,
-      immutable: 1_256,
-      core: 10_748,
+      code: 9_684,
+      immutable: 1_284,
+      core: 10_968,
       workspace: 3_414,
     });
   });

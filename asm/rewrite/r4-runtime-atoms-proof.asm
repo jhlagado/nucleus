@@ -366,6 +366,119 @@ _ProofRuntimeRecursiveCallLoop:
             LD   (ProofStatus),A
             HALT
 
+; Scalar assignment statements share the runtime expression engine and retain
+; each destination's explicit storage segment. The transcript distinguishes
+; BSS, local, and parameter stores without tagging an address bit.
+ProofRuntimeScalarAssignments:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsScalarAssignments
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunProgramScalar
+            CALL ProofRunProgramBss
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalDefault
+            LD   B,5
+_ProofRuntimeScalarAssignmentLoop:
+            PUSH BC
+            CALL ProofRunScalarAssignment
+            POP  BC
+            DJNZ _ProofRuntimeScalarAssignmentLoop
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   ProofExpectedScalarAssignmentOperationCount
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedScalarAssignmentSemantics
+            LD   B,ProofExpectedScalarAssignmentSemanticsEnd-ProofExpectedScalarAssignmentSemantics
+_ProofRuntimeScalarAssignmentCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeScalarAssignmentCompare
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$CF
+            LD   (ProofStatus),A
+            HALT
+
+ProofRuntimeAssignmentUnknown:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,DiagnosticUnknownName
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,$D6
+            LD   (ProofExpectedStatus),A
+            LD   HL,11
+            LD   (ProofExpectedOffset),HL
+            LD   A,1
+            LD   HL,ProofPartsAssignmentUnknown
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunScalarAssignment
+            JP   ProofFailure
+
+ProofRuntimeAssignmentConstant:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,DiagnosticTypeMismatch
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,$D7
+            LD   (ProofExpectedStatus),A
+            LD   HL,23
+            LD   (ProofExpectedOffset),HL
+            LD   A,1
+            LD   HL,ProofPartsAssignmentConstant
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunScalarConstant
+            CALL ProofRunDirectHeader
+            CALL ProofRunScalarAssignment
+            JP   ProofFailure
+
+ProofRuntimeAssignmentMismatch:
+            LD   HL,ProofPartsAssignmentMismatch
+            LD   BC,(DiagnosticTypeMismatch<<8)|$D8
+            LD   DE,31
+ProofArmAssignmentDiagnostic:
+            LD   SP,$FF00
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            CALL RewriteReset
+            POP  HL
+            POP  DE
+            POP  BC
+            LD   A,B
+            LD   (ProofExpectedDiagnostic),A
+            LD   A,C
+            LD   (ProofExpectedStatus),A
+            LD   (ProofExpectedOffset),DE
+            LD   (RewriteSymbolCompareEntry),HL
+            LD   HL,ProofExpectedDiagnosticReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,(RewriteSymbolCompareEntry)
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunProgramBss
+            CALL ProofRunDirectHeader
+            CALL ProofRunScalarAssignment
+            JP   ProofFailure
+
 ; Install five owned types, two nominal record layouts, four fields, one BSS
 ; aggregate root, and one read-only aggregate constant. These blocks are
 ; metadata fixtures, not instructions.
@@ -671,6 +784,14 @@ ProofRunForwardHeader:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunLocalInitializedExpression:
             LD   HL,RewriteActionProgramLocalInitializedExpression
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunLocalDefault:
+            LD   HL,RewriteActionProgramLocalDefault
+            JP   RewriteActionRun
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ProofRunScalarAssignment:
+            LD   HL,RewriteActionProgramScalarAssignment
             JP   RewriteActionRun
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunRoutineEnd:
@@ -1019,6 +1140,25 @@ ProofExpectedRecursiveCallSemantics:
             .db RewriteSemanticStoreLocalU8,1
 ProofExpectedRecursiveCallSemanticsEnd:
 
+ProofExpectedScalarAssignmentOperationCount .equ 15
+ProofExpectedScalarAssignmentSemantics:
+            .db RewriteSemanticDeclareLocal16,3
+            .db RewriteSemanticLiteral16,0,0
+            .db RewriteSemanticStoreLocal16,3
+            .db RewriteSemanticLoadParameter8,0
+            .db RewriteSemanticLiteral16,1,0
+            .db RewriteSemanticAdd8
+            .db RewriteSemanticStoreBss16,0,0
+            .db RewriteSemanticLoadBss16,0,0
+            .db RewriteSemanticStoreLocal16,3
+            .db RewriteSemanticLiteral16,3,0
+            .db RewriteSemanticStoreParameter8,0
+            .db RewriteSemanticLoadParameter8,0
+            .db RewriteSemanticStoreProgramU8,0,0
+            .db RewriteSemanticLoadBss16,0,0
+            .db RewriteSemanticStoreParameter16,1
+ProofExpectedScalarAssignmentSemanticsEnd:
+
             .org $5000
 ProofSourceAccepted:
             .db "const five = 5",10
@@ -1204,6 +1344,28 @@ ProofRecursiveCallName:
             .db "recur(value)",10
 ProofSourceRecursiveCallEnd:
 
+ProofSourceScalarAssignments:
+            .db "var ready as u8 = 1",10
+            .db "var target as u16",10
+            .db "sub work(value as u8, wide as u16)",10
+            .db "var local as u16",10
+            .db "target = value + 1",10
+            .db "local = target",10
+            .db "value = 3",10
+            .db "ready = value",10
+            .db "wide = target",10
+ProofSourceScalarAssignmentsEnd:
+
+ProofSourceAssignmentUnknown:
+            .db "sub main()",10,"x = 2",10
+ProofSourceAssignmentUnknownEnd:
+ProofSourceAssignmentConstant:
+            .db "const x = 1",10,"sub main()",10,"x = 2",10
+ProofSourceAssignmentConstantEnd:
+ProofSourceAssignmentMismatch:
+            .db "var x as u8",10,"sub main()",10,"x = true",10
+ProofSourceAssignmentMismatchEnd:
+
 ProofSourceCallMissingConsumer:
             .db "forward sub maybe() as u8 fails",10
             .db "sub work() fails",10
@@ -1357,6 +1519,14 @@ ProofPartsCallTransientViews: .db 1
                          .dw ProofSourceCallTransientViews,ProofSourceCallTransientViewsEnd
 ProofPartsRecursiveCall: .db 1
                          .dw ProofSourceRecursiveCall,ProofSourceRecursiveCallEnd
+ProofPartsScalarAssignments: .db 1
+                         .dw ProofSourceScalarAssignments,ProofSourceScalarAssignmentsEnd
+ProofPartsAssignmentUnknown: .db 1
+                         .dw ProofSourceAssignmentUnknown,ProofSourceAssignmentUnknownEnd
+ProofPartsAssignmentConstant: .db 1
+                         .dw ProofSourceAssignmentConstant,ProofSourceAssignmentConstantEnd
+ProofPartsAssignmentMismatch: .db 1
+                         .dw ProofSourceAssignmentMismatch,ProofSourceAssignmentMismatchEnd
 ProofPartsCallMissingConsumer: .db 1
                          .dw ProofSourceCallMissingConsumer,ProofSourceCallMissingConsumerEnd
 ProofPartsCallInfallibleElse: .db 1

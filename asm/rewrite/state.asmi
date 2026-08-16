@@ -300,6 +300,12 @@ RewriteStaticPendingLength   .equ RewriteStaticPendingSource+2 ; word
 RewriteStaticPendingOffset   .equ RewriteStaticPendingLength+2 ; word
 RewriteStaticPendingByte     .equ RewriteStaticPendingOffset+2
 RewriteStaticPendingLimit    .equ RewriteStaticPendingByte+1
+; Statement parsing begins only after static construction has finished. These
+; aliases retain one scalar assignment target without adding workspace or
+; encoding storage identity in its full-width payload.
+RewriteStatementTargetPayload .equ RewriteStaticPendingOffset ; word
+RewriteStatementTargetStorage .equ RewriteStaticPendingLength
+RewriteStatementTargetClass   .equ RewriteStaticPendingByte
 RewriteInitializerCapacity  .equ 1024
 RewriteInitializerBase       .equ RewriteStaticPendingLimit
 RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapacity

@@ -42,7 +42,10 @@ RewriteActionEscapeEmitDefaultLocal .equ 25
 RewriteActionEscapeCommitLocal .equ 26
 RewriteActionEscapeFinishRuntimeLocalExpression .equ 27
 RewriteActionEscapeEmitLocalStore .equ 28
-RewriteActionEscapeCount .equ 29
+RewriteActionEscapeBeginScalarAssignment .equ 29
+RewriteActionEscapeFinishScalarAssignmentExpression .equ 30
+RewriteActionEscapeEmitScalarAssignment .equ 31
+RewriteActionEscapeCount .equ 32
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -217,3 +220,14 @@ RewriteActionProgramLocalInitializedExpression:
             .db RewriteActionEnd
 RewriteActionProgramLocalInitializedExpressionEnd:
 RewriteActionProgramLocalInitializedExpressionWidth .equ 26
+
+RewriteActionProgramScalarAssignment:
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeBeginScalarAssignment
+            .db RewriteActionExpect,TokenEquals,DiagnosticExpectedEqual
+            .db RewriteActionEscape,RewriteActionEscapeFinishScalarAssignmentExpression
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeEmitScalarAssignment
+            .db RewriteActionEnd
+RewriteActionProgramScalarAssignmentEnd:
+RewriteActionProgramScalarAssignmentWidth .equ 16

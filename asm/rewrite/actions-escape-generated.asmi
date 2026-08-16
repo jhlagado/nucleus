@@ -59,7 +59,13 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeCommitLocal
             DEC  A
             JR   Z,_RewriteActionEscapeFinishRuntimeLocalExpression
-            JP   RewriteDeclarationEmitLocalStore
+            DEC  A
+            JR   Z,_RewriteActionEscapeEmitLocalStore
+            DEC  A
+            JR   Z,_RewriteActionEscapeBeginScalarAssignment
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishScalarAssignmentExpression
+            JP   RewriteStatementEmitScalarAssignment
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -116,3 +122,9 @@ _RewriteActionEscapeCommitLocal:
             JP   RewriteDeclarationCommitLocal
 _RewriteActionEscapeFinishRuntimeLocalExpression:
             JP   RewriteDeclarationFinishRuntimeLocalExpression
+_RewriteActionEscapeEmitLocalStore:
+            JP   RewriteDeclarationEmitLocalStore
+_RewriteActionEscapeBeginScalarAssignment:
+            JP   RewriteStatementBeginScalarAssignment
+_RewriteActionEscapeFinishScalarAssignmentExpression:
+            JP   RewriteStatementFinishScalarAssignmentExpression
