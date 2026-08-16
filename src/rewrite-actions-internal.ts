@@ -130,6 +130,31 @@ export const rewriteActionEscapes = [
     "name": "FinishProgramAggregate",
     "target": "RewriteDeclarationFinishProgramAggregate",
     "id": 17
+  },
+  {
+    "name": "FinishDirectRoutineHeader",
+    "target": "RewriteDeclarationFinishDirectRoutineHeader",
+    "id": 18
+  },
+  {
+    "name": "FinishForwardRoutineHeader",
+    "target": "RewriteDeclarationFinishForwardRoutineHeader",
+    "id": 19
+  },
+  {
+    "name": "OpenForwardBody",
+    "target": "RewriteDeclarationOpenForwardBody",
+    "id": 20
+  },
+  {
+    "name": "RequireComplete",
+    "target": "RewriteDeclarationRequireComplete",
+    "id": 21
+  },
+  {
+    "name": "CloseRoutineScope",
+    "target": "RewriteRoutineCloseScope",
+    "id": 22
   }
 ] as const;
 export const rewriteActionPrograms = [
@@ -753,6 +778,205 @@ export const rewriteActionPrograms = [
       }
     ],
     "width": 24
+  },
+  {
+    "name": "RoutineDirectHeader",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishDirectRoutineHeader"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 9
+  },
+  {
+    "name": "RoutineForwardHeader",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenForward",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishForwardRoutineHeader"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 12
+  },
+  {
+    "name": "RoutineForwardBody",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeOpenForwardBody"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 12
+  },
+  {
+    "name": "CompilationEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEof",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeRequireComplete"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 6
+  },
+  {
+    "name": "RoutineEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 3
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCloseRoutineScope"
+        ],
+        "id": 2,
+        "width": 2
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 9
   }
 ] as const;
 

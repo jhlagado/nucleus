@@ -77,6 +77,26 @@ export declare const rewriteActionEscapes: readonly [{
     readonly name: "FinishProgramAggregate";
     readonly target: "RewriteDeclarationFinishProgramAggregate";
     readonly id: 17;
+}, {
+    readonly name: "FinishDirectRoutineHeader";
+    readonly target: "RewriteDeclarationFinishDirectRoutineHeader";
+    readonly id: 18;
+}, {
+    readonly name: "FinishForwardRoutineHeader";
+    readonly target: "RewriteDeclarationFinishForwardRoutineHeader";
+    readonly id: 19;
+}, {
+    readonly name: "OpenForwardBody";
+    readonly target: "RewriteDeclarationOpenForwardBody";
+    readonly id: 20;
+}, {
+    readonly name: "RequireComplete";
+    readonly target: "RewriteDeclarationRequireComplete";
+    readonly id: 21;
+}, {
+    readonly name: "CloseRoutineScope";
+    readonly target: "RewriteRoutineCloseScope";
+    readonly id: 22;
 }];
 export declare const rewriteActionPrograms: readonly [{
     readonly name: "ScalarConstant";
@@ -459,5 +479,130 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 24;
+}, {
+    readonly name: "RoutineDirectHeader";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishDirectRoutineHeader"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 9;
+}, {
+    readonly name: "RoutineForwardHeader";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenForward", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishForwardRoutineHeader"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 12;
+}, {
+    readonly name: "RoutineForwardBody";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeOpenForwardBody"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 12;
+}, {
+    readonly name: "CompilationEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEof", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeRequireComplete"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 6;
+}, {
+    readonly name: "RoutineEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 3;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCloseRoutineScope"];
+        readonly id: 2;
+        readonly width: 2;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 9;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

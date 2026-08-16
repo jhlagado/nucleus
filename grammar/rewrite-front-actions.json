@@ -78,6 +78,26 @@
     {
       "name": "FinishProgramAggregate",
       "target": "RewriteDeclarationFinishProgramAggregate"
+    },
+    {
+      "name": "FinishDirectRoutineHeader",
+      "target": "RewriteDeclarationFinishDirectRoutineHeader"
+    },
+    {
+      "name": "FinishForwardRoutineHeader",
+      "target": "RewriteDeclarationFinishForwardRoutineHeader"
+    },
+    {
+      "name": "OpenForwardBody",
+      "target": "RewriteDeclarationOpenForwardBody"
+    },
+    {
+      "name": "RequireComplete",
+      "target": "RewriteDeclarationRequireComplete"
+    },
+    {
+      "name": "CloseRoutineScope",
+      "target": "RewriteRoutineCloseScope"
     }
   ],
   "programs": [
@@ -192,6 +212,52 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishProgramAggregate"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitSymbol"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RoutineDirectHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenSub", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishDirectRoutineHeader"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RoutineForwardHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenForward", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenSub", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishForwardRoutineHeader"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RoutineForwardBody",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenSub", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeOpenForwardBody"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "CompilationEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEof", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeRequireComplete"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "RoutineEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCloseRoutineScope"] },
         { "instruction": "End", "operands": [] }
       ]
     }

@@ -958,6 +958,36 @@ R3 recursive static-initializer checkpoint (Measured):
   7,353 core bytes. Workspace is 3,369 bytes, leaving 9,035 core bytes and 727
   workspace bytes beneath their gates.
 
+R3 generated routine-header checkpoint (Measured):
+
+- generated programs now frame direct headers, forward headers, abbreviated
+  forward bodies, routine `end`, and compilation EOF. One iterative signature
+  escape handles formal parameters and the optional result and `fails` suffix;
+  it reuses the shared type parser and the already-proved directory lifecycle;
+- parameter spellings remain invisible throughout the complete header. They
+  are retained for duplicate checking, then published together only when a
+  direct or abbreviated body opens. The execution proof distinguishes byte,
+  word, three-byte open-string, and four-byte open-array activation offsets;
+- ordinary forward signatures retain parameter names and types, results, and
+  effects. Abbreviated completion republishes those exact bindings without a
+  second routine charge. `main` remains outside the four-entry routine table,
+  admits only its fixed empty data signature, and independently retains its
+  `fails` effect;
+- EOF first requires one completed `main`, then scans the ordinary directory
+  for incomplete forwards. Exact diagnostics cover missing main, incomplete
+  forward, duplicate parameter at the parameter name, parameter-header
+  isolation, a parameterized main, and a result-bearing main;
+- the accepted header proof executes in 37,212 instructions and 334,580
+  T-states. It checks two retained routines, five retained parameters, the
+  corresponding active activation offsets, forward completion, main flags,
+  scope rewind, and successful EOF; and
+- the 23-target action dispatcher is 249 code bytes, fourteen generated
+  programs occupy 214 immutable bytes, and the front declaration region is
+  1,298 code bytes. The shipping replacement is 6,569 code + 1,177 immutable
+  = 7,746 core bytes; the instrumented replacement is 7,750 core bytes.
+  Workspace remains 3,369 bytes, leaving 8,638 core bytes and 727 workspace
+  bytes beneath their gates.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -1089,6 +1119,8 @@ routine-lifecycle, static-storage, front-action, scalar constant-expression,
 shared source-type, record, and recursive static-initializer substrates.
 Generated programs now cover scalar and aggregate constants, assertions,
 uninitialised variables, scalar- and aggregate-initialised variables, records,
-and fields. The next checkpoint is the generated routine surface: formal
-parameters, results, failure clauses, locals, `main`, and EOF completeness.
-The replacement remains test-selected until the complete cutover gate passes.
+fields, direct and forward routine headers, formal parameters, results,
+failure clauses, `main`, routine close, and EOF completeness. The next
+checkpoint is scalar local declarations and their default/runtime initializer
+boundary. The replacement remains test-selected until the complete cutover
+gate passes.

@@ -671,3 +671,193 @@ _RewriteInitializerDecodeHex:
             CALL RewriteTokenHexDigit
             OR   D
             RET
+
+; Generated routine-header actions. The regular keyword/name shell remains in
+; generated action data; this escape handles the genuinely iterative formal
+; list and its optional result/effect suffix without a second grammar engine.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishDirectRoutineHeader:
+            LD   D,0
+            JR   RewriteDeclarationFinishRoutineHeader
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishForwardRoutineHeader:
+            LD   D,RewriteRoutineFlagIncomplete
+
+.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishRoutineHeader:
+            LD   A,D
+            LD   (RewritePendingRoutineFlags),A
+            CALL RewriteNameEqualsMain
+            JP   C,RewriteDeclarationFinishMainHeader
+            LD   B,RewriteScalarTypeExact
+            LD   A,(RewriteRoutineCount)
+            LD   C,A
+            LD   A,(RewritePendingRoutineFlags)
+            LD   D,A
+            CALL RewriteRoutineDeclareBeginCurrent
+            CALL RewriteDeclarationParseParameterList
+            CALL RewriteDeclarationParseResultAndFails
+            CALL RewriteDeclarationPublishRoutineHeader
+            JP   RewriteDeclarationExpectHeaderNewline
+
+; Main has the fixed empty data signature. The main lifecycle remains outside
+; the four-entry ordinary routine directory and retains only the fails effect.
+RewriteDeclarationFinishMainHeader:
+            LD   DE,(TokenLexemePointer)
+            LD   A,(TokenLength)
+            LD   B,A
+            PUSH BC
+            PUSH DE
+            LD   A,TokenLeftParen
+            LD   C,DiagnosticExpectedLeft
+            CALL RewriteDeclarationTakeExpected
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteParserPeek
+            CP   TokenAs
+            JP   Z,RewriteDeclarationMainResultFailure
+            CP   TokenFails
+            JR   NZ,_RewriteDeclarationMainFlagsReady
+            CALL RewriteParserTake
+            LD   A,(RewritePendingRoutineFlags)
+            OR   RewriteRoutineFlagFails
+            LD   (RewritePendingRoutineFlags),A
+_RewriteDeclarationMainFlagsReady:
+            CALL RewriteDeclarationExpectHeaderNewline
+            POP  DE
+            POP  BC
+            LD   (TokenLexemePointer),DE
+            LD   A,B
+            LD   (TokenLength),A
+            LD   A,(RewritePendingRoutineFlags)
+            LD   D,A
+            AND  RewriteRoutineFlagIncomplete
+            JP   NZ,RewriteMainBeginForwardCurrent
+            JP   RewriteMainBeginCurrent
+
+RewriteDeclarationMainResultFailure:
+            LD   A,DiagnosticExpectedLine
+            JP   RewriteRaiseDiagnostic
+
+; A expected private token, C published diagnostic.
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationTakeExpected:
+            LD   B,A
+            PUSH BC
+            CALL RewriteParserTake
+            POP  BC
+            CP   B
+            RET  Z
+            LD   A,C
+            JP   RewriteRaiseDiagnostic
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationParseParameterList:
+            LD   A,TokenLeftParen
+            LD   C,DiagnosticExpectedLeft
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteParserPeek
+            CP   TokenRightParen
+            JR   Z,_RewriteDeclarationParameterListClose
+_RewriteDeclarationParameterLoop:
+            CALL RewriteParserTake
+            CP   TokenName
+            JP   NZ,RewriteDeclarationExpectedNameFailure
+            LD   HL,(TokenStartOffset)
+            PUSH HL
+            LD   DE,(TokenLexemePointer)
+            LD   A,(TokenLength)
+            LD   B,A
+            PUSH BC
+            PUSH DE
+            LD   A,TokenAs
+            LD   C,DiagnosticExpectedAs
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteTypeParse
+            LD   (RewritePendingParameterType),A
+            POP  DE
+            POP  BC
+            POP  HL
+            LD   (TokenStartOffset),HL
+            LD   (TokenLexemePointer),DE
+            LD   A,B
+            LD   (TokenLength),A
+            LD   A,(RewritePendingParameterType)
+            CALL RewriteParameterDeclareCurrent
+            CALL RewriteParserPeek
+            CP   TokenRightParen
+            JR   Z,_RewriteDeclarationParameterListClose
+            LD   A,TokenComma
+            LD   C,DiagnosticInitializerShape
+            CALL RewriteDeclarationTakeExpected
+            JR   _RewriteDeclarationParameterLoop
+_RewriteDeclarationParameterListClose:
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            JP   RewriteDeclarationTakeExpected
+
+RewriteDeclarationExpectedNameFailure:
+            LD   A,DiagnosticExpectedName
+            JP   RewriteRaiseDiagnostic
+
+; The result defaults to no value (exact/zero). The optional fails flag follows
+; the optional result and is retained in the same directory flag byte.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationParseResultAndFails:
+            XOR  A
+            LD   (RewriteForwardParameterType),A
+            CALL RewriteParserPeek
+            CP   TokenAs
+            JR   NZ,_RewriteDeclarationResultReady
+            CALL RewriteParserTake
+            CALL RewriteTypeParse
+            CALL RewriteTypeRequireOwned
+            LD   (RewriteForwardParameterType),A
+_RewriteDeclarationResultReady:
+            CALL RewriteParserPeek
+            CP   TokenFails
+            RET  NZ
+            CALL RewriteParserTake
+            LD   A,(RewritePendingRoutineFlags)
+            OR   RewriteRoutineFlagFails
+            LD   (RewritePendingRoutineFlags),A
+            XOR  A
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationPublishRoutineHeader:
+            LD   A,(RewriteCurrentRoutine)
+            CALL RewriteRoutineAddress
+            LD   DE,RewriteRoutineResultType
+            ADD  HL,DE
+            LD   A,(RewriteForwardParameterType)
+            LD   (HL),A
+            INC  HL
+            INC  HL
+            LD   A,(RewritePendingRoutineFlags)
+            LD   (HL),A
+            AND  RewriteRoutineFlagIncomplete
+            JP   NZ,RewriteRoutineCommit
+            JP   RewriteRoutinePublish
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationExpectHeaderNewline:
+            LD   A,TokenNewline
+            LD   C,DiagnosticExpectedLine
+            JP   RewriteDeclarationTakeExpected
+
+; An abbreviated body has no second signature. Opening it clears the retained
+; incomplete bit and republishes the original parameter spellings into the new
+; routine scope.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationOpenForwardBody:
+            CALL RewriteNameEqualsMain
+            JP   C,RewriteMainOpenForwardCurrent
+            CALL RewriteRoutineOpenForwardCurrent
+            JP   RewriteRoutineInstallForwardParameters
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteDeclarationRequireComplete:
+            JP   RewriteRoutineRequireComplete

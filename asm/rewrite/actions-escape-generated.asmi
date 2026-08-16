@@ -37,7 +37,17 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeBeginAggregateConstant
             DEC  A
             JR   Z,_RewriteActionEscapeFinishAggregateConstant
-            JP   RewriteDeclarationFinishProgramAggregate
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishProgramAggregate
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishDirectRoutineHeader
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishForwardRoutineHeader
+            DEC  A
+            JR   Z,_RewriteActionEscapeOpenForwardBody
+            DEC  A
+            JR   Z,_RewriteActionEscapeRequireComplete
+            JP   RewriteRoutineCloseScope
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -72,3 +82,13 @@ _RewriteActionEscapeBeginAggregateConstant:
             JP   RewriteDeclarationBeginAggregateConstant
 _RewriteActionEscapeFinishAggregateConstant:
             JP   RewriteDeclarationFinishAggregateConstant
+_RewriteActionEscapeFinishProgramAggregate:
+            JP   RewriteDeclarationFinishProgramAggregate
+_RewriteActionEscapeFinishDirectRoutineHeader:
+            JP   RewriteDeclarationFinishDirectRoutineHeader
+_RewriteActionEscapeFinishForwardRoutineHeader:
+            JP   RewriteDeclarationFinishForwardRoutineHeader
+_RewriteActionEscapeOpenForwardBody:
+            JP   RewriteDeclarationOpenForwardBody
+_RewriteActionEscapeRequireComplete:
+            JP   RewriteDeclarationRequireComplete

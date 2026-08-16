@@ -31,7 +31,12 @@ RewriteActionEscapeFinishRecord .equ 14
 RewriteActionEscapeBeginAggregateConstant .equ 15
 RewriteActionEscapeFinishAggregateConstant .equ 16
 RewriteActionEscapeFinishProgramAggregate .equ 17
-RewriteActionEscapeCount .equ 18
+RewriteActionEscapeFinishDirectRoutineHeader .equ 18
+RewriteActionEscapeFinishForwardRoutineHeader .equ 19
+RewriteActionEscapeOpenForwardBody .equ 20
+RewriteActionEscapeRequireComplete .equ 21
+RewriteActionEscapeCloseRoutineScope .equ 22
+RewriteActionEscapeCount .equ 23
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -137,3 +142,44 @@ RewriteActionProgramProgramAggregateInitialized:
             .db RewriteActionEnd
 RewriteActionProgramProgramAggregateInitializedEnd:
 RewriteActionProgramProgramAggregateInitializedWidth .equ 24
+
+RewriteActionProgramRoutineDirectHeader:
+            .db RewriteActionExpect,TokenSub,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeFinishDirectRoutineHeader
+            .db RewriteActionEnd
+RewriteActionProgramRoutineDirectHeaderEnd:
+RewriteActionProgramRoutineDirectHeaderWidth .equ 9
+
+RewriteActionProgramRoutineForwardHeader:
+            .db RewriteActionExpect,TokenForward,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenSub,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeFinishForwardRoutineHeader
+            .db RewriteActionEnd
+RewriteActionProgramRoutineForwardHeaderEnd:
+RewriteActionProgramRoutineForwardHeaderWidth .equ 12
+
+RewriteActionProgramRoutineForwardBody:
+            .db RewriteActionExpect,TokenSub,DiagnosticExpectedTopLevel
+            .db RewriteActionExpect,TokenName,DiagnosticExpectedName
+            .db RewriteActionEscape,RewriteActionEscapeOpenForwardBody
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramRoutineForwardBodyEnd:
+RewriteActionProgramRoutineForwardBodyWidth .equ 12
+
+RewriteActionProgramCompilationEnd:
+            .db RewriteActionExpect,TokenEof,DiagnosticExpectedTopLevel
+            .db RewriteActionEscape,RewriteActionEscapeRequireComplete
+            .db RewriteActionEnd
+RewriteActionProgramCompilationEndEnd:
+RewriteActionProgramCompilationEndWidth .equ 6
+
+RewriteActionProgramRoutineEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeCloseRoutineScope
+            .db RewriteActionEnd
+RewriteActionProgramRoutineEndEnd:
+RewriteActionProgramRoutineEndWidth .equ 9

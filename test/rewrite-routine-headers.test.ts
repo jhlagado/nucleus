@@ -15,7 +15,7 @@ let image: Image;
 
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r3-aggregate-initializers-proof.asm"),
+    path.join(rewriteDirectory, "r3-routine-headers-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R3 aggregate-initializer proof artifacts");
+    throw new Error("AZM omitted R3 routine-header proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -54,35 +54,36 @@ const run = (entryName: string) => {
   }
   expect(runtime.isHalted(), entryName).toBe(true);
   const memory = runtime.hardware.memory;
-  const diagnosticOffset = image.symbols.DiagnosticOffset ?? -1;
+  const offsetAddress = image.symbols.DiagnosticOffset ?? -1;
   return {
     status: memory[image.symbols.ProofStatus ?? -1],
     diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
     part: memory[image.symbols.DiagnosticPartId ?? -1],
-    offset: memory[diagnosticOffset] | (memory[diagnosticOffset + 1] << 8),
+    offset: memory[offsetAddress] | (memory[offsetAddress + 1] << 8),
     instructions,
     cycles,
   };
 };
 
-describe("ground-up rewrite recursive aggregate initializers", () => {
-  it("constructs nested records, arrays, strings, and both static segments", () => {
-    const executed = run("ProofAggregateInitializers");
-    expect(executed).toMatchObject({ status: 0xe0, diagnostic: 0 });
+describe("ground-up rewrite generated routine headers", () => {
+  it("retains direct, forward, open-view, result, fails, main, and EOF state", () => {
+    const executed = run("ProofRoutineHeaders");
+    expect(executed).toMatchObject({ status: 0xe8, diagnostic: 0 });
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 40_928, cycles: 372_398 });
+    }).toEqual({ instructions: 37_212, cycles: 334_580 });
   });
 
   it.each([
-    ["ProofInitializerShapeDiagnostic", 0xe1, 78, 19],
-    ["ProofInitializerCountDiagnostic", 0xe2, 79, 21],
-    ["ProofInitializerStringDiagnostic", 0xe3, 80, 23],
-    ["ProofInitializerDepthDiagnostic", 0xe4, 77, 130],
-    ["ProofInitializerScalarConstantDiagnostic", 0xe5, 60, 14],
+    ["ProofRoutineMissingMain", 0xe9, 37, 12],
+    ["ProofRoutineIncomplete", 0xea, 54, 31],
+    ["ProofRoutineDuplicateParameter", 0xeb, 55, 15],
+    ["ProofRoutineHeaderIsolation", 0xec, 57, 20],
+    ["ProofRoutineMainParameter", 0xed, 134, 9],
+    ["ProofRoutineMainResult", 0xee, 129, 11],
   ] as const)(
-    "preserves the frozen diagnostic at %s",
+    "preserves the frozen routine diagnostic at %s",
     (entry, status, diagnostic, offset) => {
       expect(run(entry)).toMatchObject({
         status,
@@ -93,17 +94,7 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
     },
   );
 
-  it.each([
-    ["ProofInitializerProgramPreflightDiagnostic", 0xe6, 81],
-    ["ProofInitializerReadOnlyPreflightDiagnostic", 0xe7, 93],
-  ] as const)(
-    "preflights the complete destination before malformed input in %s",
-    (entry, status, diagnostic) => {
-      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1 });
-    },
-  );
-
-  it("locks the generated programs and exact replacement accounts", () => {
+  it("locks the routine-header replacement accounts", () => {
     expect({
       escapes: image.symbols.RewriteActionEscapeCount,
       actionCode:
@@ -112,6 +103,9 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
       actionData:
         (image.symbols.RewriteActionImmutableEnd ?? 0) -
         (image.symbols.RewriteActionImmutableStart ?? 0),
+      declarations:
+        (image.symbols.RewriteFrontDeclarationCodeEnd ?? 0) -
+        (image.symbols.RewriteFrontDeclarationCodeStart ?? 0),
       code:
         (image.symbols.RewriteCompilerCodeEnd ?? 0) -
         (image.symbols.RewriteCompilerCodeStart ?? 0),
@@ -128,6 +122,7 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
       escapes: 23,
       actionCode: 249,
       actionData: 214,
+      declarations: 1_298,
       code: 6_569,
       immutable: 1_177,
       core: 7_746,
