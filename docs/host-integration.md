@@ -34,11 +34,10 @@ A launch adapter supplies a target profile with real implementations of all
 eleven vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
 
-The standalone Nucleus host now resolves a project-v2 entry and its leading
-`//% import` comments. Debug80 has not yet adopted that project path. A later
-integration increment can call the same exported resolver or a shared package;
-it must preserve the ordered source parts and unchanged bytes supplied to the
-compiler.
+The standalone Nucleus host resolves a project-v2 entry and its leading
+`//% import` comments. Debug80 calls `prepareNucleusProject()` from that package,
+so the CLI and debugger use the same source order, unchanged bytes, target-bank
+derivation, and target validation. Debug80 contains no dependency scanner.
 
 The existing Debug80 backend translates structured failures into editor
 diagnostics, validates returned D8 through its ordinary importer, stores the
@@ -68,32 +67,30 @@ unpublished registry package.
 - Nucleus project discovery and configuration without treating source as
   assembly;
 - an in-process build backend beside the AZM and Glimmer backends;
-- ordered multipart source loading;
+- explicit and import-directed multipart source loading through the standalone
+  host API;
 - NOBJ and flat launch-artifact publication;
 - D8 validation, storage, source breakpoints, and PC lookup; and
 - generated documentation reading editions pinned to standalone revisions.
 
-Import-directed project-v2 discovery remains a planned Debug80 adoption item.
-The implementation currently belongs to the standalone Nucleus host package.
+## Target profiles and execution
 
-## Next host integration increment
-
-Debug80 should adopt project version 2 through the standalone package rather
-than implement another dependency scanner. The integration work is bounded:
-
-1. move the CLI's project loading and final ordinal bank derivation behind one
-   exported host function;
-2. have Debug80 call that function for `.nu` project builds while retaining its
-   existing diagnostics, D8 validation, and artifact publication;
-3. compare explicit version 1 and discovered version 2 builds for identical
-   NOBJ, HEX, D8, source identities, and target mappings; and
-4. retain the current flat-only Debug80 launch gate until its loader has a
-   physical-bank selection model.
+A named machine-profile registry belongs to the operating host. A registry
+entry may select a complete Nucleus target profile, runtime service provider,
+and loader, but the name and registry do not enter source or the Z80 compiler.
+No built-in TEC-1 or CP/M profile should be published until its memory map and
+all service destinations have executable implementations and conformance
+tests.
 
 The standalone `nucleus` command remains a compiler and artifact publisher.
-A generic `run` command would require a separately reviewed emulated target,
-including input, output, storage, terminal, trap, and far-transfer service
-behaviour. The source resolver does not supply that machine policy.
+A runner is target-specific: it must implement input, output, storage,
+terminal, trap, far-transfer, memory, and bank-selection behaviour required by
+its profile. Import discovery does not define those machine operations, so the
+host API has no generic `run` method.
+
+`prepareNucleusProject()` also returns the canonical SP1 source plan. A
+filesystem-aware Z80 host can consume that bounded plan while Node and Debug80
+continue to use the richer project document and dependency metadata.
 
 ## Compiler authority
 
