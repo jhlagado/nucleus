@@ -902,6 +902,9 @@ review. If it exceeds 16,384 bytes, it cannot replace the production compiler.
 
 ## Next implementation move
 
-R0, R1, and R2 are complete. R3 begins with the replacement type descriptors,
-symbol records, declaration actions, and static-storage accounting. The
-replacement remains test-selected until the complete cutover gate passes.
+R0, R1, and R2 are complete. R3 has delivered the type, symbol, directory,
+routine-lifecycle, static-storage, and front-action substrates. Its next move is
+the shared source type parser, generated declaration action programs, and the
+type-directed initializer escape described in
+`docs/plans/2026-08-16-compiler-rewrite-handover.md`. The replacement remains
+test-selected until the complete cutover gate passes.
