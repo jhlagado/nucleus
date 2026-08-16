@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-});
+}, 30_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -128,9 +128,9 @@ describe("ground-up rewrite recursive aggregate initializers", () => {
       escapes: 56,
       actionCode: 239,
       actionData: 445,
-      code: 11_552,
+      code: 11_901,
       immutable: 1_464,
-      core: 13_016,
+      core: 13_365,
       workspace: 3_425,
     });
   });

@@ -38,6 +38,9 @@ RewriteFrontDeclarationCodeStart:
             .include "front-declarations.asm"
 RewriteFrontDeclarationCodeEnd:
             .include "static-storage.asm"
+RewriteFrontDriverCodeStart:
+            .include "front-driver.asm"
+RewriteFrontDriverCodeEnd:
 RewriteMetadataCodeEnd:
 CompilerCodeEnd:
 RewriteCompilerCodeEnd:

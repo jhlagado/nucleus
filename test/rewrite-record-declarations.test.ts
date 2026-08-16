@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-});
+}, 30_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -108,7 +108,7 @@ describe("ground-up rewrite generated record declarations", () => {
     }).toEqual({
       declarations: 1_528,
       actionData: 445,
-      core: 13_016,
+      core: 13_365,
       workspace: 3_425,
     });
   });

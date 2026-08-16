@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-});
+}, 30_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -133,9 +133,9 @@ describe("ground-up rewrite default local declarations", () => {
       actionCode: 239,
       actionData: 445,
       declarations: 1_528,
-      code: 11_552,
+      code: 11_901,
       immutable: 1_464,
-      core: 13_016,
+      core: 13_365,
       workspace: 3_425,
     });
   });

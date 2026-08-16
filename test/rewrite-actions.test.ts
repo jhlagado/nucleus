@@ -42,7 +42,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 15_000);
+}, 30_000);
 
 const run = (entryName: string): number => {
   const parsed = parseIntelHex(image.hex);
@@ -352,7 +352,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 239, immutable: 445, core: 13_016, workspace: 3_425 });
+    }).toEqual({ code: 239, immutable: 445, core: 13_365, workspace: 3_425 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {

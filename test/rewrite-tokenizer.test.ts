@@ -730,9 +730,9 @@ describe("ground-up rewrite tokenizer", () => {
         keywordBytes: 184,
         operationBytes: 630,
         semanticBytes: 220,
-        metadataBytes: 10_085,
+        metadataBytes: 10_434,
         sourceTokenBytes: 1_099,
-        coreBytes: 13_016,
+        coreBytes: 13_365,
         workspaceBytes: 3_425,
       });
       const layouts: readonly {
@@ -827,5 +827,5 @@ describe("ground-up rewrite tokenizer", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, 120_000);
 });

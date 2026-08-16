@@ -944,6 +944,8 @@ RewriteDeclarationEmitDefaultLocal:
             LD   A,RewriteSemanticLiteral16
             LD   HL,RewriteSemanticOperandArea
             CALL RewriteSemanticAppend
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteDeclarationEmitLocalStore:
             LD   A,(RewriteCurrentLocalOffset)
             LD   (RewriteSemanticOperandArea),A

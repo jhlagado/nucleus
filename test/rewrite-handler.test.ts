@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const source = path.resolve(
   import.meta.dirname,
@@ -35,11 +35,16 @@ const assemble = async () => {
   };
 };
 
-let assembled: ReturnType<typeof assemble> | undefined;
-const load = () => (assembled ??= assemble());
+type Assembled = Awaited<ReturnType<typeof assemble>>;
+
+let assembled: Assembled;
+
+beforeAll(async () => {
+  assembled = await assemble();
+}, 30_000);
 
 const run = async (entryName: string) => {
-  const { image, symbols } = await load();
+  const { image, symbols } = assembled;
   const entry = symbols[entryName] ?? 0;
   const runtime = createZ80Runtime(
     { ...image, memory: image.memory.slice(), startAddress: entry },

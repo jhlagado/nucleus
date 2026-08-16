@@ -1419,6 +1419,32 @@ R5 writable-postfix checkpoint (Measured):
   bytes. The nominal 3,368-byte margin below 16 KiB is an observation, not an
   acceptance restriction during feature completion.
 
+R5 source-driven routine-body checkpoint (Measured):
+
+- one 349-byte recursive driver now parses a complete routine body directly
+  from the token stream. It selects the existing generated action programs for
+  ordinary sequencing and retains handwritten recursion only for statement
+  sequences and the nested `if`, `while`, `for`, and `handle` structure;
+- local declarations share one common prefix before the following token
+  selects default or runtime-expression initialization. NAME-led statements
+  use the single namespace to select assignment or call parsing without a
+  second token cache or source rewind;
+- the accepted proof checks 34 complete semantic records byte for byte across
+  two local widths, a `while`, all conditional clause forms, scalar stores, a
+  failable handled source call, `continue`, `exit`, bare return, handler close,
+  and routine close. It executes in 47,375 compiler instructions and 425,048
+  T-states;
+- exact frozen diagnostics cover a local declaration after the statement
+  sequence begins (58 at byte 18), a missing routine close (58 at byte 11), an
+  `else` where a counted loop requires `end` (140 at byte 38), assignment to a
+  callable (133 at byte 27), and calling a variable (135 at byte 24); and
+- the complete driver executes under strict register contracts with compiler
+  origins `$0000` and `$8000`. It uses full addresses and adds no immutable or
+  writable state. The shipping replacement is 11,901 code + 1,464 immutable =
+  13,365 core bytes; the instrumented replacement is 13,369 core bytes.
+  Workspace remains 3,425 bytes. These figures precede the later compression
+  pass and do not constrain frontend or backend completion.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1547,7 +1573,9 @@ assignments, exact aggregate assignment, open-string length assignment,
 source and service call statements, scalar and aggregate returns, explicit routine/main
 failure, bare return, routine-end fallthrough validation, complete
 `if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops,
-nearest-loop `exit`/`continue`, and local `handle` blocks. The next work is the
-remaining routine-body and aggregate-statement grammar. Compression follows
-semantic and backend completion. The replacement remains test-selected until
-the complete cutover gate passes.
+nearest-loop `exit`/`continue`, local `handle` blocks, and a source-driven
+recursive routine-body grammar. The next work is the compilation-unit driver
+that selects the existing top-level declaration programs and opens each
+routine body through this shared path. Compression follows semantic and
+backend completion. The replacement remains test-selected until the complete
+cutover gate passes.

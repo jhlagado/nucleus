@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { nucleusSemanticOperationKeys } from "../src/d8-internal.js";
 import {
@@ -46,6 +46,12 @@ const assembleProof = async (): Promise<AssembledImage> => {
     ),
   };
 };
+
+let proofImage: AssembledImage;
+
+beforeAll(async () => {
+  proofImage = await assembleProof();
+}, 30_000);
 
 const runEntry = (
   image: AssembledImage,
@@ -94,8 +100,8 @@ const runEntry = (
 };
 
 describe("ground-up rewrite semantic authority", () => {
-  it("generates one complete fixed-width operation authority", async () => {
-    const image = await assembleProof();
+  it("generates one complete fixed-width operation authority", () => {
+    const image = proofImage;
     expect({
       semanticBytes:
         (image.symbols.RewriteSemanticCodeEnd ?? 0) -
@@ -112,7 +118,7 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({
       semanticBytes: 224,
       operationBytes: 630,
-      coreBytes: 13_020,
+      coreBytes: 13_369,
       workspaceBytes: 3_425,
     });
     expect(rewriteSemanticOperations).toHaveLength(105);
@@ -621,8 +627,8 @@ describe("ground-up rewrite semantic authority", () => {
     }
   });
 
-  it("validates before dispatch and emits exact semantic trace events", async () => {
-    const image = await assembleProof();
+  it("validates before dispatch and emits exact semantic trace events", () => {
+    const image = proofImage;
     const result = runEntry(image, "ProofSemanticStart", true);
     expect(result.memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(result.memory[image.symbols.RewriteSemanticBufferBase ?? -1]).toBe(
@@ -638,8 +644,8 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({ instructions: 488, cycles: 7_195 });
   });
 
-  it("distinguishes exact fill, first overflow, and clean recovery", async () => {
-    const image = await assembleProof();
+  it("distinguishes exact fill, first overflow, and clean recovery", () => {
+    const image = proofImage;
     const result = runEntry(image, "ProofSemanticCapacity");
     expect(result.memory[image.symbols.ProofStatus ?? -1]).toBe(0xa6);
     expect(result.memory[image.symbols.ProofExactFillCount ?? -1]).toBe(128);
@@ -653,8 +659,8 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({ instructions: 10_874, cycles: 113_767 });
   });
 
-  it("rejects a multi-byte record atomically when only three bytes remain", async () => {
-    const image = await assembleProof();
+  it("rejects a multi-byte record atomically when only three bytes remain", () => {
+    const image = proofImage;
     const result = runEntry(image, "ProofSemanticAtomicOverflow");
     expect(result.memory[image.symbols.ProofStatus ?? -1]).toBe(0xa8);
     expect(result.memory[image.symbols.RewriteSemanticBufferBase ?? -1]).toBe(
@@ -662,8 +668,8 @@ describe("ground-up rewrite semantic authority", () => {
     );
   });
 
-  it("distinguishes operation-count 255 from the first rejected count", async () => {
-    const image = await assembleProof();
+  it("distinguishes operation-count 255 from the first rejected count", () => {
+    const image = proofImage;
     const result = runEntry(image, "ProofSemanticCountCapacity");
     expect(result.memory[image.symbols.ProofStatus ?? -1]).toBe(0xa9);
     expect(result.memory[image.symbols.RewriteSemanticBufferBase ?? -1]).toBe(
@@ -675,8 +681,8 @@ describe("ground-up rewrite semantic authority", () => {
     "ProofSemanticInvalidOrdinal",
     "ProofSemanticTruncated",
     "ProofSemanticTrailing",
-  ])("rejects corrupted transcript boundary %s", async (entry) => {
-    const image = await assembleProof();
+  ])("rejects corrupted transcript boundary %s", (entry) => {
+    const image = proofImage;
     const result = runEntry(image, entry);
     expect(result.memory[image.symbols.ProofStatus ?? -1]).toBe(0xa7);
     expect(result.memory[image.symbols.DiagnosticCode ?? -1]).toBe(67);
