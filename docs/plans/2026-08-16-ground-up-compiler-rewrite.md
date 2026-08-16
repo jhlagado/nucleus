@@ -228,11 +228,12 @@ activation representation, not in an address bit. Records, concrete arrays,
 bounded strings, and open views share type-query primitives for kind, element,
 extent, mutability, and compatibility.
 
-The rewrite uses one symbol entry format with class-specific payload
-directories only where a complete measurement proves that split entries are
-smaller. Names continue to refer to retained source bytes. Forward routine
-signatures, activation layout, and aggregate carriers remain bounded and
-explicit.
+The rewrite uses one symbol entry format with class-specific payloads and an
+explicit storage-segment byte; it never hides segment identity in an address.
+Separate directories exist only where a complete measurement proves that split
+entries are smaller. Names continue to refer to retained source bytes. Forward
+routine signatures, activation layout, and aggregate carriers remain bounded
+and explicit.
 
 ### Front-end machine
 
@@ -624,11 +625,13 @@ R3 substrate checkpoint (Measured, in progress):
 - `string[]` and `T[]` remain parameter-only identities. Their compact type
   encodings contain no address bits; dynamic capacity or count belongs to the
   activation representation introduced with routine parameters;
-- one seven-byte symbol record retains a complete source pointer, name length,
-  class, type metadata, and full-word payload. Exact constants retain a
-  negative-domain bit, so `-1` and `65535` remain distinct even though both
-  payload words are `$FFFF`. The sixteenth committed symbol succeeds, the
-  seventeenth fails, and a provisional symbol remains invisible until commit;
+- the initial substrate's seven-byte symbol record retains a complete source
+  pointer, name length, class, type metadata, and full-word payload. The later
+  static-storage checkpoint adds an eighth, explicit storage-segment byte.
+  Exact constants retain a negative-domain bit, so `-1` and `65535` remain
+  distinct even though both payload words are `$FFFF`. The sixteenth committed
+  symbol succeeds, the seventeenth fails, and a provisional symbol remains
+  invisible until commit;
 - nominal/structural identity, exact duplicate and capacity diagnostics,
   diagnostic recovery, and a retained name at `$9000` execute under strict
   register contracts; and
@@ -717,6 +720,38 @@ R3 namespace and routine-lifecycle checkpoint (Measured):
   instrumented rewrite is 3,477 core bytes. Workspace is 1,271 bytes. The R3
   grammar/action programs, static initialization, and complete 20-percent
   comparison remain ahead.
+
+R3 static-storage checkpoint (Measured):
+
+- one 1,024-byte scratch image can hold a complete structured initializer, and
+  one separate 1,024-byte retained image holds all emitted static bytes. The
+  retained image keeps initialized program data as its prefix and aggregate
+  constants as its suffix;
+- a later initialized declaration shifts the constant suffix upward before it
+  copies the new bytes. Constant-relative offsets therefore remain stable even
+  when source declarations interleave constants and initialized variables. The
+  append API returns each suffix-relative offset for the later declaration
+  action to publish in its symbol;
+- zero-initialized program data has an independent word counter and 1,024-byte
+  boundary. It consumes no retained image bytes;
+- every program symbol carries a separate storage-segment byte alongside its
+  complete 16-bit segment-relative offset. Initialized offset zero and BSS
+  offset zero are therefore distinct without stealing an address bit;
+- initialized-data, read-only-data, BSS, and initializer-scratch overflow use
+  diagnostics 81, 93, 81, and 77. Every complete end and the first rejected
+  byte execute through strict proofs; a rejected append preserves counters,
+  image bytes, and the byte immediately beyond the admitted region;
+- zero-length internal appends are explicit no-ops, preventing a Z80 `LDIR`
+  count of zero from becoming a 65,536-byte copy;
+- declaration actions must preflight the destination segment before building
+  an initializer. A source object that cannot fit therefore reports program
+  data diagnostic 81 or read-only diagnostic 93; diagnostic 77 remains the
+  independent internal scratch-capacity boundary; and
+- the transaction layer and explicit storage-segment metadata add 335 code
+  bytes and 2,073 workspace bytes. The shipping rewrite is 2,873 code + 935
+  immutable = 3,808 core bytes; the instrumented rewrite is 3,812 core bytes.
+  Workspace is 3,344 bytes. Static initializer grammar and type-directed
+  initializer construction remain ahead.
 
 ### R4 — Expressions, paths, and calls
 

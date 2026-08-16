@@ -19,6 +19,7 @@ RewriteSemanticCodeEnd:
 RewriteMetadataCodeStart:
             .include "types-symbols.asm"
             .include "declarations.asm"
+            .include "static-storage.asm"
 RewriteMetadataCodeEnd:
 CompilerCodeEnd:
 RewriteCompilerCodeEnd:

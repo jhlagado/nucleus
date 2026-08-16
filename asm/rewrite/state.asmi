@@ -133,7 +133,8 @@ RewriteRoutineLookupRemaining .equ RewriteMetadataControlBase+$16
 RewritePendingRoutineFlags   .equ RewriteMetadataControlBase+$17
 RewriteCurrentLocalOffset    .equ RewriteMetadataControlBase+$18
 RewritePendingParameterType  .equ RewriteMetadataControlBase+$19
-RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1A
+RewriteInitializerLength     .equ RewriteMetadataControlBase+$1A ; word
+RewriteMetadataControlLimit  .equ RewriteMetadataControlBase+$1C
 
 RewriteTypeCandidate         .equ RewriteMetadataControlLimit
 RewriteTypeCandidateKind     .equ RewriteTypeCandidate+RewriteTypeKindOffset
@@ -148,19 +149,25 @@ RewriteTypeExtentLimit       .equ RewriteTypeExtentBase+2*RewriteOwnedTypeCapaci
 ; R3 symbols retain exact source spelling by full pointer and length. The
 ; provisional entry at RewriteSymbolCount is invisible until commit, keeping
 ; failed initializers from publishing a declaration.
-RewriteSymbolEntrySize       .equ 7
+RewriteSymbolEntrySize       .equ 8
 RewriteSymbolCapacity        .equ 16
 RewriteSymbolNamePointer     .equ 0 ; word
 RewriteSymbolNameLength      .equ 2
 RewriteSymbolClass           .equ 3
 RewriteSymbolType            .equ 4 ; type identity plus constant metadata
 RewriteSymbolPayload         .equ 5 ; word
+RewriteSymbolStorage         .equ 7
 RewriteSymbolClassConstant   .equ 0
 RewriteSymbolClassProgram    .equ 1
 RewriteSymbolClassLocal      .equ 2
 RewriteSymbolClassParameter  .equ 3
 RewriteSymbolClassRecordType .equ 4
 RewriteSymbolClassRoutine    .equ 5
+RewriteSymbolStorageNone        .equ 0
+RewriteSymbolStorageInitialized .equ 1
+RewriteSymbolStorageBss         .equ 2
+RewriteSymbolStorageReadOnly    .equ 3
+RewriteSymbolStorageActivation  .equ 4
 RewriteSymbolTableBase       .equ RewriteTypeExtentLimit
 RewriteSymbolTableLimit      .equ RewriteSymbolTableBase+RewriteSymbolEntrySize*RewriteSymbolCapacity
 RewriteSymbolCompareEntry    .equ RewriteSymbolTableLimit ; word
@@ -218,7 +225,22 @@ RewriteSuffixTableLimit      .equ RewriteSuffixTableBase+RewriteSuffixEntrySize*
 RewriteSuffixResumeOffset    .equ RewriteSuffixTableLimit ; word
 RewriteSuffixOpenOffset      .equ RewriteSuffixResumeOffset+2 ; word
 
-RewriteWorkspaceEnd          .equ RewriteSuffixOpenOffset+2
+; Static construction uses one complete-object scratch image and one retained
+; output image. Initialized bytes are the retained prefix and aggregate
+; constants are the suffix. Both buffers retain the published 1 KiB boundary.
+RewriteStaticPendingSource   .equ RewriteSuffixOpenOffset+2 ; word
+RewriteStaticPendingLength   .equ RewriteStaticPendingSource+2 ; word
+RewriteStaticPendingOffset   .equ RewriteStaticPendingLength+2 ; word
+RewriteStaticPendingByte     .equ RewriteStaticPendingOffset+2
+RewriteStaticPendingLimit    .equ RewriteStaticPendingByte+1
+RewriteInitializerCapacity  .equ 1024
+RewriteInitializerBase       .equ RewriteStaticPendingLimit
+RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapacity
+RewriteStaticImageCapacity   .equ 1024
+RewriteStaticImageBase       .equ RewriteInitializerLimit
+RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity
+
+RewriteWorkspaceEnd          .equ RewriteStaticImageLimit
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never
@@ -300,11 +322,14 @@ DiagnosticSymbolCapacity     .equ 56
 DiagnosticUnknownName        .equ 57
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
+DiagnosticInitializerCapacity .equ 77
+DiagnosticProgramDataCapacity .equ 81
 DiagnosticRecordEmpty        .equ 82
 DiagnosticTypeBound          .equ 83
 DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
 DiagnosticSourcePartCapacity .equ 88
+DiagnosticReadOnlyCapacity   .equ 93
 
 DebugTraceSemanticStartPort  .equ $DD
 DebugTraceSemanticEndPort    .equ $DE

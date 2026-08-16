@@ -150,18 +150,14 @@ RewriteTypeOpenInvalid:
             SCF
             RET
 
-; A -> address of one seven-byte symbol entry.
+; A -> address of one eight-byte symbol entry.
 .routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
 RewriteSymbolAddress:
             LD   L,A
             LD   H,0
-            LD   E,L
-            LD   D,H
             ADD  HL,HL
             ADD  HL,HL
             ADD  HL,HL
-            OR   A
-            SBC  HL,DE
             LD   DE,RewriteSymbolTableBase
             ADD  HL,DE
             RET
@@ -261,7 +257,9 @@ RewriteSymbolPrepareCurrent:
             LD   (HL),C
             INC  HL
             LD   (HL),B
-            OR   A
+            INC  HL
+            XOR  A
+            LD   (HL),A
             RET
 RewriteSymbolPrepareFull:
             POP  AF
@@ -272,5 +270,19 @@ RewriteSymbolPrepareFull:
 RewriteSymbolCommit:
             LD   HL,RewriteSymbolCount
             INC  (HL)
+            XOR  A
+            RET
+
+; Set the provisional symbol's explicit storage segment. The payload remains a
+; complete segment-relative word; no address bit is repurposed as metadata.
+.routine in A out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+RewriteSymbolSetStorageCurrent:
+            PUSH AF
+            LD   A,(RewriteSymbolCount)
+            CALL RewriteSymbolAddress
+            LD   BC,RewriteSymbolStorage
+            ADD  HL,BC
+            POP  AF
+            LD   (HL),A
             XOR  A
             RET

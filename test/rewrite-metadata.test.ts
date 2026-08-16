@@ -76,12 +76,12 @@ describe("ground-up rewrite type and symbol substrate", () => {
     expect(symbols.ProofNameAlpha).toBe(0x9000);
     expect(symbols.RewriteTypeDescriptorSize).toBe(4);
     expect(symbols.RewriteOwnedTypeCapacity).toBe(8);
-    expect(symbols.RewriteSymbolEntrySize).toBe(7);
+    expect(symbols.RewriteSymbolEntrySize).toBe(8);
     expect(symbols.RewriteSymbolCapacity).toBe(16);
     expect(
       (symbols.RewriteMetadataCodeEnd ?? 0) -
         (symbols.RewriteMetadataCodeStart ?? 0),
-    ).toBe(1_309);
+    ).toBe(1_644);
     expect({
       code:
         (symbols.RewriteCompilerCodeEnd ?? 0) -
@@ -94,6 +94,6 @@ describe("ground-up rewrite type and symbol substrate", () => {
         (symbols.RewriteCompilerCodeStart ?? 0),
       workspace:
         (symbols.RewriteWorkspaceEnd ?? 0) - (symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 2_538, immutable: 935, core: 3_473, workspace: 1_271 });
+    }).toEqual({ code: 2_873, immutable: 935, core: 3_808, workspace: 3_344 });
   });
 });
