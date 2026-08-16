@@ -1,7 +1,184 @@
-; Source-driven routine-body grammar for the replacement front end. Generated
-; action programs retain regular token sequencing. This driver supplies the
-; recursive statement-sequence structure and selects the appropriate action
-; from the current token and namespace class.
+; Source-driven compilation-unit and routine-body grammar for the replacement
+; front end. Generated action programs retain regular token sequencing. This
+; driver supplies recursive grammar structure and selects the appropriate
+; action from the current token, declared type, and namespace class.
+
+; Parse top-level declarations until the generated EOF action has checked the
+; unique-main and incomplete-forward invariants. No declaration kind rewinds
+; the source or retains a second tokenizer.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseCompilationUnit:
+_RewriteFrontTopLevelLoop:
+            CALL RewriteParserPeek
+            OR   A
+            JR   Z,_RewriteFrontCompilationEnd
+            CALL RewriteFrontParseTopLevel
+            JR   _RewriteFrontTopLevelLoop
+_RewriteFrontCompilationEnd:
+            LD   HL,RewriteActionProgramCompilationEnd
+            JP   RewriteActionRun
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseTopLevel:
+            CP   TokenConst
+            JP   Z,RewriteFrontParseConstant
+            CP   TokenAssert
+            JR   Z,_RewriteFrontRunAssert
+            CP   TokenVar
+            JP   Z,RewriteFrontParseProgram
+            CP   TokenRecord
+            JP   Z,RewriteFrontParseRecord
+            CP   TokenForward
+            JR   Z,_RewriteFrontRunForward
+            CP   TokenSub
+            JP   Z,RewriteFrontParseRoutine
+            LD   A,DiagnosticExpectedTopLevel
+            JP   RewriteRaiseDiagnostic
+_RewriteFrontRunAssert:
+            LD   HL,RewriteActionProgramAssert
+            JP   RewriteActionRun
+_RewriteFrontRunForward:
+            LD   HL,RewriteActionProgramRoutineForwardHeader
+            JP   RewriteActionRun
+
+; Both constant forms reserve the same provisional constant symbol. The token
+; after the name selects inferred scalar `=` or owned aggregate `as` without
+; duplicating that lifecycle.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseConstant:
+            CALL RewriteParserTake
+            LD   A,TokenName
+            LD   C,DiagnosticExpectedName
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteDeclarationBeginScalarConstant
+            CALL RewriteParserPeek
+            CP   TokenAs
+            JR   Z,_RewriteFrontAggregateConstant
+            LD   A,TokenEquals
+            LD   C,DiagnosticExpectedEqual
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteDeclarationFinishScalarConstant
+            JR   RewriteFrontCommitProgramSymbol
+_RewriteFrontAggregateConstant:
+            CALL RewriteParserTake
+            CALL RewriteDeclarationParseOwnedType
+            LD   A,TokenEquals
+            LD   C,DiagnosticExpectedEqual
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteDeclarationFinishAggregateConstant
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteFrontCommitProgramSymbol:
+            LD   A,TokenNewline
+            LD   C,DiagnosticExpectedLine
+            CALL RewriteDeclarationTakeExpected
+            JP   RewriteSymbolCommit
+
+; Program storage is selected after the complete owned type is known. An
+; absent equals sign follows the BSS path; initialized scalars and aggregates
+; share the same source prefix and publication tail.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseProgram:
+            CALL RewriteParserTake
+            LD   A,TokenName
+            LD   C,DiagnosticExpectedName
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteDeclarationBeginProgram
+            LD   A,TokenAs
+            LD   C,DiagnosticExpectedAs
+            CALL RewriteDeclarationTakeExpected
+            CALL RewriteDeclarationParseOwnedType
+            CALL RewriteParserPeek
+            CP   TokenEquals
+            JR   Z,_RewriteFrontInitializedProgram
+            CALL RewriteDeclarationFinishProgramBss
+            JR   RewriteFrontCommitProgramSymbol
+_RewriteFrontInitializedProgram:
+            CALL RewriteParserTake
+            LD   A,(RewriteCurrentType)
+            CP   RewriteFirstOwnedTypeId
+            JR   NC,_RewriteFrontInitializedAggregate
+            CALL RewriteDeclarationFinishProgramScalar
+            JR   RewriteFrontCommitProgramSymbol
+_RewriteFrontInitializedAggregate:
+            CALL RewriteDeclarationFinishProgramAggregate
+            JR   RewriteFrontCommitProgramSymbol
+
+; A record field always begins with NAME. An empty record is rejected before
+; closing-token syntax, as the frozen diagnostic requires; every other token
+; is handed to the generated closing action.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseRecord:
+            LD   HL,RewriteActionProgramRecordBegin
+            CALL RewriteActionRun
+_RewriteFrontRecordFieldLoop:
+            CALL RewriteParserPeek
+            CP   TokenName
+            JR   NZ,_RewriteFrontRecordEnd
+            LD   HL,RewriteActionProgramRecordField
+            CALL RewriteActionRun
+            JR   _RewriteFrontRecordFieldLoop
+_RewriteFrontRecordEnd:
+            LD   A,(RewriteCurrentRecord)
+            CALL RewriteRecordAddress
+            INC  HL
+            LD   A,(HL)
+            OR   A
+            JP   Z,RewriteDeclarationFinishRecord
+            LD   HL,RewriteActionProgramRecordEnd
+            JP   RewriteActionRun
+
+; `sub NAME NEWLINE` is the abbreviated forward-body form. The NAME token's
+; exact spelling, anchor, and source part are kept on the hardware stack while
+; one token of grammar lookahead distinguishes that form from a full header.
+; For `(` and NEWLINE the lookahead token is guaranteed to match the first
+; subsequent expectation, so restoring NAME metadata cannot hide a failure.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteFrontParseRoutine:
+            CALL RewriteParserTake
+            LD   A,TokenName
+            LD   C,DiagnosticExpectedName
+            CALL RewriteDeclarationTakeExpected
+            LD   HL,(TokenStartOffset)
+            PUSH HL
+            LD   HL,(TokenLexemePointer)
+            PUSH HL
+            LD   A,(TokenLength)
+            LD   B,A
+            LD   A,(SourcePartId)
+            LD   C,A
+            PUSH BC
+            CALL RewriteParserPeek
+            LD   D,A
+            CP   TokenNewline
+            JR   Z,_RewriteFrontRoutineRestoreName
+            CP   TokenLeftParen
+            JR   Z,_RewriteFrontRoutineRestoreName
+            POP  BC
+            POP  HL
+            POP  HL
+            LD   A,DiagnosticExpectedLeft
+            JP   RewriteRaiseDiagnostic
+_RewriteFrontRoutineRestoreName:
+            POP  BC
+            LD   A,B
+            LD   (TokenLength),A
+            LD   A,C
+            LD   (SourcePartId),A
+            POP  HL
+            LD   (TokenLexemePointer),HL
+            POP  HL
+            LD   (TokenStartOffset),HL
+            LD   A,D
+            CP   TokenNewline
+            JR   Z,_RewriteFrontForwardBody
+            CALL RewriteDeclarationFinishDirectRoutineHeader
+            JP   RewriteFrontParseRoutineBody
+_RewriteFrontForwardBody:
+            CALL RewriteDeclarationOpenForwardBody
+            LD   A,TokenNewline
+            LD   C,DiagnosticExpectedLine
+            CALL RewriteDeclarationTakeExpected
+            JP   RewriteFrontParseRoutineBody
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteFrontParseRoutineBody:

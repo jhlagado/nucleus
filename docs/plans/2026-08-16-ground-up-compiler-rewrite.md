@@ -1445,6 +1445,40 @@ R5 source-driven routine-body checkpoint (Measured):
   Workspace remains 3,425 bytes. These figures precede the later compression
   pass and do not constrain frontend or backend completion.
 
+R5 source-driven compilation-unit checkpoint (Measured):
+
+- the recursive driver now parses a complete compilation unit directly from
+  source. It selects scalar or aggregate constants after their shared name
+  prefix, selects BSS or initialized program storage after the complete owned
+  type, iterates record fields to `end`, publishes forward headers, and opens
+  both full and abbreviated routine bodies through the one routine-body path;
+- `sub NAME NEWLINE` versus `sub NAME(...)` uses one token of grammar
+  lookahead. The name spelling, byte offset, and source part remain on the
+  hardware stack until the choice is made, so an absent forward still reports
+  diagnostic 57 at the name. No second tokenizer, source rewind, address bit,
+  or new workspace field is introduced;
+- the accepted proof compiles a mixed program containing a record, inferred
+  scalar constant, assertion, bounded-string constant, scalar and record
+  initialized variables, BSS variables, a retained forward signature, an
+  abbreviated forward body, direct `main`, a local, a source call, and a valid
+  declaration after `main`. It locks seven program symbols, one record, one
+  ordinary routine, one retained parameter, exact static images, and 12
+  semantic records. It executes in 66,189 compiler instructions and 599,256
+  T-states;
+- exact frozen diagnostics cover missing `main` (37 at byte 12), an incomplete
+  ordinary forward after a defined `main` (54 at byte 35), an empty record
+  whose next token is another declaration (82 at byte 14), a forbidden typed
+  scalar constant (60 at byte 14), and an absent abbreviated forward body (57
+  at byte 4). The record case preserves the frozen empty-record precedence
+  before the ordinary expected-`end` diagnostic; and
+- the complete compilation-unit grammar executes under strict register
+  contracts with compiler origins `$0000` and `$8000`. The whole driver is 651
+  code bytes. The shipping replacement is 12,203 code + 1,464 immutable =
+  13,667 core bytes; the instrumented replacement is 13,671 core bytes.
+  Workspace remains 3,425 bytes. This is the completed source-driven frontend
+  checkpoint, not a size stop: backend construction may take the intermediate
+  image past 16 KiB before the planned whole-system compression pass.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1573,9 +1607,12 @@ assignments, exact aggregate assignment, open-string length assignment,
 source and service call statements, scalar and aggregate returns, explicit routine/main
 failure, bare return, routine-end fallthrough validation, complete
 `if`/`elseif`/`else` lowering, `while`, programmer-typed counted loops,
-nearest-loop `exit`/`continue`, local `handle` blocks, and a source-driven
-recursive routine-body grammar. The next work is the compilation-unit driver
-that selects the existing top-level declaration programs and opens each
-routine body through this shared path. Compression follows semantic and
-backend completion. The replacement remains test-selected until the complete
-cutover gate passes.
+nearest-loop `exit`/`continue`, local `handle` blocks, a source-driven recursive
+routine-body grammar, and the source-driven compilation-unit driver that
+selects every existing top-level declaration program. The next work is R6's
+backend recipe interpreter: implement the recipe engine, migrate and
+byte-compare the first representative scalar operations, and retain it only
+if the measured compiler-core account beats the equivalent handwritten
+handlers by the recorded threshold. Compression follows semantic and backend
+completion. The replacement remains test-selected until the complete cutover
+gate passes.
