@@ -114,6 +114,14 @@
     {
       "name": "CommitLocal",
       "target": "RewriteDeclarationCommitLocal"
+    },
+    {
+      "name": "FinishRuntimeLocalExpression",
+      "target": "RewriteDeclarationFinishRuntimeLocalExpression"
+    },
+    {
+      "name": "EmitLocalStore",
+      "target": "RewriteDeclarationEmitLocalStore"
     }
   ],
   "programs": [
@@ -287,6 +295,22 @@
         { "instruction": "Escape", "operands": ["RewriteActionEscapeParseLocalScalarType"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitDefaultLocal"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitLocal"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "LocalInitializedAtom",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenVar", "DiagnosticExpectedTopLevel"] },
+        { "instruction": "Expect", "operands": ["TokenName", "DiagnosticExpectedName"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginLocal"] },
+        { "instruction": "Expect", "operands": ["TokenAs", "DiagnosticExpectedAs"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseLocalScalarType"] },
+        { "instruction": "Expect", "operands": ["TokenEquals", "DiagnosticExpectedEqual"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishRuntimeLocalExpression"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitLocalStore"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeCommitLocal"] },
         { "instruction": "End", "operands": [] }
       ]

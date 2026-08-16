@@ -157,7 +157,11 @@ RewriteDeclarationAnchor      .equ RewriteMetadataControlBase+$30 ; word
 RewriteCurrentRecordExtent    .equ RewriteDeclarationAnchor ; word overlay
 RewriteExpressionAtomOffset   .equ RewriteMetadataControlBase+$32 ; word
 RewriteInitializerDepth       .equ RewriteMetadataControlBase+$34
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$35
+; Runtime mode shares the constant precedence parser. Known distinguishes a
+; compile-time value carried in HL from a dynamic 16-bit target carrier.
+RewriteExpressionMode         .equ RewriteMetadataControlBase+$35
+RewriteExpressionKnown        .equ RewriteMetadataControlBase+$36
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$37
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
 

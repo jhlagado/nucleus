@@ -55,7 +55,11 @@ RewriteActionEscapeDispatch:
             JR   Z,_RewriteActionEscapeParseLocalScalarType
             DEC  A
             JR   Z,_RewriteActionEscapeEmitDefaultLocal
-            JP   RewriteDeclarationCommitLocal
+            DEC  A
+            JR   Z,_RewriteActionEscapeCommitLocal
+            DEC  A
+            JR   Z,_RewriteActionEscapeFinishRuntimeLocalExpression
+            JP   RewriteDeclarationEmitLocalStore
 _RewriteActionEscapeResetInitializer:
             JP   RewriteInitializerReset
 _RewriteActionEscapeBeginScalarConstant:
@@ -108,3 +112,7 @@ _RewriteActionEscapeParseLocalScalarType:
             JP   RewriteDeclarationParseLocalScalarType
 _RewriteActionEscapeEmitDefaultLocal:
             JP   RewriteDeclarationEmitDefaultLocal
+_RewriteActionEscapeCommitLocal:
+            JP   RewriteDeclarationCommitLocal
+_RewriteActionEscapeFinishRuntimeLocalExpression:
+            JP   RewriteDeclarationFinishRuntimeLocalExpression

@@ -102,6 +102,8 @@ RewriteSemanticOpenArrayIndex .equ 96
 RewriteSemanticConvertInteger .equ 97
 RewriteSemanticDivideSigned .equ 98
 RewriteSemanticPromoteI8Pair .equ 99
+RewriteSemanticLoadBssU8 .equ 100
+RewriteSemanticLoadBss16 .equ 101
 RewriteSemanticDefineProgramU8RecordWidth .equ 3
 RewriteSemanticDefineProgramU8OperandOffsetOffset .equ 0
 RewriteSemanticDefineProgramU8OperandInitialOffset .equ 1
@@ -552,7 +554,15 @@ RewriteSemanticPromoteI8PairRecordWidth .equ 2
 RewriteSemanticPromoteI8PairOperandModeOffset .equ 0
 RewriteSemanticPromoteI8PairRecordOperandModeOffset .equ 1
 RewriteSemanticPromoteI8PairOperandModeWidth .equ 1
-RewriteSemanticOperationCount .equ 99
+RewriteSemanticLoadBssU8RecordWidth .equ 3
+RewriteSemanticLoadBssU8OperandOffsetOffset .equ 0
+RewriteSemanticLoadBssU8RecordOperandOffsetOffset .equ 1
+RewriteSemanticLoadBssU8OperandOffsetWidth .equ 2
+RewriteSemanticLoadBss16RecordWidth .equ 3
+RewriteSemanticLoadBss16OperandOffsetOffset .equ 0
+RewriteSemanticLoadBss16RecordOperandOffsetOffset .equ 1
+RewriteSemanticLoadBss16OperandOffsetWidth .equ 2
+RewriteSemanticOperationCount .equ 101
 RewriteSemanticDescriptorSize .equ 5
 RewriteSemanticMaximumRecordWidth .equ 10
 RewriteSemanticSourceNone .equ 0
@@ -596,7 +606,9 @@ RewriteRecipeLoadReadOnlyAlias .equ 32
 RewriteRecipeOpenStringCapacity .equ 33
 RewriteRecipeArrayLength .equ 34
 RewriteRecipeOpenArrayLength .equ 35
-RewriteRecipeCount .equ 36
+RewriteRecipeLoadBssU8 .equ 36
+RewriteRecipeLoadBss16 .equ 37
+RewriteRecipeCount .equ 38
 RewriteEscapeDivideUnsigned .equ 0
 RewriteEscapeNarrowU8 .equ 1
 RewriteEscapeBooleanBegin .equ 2
@@ -730,6 +742,8 @@ RewriteSemanticOperationWidthTable:
             .db 5 ; ConvertInteger
             .db 4 ; DivideSigned
             .db 2 ; PromoteI8Pair
+            .db 3 ; LoadBssU8
+            .db 3 ; LoadBss16
 RewriteSemanticOperationDescriptorTable:
             .db $03,$02,$00,$00,$00 ; DefineProgramU8
             .db $02,$01,$00,$01,$00 ; DeclareLocalU8
@@ -830,4 +844,6 @@ RewriteSemanticOperationDescriptorTable:
             .db $05,$93,$04,$1C,$11 ; ConvertInteger
             .db $04,$92,$02,$1D,$21 ; DivideSigned
             .db $02,$91,$00,$1E,$22 ; PromoteI8Pair
+            .db $03,$11,$01,$24,$01 ; LoadBssU8
+            .db $03,$11,$01,$25,$01 ; LoadBss16
 RewriteSemanticOperationDescriptorTableEnd:

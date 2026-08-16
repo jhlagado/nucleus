@@ -939,6 +939,7 @@ RewriteDeclarationEmitDefaultLocal:
             LD   A,RewriteSemanticLiteral16
             LD   HL,RewriteSemanticOperandArea
             CALL RewriteSemanticAppend
+RewriteDeclarationEmitLocalStore:
             LD   A,(RewriteCurrentLocalOffset)
             LD   (RewriteSemanticOperandArea),A
             LD   A,(RewriteCurrentType)
@@ -952,6 +953,25 @@ RewriteDeclarationEmitDefaultLocal:
 _RewriteDeclarationEmitLocalStore:
             LD   HL,RewriteSemanticOperandArea
             JP   RewriteSemanticAppend
+
+; Runtime atoms are the first R4 consumer. The action program keeps the local
+; provisional until the following newline and store emission both succeed.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteDeclarationFinishRuntimeLocalExpression:
+            LD   A,(RewriteCurrentType)
+            CALL RewriteExpressionEvaluateRuntimeAtom
+            LD   (RewriteExpressionRightMeta),A
+            PUSH DE
+            PUSH HL
+            CALL RewriteParserPeek
+            POP  HL
+            POP  DE
+            LD   A,(RewriteExpressionRightMeta)
+            LD   B,A
+            LD   A,(RewriteCurrentType)
+            LD   C,A
+            LD   A,B
+            JP   RewriteExpressionCheckRuntimeAssignable
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteDeclarationCommitLocal:

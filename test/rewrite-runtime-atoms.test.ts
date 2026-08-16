@@ -15,7 +15,7 @@ let image: Image;
 
 beforeAll(async () => {
   const result = await compile(
-    path.join(rewriteDirectory, "r3-routine-headers-proof.asm"),
+    path.join(rewriteDirectory, "r4-runtime-atoms-proof.asm"),
     { emitHex: true, emitD8m: true, registerContracts: "strict" },
   );
   expect(
@@ -24,7 +24,7 @@ beforeAll(async () => {
   const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
   const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
   if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted R3 routine-header proof artifacts");
+    throw new Error("AZM omitted R4 runtime-atom proof artifacts");
   }
   image = {
     hex: hex.text,
@@ -65,37 +65,30 @@ const run = (entryName: string) => {
   };
 };
 
-describe("ground-up rewrite generated routine headers", () => {
-  it("retains direct, forward, open-view, result, fails, main, and EOF state", () => {
-    const executed = run("ProofRoutineHeaders");
-    expect(executed).toMatchObject({ status: 0xe8, diagnostic: 0 });
-    expect({
-      instructions: executed.instructions,
-      cycles: executed.cycles,
-    }).toEqual({ instructions: 37_218, cycles: 334_670 });
+describe("ground-up rewrite runtime expression atoms", () => {
+  it("publishes literal, constant, activation, initialized, and BSS carriers", () => {
+    expect(run("ProofRuntimeAtoms")).toMatchObject({
+      status: 0xc0,
+      diagnostic: 0,
+      instructions: 63_459,
+      cycles: 574_089,
+    });
   });
 
   it.each([
-    ["ProofRoutineMissingMain", 0xe9, 37, 12],
-    ["ProofRoutineIncomplete", 0xea, 54, 31],
-    ["ProofRoutineDuplicateParameter", 0xeb, 55, 15],
-    ["ProofRoutineHeaderIsolation", 0xec, 57, 20],
-    ["ProofRoutineMainParameter", 0xed, 134, 9],
-    ["ProofRoutineMainResult", 0xee, 129, 11],
+    ["ProofRuntimeMismatch", 0xc1, 60, 31],
+    ["ProofRuntimeSelfReference", 0xc2, 57, 25],
+    ["ProofRuntimeTrailingToken", 0xc3, 129, 27],
   ] as const)(
-    "preserves the frozen routine diagnostic at %s",
+    "preserves the frozen atom diagnostic at %s",
     (entry, status, diagnostic, offset) => {
-      expect(run(entry)).toMatchObject({
-        status,
-        diagnostic,
-        part: 1,
-        offset,
-      });
+      expect(run(entry)).toMatchObject({ status, diagnostic, part: 1, offset });
     },
   );
 
-  it("locks the routine-header replacement accounts", () => {
+  it("locks the runtime-atom replacement accounts", () => {
     expect({
+      operations: image.symbols.RewriteSemanticOperationCount,
       escapes: image.symbols.RewriteActionEscapeCount,
       actionCode:
         (image.symbols.RewriteActionCodeEnd ?? 0) -
@@ -103,6 +96,9 @@ describe("ground-up rewrite generated routine headers", () => {
       actionData:
         (image.symbols.RewriteActionImmutableEnd ?? 0) -
         (image.symbols.RewriteActionImmutableStart ?? 0),
+      expression:
+        (image.symbols.RewriteExpressionCodeEnd ?? 0) -
+        (image.symbols.RewriteExpressionCodeStart ?? 0),
       declarations:
         (image.symbols.RewriteFrontDeclarationCodeEnd ?? 0) -
         (image.symbols.RewriteFrontDeclarationCodeStart ?? 0),
@@ -119,9 +115,11 @@ describe("ground-up rewrite generated routine headers", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
+      operations: 101,
       escapes: 29,
       actionCode: 285,
       actionData: 261,
+      expression: 1_904,
       declarations: 1_510,
       code: 7_128,
       immutable: 1_236,

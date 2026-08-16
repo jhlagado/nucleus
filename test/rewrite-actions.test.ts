@@ -207,6 +207,16 @@ describe("ground-up rewrite front action machine", () => {
         target: "RewriteDeclarationCommitLocal",
         id: 26,
       },
+      {
+        name: "FinishRuntimeLocalExpression",
+        target: "RewriteDeclarationFinishRuntimeLocalExpression",
+        id: 27,
+      },
+      {
+        name: "EmitLocalStore",
+        target: "RewriteDeclarationEmitLocalStore",
+        id: 28,
+      },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
       ["ScalarConstant", 19],
@@ -224,6 +234,7 @@ describe("ground-up rewrite front action machine", () => {
       ["CompilationEnd", 6],
       ["RoutineEnd", 9],
       ["LocalDefault", 21],
+      ["LocalInitializedAtom", 26],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -239,7 +250,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 273, immutable: 235, core: 7_975, workspace: 3_369 });
+    }).toEqual({ code: 285, immutable: 261, core: 8_364, workspace: 3_371 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
@@ -248,7 +259,7 @@ describe("ground-up rewrite front action machine", () => {
     ).toEqual([0, 3, 5]);
     expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 27, 0])),
+      decodeRewriteActionProgram(new Uint8Array([2, 29, 0])),
     ).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([3, 37]))).toThrow();

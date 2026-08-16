@@ -57,6 +57,14 @@ ordinals while sharing backend selectors. This keeps the published 511-byte
 transcript acceptance boundary identical to the production language and still
 allows the replacement backend to use shared recipes.
 
+Program loads also distinguish initialized and BSS storage by operation
+ordinal. Their operands are complete 16-bit offsets relative to the named
+segment; no address bit is used as a storage tag. `LoadProgramU8` and
+`LoadProgram16` address initialized storage, while `LoadBssU8` and `LoadBss16`
+address BSS. These two BSS operations are fresh replacement authority rather
+than aliases for a frozen production record whose operand packed storage into
+an address bit.
+
 `scripts/generate-rewrite-actions.mjs` gives every front-end action instruction
 a dense ordinal and fixed width, and gives every irregular escape a dense
 selector. It also emits named action programs declared by the same JSON

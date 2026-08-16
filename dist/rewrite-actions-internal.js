@@ -167,6 +167,16 @@ export const rewriteActionEscapes = [
         "name": "CommitLocal",
         "target": "RewriteDeclarationCommitLocal",
         "id": 26
+    },
+    {
+        "name": "FinishRuntimeLocalExpression",
+        "target": "RewriteDeclarationFinishRuntimeLocalExpression",
+        "id": 27
+    },
+    {
+        "name": "EmitLocalStore",
+        "target": "RewriteDeclarationEmitLocalStore",
+        "id": 28
     }
 ];
 export const rewriteActionPrograms = [
@@ -1069,6 +1079,103 @@ export const rewriteActionPrograms = [
             }
         ],
         "width": 21
+    },
+    {
+        "name": "LocalInitializedAtom",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenVar",
+                    "DiagnosticExpectedTopLevel"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenName",
+                    "DiagnosticExpectedName"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginLocal"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenAs",
+                    "DiagnosticExpectedAs"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseLocalScalarType"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEquals",
+                    "DiagnosticExpectedEqual"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishRuntimeLocalExpression"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEmitLocalStore"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeCommitLocal"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 26
     }
 ];
 export const decodeRewriteActionProgram = (bytes) => {

@@ -111,11 +111,11 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       semanticBytes: 224,
-      operationBytes: 594,
-      coreBytes: 7_979,
-      workspaceBytes: 3_369,
+      operationBytes: 606,
+      coreBytes: 8_368,
+      workspaceBytes: 3_371,
     });
-    expect(rewriteSemanticOperations).toHaveLength(99);
+    expect(rewriteSemanticOperations).toHaveLength(101);
     expect(rewriteSemanticOperationMaximumWidth).toBe(10);
     expect(image.symbols.RewriteSemanticOperandCapacity).toBe(
       rewriteSemanticOperationMaximumWidth - 1,
@@ -403,6 +403,8 @@ describe("ground-up rewrite semantic authority", () => {
       "PrepareOpenStringForward",
       "ArrayLength",
       "BeginCallableMain",
+      "LoadBssU8",
+      "LoadBss16",
     ]);
     expectWidth(4, [
       "DefineProgram16",
@@ -425,7 +427,7 @@ describe("ground-up rewrite semantic authority", () => {
     expectWidth(9, ["ForNext"]);
     expectWidth(10, ["CallSource"]);
 
-    expect(widths.size).toBe(99);
+    expect(widths.size).toBe(101);
     expect([...checked].sort()).toEqual([...widths.keys()].sort());
     expect(
       (widths.get("Literal16") ?? 0) + (widths.get("StoreProgram16") ?? 0),
@@ -582,9 +584,13 @@ describe("ground-up rewrite semantic authority", () => {
       { name: "DivideSigned", productionOperation: 117 },
       { name: "PromoteI8Pair", productionOperation: 118 },
     ];
-    expect(cases).toHaveLength(rewriteSemanticOperations.length);
+    const freshStorageOperations = new Set(["LoadBssU8", "LoadBss16"]);
+    const frozenOperations = rewriteSemanticOperations.filter(
+      ({ name }) => !freshStorageOperations.has(name),
+    );
+    expect(cases).toHaveLength(frozenOperations.length);
     expect(cases.map(({ name }) => name).sort()).toEqual(
-      rewriteSemanticOperations.map(({ name }) => name).sort(),
+      frozenOperations.map(({ name }) => name).sort(),
     );
     for (const {
       name,
@@ -614,7 +620,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 488, cycles: 6_691 });
+    }).toEqual({ instructions: 488, cycles: 6_733 });
   });
 
   it("distinguishes exact fill, first overflow, and clean recovery", async () => {
@@ -629,7 +635,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 10_874, cycles: 112_759 });
+    }).toEqual({ instructions: 10_874, cycles: 112_843 });
   });
 
   it("rejects a multi-byte record atomically when only three bytes remain", async () => {

@@ -1025,6 +1025,40 @@ constant-only shortcut. They are the first consumer of R4's runtime expression
 mode, including ordinary expressions and direct failable calls followed by
 `else fail`.
 
+R4 runtime-atom checkpoint (Measured):
+
+- the expression engine now has separate constant and runtime modes. Runtime
+  mode accepts one primary atom and emits its value while retaining the same
+  exact type and known-value metadata used by constant folding;
+- admitted atoms cover integer and character literals, Boolean literals,
+  named constants, parameters, earlier locals, initialized program objects,
+  and BSS program objects. A declaration is still provisional while its
+  initializer is parsed, so self-reference reports unknown name 57 at the
+  name rather than observing a half-published binding;
+- initialized and BSS storage use distinct semantic operations with complete
+  16-bit segment-relative offsets. This preserves the explicit storage tag
+  introduced in R3 and does not donate an address bit or assume any compiler
+  or target origin;
+- scalar compatibility is checked before publication. Exact values are range
+  checked, same-type values need no conversion record, `u8` widens directly
+  to `u16` or `i16`, and dynamic `i8` to `i16` emits the declared integer
+  conversion record;
+- the first consumer is deliberately named `LocalInitializedAtom`. It does
+  not claim complete expression syntax: binary reduction, Boolean
+  short-circuiting, postfix paths, calls, and failure consumption remain R4
+  work;
+- the accepted proof emits 22 operations and executes in 63,459 compiler
+  instructions and 574,089 T-states. Exact failures retain type mismatch 60
+  at offset 31, self-reference 57 at offset 25, and a trailing token 129 at
+  offset 27; and
+- the authority now contains 101 operations. The 29-target action dispatcher
+  is 285 code bytes, sixteen generated programs occupy 261 immutable bytes,
+  the expression region is 1,904 code bytes, and the declaration region is
+  1,510 code bytes. The shipping replacement is 7,128 code + 1,236 immutable
+  = 8,364 core bytes; the instrumented replacement is 8,368 core bytes.
+  Workspace is 3,371 bytes, leaving 8,020 core bytes and 725 workspace bytes
+  beneath their gates.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
@@ -1158,7 +1192,9 @@ Generated programs now cover scalar and aggregate constants, assertions,
 uninitialised variables, scalar- and aggregate-initialised variables, records,
 fields, direct and forward routine headers, formal parameters, results,
 failure clauses, `main`, default scalar locals, routine close, and EOF
-completeness. The next checkpoint begins R4 runtime expression mode with
-runtime atoms, name loads, scalar compatibility, and explicit local
-initializers as its first end-to-end consumer. The replacement remains
-test-selected until the complete cutover gate passes.
+completeness. R4 now has runtime atoms, name loads, scalar compatibility, and
+explicit atom-initialized locals as its first end-to-end consumer. The next
+checkpoint extends that same runtime mode through unary and binary precedence
+reduction, conversions, comparisons, and Boolean short-circuit records before
+postfix paths and calls. The replacement remains test-selected until the
+complete cutover gate passes.

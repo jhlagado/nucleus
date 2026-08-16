@@ -2673,12 +2673,64 @@ export const rewriteSemanticOperations = [
     },
     "source": "direct",
     "trace": "operation-start"
+  },
+  {
+    "id": 100,
+    "name": "LoadBssU8",
+    "operands": [
+      {
+        "name": "offset",
+        "kind": "word",
+        "width": 2,
+        "offset": 0,
+        "recordOffset": 1
+      }
+    ],
+    "width": 3,
+    "backend": {
+      "kind": "recipe",
+      "name": "loadBssU8",
+      "index": 36
+    },
+    "stack": {
+      "in": 0,
+      "out": 1,
+      "encoded": 1
+    },
+    "source": "direct",
+    "trace": "operation-start"
+  },
+  {
+    "id": 101,
+    "name": "LoadBss16",
+    "operands": [
+      {
+        "name": "offset",
+        "kind": "word",
+        "width": 2,
+        "offset": 0,
+        "recordOffset": 1
+      }
+    ],
+    "width": 3,
+    "backend": {
+      "kind": "recipe",
+      "name": "loadBss16",
+      "index": 37
+    },
+    "stack": {
+      "in": 0,
+      "out": 1,
+      "encoded": 1
+    },
+    "source": "direct",
+    "trace": "operation-start"
   }
 ] as const;
 
 export const rewriteSemanticOperationMaximumWidth = 10;
 
-const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2);
+const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3);
 
 export const rewriteSemanticOperationKeys = (
   payload: Uint8Array,

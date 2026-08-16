@@ -35,12 +35,27 @@ _RewriteExpressionFindOperatorFound:
 RewriteExpressionEvaluateConstant:
             LD   (RewriteExpressionExpectedType),A
             XOR  A
+            LD   (RewriteExpressionMode),A
             LD   (RewriteExpressionDepth),A
             LD   (RewriteExpressionSuppressFault),A
             LD   B,A
             LD   C,A
             CALL RewriteExpressionParsePrecedence
             RET
+
+; First R4 runtime entry: parse one primary and publish its target carrier.
+; The full precedence loop adopts runtime reducers in the next checkpoint;
+; callers currently require the following token immediately after this atom.
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteExpressionEvaluateRuntimeAtom:
+            LD   (RewriteExpressionExpectedType),A
+            LD   A,1
+            LD   (RewriteExpressionMode),A
+            XOR  A
+            LD   (RewriteExpressionKnown),A
+            LD   (RewriteExpressionDepth),A
+            LD   (RewriteExpressionSuppressFault),A
+            JP   RewriteExpressionParsePrimary
 
 ; B is the comparison-used flag for this recursive level and C is the minimum
 ; admitted binary precedence. The two-byte local preserves both through calls.
@@ -211,30 +226,30 @@ RewriteExpressionParsePrimary:
             CP   TokenName
             JR   Z,_RewriteExpressionPrimaryName
             CP   TokenLeftParen
-            JR   Z,_RewriteExpressionPrimaryParenthesized
+            JP   Z,_RewriteExpressionPrimaryParenthesized
             SUB  TokenU8
             CP   4
-            JR   C,_RewriteExpressionPrimaryConversion
+            JP   C,_RewriteExpressionPrimaryConversion
             LD   A,DiagnosticExpectedScalar
             JP   RewriteRaiseDiagnostic
 _RewriteExpressionPrimaryNumber:
             LD   H,B
             LD   L,C
             XOR  A
-            RET
+            JP   _RewriteExpressionPrimaryKnown
 _RewriteExpressionPrimaryCharacter:
             LD   H,0
             LD   L,C
             LD   A,RewriteScalarTypeU8
-            RET
+            JP   _RewriteExpressionPrimaryKnown
 _RewriteExpressionPrimaryTrue:
             LD   HL,1
             LD   A,RewriteScalarTypeBoolean
-            RET
+            JP   _RewriteExpressionPrimaryKnown
 _RewriteExpressionPrimaryFalse:
             LD   HL,0
             LD   A,RewriteScalarTypeBoolean
-            RET
+            JP   _RewriteExpressionPrimaryKnown
 
 _RewriteExpressionPrimaryName:
             CALL RewriteSymbolFindCurrent
@@ -242,22 +257,89 @@ _RewriteExpressionPrimaryName:
             LD   DE,RewriteSymbolClass
             ADD  HL,DE
             LD   A,(HL)
-            CP   RewriteSymbolClassConstant
-            JP   NZ,RewriteExpressionTypeFailure
+            LD   B,A
             INC  HL
             LD   A,(HL)
-            LD   D,A
+            LD   C,A
             AND  RewriteTypeIdentityMask
             CP   RewriteFirstOwnedTypeId
             JP   NC,RewriteExpressionTypeFailure
             INC  HL
             LD   E,(HL)
             INC  HL
-            LD   H,(HL)
-            LD   L,E
-            LD   A,D
-            LD   DE,(TokenStartOffset)
+            LD   D,(HL)
+            INC  HL
+            LD   A,(HL)
+            LD   (RewriteExpressionRightMeta),A
+            LD   A,B
+            CP   RewriteSymbolClassConstant
+            JR   Z,_RewriteExpressionPrimaryNamedConstant
+            LD   A,C
+            AND  RewriteTypeIdentityMask
+            JP   Z,RewriteExpressionTypeFailure
+            LD   A,B
+            CP   RewriteSymbolClassProgram
+            JR   Z,_RewriteExpressionPrimaryProgram
+            CP   RewriteSymbolClassLocal
+            JR   Z,_RewriteExpressionPrimaryLocal
+            CP   RewriteSymbolClassParameter
+            JP   NZ,RewriteExpressionTypeFailure
+            LD   A,C
+            BIT  1,A
+            LD   A,RewriteSemanticLoadParameter8
+            JR   Z,_RewriteExpressionPrimaryActivationReady
+            LD   A,RewriteSemanticLoadParameter16
+            JR   _RewriteExpressionPrimaryActivationReady
+_RewriteExpressionPrimaryLocal:
+            LD   A,C
+            BIT  1,A
+            LD   A,RewriteSemanticLoadLocalU8
+            JR   Z,_RewriteExpressionPrimaryActivationReady
+            LD   A,RewriteSemanticLoadLocal16
+_RewriteExpressionPrimaryActivationReady:
+            LD   B,A
+            LD   A,E
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,B
+            JR   _RewriteExpressionPrimaryDynamic
+_RewriteExpressionPrimaryProgram:
+            LD   A,(RewriteExpressionRightMeta)
+            CP   RewriteSymbolStorageInitialized
+            JR   Z,_RewriteExpressionPrimaryProgramInitialized
+            CP   RewriteSymbolStorageBss
+            JP   NZ,RewriteExpressionTypeFailure
+            LD   A,C
+            BIT  1,A
+            LD   A,RewriteSemanticLoadBssU8
+            JR   Z,_RewriteExpressionPrimaryProgramReady
+            LD   A,RewriteSemanticLoadBss16
+            JR   _RewriteExpressionPrimaryProgramReady
+_RewriteExpressionPrimaryProgramInitialized:
+            LD   A,C
+            BIT  1,A
+            LD   A,RewriteSemanticLoadProgramU8
+            JR   Z,_RewriteExpressionPrimaryProgramReady
+            LD   A,RewriteSemanticLoadProgram16
+_RewriteExpressionPrimaryProgramReady:
+            LD   (RewriteSemanticOperandArea),DE
+_RewriteExpressionPrimaryDynamic:
+            LD   B,A
+            LD   A,C
+            LD   (RewriteExpressionRightMeta),A
+            LD   A,B
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            XOR  A
+            LD   (RewriteExpressionKnown),A
+            LD   A,(RewriteExpressionRightMeta)
+            LD   HL,0
+            LD   DE,(RewriteExpressionAtomOffset)
             RET
+_RewriteExpressionPrimaryNamedConstant:
+            EX   DE,HL
+            LD   A,C
+            LD   DE,(RewriteExpressionAtomOffset)
+            JP   _RewriteExpressionPrimaryKnown
 _RewriteExpressionUnknownName:
             LD   A,DiagnosticUnknownName
             JP   RewriteRaiseDiagnostic
@@ -313,6 +395,9 @@ _RewriteExpressionConversionTypeReady:
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
             JP   Z,RewriteExpressionTypeFailure
+            LD   A,(RewriteExpressionKnown)
+            OR   A
+            JR   Z,_RewriteExpressionPrimaryDynamicConversion
             LD   A,(RewriteExpressionRightMeta)
             LD   HL,(RewriteExpressionRightValue)
             LD   C,B
@@ -321,6 +406,51 @@ _RewriteExpressionConversionTypeReady:
             POP  DE
             JP   C,RewriteExpressionNarrowFailure
             LD   A,C
+            RET
+_RewriteExpressionPrimaryDynamicConversion:
+            LD   A,(RewriteExpressionRightMeta)
+            AND  RewriteTypeIdentityMask
+            LD   C,B
+            CP   C
+            JR   Z,_RewriteExpressionPrimaryConversionDone
+            CP   RewriteScalarTypeU8
+            JR   NZ,_RewriteExpressionPrimaryConversionEmit
+            BIT  1,C
+            JR   NZ,_RewriteExpressionPrimaryConversionDone
+_RewriteExpressionPrimaryConversionEmit:
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset),A
+            LD   A,C
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceOffsetOffset),DE
+            LD   A,RewriteSemanticConvertInteger
+            LD   HL,RewriteSemanticOperandArea
+            PUSH BC
+            CALL RewriteSemanticAppend
+            POP  BC
+_RewriteExpressionPrimaryConversionDone:
+            LD   A,C
+            RET
+
+; A/HL/DE is a compile-time-known scalar. Runtime mode publishes the same
+; Literal16 carrier as the frozen compiler; constant mode remains emission-free.
+_RewriteExpressionPrimaryKnown:
+            PUSH AF
+            PUSH DE
+            PUSH HL
+            LD   A,1
+            LD   (RewriteExpressionKnown),A
+            LD   A,(RewriteExpressionMode)
+            OR   A
+            JR   Z,_RewriteExpressionPrimaryKnownReady
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLiteral16
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+_RewriteExpressionPrimaryKnownReady:
+            POP  HL
+            POP  DE
+            POP  AF
+            OR   A
             RET
 
 _RewriteExpressionExpectedLeft:
@@ -823,6 +953,60 @@ _RewriteExpressionConvertSuccess:
             RET
 _RewriteExpressionConvertFailure:
             SCF
+            RET
+
+; A/HL/DE is one runtime scalar result and C is the declared destination.
+; Exact values are range-checked now. Dynamic i8-to-i16 widening publishes
+; the one required carrier conversion; canonical u8 widening needs no record.
+.routine in A,C,DE,HL out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL
+RewriteExpressionCheckRuntimeAssignable:
+            LD   B,A
+            AND  RewriteTypeIdentityMask
+            JR   NZ,_RewriteExpressionRuntimeAssignableTyped
+            LD   A,C
+            CP   RewriteScalarTypeBoolean
+            JP   Z,RewriteExpressionTypeFailure
+            LD   A,B
+            PUSH DE
+            CALL RewriteExpressionConvertConstant
+            POP  DE
+            JP   C,RewriteExpressionRangeFailureAtDE
+            LD   A,C
+            RET
+_RewriteExpressionRuntimeAssignableTyped:
+            CP   C
+            JR   Z,_RewriteExpressionRuntimeAssignableReady
+            CP   RewriteScalarTypeU8
+            JR   Z,_RewriteExpressionRuntimeAssignableU8
+            CP   RewriteScalarTypeI8
+            JP   NZ,RewriteExpressionTypeFailure
+            LD   A,C
+            CP   RewriteScalarTypeI16
+            JP   NZ,RewriteExpressionTypeFailure
+            LD   A,RewriteScalarTypeI8
+            JR   _RewriteExpressionRuntimeAssignableConvert
+_RewriteExpressionRuntimeAssignableU8:
+            LD   A,C
+            CP   RewriteScalarTypeU16
+            JR   Z,_RewriteExpressionRuntimeAssignableReady
+            CP   RewriteScalarTypeI16
+            JP   NZ,RewriteExpressionTypeFailure
+            JR   _RewriteExpressionRuntimeAssignableReady
+_RewriteExpressionRuntimeAssignableConvert:
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset),A
+            LD   A,C
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandTargetTypeOffset),A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceOffsetOffset),DE
+            LD   A,RewriteSemanticConvertInteger
+            LD   HL,RewriteSemanticOperandArea
+            PUSH BC
+            PUSH DE
+            CALL RewriteSemanticAppend
+            POP  DE
+            POP  BC
+_RewriteExpressionRuntimeAssignableReady:
+            LD   A,C
+            OR   A
             RET
 
 ; Convert either retained operand to destination type C. These entries precede

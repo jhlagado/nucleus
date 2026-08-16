@@ -2384,6 +2384,52 @@ export declare const rewriteSemanticOperations: readonly [{
     };
     readonly source: "direct";
     readonly trace: "operation-start";
+}, {
+    readonly id: 100;
+    readonly name: "LoadBssU8";
+    readonly operands: readonly [{
+        readonly name: "offset";
+        readonly kind: "word";
+        readonly width: 2;
+        readonly offset: 0;
+        readonly recordOffset: 1;
+    }];
+    readonly width: 3;
+    readonly backend: {
+        readonly kind: "recipe";
+        readonly name: "loadBssU8";
+        readonly index: 36;
+    };
+    readonly stack: {
+        readonly in: 0;
+        readonly out: 1;
+        readonly encoded: 1;
+    };
+    readonly source: "direct";
+    readonly trace: "operation-start";
+}, {
+    readonly id: 101;
+    readonly name: "LoadBss16";
+    readonly operands: readonly [{
+        readonly name: "offset";
+        readonly kind: "word";
+        readonly width: 2;
+        readonly offset: 0;
+        readonly recordOffset: 1;
+    }];
+    readonly width: 3;
+    readonly backend: {
+        readonly kind: "recipe";
+        readonly name: "loadBss16";
+        readonly index: 37;
+    };
+    readonly stack: {
+        readonly in: 0;
+        readonly out: 1;
+        readonly encoded: 1;
+    };
+    readonly source: "direct";
+    readonly trace: "operation-start";
 }];
 export declare const rewriteSemanticOperationMaximumWidth = 10;
 export declare const rewriteSemanticOperationKeys: (payload: Uint8Array, operationCount: number) => readonly number[];

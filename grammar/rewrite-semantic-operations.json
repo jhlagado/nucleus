@@ -671,6 +671,20 @@
       "backend": ["escape", "promoteI8Pair"],
       "stack": [2, 2],
       "source": "direct"
+    },
+    {
+      "name": "LoadBssU8",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadBssU8"],
+      "stack": [0, 1],
+      "source": "direct"
+    },
+    {
+      "name": "LoadBss16",
+      "operands": [["offset", "word"]],
+      "backend": ["recipe", "loadBss16"],
+      "stack": [0, 1],
+      "source": "direct"
     }
   ]
 }
