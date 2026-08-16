@@ -630,6 +630,17 @@ R3 substrate checkpoint (Measured, in progress):
   bytes. Workspace is 1,049 bytes. These are intermediate R3 accounts, not the
   complete declaration-family measurement or the R3 exit gate.
 
+The next R3 oracle matrix fixes the directory interaction before replacement
+declaration code is written. Record names share the 16-entry ordinary namespace
+with variables and constants. Parameters temporarily occupy that same scoped
+table above the global prefix while their routine is parsed, but the retained
+16-entry parameter directory accumulates across routine-scope rewinds. The four
+non-main routine entries and five record-layout entries are separate bounded
+directories. Executable oracle cases now prove 11 variables plus five record
+names, eight dynamic types, twelve fields, and four zero-parameter routines in
+one program; four routines with sixteen retained parameters in another; each
+first overflow diagnostic; and the independent four/five suffix boundary.
+
 ### R4 — Expressions, paths, and calls
 
 Implement the common primary, precedence, postfix, type-resolution, folding,
