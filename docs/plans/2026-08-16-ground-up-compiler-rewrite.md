@@ -1497,32 +1497,35 @@ prototype is recorded and removed rather than extended on hope.
 
 R6 recipe-substrate checkpoint (Measured, in progress):
 
-- one 231-byte interpreter reads generated recipe data through complete
+- one 391-byte interpreter reads generated recipe data through complete
   16-bit directories. Its initial vocabulary emits target literal runs,
-  semantic operand bytes and words, complemented IX displacements, and
-  operation-family fragments. It assumes no compiler origin and packs no
-  metadata into an address;
-- the first cohort covers 26 semantic ordinals: byte and word local
+  semantic operand bytes and words, complemented IX displacements,
+  identity-fixed runtime calls, nested relative fixups, and operation-family
+  fragments. It assumes no compiler origin and packs no metadata into an
+  address;
+- the current cohort covers 38 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
-  and five word binary operations, four integer unary operations, and Boolean
-  `not`. Unsupported family members fail explicitly rather than selecting an
-  adjacent fragment;
-- the executable proof compares 171 generated target bytes with ordinary
+  and five word non-multiply binary operations, byte and word multiplication,
+  four integer unary operations, Boolean `not`, three comparison forms,
+  mixed-`i8` pair promotion, and nested Boolean short circuit. Escape-class
+  operations fail explicitly rather than selecting an adjacent recipe;
+- the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
-  and 66,004 T-states. Separate proofs distinguish output capacity after the
+  and 66,004 T-states for the first cohort, and 10,712 instructions and 94,254
+  T-states after runtime calls and Boolean fixups. Separate proofs distinguish output capacity after the
   first three admitted bytes and an unsupported recipe before any output;
 - the complete recipe path executes under strict register contracts with
   compiler origins `$0000` and `$8000`. Generated recipe `.db` rows are
   interpreter data or emitted target bytes, while `.dw` rows are complete
   addresses. No compiler-executed instruction is hidden in data; and
-- the recipes and 41-entry selector directory occupy 365 immutable bytes. The
-  shipping replacement is 12,434 code + 1,829 immutable = 14,263 core bytes;
-  the instrumented replacement is 14,267 core bytes. Workspace remains 3,425
+- the recipes and 44-entry selector directory occupy 454 immutable bytes. The
+  shipping replacement is 12,594 code + 1,918 immutable = 14,512 core bytes;
+  the instrumented replacement is 14,516 core bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   substrate checkpoint, not the R6 acceptance measurement: comparisons,
-  conversions, runtime calls, and their handwritten escapes still have to
-  join the representative cohort before the 20-percent stop rule can be
-  evaluated.
+  conversions, division/modulo traps, and their handwritten escapes still
+  have to join the representative cohort before the 20-percent stop rule can
+  be evaluated.
 
 ### R7 — Complete backend and target output
 
@@ -1639,10 +1642,10 @@ failure, bare return, routine-end fallthrough validation, complete
 nearest-loop `exit`/`continue`, local `handle` blocks, a source-driven recursive
 routine-body grammar, and the source-driven compilation-unit driver that
 selects every existing top-level declaration program. R6 now has the generated
-recipe authority, interpreter, bounded sink, relocation proof, and first
-26-operation scalar cohort. The next work extends that cohort through
-comparisons, conversions, multiplication, division/modulo runtime calls, and
-Boolean control fixups, then measures the complete prototype against the
-equivalent frozen handlers. Compression follows semantic and backend
+recipe authority, interpreter, bounded sink, relocation proof, runtime-call
+linking, nested relative fixups, and a 38-operation scalar cohort. The next
+work adds conversion and division/modulo escape paths with exact trap
+attribution, then measures the complete prototype against the equivalent
+frozen handlers. Compression follows semantic and backend
 completion. The replacement remains test-selected until the complete cutover
 gate passes.

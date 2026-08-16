@@ -7,6 +7,7 @@ SourceLimit         .equ $5800
 RewriteAdapterBase  .equ $A000
 RewriteAdapterLimit .equ $A100
 DebugHooks          .equ 0
+ProofRuntimeBase    .equ $9000
 
             .org $1000
 ProofBackendRecipes:
@@ -17,6 +18,7 @@ ProofBackendRecipes:
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
             LD   DE,ProofBackendOutputLimit
+            LD   BC,ProofRuntimeBase
             CALL RewriteBackendInitialize
             LD   HL,$1234
             LD   (RewriteSemanticOperandArea),HL
@@ -48,6 +50,8 @@ ProofBackendRecipes:
             CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticSubtract8
             CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticMultiply8
+            CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticAnd8
             CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticOr8
@@ -57,6 +61,8 @@ ProofBackendRecipes:
             LD   A,RewriteSemanticAdd16
             CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticSubtract16
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticMultiply16
             CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticAnd16
             CALL RewriteBackendDispatchOperation
@@ -74,6 +80,41 @@ ProofBackendRecipes:
             CALL RewriteBackendDispatchOperation
             LD   A,RewriteSemanticNotBoolean
             CALL RewriteBackendDispatchOperation
+            LD   A,$11
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticCompare8
+            CALL RewriteBackendDispatchOperation
+            LD   A,$22
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticCompare16
+            CALL RewriteBackendDispatchOperation
+            LD   A,$33
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticCompareBoolean
+            CALL RewriteBackendDispatchOperation
+            LD   A,1
+            LD   (RewriteSemanticOperandArea),A
+            LD   A,RewriteSemanticPromoteI8Pair
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticBeginBooleanAnd
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$CAFE
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLiteral16
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticBeginBooleanOr
+            CALL RewriteBackendDispatchOperation
+            LD   HL,$BEEF
+            LD   (RewriteSemanticOperandArea),HL
+            LD   A,RewriteSemanticLiteral16
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticEndBoolean
+            CALL RewriteBackendDispatchOperation
+            LD   A,RewriteSemanticEndBoolean
+            CALL RewriteBackendDispatchOperation
+            LD   A,(RewriteBackendBooleanFixupDepth)
+            OR   A
+            JP   NZ,ProofFailure
             LD   HL,(RewriteBackendOutputCursor)
             LD   DE,ProofBackendOutput+ProofExpectedBackendEnd-ProofExpectedBackend
             OR   A
@@ -104,6 +145,7 @@ ProofBackendCapacity:
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
             LD   DE,ProofBackendOutput+3
+            LD   BC,ProofRuntimeBase
             CALL RewriteBackendInitialize
             LD   HL,$1234
             LD   (RewriteSemanticOperandArea),HL
@@ -119,8 +161,9 @@ ProofBackendUnsupported:
             LD   (CompilerAbortSp),SP
             LD   HL,ProofBackendOutput
             LD   DE,ProofBackendOutputLimit
+            LD   BC,ProofRuntimeBase
             CALL RewriteBackendInitialize
-            LD   A,RewriteSemanticMultiply8
+            LD   A,RewriteSemanticDivide8
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
@@ -189,6 +232,11 @@ ProofExpectedBackend:
             PUSH HL
             POP  DE
             POP  HL
+            CALL ProofRuntimeBase+NucleusRuntimeMultiplyU16Offset
+            LD   H,0
+            PUSH HL
+            POP  DE
+            POP  HL
             LD   A,L
             AND  E
             LD   L,A
@@ -216,6 +264,10 @@ ProofExpectedBackend:
             POP  HL
             XOR  A
             SBC  HL,DE
+            PUSH HL
+            POP  DE
+            POP  HL
+            CALL ProofRuntimeBase+NucleusRuntimeMultiplyU16Offset
             PUSH HL
             POP  DE
             POP  HL
@@ -278,4 +330,45 @@ ProofExpectedBackend:
             LD   L,A
             LD   H,0
             PUSH HL
+            POP  DE
+            POP  HL
+            LD   A,$11
+            CALL ProofRuntimeBase+NucleusRuntimeCompareU16Offset
+            PUSH HL
+            POP  DE
+            POP  HL
+            LD   A,$22
+            CALL ProofRuntimeBase+NucleusRuntimeCompareU16Offset
+            PUSH HL
+            POP  DE
+            POP  HL
+            LD   A,$33
+            CALL ProofRuntimeBase+NucleusRuntimeCompareU16Offset
+            PUSH HL
+            POP  DE
+            POP  HL
+            LD   A,1
+            CALL ProofRuntimeBase+NucleusRuntimePromoteI8PairOffset
+            PUSH HL
+            PUSH DE
+            POP  HL
+            LD   A,L
+            OR   A
+            JR   NZ,ProofExpectedBooleanAndContinue
+            PUSH HL
+            JR   ProofExpectedBooleanOuterEnd
+ProofExpectedBooleanAndContinue:
+            LD   HL,$CAFE
+            PUSH HL
+            POP  HL
+            LD   A,L
+            OR   A
+            JR   Z,ProofExpectedBooleanOrContinue
+            PUSH HL
+            JR   ProofExpectedBooleanInnerEnd
+ProofExpectedBooleanOrContinue:
+            LD   HL,$BEEF
+            PUSH HL
+ProofExpectedBooleanInnerEnd:
+ProofExpectedBooleanOuterEnd:
 ProofExpectedBackendEnd:

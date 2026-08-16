@@ -337,6 +337,11 @@ RewriteInitializerLimit      .equ RewriteInitializerBase+RewriteInitializerCapac
 RewriteBackendOutputCursor   .equ RewriteInitializerBase ; word
 RewriteBackendOutputLimit    .equ RewriteInitializerBase+2 ; word
 RewriteBackendCurrentOperation .equ RewriteInitializerBase+4
+RewriteBackendRuntimeBase    .equ RewriteInitializerBase+5 ; word
+RewriteBackendRuntimeCallAddress .equ RewriteInitializerBase+7 ; word
+RewriteBackendBooleanFixupDepth .equ RewriteInitializerBase+9
+RewriteBackendBooleanFixupBase .equ RewriteInitializerBase+10
+RewriteBackendBooleanFixupCapacity .equ 16
 RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity
@@ -455,6 +460,7 @@ DiagnosticDivisionZero       .equ 62
 DiagnosticNarrowing          .equ 63
 DiagnosticComparisonChain    .equ 64
 DiagnosticExpressionCapacity .equ 65
+DiagnosticBooleanFixupCapacity .equ 66
 DiagnosticInternalOperation  .equ 67
 DiagnosticTypeMetadataCapacity .equ 76
 DiagnosticInitializerCapacity .equ 77
@@ -481,6 +487,7 @@ DiagnosticReadOnlyCapacity   .equ 93
 DiagnosticReadOnlyAssignment .equ 94
 DiagnosticAssertionFailed    .equ 91
 DiagnosticTargetCapacity     .equ 96
+DiagnosticFixupRange         .equ 41
 
 ; Expected-token diagnostics retain the published production-token ordinals,
 ; not the replacement tokenizer's private compact ordinals.

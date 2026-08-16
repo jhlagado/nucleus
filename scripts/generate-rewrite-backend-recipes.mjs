@@ -48,6 +48,9 @@ const instruction = {
   operandWord: 3,
   complementByte: 4,
   dispatch: 5,
+  runtimeCall: 6,
+  relativeFixupPush: 7,
+  relativeFixupPatch: 8,
 };
 const byte = (value, description) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) {
@@ -170,6 +173,26 @@ const encodeSteps = (ownerKind, ownerName, selector, steps) => {
       );
       continue;
     }
+    if (kind === "runtimeCall") {
+      const helper = step.runtimeCall;
+      if (!/^[A-Z][A-Za-z0-9]*$/.test(helper)) {
+        throw new Error(`invalid runtime helper in ${ownerName}`);
+      }
+      lines.push(
+        `            .db RewriteBackendRecipeRuntimeCall`,
+        `            .dw NucleusRuntime${helper}Offset`,
+      );
+      continue;
+    }
+    if (kind === "relativeFixupPush" || kind === "relativeFixupPatch") {
+      if (step[kind] !== true) {
+        throw new Error(`invalid ${kind} in ${ownerName}`);
+      }
+      lines.push(
+        `            .db RewriteBackendRecipe${kind[0].toUpperCase()}${kind.slice(1)}`,
+      );
+      continue;
+    }
     throw new Error(`unknown recipe instruction ${kind} in ${ownerName}`);
   }
   lines.push("            .db RewriteBackendRecipeEnd");
@@ -198,7 +221,10 @@ const asm = [
   "RewriteBackendRecipeOperandWord .equ 3",
   "RewriteBackendRecipeComplementByte .equ 4",
   "RewriteBackendRecipeDispatch .equ 5",
-  "RewriteBackendRecipeInstructionCount .equ 6",
+  "RewriteBackendRecipeRuntimeCall .equ 6",
+  "RewriteBackendRecipeRelativeFixupPush .equ 7",
+  "RewriteBackendRecipeRelativeFixupPatch .equ 8",
+  "RewriteBackendRecipeInstructionCount .equ 9",
   "",
   "RewriteBackendRecipeDirectory:",
   ...recipeSelectors.map((selector) =>

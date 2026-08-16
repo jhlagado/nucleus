@@ -2,12 +2,17 @@
 ; compiler-executed Z80 remains ordinary mnemonics. All directories retain
 ; complete addresses and impose no origin policy.
 
-; HL is the first writable target byte and DE its exclusive limit.
-.routine in HL,DE out A,carry,zero clobbers sign,parity,halfCarry
+            .include "../vertical-slice/nucleus-runtime-identity.asmi"
+
+; HL is the first writable target byte, DE its exclusive limit, and BC the
+; linked runtime base used by identity-fixed helper calls.
+.routine in HL,DE,BC out A,carry,zero clobbers sign,parity,halfCarry
 RewriteBackendInitialize:
             LD   (RewriteBackendOutputCursor),HL
             LD   (RewriteBackendOutputLimit),DE
+            LD   (RewriteBackendRuntimeBase),BC
             XOR  A
+            LD   (RewriteBackendBooleanFixupDepth),A
             RET
 
 ; Append one target byte to the bounded prototype sink. The later target/NOBJ
@@ -89,7 +94,13 @@ RewriteBackendRecipeNext:
             JR   Z,RewriteBackendRecipeEmitOperandWord
             CP   RewriteBackendRecipeComplementByte
             JR   Z,RewriteBackendRecipeEmitComplement
-            JP   RewriteBackendRecipeDoDispatch
+            CP   RewriteBackendRecipeDispatch
+            JP   Z,RewriteBackendRecipeDoDispatch
+            CP   RewriteBackendRecipeRuntimeCall
+            JP   Z,RewriteBackendRecipeEmitRuntimeCall
+            CP   RewriteBackendRecipeRelativeFixupPush
+            JP   Z,RewriteBackendRecipePushRelativeFixup
+            JP   RewriteBackendRecipePatchRelativeFixup
 
 RewriteBackendRecipeEmitLiteral:
             LD   B,(HL)
@@ -177,6 +188,86 @@ RewriteBackendRecipeDoDispatch:
             EX   DE,HL
             JP   RewriteBackendRecipeNext
 
+; A runtime-call recipe stores an identity-fixed helper offset. The linked
+; base is deployment data, and the target CALL receives the complete sum.
+RewriteBackendRecipeEmitRuntimeCall:
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            INC  HL
+            PUSH HL
+            LD   HL,(RewriteBackendRuntimeBase)
+            ADD  HL,DE
+            LD   (RewriteBackendRuntimeCallAddress),HL
+            LD   A,$CD                    ; CALL nn
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendRuntimeCallAddress)
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendRuntimeCallAddress+1)
+            CALL RewriteBackendEmitByte
+            POP  HL
+            JP   RewriteBackendRecipeNext
+
+; Emit a JR placeholder and retain its operand address. Boolean short-circuit
+; nesting uses a bounded word stack inside dead initializer scratch.
+RewriteBackendRecipePushRelativeFixup:
+            LD   A,(RewriteBackendBooleanFixupDepth)
+            CP   RewriteBackendBooleanFixupCapacity
+            JP   NC,RewriteBackendBooleanFixupCapacityFailure
+            PUSH HL
+            LD   A,$18                    ; JR displacement
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   (RewriteBackendRuntimeCallAddress),HL
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendBooleanFixupDepth)
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteBackendBooleanFixupBase
+            ADD  HL,DE
+            ADD  HL,DE
+            LD   DE,(RewriteBackendRuntimeCallAddress)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
+            LD   HL,RewriteBackendBooleanFixupDepth
+            INC  (HL)
+            POP  HL
+            JP   RewriteBackendRecipeNext
+
+; Patch the most recent short-circuit edge to the current output cursor.
+RewriteBackendRecipePatchRelativeFixup:
+            PUSH HL
+            LD   A,(RewriteBackendBooleanFixupDepth)
+            OR   A
+            JP   Z,RewriteBackendInvalid
+            DEC  A
+            LD   (RewriteBackendBooleanFixupDepth),A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteBackendBooleanFixupBase
+            ADD  HL,DE
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   HL,(RewriteBackendOutputCursor)
+            INC  DE
+            OR   A
+            SBC  HL,DE
+            LD   C,L
+            LD   A,C
+            ADD  A,A
+            SBC  A,A
+            CP   H
+            JP   NZ,RewriteBackendFixupRangeFailure
+            DEC  DE
+            LD   A,C
+            LD   (DE),A
+            POP  HL
+            JP   RewriteBackendRecipeNext
+
 .routine noreturn
 RewriteBackendCapacity:
             LD   A,DiagnosticTargetCapacity
@@ -184,4 +275,12 @@ RewriteBackendCapacity:
 .routine noreturn
 RewriteBackendInvalid:
             LD   A,DiagnosticInternalOperation
+            JP   RewriteRaiseDiagnostic
+.routine noreturn
+RewriteBackendBooleanFixupCapacityFailure:
+            LD   A,DiagnosticBooleanFixupCapacity
+            JP   RewriteRaiseDiagnostic
+.routine noreturn
+RewriteBackendFixupRangeFailure:
+            LD   A,DiagnosticFixupRange
             JP   RewriteRaiseDiagnostic

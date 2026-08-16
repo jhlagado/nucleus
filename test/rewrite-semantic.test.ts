@@ -117,8 +117,8 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       semanticBytes: 224,
-      operationBytes: 995,
-      coreBytes: 14_267,
+      operationBytes: 1084,
+      coreBytes: 14_516,
       workspaceBytes: 3_425,
     });
     expect(rewriteSemanticOperations).toHaveLength(105);

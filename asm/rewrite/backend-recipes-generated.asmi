@@ -8,7 +8,10 @@ RewriteBackendRecipeOperandByte .equ 2
 RewriteBackendRecipeOperandWord .equ 3
 RewriteBackendRecipeComplementByte .equ 4
 RewriteBackendRecipeDispatch .equ 5
-RewriteBackendRecipeInstructionCount .equ 6
+RewriteBackendRecipeRuntimeCall .equ 6
+RewriteBackendRecipeRelativeFixupPush .equ 7
+RewriteBackendRecipeRelativeFixupPatch .equ 8
+RewriteBackendRecipeInstructionCount .equ 9
 
 RewriteBackendRecipeDirectory:
             .dw 0 ; defineProgramU8
@@ -27,9 +30,11 @@ RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorBinary16 ; binary16
             .dw RewriteBackendRecipeSelectorUnary16 ; unary16
             .dw RewriteBackendRecipeSelectorNotBoolean ; notBoolean
-            .dw 0 ; compare
+            .dw RewriteBackendRecipeSelectorCompare ; compare
             .dw 0 ; storeProgram16
             .dw RewriteBackendRecipeSelectorStoreLocal16 ; storeLocal16
+            .dw RewriteBackendRecipeSelectorBooleanBegin ; booleanBegin
+            .dw RewriteBackendRecipeSelectorBooleanEnd ; booleanEnd
             .dw 0 ; controlLabel
             .dw 0 ; branchFalse
             .dw 0 ; jump
@@ -48,6 +53,7 @@ RewriteBackendRecipeDirectory:
             .dw 0 ; openStringCapacity
             .dw 0 ; arrayLength
             .dw 0 ; openArrayLength
+            .dw RewriteBackendRecipeSelectorPromoteI8Pair ; promoteI8Pair
             .dw 0 ; loadBssU8
             .dw 0 ; loadBss16
             .dw 0 ; storeBssU8
@@ -89,7 +95,7 @@ RewriteBackendRecipeSelectorStoreLocal16:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBinary8:
             .db RewriteBackendRecipeDispatch,12,6
-            .dw RewriteBackendRecipeFragmentAdd8,RewriteBackendRecipeFragmentSubtract8,0,RewriteBackendRecipeFragmentAnd8,RewriteBackendRecipeFragmentOr8,RewriteBackendRecipeFragmentXor8
+            .dw RewriteBackendRecipeFragmentAdd8,RewriteBackendRecipeFragmentSubtract8,RewriteBackendRecipeFragmentMultiply8,RewriteBackendRecipeFragmentAnd8,RewriteBackendRecipeFragmentOr8,RewriteBackendRecipeFragmentXor8
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorUnary8:
             .db RewriteBackendRecipeDispatch,18,2
@@ -97,7 +103,7 @@ RewriteBackendRecipeSelectorUnary8:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBinary16:
             .db RewriteBackendRecipeDispatch,20,6
-            .dw RewriteBackendRecipeFragmentAdd16,RewriteBackendRecipeFragmentSubtract16,0,RewriteBackendRecipeFragmentAnd16,RewriteBackendRecipeFragmentOr16,RewriteBackendRecipeFragmentXor16
+            .dw RewriteBackendRecipeFragmentAdd16,RewriteBackendRecipeFragmentSubtract16,RewriteBackendRecipeFragmentMultiply16,RewriteBackendRecipeFragmentAnd16,RewriteBackendRecipeFragmentOr16,RewriteBackendRecipeFragmentXor16
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorUnary16:
             .db RewriteBackendRecipeDispatch,26,2
@@ -106,11 +112,38 @@ RewriteBackendRecipeSelectorUnary16:
 RewriteBackendRecipeSelectorNotBoolean:
             .db RewriteBackendRecipeEmit,8,$E1,$7D,$EE,$01,$6F,$26,$00,$E5
             .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorCompare:
+            .db RewriteBackendRecipeEmit,3,$D1,$E1,$3E
+            .db RewriteBackendRecipeOperandByte,0
+            .db RewriteBackendRecipeRuntimeCall
+            .dw NucleusRuntimeCompareU16Offset
+            .db RewriteBackendRecipeEmit,1,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorPromoteI8Pair:
+            .db RewriteBackendRecipeEmit,3,$D1,$E1,$3E
+            .db RewriteBackendRecipeOperandByte,0
+            .db RewriteBackendRecipeRuntimeCall
+            .dw NucleusRuntimePromoteI8PairOffset
+            .db RewriteBackendRecipeEmit,2,$E5,$D5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorBooleanBegin:
+            .db RewriteBackendRecipeDispatch,39,2
+            .dw RewriteBackendRecipeFragmentBeginBooleanAnd,RewriteBackendRecipeFragmentBeginBooleanOr
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeSelectorBooleanEnd:
+            .db RewriteBackendRecipeRelativeFixupPatch
+            .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentAdd8:
             .db RewriteBackendRecipeEmit,8,$D1,$E1,$7D,$83,$6F,$26,$00,$E5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentSubtract8:
             .db RewriteBackendRecipeEmit,8,$D1,$E1,$7D,$93,$6F,$26,$00,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeFragmentMultiply8:
+            .db RewriteBackendRecipeEmit,2,$D1,$E1
+            .db RewriteBackendRecipeRuntimeCall
+            .dw NucleusRuntimeMultiplyU16Offset
+            .db RewriteBackendRecipeEmit,3,$26,$00,$E5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentAnd8:
             .db RewriteBackendRecipeEmit,8,$D1,$E1,$7D,$A3,$6F,$26,$00,$E5
@@ -126,6 +159,12 @@ RewriteBackendRecipeFragmentAdd16:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentSubtract16:
             .db RewriteBackendRecipeEmit,6,$D1,$E1,$AF,$ED,$52,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeFragmentMultiply16:
+            .db RewriteBackendRecipeEmit,2,$D1,$E1
+            .db RewriteBackendRecipeRuntimeCall
+            .dw NucleusRuntimeMultiplyU16Offset
+            .db RewriteBackendRecipeEmit,1,$E5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentAnd16:
             .db RewriteBackendRecipeEmit,9,$D1,$E1,$7D,$A3,$6F,$7C,$A2,$67,$E5
@@ -147,5 +186,13 @@ RewriteBackendRecipeFragmentNegate16:
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeFragmentNot16:
             .db RewriteBackendRecipeEmit,8,$E1,$7D,$2F,$6F,$7C,$2F,$67,$E5
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeFragmentBeginBooleanAnd:
+            .db RewriteBackendRecipeEmit,6,$E1,$7D,$B7,$20,$03,$E5
+            .db RewriteBackendRecipeRelativeFixupPush
+            .db RewriteBackendRecipeEnd
+RewriteBackendRecipeFragmentBeginBooleanOr:
+            .db RewriteBackendRecipeEmit,6,$E1,$7D,$B7,$28,$03,$E5
+            .db RewriteBackendRecipeRelativeFixupPush
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeDataEnd:

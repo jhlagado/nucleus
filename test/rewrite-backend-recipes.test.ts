@@ -65,18 +65,18 @@ const run = (entryName: string) => {
 };
 
 describe("ground-up rewrite backend recipes", () => {
-  it("emits byte-identical target code for the first 26 scalar operations", () => {
+  it("emits byte-identical target code for the first 38 scalar operations", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 7_406,
-      cycles: 66_004,
+      instructions: 10_712,
+      cycles: 94_254,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
     const expectedEnd = image.symbols.ProofExpectedBackendEnd ?? -1;
-    expect(expectedEnd - expected).toBe(171);
-    expect(Array.from(memory.slice(output, output + 171))).toEqual(
+    expect(expectedEnd - expected).toBe(242);
+    expect(Array.from(memory.slice(output, output + 242))).toEqual(
       Array.from(memory.slice(expected, expectedEnd)),
     );
   });
@@ -96,7 +96,7 @@ describe("ground-up rewrite backend recipes", () => {
     });
   });
 
-  it("rejects an unavailable member of a shared operation family", () => {
+  it("rejects an escape-class operation before any target output", () => {
     const { memory } = run("ProofBackendUnsupported");
     const output = image.symbols.ProofBackendOutput ?? -1;
     const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
@@ -207,7 +207,7 @@ describe("ground-up rewrite backend recipes", () => {
     }
   }, 60_000);
 
-  it("locks the initial backend recipe account", () => {
+  it("locks the runtime-call and Boolean-fixup recipe account", () => {
     expect({
       engine:
         (image.symbols.RewriteBackendCodeEnd ?? 0) -
@@ -228,11 +228,11 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      engine: 231,
-      recipes: 365,
-      code: 12_434,
-      immutable: 1_829,
-      core: 14_263,
+      engine: 391,
+      recipes: 454,
+      code: 12_594,
+      immutable: 1_918,
+      core: 14_512,
       workspace: 3_425,
     });
   });

@@ -159,14 +159,14 @@
     {
       "names": ["BeginBooleanAnd", "BeginBooleanOr"],
       "operands": [],
-      "backend": ["escape", "booleanBegin"],
+      "backend": ["recipe", "booleanBegin"],
       "stack": [1, 1],
       "source": "direct"
     },
     {
       "name": "EndBoolean",
       "operands": [],
-      "backend": ["escape", "booleanEnd"],
+      "backend": ["recipe", "booleanEnd"],
       "stack": [2, 1],
       "source": "direct"
     },
@@ -686,7 +686,7 @@
     {
       "name": "PromoteI8Pair",
       "operands": [["mode", "byte"]],
-      "backend": ["escape", "promoteI8Pair"],
+      "backend": ["recipe", "promoteI8Pair"],
       "stack": [2, 2],
       "source": "direct"
     },

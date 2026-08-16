@@ -789,9 +789,9 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly operands: readonly [];
     readonly width: 1;
     readonly backend: {
-        readonly kind: "escape";
+        readonly kind: "recipe";
         readonly name: "booleanBegin";
-        readonly index: 2;
+        readonly index: 19;
     };
     readonly stack: {
         readonly in: 1;
@@ -806,9 +806,9 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly operands: readonly [];
     readonly width: 1;
     readonly backend: {
-        readonly kind: "escape";
+        readonly kind: "recipe";
         readonly name: "booleanBegin";
-        readonly index: 2;
+        readonly index: 19;
     };
     readonly stack: {
         readonly in: 1;
@@ -823,9 +823,9 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly operands: readonly [];
     readonly width: 1;
     readonly backend: {
-        readonly kind: "escape";
+        readonly kind: "recipe";
         readonly name: "booleanEnd";
-        readonly index: 3;
+        readonly index: 20;
     };
     readonly stack: {
         readonly in: 2;
@@ -848,7 +848,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "controlLabel";
-        readonly index: 19;
+        readonly index: 21;
     };
     readonly stack: {
         readonly in: 0;
@@ -871,7 +871,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "controlLabel";
-        readonly index: 19;
+        readonly index: 21;
     };
     readonly stack: {
         readonly in: 0;
@@ -894,7 +894,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "branchFalse";
-        readonly index: 20;
+        readonly index: 22;
     };
     readonly stack: {
         readonly in: 1;
@@ -917,7 +917,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "jump";
-        readonly index: 21;
+        readonly index: 23;
     };
     readonly stack: {
         readonly in: 0;
@@ -940,7 +940,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "jump";
-        readonly index: 21;
+        readonly index: 23;
     };
     readonly stack: {
         readonly in: 0;
@@ -969,7 +969,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "forSetup";
-        readonly index: 4;
+        readonly index: 2;
     };
     readonly stack: {
         readonly in: 2;
@@ -1004,7 +1004,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "forTest";
-        readonly index: 5;
+        readonly index: 3;
     };
     readonly stack: {
         readonly in: 0;
@@ -1057,7 +1057,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "forNext";
-        readonly index: 6;
+        readonly index: 4;
     };
     readonly stack: {
         readonly in: 0;
@@ -1074,7 +1074,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "forCleanup";
-        readonly index: 7;
+        readonly index: 5;
     };
     readonly stack: {
         readonly in: 0;
@@ -1137,7 +1137,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "returnScalar";
-        readonly index: 22;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -1218,7 +1218,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "beginRoutine";
-        readonly index: 8;
+        readonly index: 6;
     };
     readonly stack: {
         readonly in: 0;
@@ -1253,7 +1253,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "bindParameter";
-        readonly index: 9;
+        readonly index: 7;
     };
     readonly stack: {
         readonly in: 0;
@@ -1318,7 +1318,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "callSource";
-        readonly index: 10;
+        readonly index: 8;
     };
     readonly stack: {
         readonly in: "dynamic";
@@ -1365,7 +1365,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "callService";
-        readonly index: 11;
+        readonly index: 9;
     };
     readonly stack: {
         readonly in: "dynamic";
@@ -1382,7 +1382,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "returnScalar";
-        readonly index: 22;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -1405,7 +1405,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "endRoutine";
-        readonly index: 12;
+        readonly index: 10;
     };
     readonly stack: {
         readonly in: 0;
@@ -1428,7 +1428,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "endRoutine";
-        readonly index: 12;
+        readonly index: 10;
     };
     readonly stack: {
         readonly in: 0;
@@ -1451,7 +1451,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadProgramAlias";
-        readonly index: 23;
+        readonly index: 25;
     };
     readonly stack: {
         readonly in: 0;
@@ -1474,7 +1474,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadBssAlias";
-        readonly index: 24;
+        readonly index: 26;
     };
     readonly stack: {
         readonly in: 0;
@@ -1497,7 +1497,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadParameterAlias";
-        readonly index: 25;
+        readonly index: 27;
     };
     readonly stack: {
         readonly in: 0;
@@ -1520,7 +1520,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "selectField";
-        readonly index: 26;
+        readonly index: 28;
     };
     readonly stack: {
         readonly in: 1;
@@ -1555,7 +1555,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "selectIndex";
-        readonly index: 13;
+        readonly index: 11;
     };
     readonly stack: {
         readonly in: 2;
@@ -1572,7 +1572,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadIndirect8";
-        readonly index: 27;
+        readonly index: 29;
     };
     readonly stack: {
         readonly in: 1;
@@ -1589,7 +1589,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadIndirect16";
-        readonly index: 28;
+        readonly index: 30;
     };
     readonly stack: {
         readonly in: 1;
@@ -1606,7 +1606,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "storeIndirect8";
-        readonly index: 29;
+        readonly index: 31;
     };
     readonly stack: {
         readonly in: 2;
@@ -1623,7 +1623,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "storeIndirect16";
-        readonly index: 30;
+        readonly index: 32;
     };
     readonly stack: {
         readonly in: 2;
@@ -1652,7 +1652,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "copyAggregate";
-        readonly index: 14;
+        readonly index: 12;
     };
     readonly stack: {
         readonly in: 2;
@@ -1681,7 +1681,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "stringLength";
-        readonly index: 31;
+        readonly index: 33;
     };
     readonly stack: {
         readonly in: 1;
@@ -1710,7 +1710,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "stringIndex";
-        readonly index: 32;
+        readonly index: 34;
     };
     readonly stack: {
         readonly in: 2;
@@ -1733,7 +1733,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "failRoutine";
-        readonly index: 15;
+        readonly index: 13;
     };
     readonly stack: {
         readonly in: 1;
@@ -1756,7 +1756,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "failMain";
-        readonly index: 16;
+        readonly index: 14;
     };
     readonly stack: {
         readonly in: 1;
@@ -1773,7 +1773,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "returnFailable";
-        readonly index: 17;
+        readonly index: 15;
     };
     readonly stack: {
         readonly in: 1;
@@ -1790,7 +1790,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "returnFailable";
-        readonly index: 17;
+        readonly index: 15;
     };
     readonly stack: {
         readonly in: 1;
@@ -1813,7 +1813,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "endFailableRoutine";
-        readonly index: 18;
+        readonly index: 16;
     };
     readonly stack: {
         readonly in: 0;
@@ -1836,7 +1836,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "endFailableRoutine";
-        readonly index: 18;
+        readonly index: 16;
     };
     readonly stack: {
         readonly in: 0;
@@ -1859,7 +1859,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "skipHandler";
-        readonly index: 19;
+        readonly index: 17;
     };
     readonly stack: {
         readonly in: 0;
@@ -1894,7 +1894,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "beginHandler";
-        readonly index: 20;
+        readonly index: 18;
     };
     readonly stack: {
         readonly in: 0;
@@ -1929,7 +1929,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "beginHandlerBss";
-        readonly index: 21;
+        readonly index: 19;
     };
     readonly stack: {
         readonly in: 0;
@@ -1964,7 +1964,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "beginHandler";
-        readonly index: 20;
+        readonly index: 18;
     };
     readonly stack: {
         readonly in: 0;
@@ -1987,7 +1987,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "endHandler";
-        readonly index: 22;
+        readonly index: 20;
     };
     readonly stack: {
         readonly in: 0;
@@ -2016,7 +2016,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "beginCallableMain";
-        readonly index: 23;
+        readonly index: 21;
     };
     readonly stack: {
         readonly in: 0;
@@ -2039,7 +2039,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadReadOnlyAlias";
-        readonly index: 33;
+        readonly index: 35;
     };
     readonly stack: {
         readonly in: 0;
@@ -2068,7 +2068,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "openStringLength";
-        readonly index: 24;
+        readonly index: 22;
     };
     readonly stack: {
         readonly in: 1;
@@ -2097,7 +2097,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "openStringIndex";
-        readonly index: 25;
+        readonly index: 23;
     };
     readonly stack: {
         readonly in: 2;
@@ -2126,7 +2126,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "prepareOpenArgument";
-        readonly index: 26;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -2155,7 +2155,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "prepareOpenArgument";
-        readonly index: 26;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -2184,7 +2184,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "prepareOpenArgument";
-        readonly index: 26;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -2213,7 +2213,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "prepareOpenArgument";
-        readonly index: 26;
+        readonly index: 24;
     };
     readonly stack: {
         readonly in: 1;
@@ -2236,7 +2236,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "openStringCapacity";
-        readonly index: 34;
+        readonly index: 36;
     };
     readonly stack: {
         readonly in: 1;
@@ -2265,7 +2265,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "openStringResize";
-        readonly index: 27;
+        readonly index: 25;
     };
     readonly stack: {
         readonly in: 2;
@@ -2288,7 +2288,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "arrayLength";
-        readonly index: 35;
+        readonly index: 37;
     };
     readonly stack: {
         readonly in: 1;
@@ -2311,7 +2311,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "openArrayLength";
-        readonly index: 36;
+        readonly index: 38;
     };
     readonly stack: {
         readonly in: 1;
@@ -2346,7 +2346,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "openArrayIndex";
-        readonly index: 28;
+        readonly index: 26;
     };
     readonly stack: {
         readonly in: 2;
@@ -2381,7 +2381,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "convertInteger";
-        readonly index: 29;
+        readonly index: 27;
     };
     readonly stack: {
         readonly in: 1;
@@ -2410,7 +2410,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "escape";
         readonly name: "divideSigned";
-        readonly index: 30;
+        readonly index: 28;
     };
     readonly stack: {
         readonly in: 2;
@@ -2431,9 +2431,9 @@ export declare const rewriteSemanticOperations: readonly [{
     }];
     readonly width: 2;
     readonly backend: {
-        readonly kind: "escape";
+        readonly kind: "recipe";
         readonly name: "promoteI8Pair";
-        readonly index: 31;
+        readonly index: 39;
     };
     readonly stack: {
         readonly in: 2;
@@ -2456,7 +2456,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadBssU8";
-        readonly index: 37;
+        readonly index: 40;
     };
     readonly stack: {
         readonly in: 0;
@@ -2479,7 +2479,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "loadBss16";
-        readonly index: 38;
+        readonly index: 41;
     };
     readonly stack: {
         readonly in: 0;
@@ -2502,7 +2502,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "storeBssU8";
-        readonly index: 39;
+        readonly index: 42;
     };
     readonly stack: {
         readonly in: 1;
@@ -2525,7 +2525,7 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly backend: {
         readonly kind: "recipe";
         readonly name: "storeBss16";
-        readonly index: 40;
+        readonly index: 43;
     };
     readonly stack: {
         readonly in: 1;

@@ -34,7 +34,7 @@
       {
         "dispatch": {
           "first": "Add8",
-          "targets": ["add8", "subtract8", null, "and8", "or8", "xor8"]
+          "targets": ["add8", "subtract8", "multiply8", "and8", "or8", "xor8"]
         }
       }
     ],
@@ -50,7 +50,7 @@
       {
         "dispatch": {
           "first": "Add16",
-          "targets": ["add16", "subtract16", null, "and16", "or16", "xor16"]
+          "targets": ["add16", "subtract16", "multiply16", "and16", "or16", "xor16"]
         }
       }
     ],
@@ -62,22 +62,61 @@
         }
       }
     ],
-    "notBoolean": [{ "emit": [225, 125, 238, 1, 111, 38, 0, 229] }]
+    "notBoolean": [{ "emit": [225, 125, 238, 1, 111, 38, 0, 229] }],
+    "compare": [
+      { "emit": [209, 225, 62] },
+      { "operandByte": "comparison" },
+      { "runtimeCall": "CompareU16" },
+      { "emit": [229] }
+    ],
+    "promoteI8Pair": [
+      { "emit": [209, 225, 62] },
+      { "operandByte": "mode" },
+      { "runtimeCall": "PromoteI8Pair" },
+      { "emit": [229, 213] }
+    ],
+    "booleanBegin": [
+      {
+        "dispatch": {
+          "first": "BeginBooleanAnd",
+          "targets": ["beginBooleanAnd", "beginBooleanOr"]
+        }
+      }
+    ],
+    "booleanEnd": [{ "relativeFixupPatch": true }]
   },
   "fragments": {
     "add8": [{ "emit": [209, 225, 125, 131, 111, 38, 0, 229] }],
     "subtract8": [{ "emit": [209, 225, 125, 147, 111, 38, 0, 229] }],
+    "multiply8": [
+      { "emit": [209, 225] },
+      { "runtimeCall": "MultiplyU16" },
+      { "emit": [38, 0, 229] }
+    ],
     "and8": [{ "emit": [209, 225, 125, 163, 111, 38, 0, 229] }],
     "or8": [{ "emit": [209, 225, 125, 179, 111, 38, 0, 229] }],
     "xor8": [{ "emit": [209, 225, 125, 171, 111, 38, 0, 229] }],
     "add16": [{ "emit": [209, 225, 25, 229] }],
     "subtract16": [{ "emit": [209, 225, 175, 237, 82, 229] }],
+    "multiply16": [
+      { "emit": [209, 225] },
+      { "runtimeCall": "MultiplyU16" },
+      { "emit": [229] }
+    ],
     "and16": [{ "emit": [209, 225, 125, 163, 111, 124, 162, 103, 229] }],
     "or16": [{ "emit": [209, 225, 125, 179, 111, 124, 178, 103, 229] }],
     "xor16": [{ "emit": [209, 225, 125, 171, 111, 124, 170, 103, 229] }],
     "negate8": [{ "emit": [225, 175, 149, 111, 38, 0, 229] }],
     "not8": [{ "emit": [225, 125, 47, 111, 38, 0, 229] }],
     "negate16": [{ "emit": [225, 175, 149, 111, 62, 0, 156, 103, 229] }],
-    "not16": [{ "emit": [225, 125, 47, 111, 124, 47, 103, 229] }]
+    "not16": [{ "emit": [225, 125, 47, 111, 124, 47, 103, 229] }],
+    "beginBooleanAnd": [
+      { "emit": [225, 125, 183, 32, 3, 229] },
+      { "relativeFixupPush": true }
+    ],
+    "beginBooleanOr": [
+      { "emit": [225, 125, 183, 40, 3, 229] },
+      { "relativeFixupPush": true }
+    ]
   }
 }
