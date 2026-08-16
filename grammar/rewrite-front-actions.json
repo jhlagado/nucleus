@@ -154,6 +154,58 @@
     {
       "name": "FinishRoutine",
       "target": "RewriteStatementFinishRoutine"
+    },
+    {
+      "name": "BeginIf",
+      "target": "RewriteControlBeginIf"
+    },
+    {
+      "name": "ParseBoolean",
+      "target": "RewriteControlParseBoolean"
+    },
+    {
+      "name": "BeginIfBody",
+      "target": "RewriteControlBeginIfBody"
+    },
+    {
+      "name": "BeginElseIf",
+      "target": "RewriteControlBeginElseIf"
+    },
+    {
+      "name": "BeginElse",
+      "target": "RewriteControlBeginElse"
+    },
+    {
+      "name": "FinishElse",
+      "target": "RewriteControlFinishElse"
+    },
+    {
+      "name": "FinishIfClauses",
+      "target": "RewriteControlFinishIfClauses"
+    },
+    {
+      "name": "EndIf",
+      "target": "RewriteControlEndIf"
+    },
+    {
+      "name": "BeginWhile",
+      "target": "RewriteControlBeginWhile"
+    },
+    {
+      "name": "BeginWhileBody",
+      "target": "RewriteControlBeginWhileBody"
+    },
+    {
+      "name": "EndWhile",
+      "target": "RewriteControlEndWhile"
+    },
+    {
+      "name": "EmitExit",
+      "target": "RewriteControlEmitExit"
+    },
+    {
+      "name": "EmitContinue",
+      "target": "RewriteControlEmitContinue"
     }
   ],
   "programs": [
@@ -400,6 +452,98 @@
       "steps": [
         { "instruction": "Expect", "operands": ["TokenFail", "DiagnosticExpectedFail"] },
         { "instruction": "Escape", "operands": ["RewriteActionEscapeParseFail"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "IfHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenIf", "DiagnosticExpectedIf"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginIf"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseBoolean"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginIfBody"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ElseIfHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenElseIf", "DiagnosticExpectedIf"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginElseIf"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseBoolean"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginIfBody"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "ElseHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenElse", "DiagnosticExpectedIf"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginElse"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "IfNoElseTail",
+      "steps": [
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishIfClauses"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "IfElseTail",
+      "steps": [
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeFinishElse"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "IfEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEndIf"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "WhileHeader",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenWhile", "DiagnosticExpectedBoolean"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginWhile"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeParseBoolean"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeBeginWhileBody"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "WhileEnd",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenEnd", "DiagnosticExpectedEnd"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEndWhile"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "Exit",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenExit", "DiagnosticExpectedLoop"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitExit"] },
+        { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
+        { "instruction": "End", "operands": [] }
+      ]
+    },
+    {
+      "name": "Continue",
+      "steps": [
+        { "instruction": "Expect", "operands": ["TokenContinue", "DiagnosticExpectedLoop"] },
+        { "instruction": "Escape", "operands": ["RewriteActionEscapeEmitContinue"] },
         { "instruction": "Expect", "operands": ["TokenNewline", "DiagnosticExpectedLine"] },
         { "instruction": "End", "operands": [] }
       ]

@@ -86,12 +86,12 @@ describe("ground-up rewrite generated record declarations", () => {
     expect({
       instructions: accepted.instructions,
       cycles: accepted.cycles,
-    }).toEqual({ instructions: 21_266, cycles: 190_192 });
+    }).toEqual({ instructions: 20_996, cycles: 188_866 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 7, instructions: 55_951, cycles: 493_859 });
+    }).toEqual({ cases: 7, instructions: 55_491, cycles: 491_818 });
     expect({
       declarations:
         (image.symbols.RewriteFrontDeclarationCodeEnd ?? 0) -
@@ -107,9 +107,9 @@ describe("ground-up rewrite generated record declarations", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       declarations: 1_528,
-      actionData: 322,
-      core: 11_359,
-      workspace: 3_416,
+      actionData: 412,
+      core: 11_806,
+      workspace: 3_418,
     });
   });
 });

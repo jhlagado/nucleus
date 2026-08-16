@@ -50,7 +50,20 @@ RewriteActionEscapeParseReturnValue .equ 33
 RewriteActionEscapeCommitBareReturn .equ 34
 RewriteActionEscapeParseFail .equ 35
 RewriteActionEscapeFinishRoutine .equ 36
-RewriteActionEscapeCount .equ 37
+RewriteActionEscapeBeginIf .equ 37
+RewriteActionEscapeParseBoolean .equ 38
+RewriteActionEscapeBeginIfBody .equ 39
+RewriteActionEscapeBeginElseIf .equ 40
+RewriteActionEscapeBeginElse .equ 41
+RewriteActionEscapeFinishElse .equ 42
+RewriteActionEscapeFinishIfClauses .equ 43
+RewriteActionEscapeEndIf .equ 44
+RewriteActionEscapeBeginWhile .equ 45
+RewriteActionEscapeBeginWhileBody .equ 46
+RewriteActionEscapeEndWhile .equ 47
+RewriteActionEscapeEmitExit .equ 48
+RewriteActionEscapeEmitContinue .equ 49
+RewriteActionEscapeCount .equ 50
 
 RewriteActionProgramScalarConstant:
             .db RewriteActionExpect,TokenConst,DiagnosticExpectedTopLevel
@@ -276,3 +289,85 @@ RewriteActionProgramFail:
             .db RewriteActionEnd
 RewriteActionProgramFailEnd:
 RewriteActionProgramFailWidth .equ 9
+
+RewriteActionProgramIfHeader:
+            .db RewriteActionExpect,TokenIf,DiagnosticExpectedIf
+            .db RewriteActionEscape,RewriteActionEscapeBeginIf
+            .db RewriteActionEscape,RewriteActionEscapeParseBoolean
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeBeginIfBody
+            .db RewriteActionEnd
+RewriteActionProgramIfHeaderEnd:
+RewriteActionProgramIfHeaderWidth .equ 13
+
+RewriteActionProgramElseIfHeader:
+            .db RewriteActionExpect,TokenElseIf,DiagnosticExpectedIf
+            .db RewriteActionEscape,RewriteActionEscapeBeginElseIf
+            .db RewriteActionEscape,RewriteActionEscapeParseBoolean
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeBeginIfBody
+            .db RewriteActionEnd
+RewriteActionProgramElseIfHeaderEnd:
+RewriteActionProgramElseIfHeaderWidth .equ 13
+
+RewriteActionProgramElseHeader:
+            .db RewriteActionExpect,TokenElse,DiagnosticExpectedIf
+            .db RewriteActionEscape,RewriteActionEscapeBeginElse
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramElseHeaderEnd:
+RewriteActionProgramElseHeaderWidth .equ 9
+
+RewriteActionProgramIfNoElseTail:
+            .db RewriteActionEscape,RewriteActionEscapeFinishIfClauses
+            .db RewriteActionEnd
+RewriteActionProgramIfNoElseTailEnd:
+RewriteActionProgramIfNoElseTailWidth .equ 3
+
+RewriteActionProgramIfElseTail:
+            .db RewriteActionEscape,RewriteActionEscapeFinishElse
+            .db RewriteActionEnd
+RewriteActionProgramIfElseTailEnd:
+RewriteActionProgramIfElseTailWidth .equ 3
+
+RewriteActionProgramIfEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeEndIf
+            .db RewriteActionEnd
+RewriteActionProgramIfEndEnd:
+RewriteActionProgramIfEndWidth .equ 9
+
+RewriteActionProgramWhileHeader:
+            .db RewriteActionExpect,TokenWhile,DiagnosticExpectedBoolean
+            .db RewriteActionEscape,RewriteActionEscapeBeginWhile
+            .db RewriteActionEscape,RewriteActionEscapeParseBoolean
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeBeginWhileBody
+            .db RewriteActionEnd
+RewriteActionProgramWhileHeaderEnd:
+RewriteActionProgramWhileHeaderWidth .equ 13
+
+RewriteActionProgramWhileEnd:
+            .db RewriteActionExpect,TokenEnd,DiagnosticExpectedEnd
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEscape,RewriteActionEscapeEndWhile
+            .db RewriteActionEnd
+RewriteActionProgramWhileEndEnd:
+RewriteActionProgramWhileEndWidth .equ 9
+
+RewriteActionProgramExit:
+            .db RewriteActionExpect,TokenExit,DiagnosticExpectedLoop
+            .db RewriteActionEscape,RewriteActionEscapeEmitExit
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramExitEnd:
+RewriteActionProgramExitWidth .equ 9
+
+RewriteActionProgramContinue:
+            .db RewriteActionExpect,TokenContinue,DiagnosticExpectedLoop
+            .db RewriteActionEscape,RewriteActionEscapeEmitContinue
+            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedLine
+            .db RewriteActionEnd
+RewriteActionProgramContinueEnd:
+RewriteActionProgramContinueWidth .equ 9

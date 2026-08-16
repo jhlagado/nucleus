@@ -217,6 +217,71 @@ export const rewriteActionEscapes = [
         "name": "FinishRoutine",
         "target": "RewriteStatementFinishRoutine",
         "id": 36
+    },
+    {
+        "name": "BeginIf",
+        "target": "RewriteControlBeginIf",
+        "id": 37
+    },
+    {
+        "name": "ParseBoolean",
+        "target": "RewriteControlParseBoolean",
+        "id": 38
+    },
+    {
+        "name": "BeginIfBody",
+        "target": "RewriteControlBeginIfBody",
+        "id": 39
+    },
+    {
+        "name": "BeginElseIf",
+        "target": "RewriteControlBeginElseIf",
+        "id": 40
+    },
+    {
+        "name": "BeginElse",
+        "target": "RewriteControlBeginElse",
+        "id": 41
+    },
+    {
+        "name": "FinishElse",
+        "target": "RewriteControlFinishElse",
+        "id": 42
+    },
+    {
+        "name": "FinishIfClauses",
+        "target": "RewriteControlFinishIfClauses",
+        "id": 43
+    },
+    {
+        "name": "EndIf",
+        "target": "RewriteControlEndIf",
+        "id": 44
+    },
+    {
+        "name": "BeginWhile",
+        "target": "RewriteControlBeginWhile",
+        "id": 45
+    },
+    {
+        "name": "BeginWhileBody",
+        "target": "RewriteControlBeginWhileBody",
+        "id": 46
+    },
+    {
+        "name": "EndWhile",
+        "target": "RewriteControlEndWhile",
+        "id": 47
+    },
+    {
+        "name": "EmitExit",
+        "target": "RewriteControlEmitExit",
+        "id": 48
+    },
+    {
+        "name": "EmitContinue",
+        "target": "RewriteControlEmitContinue",
+        "id": 49
     }
 ];
 export const rewriteActionPrograms = [
@@ -1448,6 +1513,398 @@ export const rewriteActionPrograms = [
                 "instruction": "Escape",
                 "operands": [
                     "RewriteActionEscapeParseFail"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "IfHeader",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenIf",
+                    "DiagnosticExpectedIf"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginIf"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseBoolean"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginIfBody"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 13
+    },
+    {
+        "name": "ElseIfHeader",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenElseIf",
+                    "DiagnosticExpectedIf"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginElseIf"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseBoolean"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginIfBody"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 13
+    },
+    {
+        "name": "ElseHeader",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenElse",
+                    "DiagnosticExpectedIf"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginElse"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "IfNoElseTail",
+        "steps": [
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishIfClauses"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 3
+    },
+    {
+        "name": "IfElseTail",
+        "steps": [
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeFinishElse"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 3
+    },
+    {
+        "name": "IfEnd",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEnd",
+                    "DiagnosticExpectedEnd"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEndIf"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "WhileHeader",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenWhile",
+                    "DiagnosticExpectedBoolean"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginWhile"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeParseBoolean"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeBeginWhileBody"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 13
+    },
+    {
+        "name": "WhileEnd",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenEnd",
+                    "DiagnosticExpectedEnd"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEndWhile"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "Exit",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenExit",
+                    "DiagnosticExpectedLoop"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEmitExit"
+                ],
+                "id": 2,
+                "width": 2
+            },
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenNewline",
+                    "DiagnosticExpectedLine"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "End",
+                "operands": [],
+                "id": 0,
+                "width": 1
+            }
+        ],
+        "width": 9
+    },
+    {
+        "name": "Continue",
+        "steps": [
+            {
+                "instruction": "Expect",
+                "operands": [
+                    "TokenContinue",
+                    "DiagnosticExpectedLoop"
+                ],
+                "id": 1,
+                "width": 3
+            },
+            {
+                "instruction": "Escape",
+                "operands": [
+                    "RewriteActionEscapeEmitContinue"
                 ],
                 "id": 2,
                 "width": 2

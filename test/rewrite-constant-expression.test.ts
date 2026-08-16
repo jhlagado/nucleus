@@ -96,12 +96,12 @@ describe("ground-up rewrite constant-expression engine", () => {
       cases: values.proofCase,
       instructions: values.instructions,
       cycles: values.cycles,
-    }).toEqual({ cases: 39, instructions: 379_501, cycles: 3_464_387 });
+    }).toEqual({ cases: 39, instructions: 379_501, cycles: 3_464_429 });
     expect({
       cases: diagnostics.proofCase,
       instructions: diagnostics.instructions,
       cycles: diagnostics.cycles,
-    }).toEqual({ cases: 19, instructions: 40_253, cycles: 419_060 });
+    }).toEqual({ cases: 19, instructions: 40_253, cycles: 419_858 });
     expect({
       code:
         (image.symbols.RewriteExpressionCodeEnd ?? 0) -
@@ -120,8 +120,8 @@ describe("ground-up rewrite constant-expression engine", () => {
       code: 4_250,
       immutable: 48,
       pendingCapacity: 16,
-      core: 11_359,
-      workspace: 3_416,
+      core: 11_806,
+      workspace: 3_418,
     });
   });
 });

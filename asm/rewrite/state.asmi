@@ -187,7 +187,9 @@ RewritePendingFailureOffset    .equ RewriteMetadataControlBase+$40 ; word
 ; main and ordinary/forward bodies use one statement contract.
 RewriteCurrentRoutineResultType .equ RewriteMetadataControlBase+$42
 RewriteControlSequenceFallsThrough .equ RewriteMetadataControlBase+$43
-RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$44
+RewriteControlDepth            .equ RewriteMetadataControlBase+$44
+RewriteControlNextLabel        .equ RewriteMetadataControlBase+$45
+RewriteMetadataControlLimit   .equ RewriteMetadataControlBase+$46
 RewriteExpressionDepthCapacity .equ 16
 RewriteInitializerDepthCapacity .equ 4
 RewriteCallFrameCapacity       .equ 4
@@ -318,6 +320,32 @@ RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity
 
+; Structured-control frames are live only while compiling routine statements.
+; Static initializer scratch is live only while compiling top-level static
+; declarations, so the two phases share the first 88 scratch bytes. A frame
+; retains complete source-independent label ordinals and full loop metadata;
+; no compiler address is packed or narrowed.
+RewriteControlFrameCapacity  .equ 8
+RewriteControlFrameSize      .equ 10
+RewriteControlFrameKind      .equ 0
+RewriteControlFrameLabelA    .equ 1
+RewriteControlFrameContinue  .equ 2
+RewriteControlFrameExit      .equ 3
+RewriteControlFrameCounter   .equ 4
+RewriteControlFrameMode      .equ 5
+RewriteControlFrameStep      .equ 6 ; word
+RewriteControlFrameSourceOffset .equ 8 ; word
+RewriteControlFrameBase      .equ RewriteInitializerBase
+RewriteControlFrameLimit     .equ RewriteControlFrameBase+RewriteControlFrameSize*RewriteControlFrameCapacity
+RewriteControlFlowStackBase  .equ RewriteControlFrameLimit
+RewriteControlFlowStackLimit .equ RewriteControlFlowStackBase+RewriteControlFrameCapacity
+RewriteControlKindIf         .equ 1
+RewriteControlKindWhile      .equ 2
+RewriteControlKindFor        .equ 3
+RewriteControlKindHandler    .equ 4
+RewriteControlNoCounter      .equ $FF
+RewriteControlLabelLimit     .equ 27
+
 RewriteWorkspaceEnd          .equ RewriteStaticImageLimit
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
@@ -419,6 +447,13 @@ DiagnosticRoutineCapacity    .equ 84
 DiagnosticParameterCapacity  .equ 85
 DiagnosticFailureContext     .equ 87
 DiagnosticRoutineFlow        .equ 75
+DiagnosticActiveCounter      .equ 36
+DiagnosticControlCapacity    .equ 68
+DiagnosticControlLabelCapacity .equ 69
+DiagnosticExpectedBoolean    .equ 71
+DiagnosticExpectedLoop       .equ 72
+DiagnosticLoopCounter        .equ 73
+DiagnosticLoopStep           .equ 74
 DiagnosticSourcePartCapacity .equ 88
 DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
@@ -438,6 +473,7 @@ DiagnosticExpectedRightBracket .equ $80+19
 DiagnosticExpectedComma      .equ $80+20
 DiagnosticExpectedFail       .equ $80+11
 DiagnosticExpectedReturn     .equ $80+22
+DiagnosticExpectedIf         .equ $80+TokenIf
 DiagnosticExpectedStringLiteral .equ $80+47
 
 RewriteCallModeInfallible       .equ 0

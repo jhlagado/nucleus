@@ -11,7 +11,7 @@ meaning; these files make its current Stage 7 syntax executable and testable.
 | `stage7-tables.asmi`               | Generated prediction, production, and action tables included by the compiler; each row marks its final production in-band.    |
 | `stage7-proof-actions.asmi`        | Generated action aliases used only by the isolated engine proof.                                                              |
 | `rewrite-semantic-operations.json` | Replacement-compiler semantic operations, operands, backend class, stack effect, source attribution, and global trace policy. |
-| `rewrite-front-actions.json`       | Replacement front-end action instructions and the full-address handwritten-escape dispatcher.                                 |
+| `rewrite-front-actions.json`       | Replacement front-end action instructions and the relocatable full-address handwritten-escape directory.                     |
 
 `scripts/generate-rewrite-operations.mjs` turns the replacement operation
 source into Z80 ordinals, producer-facing operand offsets, record widths,
@@ -38,10 +38,10 @@ ordinal, so the first operand is at offset one. The descriptor is five bytes:
 5. abstract stack input and output in the high and low nibbles.
 
 Stack effects 0–14 are literal carrier counts. Nibble `$F` is reserved for the
-named `dynamic` effect used by calls; numeric 15 is not admitted by the source
-generator. Source class zero means no source attribution, one means the
-current direct source context, and two means the resumed enclosing construct
-context used for compiler-generated closure. Backend selectors are namespace
+named `dynamic` effect used by calls; the source generator rejects numeric 15.
+The source classes are zero for no attribution, one for the current direct
+source context, and two for the resumed enclosing-construct context used for
+compiler-generated closure. Backend selectors are namespace
 ordinals, not addresses. Later backend milestones build complete full-address
 directories from them without using an address bit or assuming a compiler
 origin.
@@ -75,8 +75,10 @@ compiler or generated-program address.
 a dense ordinal and fixed width, and gives every irregular escape a dense
 selector. It also emits named action programs declared by the same JSON
 authority; those `.db` rows are interpreter data, not hidden Z80 instructions.
-The generated Z80 dispatcher uses ordinary full-address jumps; selectors are
-never packed into an address.
+The generated Z80 dispatcher indexes a directory of ordinary relocatable
+16-bit handler addresses. The directory's `.dw` entries are address data, not
+encoded instructions. Selectors are never packed into an address and the
+directory discards no address bits, so it imposes no compiler-origin policy.
 The generated TypeScript decoder rejects invalid ordinals, truncation, missing
 `End`, and bytes after `End`. `npm run check:rewrite-actions` rejects stale
 generated authority. An escape returns to the current action program and may

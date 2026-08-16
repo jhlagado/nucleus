@@ -257,6 +257,27 @@ describe("ground-up rewrite front action machine", () => {
         target: "RewriteStatementFinishRoutine",
         id: 36,
       },
+      { name: "BeginIf", target: "RewriteControlBeginIf", id: 37 },
+      { name: "ParseBoolean", target: "RewriteControlParseBoolean", id: 38 },
+      { name: "BeginIfBody", target: "RewriteControlBeginIfBody", id: 39 },
+      { name: "BeginElseIf", target: "RewriteControlBeginElseIf", id: 40 },
+      { name: "BeginElse", target: "RewriteControlBeginElse", id: 41 },
+      { name: "FinishElse", target: "RewriteControlFinishElse", id: 42 },
+      {
+        name: "FinishIfClauses",
+        target: "RewriteControlFinishIfClauses",
+        id: 43,
+      },
+      { name: "EndIf", target: "RewriteControlEndIf", id: 44 },
+      { name: "BeginWhile", target: "RewriteControlBeginWhile", id: 45 },
+      {
+        name: "BeginWhileBody",
+        target: "RewriteControlBeginWhileBody",
+        id: 46,
+      },
+      { name: "EndWhile", target: "RewriteControlEndWhile", id: 47 },
+      { name: "EmitExit", target: "RewriteControlEmitExit", id: 48 },
+      { name: "EmitContinue", target: "RewriteControlEmitContinue", id: 49 },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
       ["ScalarConstant", 19],
@@ -281,6 +302,16 @@ describe("ground-up rewrite front action machine", () => {
       ["ReturnValue", 9],
       ["BareReturn", 9],
       ["Fail", 9],
+      ["IfHeader", 13],
+      ["ElseIfHeader", 13],
+      ["ElseHeader", 9],
+      ["IfNoElseTail", 3],
+      ["IfElseTail", 3],
+      ["IfEnd", 9],
+      ["WhileHeader", 13],
+      ["WhileEnd", 9],
+      ["Exit", 9],
+      ["Continue", 9],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -296,7 +327,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 333, immutable: 322, core: 11_359, workspace: 3_416 });
+    }).toEqual({ code: 227, immutable: 412, core: 11_806, workspace: 3_418 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
@@ -305,10 +336,10 @@ describe("ground-up rewrite front action machine", () => {
     ).toEqual([0, 3, 5]);
     expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 37, 0])),
+      decodeRewriteActionProgram(new Uint8Array([2, 50, 0])),
     ).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
-    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 37]))).toThrow();
+    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 50]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([0, 0]))).toThrow();
   });
 });

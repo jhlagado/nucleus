@@ -72,7 +72,7 @@ describe("ground-up rewrite default local declarations", () => {
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 23_578, cycles: 212_988 });
+    }).toEqual({ instructions: 22_637, cycles: 208_004 });
   });
 
   it("places locals after mixed-width parameter carriers", () => {
@@ -84,7 +84,7 @@ describe("ground-up rewrite default local declarations", () => {
     expect({
       instructions: executed.instructions,
       cycles: executed.cycles,
-    }).toEqual({ instructions: 22_958, cycles: 207_086 });
+    }).toEqual({ instructions: 22_455, cycles: 204_446 });
   });
 
   it.each([
@@ -129,14 +129,14 @@ describe("ground-up rewrite default local declarations", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      escapes: 37,
-      actionCode: 333,
-      actionData: 322,
+      escapes: 50,
+      actionCode: 227,
+      actionData: 412,
       declarations: 1_528,
-      code: 10_030,
-      immutable: 1_329,
-      core: 11_359,
-      workspace: 3_416,
+      code: 10_387,
+      immutable: 1_419,
+      core: 11_806,
+      workspace: 3_418,
     });
   });
 });

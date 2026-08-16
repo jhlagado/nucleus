@@ -1281,6 +1281,39 @@ R5 routine-exit checkpoint (Measured):
   explicitly deferred size compression until the complete language path is
   present.
 
+R5 conditional-and-while checkpoint (Measured):
+
+- generated action programs now sequence `if`, `elseif`, `else`, `while`,
+  `exit`, and `continue`. One bounded eight-frame control stack retains exact
+  frame kinds, dense label ordinals, enclosing fallthrough state, and loop
+  transfer targets without borrowing any address bit;
+- every control-label record distinguishes direct source attribution from an
+  enclosing closing edge. The accepted proof checks nineteen complete
+  semantic operations byte for byte across a three-clause conditional and a
+  loop containing both `continue` and `exit`. It executes in 22,109 compiler
+  instructions and 198,620 T-states;
+- conditional fallthrough is the conjunction of the enclosing sequence and
+  the complete clause result. A conditional without a proved non-fallthrough
+  `else` remains conservative. A `while` always restores the enclosing
+  sequence because its condition may be false initially;
+- exact diagnostics cover a non-Boolean condition (60), `exit` and `continue`
+  outside a loop (72), the ninth nested control frame (68), and the first
+  label beyond the 27-label routine account (69). Each proof checks source
+  part and byte offset through the nonreturning diagnostic path;
+- the former linear escape chain reached its relative-branch limit when the
+  authority grew to fifty escapes. It is replaced by a 16-bit relocatable
+  handler directory indexed by the dense selector. Its `.dw` entries are
+  addresses, not compiler instructions; no address bit is packed, discarded,
+  or interpreted as metadata. Despite thirteen new escapes, dispatch code
+  falls from 333 to 227 bytes;
+- the control region is 463 code bytes. Fifty generated escapes and thirty-two
+  generated programs use 227 code bytes and 412 immutable bytes. The shipping
+  replacement is 10,387 code + 1,419 immutable = 11,806 core bytes; the
+  instrumented replacement is 11,810 core bytes. Workspace is 3,418 bytes.
+  The nominal accounts leave 4,578 bytes below 16 KiB and 678 workspace bytes,
+  but feature completion remains the active gate and compression remains
+  deferred.
+
 Exit gate: flow analysis, exact error positions, balanced construct contexts,
 loop overshoot, signed counters, failure propagation/handling, empty bodies,
 and post-failure reset match the oracle.
@@ -1406,8 +1439,9 @@ explicit expression-initialized locals, the shared postfix path engine, typed
 source/service calls, concrete and forwarded open arguments, nested calls, and
 immediate `else fail` propagation. R5 now has scalar assignments, source and
 service call statements, scalar and aggregate returns, explicit routine/main
-failure, bare return, and routine-end fallthrough validation. The next work is
-the structured control-frame substrate for `if`, `while`, and counted loops,
-followed by `exit`, `continue`, and immediate handlers. Compression follows
-semantic and backend completion. The replacement remains test-selected until
-the complete cutover gate passes.
+failure, bare return, routine-end fallthrough validation, complete
+`if`/`elseif`/`else` lowering, `while`, and nearest-loop `exit`/`continue`.
+The next work is programmer-typed counted loops, followed by local `handle`
+blocks and their failure-state transitions. Compression follows semantic and
+backend completion. The replacement remains test-selected until the complete
+cutover gate passes.
