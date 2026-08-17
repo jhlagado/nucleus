@@ -80,8 +80,9 @@ ForwardCompleted        .equ SemanticBufferLimit+$07
 ForwardParameterType    .equ SemanticBufferLimit+$08
 ForwardResultType       .equ SemanticBufferLimit+$09
 
-; The predictive expression path keeps one token of lookahead. $FF denotes an
-; empty lookahead cell; token ordinals occupy the low half of the byte range.
+; The predictive expression path keeps one token of lookahead. Zero denotes an
+; empty cell. TokenEof is deliberately uncached, so repeated EOF peeks re-read
+; the same stable end position; every nonzero token retains its word payload.
 ParserLookaheadKind     .equ SemanticBufferLimit+$0A
 ParserLookaheadValue    .equ SemanticBufferLimit+$0B
 

@@ -93,11 +93,9 @@ ParserExpect:
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
             LD   A,(ParserLookaheadKind)
-            INC  A
-            JR   Z,ParserPeekEmpty
-            DEC  A
-            LD   BC,(ParserLookaheadValue)
             OR   A
+            JR   Z,ParserPeekEmpty
+            LD   BC,(ParserLookaheadValue)
             RET
 ParserPeekEmpty:
             PUSH HL
@@ -118,9 +116,10 @@ ParserTake:
             RET  C
 .endif
             LD   D,A
-            LD   A,$FF
+            XOR  A
             LD   (ParserLookaheadKind),A
             LD   A,D
+            OR   A
             RET
 
 ; Frequent token checks enter the common ParserExpect tail. These wrappers
@@ -1557,8 +1556,6 @@ CompileSliceResetState:
             LDIR
             LD   HL,SemanticPayloadBase
             LD   (SinkCursor),HL
-            LD   A,$FF
-            LD   (ParserLookaheadKind),A
             RET
 .else
             XOR  A
@@ -1572,10 +1569,9 @@ CompileSliceResetState:
 .else
             CALL SemanticSinkReset
 .endif
-            LD   A,$FF
+            XOR  A
             LD   (ParserLookaheadKind),A
 .if AggregateCallSlices
-            XOR  A
             LD   (SymbolCount),A
             LD   (NextLocalSlot),A
             LD   (NextProgramSlot),A

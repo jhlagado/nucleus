@@ -865,13 +865,31 @@ LF and CRLF comments, final EOF, and multipart boundaries. Strict production,
 instrumented, historical, packed-grammar, artifact, and relocation proofs
 pass.
 
+### Zero-valued empty lookahead
+
+The parser lookahead now uses zero for an empty cache. Zero is also the EOF
+token, so repeated EOF peeks ask the tokenizer again; the tokenizer returns the
+same EOF token and position without consuming source. Cached nonzero tokens
+retain their original accumulator, carry, and zero flags. `ParserTake` restores
+those token-derived flags after clearing the cache, while the expression
+operator helper still returns its established `$FF`, carry-clear, zero-clear
+result.
+
+The checkpoint recovers seven production compiler-code bytes with immutable
+data and workspace unchanged. The production core is 15,713 bytes. The
+representative proof falls from 879,118 to 877,020 instructions and from
+9,576,456 to 9,571,424 T-states. A historical returning-diagnostic proof checks
+two EOF peeks, an EOF take, the returned payload and flags, full source and token
+positions, and the expression-operator helper. Strict production, debug,
+historical, packed-grammar, artifact, and relocation proofs pass.
+
 ### Current recovery outlook
 
-With merged comparison and terminal token paths added to the retained
-checkpoints above, the measured shipping core is 15,720 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 960 bytes. The earlier
-15,360-byte target is 360 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 769 bytes, exceeding that phase target by 469 bytes.
+With zero-valued empty lookahead added to the retained checkpoints above, the
+measured shipping core is 15,713 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 967 bytes. The earlier 15,360-byte target is 353 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 776 bytes,
+exceeding that phase target by 476 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

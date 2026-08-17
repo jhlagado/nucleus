@@ -128,15 +128,15 @@ TypedEmitOperationBC:
 .endif
 
 ; Retain an operator that ParserPeek has already returned, then consume that
-; cached token without asking ParserTake to peek a second time. XOR/DEC forms
-; the empty-lookahead marker while guaranteeing the same carry-clear,
-; zero-clear result that ParserTake returns for every nonzero operator token.
+; cached token without asking ParserTake to peek a second time. Store the zero
+; empty-lookahead marker before DEC restores the same $FF, carry-clear,
+; zero-clear result that this helper has always returned.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry
 TypedTakeOperator:
             LD   (ExpressionOperator),A
             XOR  A
-            DEC  A
             LD   (ParserLookaheadKind),A
+            DEC  A
             RET
 
 ; Push one pending binary-expression context into the bounded compiler stack.

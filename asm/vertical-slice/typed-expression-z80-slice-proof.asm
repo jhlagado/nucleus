@@ -196,6 +196,81 @@ ProofStart:
             LD   (ProofStatus),A
             LD   (ServiceFailureCall),A
 
+            ; TokenEof shares zero with the empty lookahead marker. Repeated
+            ; peeks therefore re-run the tokenizer, but must reproduce the
+            ; same token, payload, flags, source cursor, and token position.
+            LD   A,79
+            LD   HL,TypedExpressionCapacitySourceEnd
+            LD   DE,TypedExpressionCapacitySourceEnd
+            CALL SourceInitialize
+            XOR  A
+            LD   (ParserLookaheadKind),A
+            LD   BC,$FFFF
+            CALL ParserPeek
+            JP   C,ProofFailEofLookahead
+            JP   NZ,ProofFailEofLookahead
+            LD   A,B
+            OR   C
+            JP   NZ,ProofFailEofLookahead
+            LD   BC,$FFFF
+            CALL ParserPeek
+            JP   C,ProofFailEofLookahead
+            JP   NZ,ProofFailEofLookahead
+            LD   A,B
+            OR   C
+            JP   NZ,ProofFailEofLookahead
+            CALL ParserTake
+            JP   C,ProofFailEofLookahead
+            JP   NZ,ProofFailEofLookahead
+            LD   A,(ParserLookaheadKind)
+            OR   A
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(SourceCursor)
+            LD   DE,TypedExpressionCapacitySourceEnd
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(SourceOffset)
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(SourceLine)
+            DEC  HL
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(SourceColumn)
+            DEC  HL
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(TokenStartOffset)
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(TokenStartLine)
+            DEC  HL
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   HL,(TokenStartColumn)
+            DEC  HL
+            LD   A,H
+            OR   L
+            JP   NZ,ProofFailEofLookahead
+            LD   A,TokenPlus
+            CALL TypedTakeOperator
+            JP   C,ProofFailEofLookahead
+            JP   Z,ProofFailEofLookahead
+            CP   $FF
+            JP   NZ,ProofFailEofLookahead
+            LD   A,(ParserLookaheadKind)
+            OR   A
+            JP   NZ,ProofFailEofLookahead
+            LD   A,(ExpressionOperator)
+            CP   TokenPlus
+            JP   NZ,ProofFailEofLookahead
+
             LD   A,80
             LD   HL,TypedAcceptedSource
             LD   DE,TypedAcceptedSourceEnd
@@ -455,7 +530,7 @@ ProofFillOperationCount:
             LD   DE,TypedDefaultLocalCapacitySourceEnd
             CALL SourceInitialize
             CALL SemanticSinkReset
-            LD   A,$FF
+            XOR  A
             LD   (ParserLookaheadKind),A
             CALL SymbolReset
             LD   HL,SemanticBufferLimit-3
@@ -843,6 +918,8 @@ ProofFailOperationCapacityBoundary: LD A,72
 ProofFailOperationCapacityAccept: LD A,73
                               JP ProofFailed
 ProofFailOperationCapacityDiagnostic: LD A,74
+                              JP ProofFailed
+ProofFailEofLookahead:       LD A,75
                               JP ProofFailed
 ProofFailCoverageCompile:     LD A,46
                               JR ProofFailed
