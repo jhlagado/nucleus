@@ -567,7 +567,6 @@ HybridLL1CommitRecord:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 HybridLL1RequireBeforeMain:
             LD   A,DiagnosticExpectedEof
-            JP   HybridLL1RequireNonMain
 
 ; A selects the exact diagnostic if the current signature is main. Ordinary
 ; routines return normally; compiler diagnostics retain the caller's token.
@@ -830,7 +829,11 @@ HybridLL1BeginForwardMainBody:
             CALL HybridLL1ResetParametersAndResult
             DEC  A
             LD   (Stage7CurrentRoutine),A
+.if CompilerNonlocalDiagnostics
+            JR   HybridLL1BeginMainBody
+.else
             JP   HybridLL1BeginMainBody
+.endif
 HybridLL1ForwardMissing:
             CALL SetDiagInline
             .db  DiagnosticUnknownName

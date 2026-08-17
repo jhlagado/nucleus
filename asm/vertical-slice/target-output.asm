@@ -768,7 +768,7 @@ TargetStartupTerminalState:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 FinishTargetFlatProgram:
             CALL TargetCompareSingleBank
-            JP   NZ,FinishTargetBankedProgram
+            JR   NZ,FinishTargetBankedProgram
             LD   HL,(EmitCursor)
             LD   DE,(TargetCodeBase)
             OR   A

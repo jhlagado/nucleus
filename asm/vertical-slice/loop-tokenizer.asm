@@ -431,14 +431,12 @@ TokenizerNextLoop:
             JR   Z,TokenizerCrLf
             CP   "/"
             JR   Z,TokenizerSlash
+            LD   C,TokenLeftParen
             CP   "("
-            JR   Z,TokenizerLeftParen
+            JR   Z,TokenizerLeftDelimiter
+            INC  C
             CP   ")"
-            JR   Z,TokenizerRightParen
-            CP   "["
-            JR   Z,TokenizerLeftBracket
-            CP   "]"
-            JR   Z,TokenizerRightBracket
+            JR   Z,TokenizerRightDelimiter
             CP   "<"
             JR   Z,TokenizerLess
             CP   ">"
@@ -462,6 +460,12 @@ TokenizerTryPunctuation:
 TokenizerTryName:
             CALL TokenIsLetter
             JP   C,TokenScanName
+            LD   C,TokenLeftBracket
+            CP   "["
+            JR   Z,TokenizerLeftDelimiter
+            INC  C
+            CP   "]"
+            JR   Z,TokenizerRightDelimiter
             JR   TokenizerLexicalFailure
 
 TokenizerSkipByte:
@@ -487,26 +491,6 @@ TokenizerPunctuation:
             LD   B,C
             JR   TokenScanBasedNumber
 
-TokenizerLeftParen:
-            LD   C,TokenLeftParen
-            JR   TokenizerLeftDelimiter
-
-TokenizerRightParen:
-            LD   C,TokenRightParen
-            JR   TokenizerRightDelimiter
-
-TokenizerLeftBracket:
-            LD   C,TokenLeftBracket
-TokenizerLeftDelimiter:
-            CALL SourceTake
-            LD   HL,SourceDelimiterDepth
-            INC  (HL)
-            JR   NZ,TokenFinishC
-            DEC  (HL)
-            JR   TokenizerLexicalFailure
-
-TokenizerRightBracket:
-            LD   C,TokenRightBracket
 TokenizerRightDelimiter:
             LD   HL,SourceDelimiterDepth
             LD   A,(HL)
@@ -515,6 +499,13 @@ TokenizerRightDelimiter:
             DEC  (HL)
             CALL SourceTake
             JR   TokenFinishC
+TokenizerLeftDelimiter:
+            CALL SourceTake
+            LD   HL,SourceDelimiterDepth
+            INC  (HL)
+            JR   NZ,TokenFinishC
+            DEC  (HL)
+            JR   TokenizerLexicalFailure
 
 TokenizerLess:
             LD   C,TokenLess

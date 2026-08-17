@@ -944,13 +944,33 @@ workspace unchanged. The representative proof improves from 877,392 to
 mapping, diagnostics, semantic transcripts, generated output, NOBJ, D8,
 historical layouts, and relocation remain unchanged.
 
+### Second three-audit control-flow checkpoint
+
+The following audit round retained another three independent changes. Stage 7
+call-frame addressing now enters the existing eight-byte routine-table scaler
+with a symbolic table-index delta, and the remaining production-safe long
+branches use local fallthrough or `JR`; historical layouts keep long branches
+where their ranges differ. Integer constant conversion classifies signed
+sources from the established scalar signed and width bits. The tokenizer keeps
+parentheses on its early path, moves brackets behind the failed name test, and
+derives each right-delimiter token by incrementing its adjacent left token.
+
+The call-frame and control-flow family recovers 14 code bytes, conversion
+routing recovers six, and delimiter classification recovers six. Together they
+reduce the production core from 15,661 to 15,635 bytes, with immutable data and
+workspace unchanged. The representative proof changes from 876,887 to 877,492
+instructions and from 9,566,458 to 9,570,464 T-states. The largest measured
+regression is the delimiter-heavy array proof at 1.458 percent, below the
+two-percent gate. Exact diagnostics, semantic transcripts, generated output,
+NOBJ, D8, historical layouts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the three-audit checkpoint added to the retained work above, the measured
-shipping core is 15,661 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,019 bytes. The earlier 15,360-byte target is 301 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 828 bytes,
-exceeding that phase target by 528 bytes.
+With the second three-audit checkpoint added to the retained work above, the
+measured shipping core is 15,635 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,045 bytes. The earlier 15,360-byte target is 275 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 854 bytes,
+exceeding that phase target by 554 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

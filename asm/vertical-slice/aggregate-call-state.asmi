@@ -65,6 +65,7 @@ Stage7CallFrameBase         .equ Stage7ParameterTableLimit
 Stage7CallFrameSize         .equ 8
 Stage7CallFrameCapacity     .equ 4
 Stage7CallFrameLimit        .equ Stage7CallFrameBase+Stage7CallFrameSize*Stage7CallFrameCapacity
+Stage7CallFrameRoutineIndexBase .equ (Stage7CallFrameBase-Stage7RoutineTableBase)/Stage7RoutineEntrySize
 Stage7CallFrameLabel        .equ 0
 Stage7CallFrameResult       .equ 1
 Stage7CallFrameParameter    .equ 2

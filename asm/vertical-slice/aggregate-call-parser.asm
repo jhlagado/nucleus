@@ -1397,19 +1397,12 @@ Stage7PathFieldTypeFailure:
 ; only its balanced expression context, a source frame keeps its result flag,
 ; and a service keeps only its source offset temporarily on the compiler
 ; hardware stack.
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
+.routine in A out HL,carry,zero clobbers A,sign,parity,halfCarry,D,DE
 Stage7CallFrameAddress:
-            LD   L,A
-            LD   H,0
-            ADD  HL,HL
-            ADD  HL,HL
-            ADD  HL,HL
-            LD   DE,Stage7CallFrameBase
-            ADD  HL,DE
-            OR   A
-            RET
+            ADD  A,Stage7CallFrameRoutineIndexBase
+            JP   Stage7RoutineAddress
 
-.routine out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
+.routine out HL,carry,zero clobbers A,sign,parity,halfCarry,D,DE
 Stage7CurrentCallFrame:
             LD   A,(Stage7CallDepth)
             DEC  A

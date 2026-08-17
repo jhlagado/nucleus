@@ -215,7 +215,11 @@ AggregateWrapArrayCurrent:
             LD   HL,0
 AggregateWrapArrayExtentLoop:
             ADD  HL,DE
+.if CompilerNonlocalDiagnostics
+            JR   C,AggregateProgramDataCapacityFailure
+.else
             JP   C,AggregateProgramDataCapacityFailure
+.endif
 .if CompilerNonlocalDiagnostics
             PUSH BC
 .endif

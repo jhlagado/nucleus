@@ -1130,23 +1130,21 @@ TypedEmitIntegerConversionOperation:
 TypedConvertConstant:
             LD   D,A
             AND  ScalarMetaTypeMask
-            CP   ScalarTypeI8
-            JR   Z,TypedConvertSourceI8
-            CP   ScalarTypeI16
-            JR   Z,TypedConvertSourceI16
-            OR   A
-            JR   NZ,TypedConvertNonnegative
-            LD   A,D
-            AND  ScalarMetaNegative
-            JR   Z,TypedConvertNonnegative
-            JR   TypedConvertNegative
+            BIT  4,A
+            JR   Z,TypedConvertSourceExactOrUnsigned
+            RRA
+            JR   NC,TypedConvertSourceI16
 TypedConvertSourceI8:
             BIT  7,L
-            JR   Z,TypedConvertNonnegative
+            JR   Z,TypedConvertSourceExactOrUnsigned
             LD   H,$FF
             JR   TypedConvertNegative
 TypedConvertSourceI16:
             BIT  7,H
+            JR   NZ,TypedConvertNegative
+TypedConvertSourceExactOrUnsigned:
+            LD   A,D
+            AND  ScalarMetaNegative
             JR   Z,TypedConvertNonnegative
 TypedConvertNegative:
             BIT  4,C

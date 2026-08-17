@@ -75,7 +75,7 @@ SemanticSinkOperation:
             JR   Z,SemanticSinkPutFull
             LD   (SemanticBufferBase),A
             LD   A,B
-            JP   SemanticSinkPut
+            JR   SemanticSinkPut
 .else
             LD   B,A
             LD   A,(SinkOperationCount)
