@@ -269,16 +269,26 @@ may simply move 90–150 hypothetical bytes into every adapter. It is not counte
 without an explicit compiler/adapter/deployment comparison. The backend alone
 cannot supply the 1,320-byte production recovery target.
 
+The first production-native backend checkpoint is retained. The target layout
+keeps the image and writable descriptor words contiguous and copies all four
+full-width words in one operation before validating both regions. Runtime
+context preparation then continues the already-checked address walk from the
+initialized-data base to the BSS base instead of reloading and recomputing it.
+The complete core falls by a measured 16 code bytes with immutable data and
+workspace unchanged. The flat proof executes 47 fewer compiler instructions
+and 769 more T-states, a 0.008-percent timing increase, while its target,
+runtime context, MAP, and artifact remain byte-identical.
+
 ### Current recovery outlook
 
-After the scanner and comparison checkpoints, the measured shipping core is
-16,612 bytes and the remaining recovery to 15,360 is 1,252 bytes. The
-parity-safe backend work projects 195–285 bytes, and a not-yet-assembled
-direct-action redesign projects 100–408 bytes. Together with the measured
-68-byte recovery, the currently evidenced range is 363–761 bytes, which would
-place the compiler between 15,919 and 16,317 bytes.
+After the scanner, comparison, and first backend checkpoints, the measured
+shipping core is 16,596 bytes and the remaining recovery to 15,360 is 1,236
+bytes. The remaining parity-safe backend work projects 135–200 bytes, and a
+not-yet-assembled direct-action redesign projects 100–408 bytes. Together with
+the measured 84-byte recovery, the currently evidenced range is 319–692 bytes,
+which would place the compiler between 15,988 and 16,361 bytes.
 
-That range does not yet reach the target. A further 559–957 bytes therefore
+That range does not yet reach the target. A further 628–1,001 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled

@@ -48,22 +48,23 @@ BeginTargetFlatProgram:
             CP   TargetDescriptorEstablishStack+1
             JP   NC,TargetConfigurationFailure
             LD   (TargetStackMode),A
-            LD   L,(IX+TargetDescriptorImageBase)
-            LD   H,(IX+TargetDescriptorImageBase+1)
-            LD   (TargetImageBase),HL
-            LD   E,(IX+TargetDescriptorImageCapacity)
-            LD   D,(IX+TargetDescriptorImageCapacity+1)
-            LD   (TargetImageCapacity),DE
+            ; Retain the descriptor's two checked regions as four complete
+            ; words. No address bit is packed or discarded.
+            PUSH IX
+            POP  HL
+            LD   DE,TargetDescriptorImageBase
+            ADD  HL,DE
+            LD   DE,TargetImageBase
+            LD   BC,8
+            LDIR
+            LD   HL,(TargetImageBase)
+            LD   DE,(TargetImageCapacity)
             CALL TargetValidateRegion
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   L,(IX+TargetDescriptorWritableBase)
-            LD   H,(IX+TargetDescriptorWritableBase+1)
-            LD   (TargetWritableBase),HL
-            LD   E,(IX+TargetDescriptorWritableCapacity)
-            LD   D,(IX+TargetDescriptorWritableCapacity+1)
-            LD   (TargetWritableCapacity),DE
+            LD   HL,(TargetWritableBase)
+            LD   DE,(TargetWritableCapacity)
             CALL TargetValidateRegion
 .if CompilerDiagnosticReturns
             RET  C
@@ -503,18 +504,19 @@ TargetPrepareRuntimeContext:
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextDataBase),HL
+            ; Continue the address walk once to the BSS base, then form the
+            ; independent initialized-plus-BSS capacity from the same static
+            ; length. Both additions remain checked at full word width.
             LD   BC,(StaticImageLength)
+            ADD  HL,BC
+            JR   C,TargetPrepareCapacityFailure
+            LD   (TargetBssBase),HL
             LD   DE,(ProgramBssLength)
             LD   H,B
             LD   L,C
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextDataCapacity),HL
-            LD   HL,(TargetContextDataBase)
-            LD   DE,(StaticImageLength)
-            ADD  HL,DE
-            JR   C,TargetPrepareCapacityFailure
-            LD   (TargetBssBase),HL
             LD   A,(TargetDescriptorBankCountValue)
             CP   1
             JR   Z,TargetPrepareFlatRoData

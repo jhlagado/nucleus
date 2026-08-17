@@ -35,19 +35,21 @@ TargetLayoutBase          .equ TargetCompilerWorkspaceEnd
 TargetOutputBank          .equ TargetLayoutBase+$00
 TargetImageBase           .equ TargetLayoutBase+$01 ; word
 TargetImageCapacity       .equ TargetLayoutBase+$03 ; word
-TargetLinkedRuntimeBase   .equ TargetLayoutBase+$05 ; word
-TargetReadOnlyBase        .equ TargetLayoutBase+$07 ; word
-TargetReadOnlyLength      .equ TargetLayoutBase+$09 ; word
-TargetCodeBase            .equ TargetLayoutBase+$0B ; word
-TargetCodeLength          .equ TargetLayoutBase+$0D ; word
-TargetCodeCapacity        .equ TargetLayoutBase+$0F ; word
+; Image and writable bounds retain the descriptor's full-width order so the
+; complete checked region pair can be copied without narrowing an address.
+TargetWritableBase        .equ TargetLayoutBase+$05 ; word
+TargetWritableCapacity    .equ TargetLayoutBase+$07 ; word
+TargetLinkedRuntimeBase   .equ TargetLayoutBase+$09 ; word
+TargetReadOnlyBase        .equ TargetLayoutBase+$0B ; word
+TargetReadOnlyLength      .equ TargetLayoutBase+$0D ; word
+TargetCodeBase            .equ TargetLayoutBase+$0F ; word
+TargetCodeLength          .equ TargetLayoutBase+$11 ; word
+TargetCodeCapacity        .equ TargetLayoutBase+$13 ; word
 ; During lowering these flat-publication fields are otherwise dead and retain
 ; the selected bank's aggregate-constant bounds. Banked MAP publication uses
 ; the per-bank tables, so the overlay does not destroy required state.
 TargetCurrentRoCapacity   .equ TargetCodeLength
 TargetCurrentRoBase       .equ TargetCodeCapacity
-TargetWritableBase        .equ TargetLayoutBase+$11 ; word
-TargetWritableCapacity    .equ TargetLayoutBase+$13 ; word
 TargetBssBase             .equ TargetLayoutBase+$15 ; word
 TargetLayoutMode          .equ TargetLayoutBase+$17
 TargetStackMode           .equ TargetLayoutBase+$18
