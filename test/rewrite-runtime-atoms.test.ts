@@ -132,8 +132,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 63_520,
-      cycles: 579_176,
+      instructions: 63_536,
+      cycles: 579_336,
     });
   });
 
@@ -144,8 +144,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 126_255,
-      cycles: 1_139_228,
+      instructions: 126_362,
+      cycles: 1_140_289,
     });
   });
 
@@ -168,8 +168,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 108_720,
-      cycles: 971_620,
+      instructions: 108_706,
+      cycles: 971_466,
     });
   });
 
@@ -182,8 +182,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xe7,
       diagnostic: 0,
-      instructions: 65_846,
-      cycles: 588_888,
+      instructions: 65_811,
+      cycles: 588_792,
     });
   });
 
@@ -195,8 +195,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 98_509,
-      cycles: 886_681,
+      instructions: 98_408,
+      cycles: 886_150,
     });
   });
 
@@ -206,8 +206,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_188,
-      cycles: 111_553,
+      instructions: 12_189,
+      cycles: 111_563,
     });
   });
 
@@ -217,8 +217,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_780,
-      cycles: 204_562,
+      instructions: 22_724,
+      cycles: 204_446,
     });
   });
 
@@ -228,8 +228,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 40_044,
-      cycles: 362_974,
+      instructions: 40_002,
+      cycles: 362_903,
     });
   });
 
@@ -239,8 +239,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_344,
-      cycles: 130_980,
+      instructions: 14_330,
+      cycles: 130_951,
     });
   });
 
@@ -328,8 +328,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 28_218,
-      cycles: 253_699,
+      instructions: 28_188,
+      cycles: 253_621,
     });
   });
 
@@ -434,12 +434,12 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 56,
       actionCode: 230,
       actionData: 240,
-      expression: 4_212,
+      expression: 4_073,
       statements: 717,
       declarations: 1_528,
-      code: 16_396,
+      code: 16_257,
       immutable: 1_508,
-      core: 17_904,
+      core: 17_765,
       workspace: 3_938,
     });
   });

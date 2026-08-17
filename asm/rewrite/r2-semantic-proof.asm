@@ -225,9 +225,9 @@ ProofNoOperands:
 ProofLiteral16Operands:
 ProofLiteral16Value:          .db $34,$12
 ProofCallSourceOperands:
-ProofCallSourceSelector:      .db 2
 ProofCallSourceArgumentWords: .db 3
 ProofCallSourceResultType:    .db 1
+ProofCallSourceSelector:      .db 2
 ProofCallSourceRoutineFlags:  .db 0
 ProofCallSourceSourceOffset:  .db $78,$56
 ProofCallSourceCallMode:      .db 2

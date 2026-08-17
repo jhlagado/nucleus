@@ -733,9 +733,9 @@ describe("ground-up rewrite tokenizer", () => {
         keywordBytes: 184,
         operationBytes: 853,
         semanticBytes: 290,
-        metadataBytes: 10_609,
+        metadataBytes: 10_470,
         sourceTokenBytes: 1_099,
-        coreBytes: 17_904,
+        coreBytes: 17_765,
         workspaceBytes: 3_938,
       });
       const layouts: readonly {

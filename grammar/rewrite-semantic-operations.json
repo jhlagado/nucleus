@@ -310,9 +310,9 @@
     {
       "name": "CallSource",
       "operands": [
-        ["selector", "byte"],
         ["argumentWords", "byte"],
         ["resultType", "byte"],
+        ["selector", "byte"],
         ["routineFlags", "byte"],
         ["sourceOffset", "word"],
         ["callMode", "byte"],

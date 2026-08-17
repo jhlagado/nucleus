@@ -1873,3 +1873,22 @@ repeated primary, postfix, and call policy with compact data-directed
 machinery. Runtime linking, MAP production, and final artifact publication
 resume after that local family is materially smaller. The replacement remains
 test-selected until the complete cutover gate passes.
+
+## Expression recovery bakeoff
+
+The first competitive recovery checkpoint retains the rewrite as a laboratory,
+not as the selected production compiler. It combines the recovered
+constant-expression and call-publication pass with a shared failure/dataflow
+cleanup. The expression family now measures 4,073 executable bytes plus 74
+immutable bytes, or 4,147 bytes in total. This is 139 code bytes below the
+preserved rewrite branch and 50 bytes above the 4,097-byte frozen production
+family. Workspace is unchanged at 3,938 bytes; the complete prototype core is
+17,765 bytes.
+
+All 522 serial tests, strict register contracts, generated semantic/action/
+backend authorities, compiler-image synchronization, TypeScript checking, and
+the distribution build pass at this checkpoint. The result is retained as a
+compression base, not accepted into production. The next experiment replaces
+the postfix/path organization with the smaller frozen control shape while
+retaining the rewrite's semantic authority. Its hard first acceptance gate is
+a measured complete expression family no larger than 3,500 bytes.

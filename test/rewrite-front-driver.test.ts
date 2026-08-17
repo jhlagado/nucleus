@@ -61,8 +61,8 @@ describe("ground-up rewrite source-driven routine body", () => {
     const memory = runtime.hardware.memory;
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 48_332,
-      cycles: 431_939,
+      instructions: 48_319,
+      cycles: 431_936,
     });
     const payload = image.symbols.RewriteSemanticPayloadBase ?? -1;
     const cursorAddress = image.symbols.RewriteSemanticSinkCursor ?? -1;

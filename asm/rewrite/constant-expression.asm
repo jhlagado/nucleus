@@ -119,7 +119,6 @@ _RewriteExpressionComparisonReady:
             CP   RewriteScalarTypeBoolean
             JR   NZ,_RewriteExpressionNoShortCircuit
             LD   A,(RewriteExpressionKnown)
-            LD   (RewriteExpressionLeftKnown),A
             OR   A
             JR   Z,_RewriteExpressionNoShortCircuit
             LD   A,B
@@ -157,7 +156,7 @@ _RewriteExpressionNoShortCircuit:
             POP  BC
             LD   A,(RewriteExpressionDepth)
             CP   RewriteExpressionDepthCapacity
-            JP   NC,_RewriteExpressionCapacityFailure
+            JP   NC,RewriteCallCapacityFailure
             INC  A
             LD   (RewriteExpressionDepth),A
             LD   HL,(TokenStartOffset)
@@ -205,9 +204,6 @@ _RewriteExpressionPrecedenceDone:
             OR   A
             RET
 
-_RewriteExpressionCapacityFailure:
-            LD   A,DiagnosticExpressionCapacity
-            JP   RewriteRaiseDiagnostic
 _RewriteExpressionComparisonFailure:
             LD   A,DiagnosticComparisonChain
             JP   RewriteRaiseDiagnostic
@@ -325,8 +321,7 @@ _RewritePathUnknownField:
             LD   A,DiagnosticUnknownName
             JP   RewriteRaiseDiagnostic
 _RewritePathRecordTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
+            JP   RewriteExpressionTypeFailure
 _RewritePathRecordFieldFound:
             LD   DE,RewriteFieldType
             ADD  HL,DE
@@ -399,8 +394,7 @@ _RewritePathRootAppend:
             OR   A
             RET
 _RewritePathRootTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
+            JP   RewriteExpressionTypeFailure
 
 ; Convert a completed index expression to the u16 index carrier. Dynamic
 ; signed values use bit seven of targetType to request the bounds-trap form of
@@ -424,7 +418,7 @@ RewritePathPrepareIndex:
             RET
 _RewritePathIndexKnownRangeFailure:
             LD   DE,(RewriteExpressionAtomOffset)
-            JP   RewritePathIndexRangeFailure
+            JP   RewriteExpressionRangeFailureAtDE
 _RewritePathIndexDynamic:
             LD   A,B
             AND  RewriteTypeIdentityMask
@@ -437,8 +431,7 @@ _RewritePathIndexDynamic:
             CP   RewriteScalarTypeU16
             JR   Z,RewritePathIndexReady
 _RewritePathIndexTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
+            JP   RewriteExpressionTypeFailure
 RewritePathIndexDynamicSigned:
             LD   (RewriteSemanticOperandArea+RewriteSemanticConvertIntegerOperandSourceTypeOffset),A
             LD   A,RewriteScalarTypeU16+$80
@@ -452,12 +445,6 @@ RewritePathIndexDynamicSigned:
 RewritePathIndexReady:
             LD   A,RewriteScalarTypeU16
             RET
-.routine noreturn
-RewritePathIndexRangeFailure:
-            LD   (TokenStartOffset),DE
-            LD   A,DiagnosticIntegerRange
-            JP   RewriteRaiseDiagnostic
-
 ; R4 call parsing uses four compact compiler-side frames. They retain only
 ; signature progress and transcript operands; target activations remain a
 ; backend concern. No frame field contains or tags a compiler address.
@@ -561,8 +548,6 @@ RewriteCallParseArgumentValue:
             OR   A
             JP   NZ,RewriteCallFailureContext
             LD   A,(RewriteExpressionRightMeta)
-            LD   HL,(RewriteExpressionRightValue)
-            LD   DE,(RewriteExpressionRightOffset)
             OR   A
             RET
 
@@ -598,7 +583,7 @@ RewriteCallParseAggregateArgument:
             CP   RewriteOpenArrayFlag
             JR   NC,_RewriteCallOpenArrayActual
             CP   D
-            JP   NZ,_RewriteCallAggregateTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             JR   _RewriteCallAggregateArgumentReady
 
 _RewriteCallOpenStringActual:
@@ -606,11 +591,11 @@ _RewriteCallOpenStringActual:
             CP   RewriteOpenStringTypeId
             JR   Z,_RewriteCallOpenStringForward
             CP   RewriteFirstOwnedTypeId
-            JP   C,_RewriteCallAggregateTypeFailure
+            JP   C,RewriteExpressionTypeFailure
             CALL RewriteTypeAddress
             LD   A,(HL)
             CP   RewriteTypeKindString
-            JP   NZ,_RewriteCallAggregateTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             INC  HL
             INC  HL
             LD   A,(HL)
@@ -634,15 +619,15 @@ _RewriteCallOpenArrayActual:
             CP   B
             JR   Z,_RewriteCallOpenArrayForward
             CP   RewriteFirstOwnedTypeId
-            JP   C,_RewriteCallAggregateTypeFailure
+            JP   C,RewriteExpressionTypeFailure
             CALL RewriteTypeAddress
             LD   A,(HL)
             CP   RewriteTypeKindArray
-            JP   NZ,_RewriteCallAggregateTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             INC  HL
             LD   A,(HL)
             CP   C
-            JP   NZ,_RewriteCallAggregateTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             INC  HL
             LD   E,(HL)
             INC  HL
@@ -677,9 +662,6 @@ _RewriteCallAggregateArgumentReady:
 _RewriteCallLiteralAggregateFailure:
             LD   A,DiagnosticExpectedName
             JP   RewriteRaiseDiagnostic
-_RewriteCallAggregateTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
 
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 RewriteCallTakeExpected:
@@ -691,6 +673,30 @@ RewriteCallTakeExpected:
             RET  Z
             LD   A,C
             JP   RewriteRaiseDiagnostic
+
+; Parse one nested scalar expression, consume the exact closing token in A,
+; and use diagnostic C if it differs. The completed result is retained across
+; token consumption without narrowing its type, value, or source offset.
+.routine in A,C out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteExpressionParseNested:
+            LD   B,A
+            PUSH BC
+            LD   B,0
+            LD   C,0
+            CALL RewriteExpressionParsePrecedence
+            LD   (RewriteExpressionRightMeta),A
+            LD   (RewriteExpressionRightValue),HL
+            LD   (RewriteExpressionRightOffset),DE
+            POP  BC
+            LD   A,B
+            CALL RewriteCallTakeExpected
+            LD   A,(RewritePendingFailure)
+            OR   A
+            JP   NZ,RewriteCallFailureContext
+            LD   A,(RewriteExpressionRightMeta)
+            LD   HL,(RewriteExpressionRightValue)
+            LD   DE,(RewriteExpressionRightOffset)
+            RET
 
 ; A is the source/service semantic operation and DE its record-relative call
 ; mode offset. The three statement-consumption operands begin cleared, and the
@@ -725,22 +731,9 @@ RewriteCallPublishSource:
             CALL RewriteCallCurrentFrame
             INC  HL
             INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandArgumentWordsOffset),A
-            INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandResultTypeOffset),A
-            INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSelectorOffset),A
-            INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRoutineFlagsOffset),A
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),DE
+            LD   DE,RewriteSemanticOperandArea
+            LD   BC,6
+            LDIR
             LD   DE,RewriteSemanticCallSourceRecordOperandCallModeOffset
             LD   A,RewriteSemanticCallSource
             JP   RewriteCallPublishReady
@@ -999,12 +992,12 @@ RewritePathFinishScalar:
             LD   (RewritePathType),A
             CALL RewriteParserPeek
             CP   TokenDot
-            JR   Z,_RewritePathFinishTypeFailure
+            JR   Z,RewriteExpressionTypeFailure
             CP   TokenLeftBracket
-            JR   Z,_RewritePathFinishTypeFailure
+            JR   Z,RewriteExpressionTypeFailure
             LD   A,(RewritePathAssignmentMode)
             OR   A
-            JR   NZ,_RewritePathFinishSelected
+            JR   NZ,RewritePathFinishSelected
             LD   A,(RewritePathType)
             BIT  1,A
             LD   A,RewriteSemanticLoadIndirect8
@@ -1013,14 +1006,17 @@ RewritePathFinishScalar:
 _RewritePathFinishAppend:
             LD   HL,RewriteSemanticOperandArea
             CALL RewriteSemanticAppend
-_RewritePathFinishSelected:
+; Shared result tail for scalar aliases and already-emitted scalar properties.
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+RewritePathFinishSelected:
             XOR  A
             LD   (RewriteExpressionKnown),A
             LD   A,(RewritePathType)
             LD   DE,(RewriteExpressionAtomOffset)
             LD   HL,0
             RET
-_RewritePathFinishTypeFailure:
+.routine noreturn
+RewriteExpressionTypeFailure:
             LD   A,DiagnosticTypeMismatch
             JP   RewriteRaiseDiagnostic
 
@@ -1031,18 +1027,10 @@ RewritePathReturnScalarValue:
             LD   (RewritePathType),A
             CALL RewriteParserPeek
             CP   TokenDot
-            JR   Z,_RewritePathReturnScalarTypeFailure
+            JR   Z,RewriteExpressionTypeFailure
             CP   TokenLeftBracket
-            JR   Z,_RewritePathReturnScalarTypeFailure
-            XOR  A
-            LD   (RewriteExpressionKnown),A
-            LD   A,(RewritePathType)
-            LD   DE,(RewriteExpressionAtomOffset)
-            LD   HL,0
-            RET
-_RewritePathReturnScalarTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
+            JR   Z,RewriteExpressionTypeFailure
+            JP   RewritePathFinishSelected
 
 ; A/C is the current aggregate type/open-count activation offset. This one
 ; iterative postfix engine serves record fields, concrete/open arrays, and
@@ -1083,18 +1071,14 @@ _RewritePathDot:
             CP   RewriteOpenArrayFlag
             JP   NC,_RewritePathArrayProperty
             CP   RewriteFirstOwnedTypeId
-            JP   C,_RewritePathDotTypeFailure
-            PUSH AF
+            JP   C,RewriteExpressionTypeFailure
+            LD   B,A
             CALL RewriteTypeAddress
             LD   A,(HL)
-            POP  BC
             CP   RewriteTypeKindString
             LD   A,B
             JP   Z,_RewritePathStringProperty
-            PUSH AF
-            CALL RewriteTypeAddress
             LD   A,(HL)
-            POP  BC
             CP   RewriteTypeKindArray
             LD   A,B
             JP   Z,_RewritePathArrayProperty
@@ -1117,13 +1101,13 @@ _RewritePathStringProperty:
             LD   HL,RewritePathNameCapacity
             LD   B,8
             CALL RewritePathNameEquals
-            JP   NC,_RewritePathDotTypeFailure
+            JP   NC,RewriteExpressionTypeFailure
             LD   A,(RewritePathAssignmentMode)
             OR   A
-            JP   NZ,_RewritePathDotTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewritePathType)
             CP   RewriteOpenStringTypeId
-            JP   NZ,_RewritePathDotTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewritePathCountOffset)
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset),A
             LD   A,RewriteSemanticOpenStringCapacity
@@ -1136,7 +1120,7 @@ _RewritePathStringLength:
             JR   Z,_RewritePathStringLengthRead
             LD   A,(RewritePathType)
             CP   RewriteOpenStringTypeId
-            JP   NZ,_RewritePathDotTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewritePathCountOffset)
             LD   (RewriteStatementTargetClass),A
             LD   A,2
@@ -1175,10 +1159,10 @@ _RewritePathArrayProperty:
             LD   HL,RewritePathNameLength
             LD   B,6
             CALL RewritePathNameEquals
-            JP   NC,_RewritePathDotTypeFailure
+            JP   NC,RewriteExpressionTypeFailure
             LD   A,(RewritePathAssignmentMode)
             OR   A
-            JP   NZ,_RewritePathDotTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewritePathType)
             CP   RewriteOpenArrayFlag
             JR   NC,_RewritePathOpenArrayLength
@@ -1221,21 +1205,12 @@ _RewritePathIndex:
             PUSH DE
             LD   A,RewriteScalarTypeU16
             LD   (RewriteExpressionExpectedType),A
-            LD   B,0
-            LD   C,0
-            CALL RewriteExpressionParsePrecedence
-            LD   (RewriteExpressionRightMeta),A
-            LD   (RewriteExpressionRightValue),HL
-            LD   (RewriteExpressionRightOffset),DE
+            LD   A,TokenRightBracket
+            LD   C,DiagnosticExpectedRightBracket
+            CALL RewriteExpressionParseNested
             POP  DE
             LD   A,D
             LD   (RewriteExpressionExpectedType),A
-            CALL RewriteParserTake
-            CP   TokenRightBracket
-            JP   NZ,_RewritePathExpectedRightBracket
-            LD   A,(RewritePendingFailure)
-            OR   A
-            JP   NZ,RewriteCallFailureContext
             LD   A,(RewriteExpressionRightMeta)
             LD   HL,(RewriteExpressionRightValue)
             LD   DE,(RewriteExpressionRightOffset)
@@ -1259,7 +1234,7 @@ _RewritePathIndex:
             CP   RewriteTypeKindString
             JR   Z,_RewritePathStringIndex
             CP   RewriteTypeKindArray
-            JP   NZ,_RewritePathIndexTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             INC  HL
             LD   A,(HL)
             LD   (RewritePathType),A
@@ -1278,7 +1253,7 @@ _RewritePathFixedIndexDynamic:
             LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandCountOffset),DE
             LD   A,(RewritePathType)
             CALL RewriteTypeStaticExtent
-            JP   C,_RewritePathIndexTypeFailure
+            JP   C,RewriteExpressionTypeFailure
             LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandElementExtentOffset),HL
             LD   DE,(RewritePathSourceOffset)
             LD   (RewriteSemanticOperandArea+RewriteSemanticSelectIndexOperandSourceOffsetOffset),DE
@@ -1291,7 +1266,7 @@ _RewritePathOpenArrayIndex:
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandCountOffsetOffset),A
             LD   A,(RewritePathType)
             CALL RewriteTypeStaticExtent
-            JP   C,_RewritePathIndexTypeFailure
+            JP   C,RewriteExpressionTypeFailure
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandElementExtentOffset),HL
             LD   DE,(RewritePathSourceOffset)
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandSourceOffsetOffset),DE
@@ -1328,19 +1303,10 @@ _RewritePathIndexRangeAtValue:
             OR   A
             JP   NZ,_RewritePathFixedIndexDynamic
             LD   DE,(RewriteExpressionRightOffset)
-            JP   RewritePathIndexRangeFailure
+            JP   RewriteExpressionRangeFailureAtDE
 _RewritePathExpectedName:
             LD   A,DiagnosticExpectedName
             JP   RewriteRaiseDiagnostic
-_RewritePathExpectedRightBracket:
-            POP  AF
-            LD   A,DiagnosticExpectedRightBracket
-            JP   RewriteRaiseDiagnostic
-_RewritePathDotTypeFailure:
-_RewritePathIndexTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic
-
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteExpressionParsePrimary:
             CALL RewriteParserTake
@@ -1508,21 +1474,10 @@ _RewriteExpressionUnknownName:
 
 _RewriteExpressionPrimaryParenthesized:
             PUSH DE
-            LD   B,0
-            LD   C,0
-            CALL RewriteExpressionParsePrecedence
-            LD   (RewriteExpressionRightMeta),A
-            LD   (RewriteExpressionRightValue),HL
-            LD   (RewriteExpressionRightOffset),DE
-            CALL RewriteParserTake
-            CP   TokenRightParen
-            JP   NZ,_RewriteExpressionExpectedRight
-            LD   A,(RewritePendingFailure)
-            OR   A
-            JP   NZ,RewriteCallFailureContext
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            CALL RewriteExpressionParseNested
             POP  DE
-            LD   A,(RewriteExpressionRightMeta)
-            LD   HL,(RewriteExpressionRightValue)
             RET
 
 _RewriteExpressionPrimaryConversion:
@@ -1543,23 +1498,15 @@ _RewriteExpressionConversionTypeReady:
             PUSH AF
             XOR  A
             LD   (RewriteExpressionExpectedType),A
+            LD   A,TokenRightParen
+            LD   C,DiagnosticExpectedRight
+            CALL RewriteExpressionParseNested
             LD   B,A
-            LD   C,A
-            CALL RewriteExpressionParsePrecedence
-            LD   (RewriteExpressionRightMeta),A
-            LD   (RewriteExpressionRightValue),HL
-            LD   (RewriteExpressionRightOffset),DE
             POP  AF
             LD   (RewriteExpressionExpectedType),A
-            CALL RewriteParserTake
-            CP   TokenRightParen
-            JP   NZ,_RewriteExpressionExpectedRight
-            LD   A,(RewritePendingFailure)
-            OR   A
-            JP   NZ,RewriteCallFailureContext
+            LD   A,B
             POP  DE
             POP  BC
-            LD   A,(RewriteExpressionRightMeta)
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
             JP   Z,RewriteExpressionTypeFailure
@@ -1623,9 +1570,6 @@ _RewriteExpressionPrimaryKnownReady:
 
 _RewriteExpressionExpectedLeft:
             LD   A,DiagnosticExpectedLeft
-            JP   RewriteRaiseDiagnostic
-_RewriteExpressionExpectedRight:
-            LD   A,DiagnosticExpectedRight
             JP   RewriteRaiseDiagnostic
 
 ; B is the consumed prefix token, A/HL is its operand, and DE is the prefix
@@ -1852,7 +1796,7 @@ _RewriteExpressionApplyBooleanOrIntegerLogic:
             LD   A,(RewriteExpressionRightMeta)
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
-            JP   NZ,RewriteExpressionTypeFailureAtRight
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewriteExpressionOperator)
             CP   RewriteExpressionOpAnd
             LD   A,(RewriteExpressionLeftValue)
@@ -2039,12 +1983,12 @@ _RewriteExpressionApplyComparison:
             LD   A,(RewriteExpressionRightMeta)
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
-            JP   NZ,RewriteExpressionTypeFailureAtRight
+            JP   NZ,RewriteExpressionTypeFailure
             LD   A,(RewriteExpressionOperator)
             CP   RewriteExpressionOpEqual
             JR   Z,_RewriteExpressionCompareBooleanReady
             CP   RewriteExpressionOpNotEqual
-            JP   NZ,RewriteExpressionTypeFailureAtRight
+            JP   NZ,RewriteExpressionTypeFailure
 _RewriteExpressionCompareBooleanReady:
             LD   HL,(RewriteExpressionLeftValue)
             LD   DE,(RewriteExpressionRightValue)
@@ -2413,12 +2357,12 @@ RewriteExpressionResolveIntegerPair:
             LD   A,(RewriteExpressionLeftMeta)
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
-            JP   Z,RewriteExpressionTypeFailureAtRight
+            JP   Z,RewriteExpressionTypeFailure
             LD   D,A
             LD   A,(RewriteExpressionRightMeta)
             AND  RewriteTypeIdentityMask
             CP   RewriteScalarTypeBoolean
-            JP   Z,RewriteExpressionTypeFailureAtRight
+            JP   Z,RewriteExpressionTypeFailure
             LD   E,A
             LD   A,D
             OR   A
@@ -2484,22 +2428,22 @@ _RewriteExpressionResolveBothTyped:
 _RewriteExpressionResolveU16Left:
             LD   A,E
             CP   RewriteScalarTypeU8
-            JP   NZ,RewriteExpressionTypeFailureAtRight
+            JP   NZ,RewriteExpressionTypeFailure
             LD   C,RewriteScalarTypeU16
             RET
 _RewriteExpressionResolveU16Right:
             LD   A,D
             CP   RewriteScalarTypeU8
-            JP   NZ,RewriteExpressionTypeFailureAtRight
+            JP   NZ,RewriteExpressionTypeFailure
             LD   C,RewriteScalarTypeU16
             RET
 _RewriteExpressionResolveI16:
             LD   A,D
             CP   RewriteScalarTypeU16
-            JP   Z,RewriteExpressionTypeFailureAtRight
+            JP   Z,RewriteExpressionTypeFailure
             LD   A,E
             CP   RewriteScalarTypeU16
-            JP   Z,RewriteExpressionTypeFailureAtRight
+            JP   Z,RewriteExpressionTypeFailure
             LD   C,RewriteScalarTypeI16
 _RewriteExpressionPromoteI8Pair:
             LD   A,D
@@ -2579,10 +2523,6 @@ RewriteExpressionRangeFailureAtDE:
             LD   A,DiagnosticIntegerRange
             JP   RewriteRaiseDiagnostic
 .routine noreturn
-RewriteExpressionTypeFailureAtRight:
-            JP   RewriteExpressionTypeFailure
-
-.routine noreturn
 RewriteExpressionTypeFailureAtOperator:
             LD   HL,(RewriteExpressionOperatorOffset)
             LD   (TokenStartOffset),HL
@@ -2593,8 +2533,3 @@ RewriteExpressionTypeFailureAtOperand:
             LD   HL,(RewriteExpressionRightOffset)
             LD   (TokenStartOffset),HL
             JP   RewriteExpressionTypeFailure
-
-.routine noreturn
-RewriteExpressionTypeFailure:
-            LD   A,DiagnosticTypeMismatch
-            JP   RewriteRaiseDiagnostic

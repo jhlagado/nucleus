@@ -2473,19 +2473,19 @@ export declare const rewriteSemanticOperations: readonly [{
     readonly id: 105;
     readonly name: "CallSource";
     readonly operands: readonly [{
-        readonly name: "selector";
+        readonly name: "argumentWords";
         readonly kind: "byte";
         readonly width: 1;
         readonly offset: 0;
         readonly recordOffset: 1;
     }, {
-        readonly name: "argumentWords";
+        readonly name: "resultType";
         readonly kind: "byte";
         readonly width: 1;
         readonly offset: 1;
         readonly recordOffset: 2;
     }, {
-        readonly name: "resultType";
+        readonly name: "selector";
         readonly kind: "byte";
         readonly width: 1;
         readonly offset: 2;

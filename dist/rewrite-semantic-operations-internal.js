@@ -2772,21 +2772,21 @@ export const rewriteSemanticOperations = [
         "name": "CallSource",
         "operands": [
             {
-                "name": "selector",
+                "name": "argumentWords",
                 "kind": "byte",
                 "width": 1,
                 "offset": 0,
                 "recordOffset": 1
             },
             {
-                "name": "argumentWords",
+                "name": "resultType",
                 "kind": "byte",
                 "width": 1,
                 "offset": 1,
                 "recordOffset": 2
             },
             {
-                "name": "resultType",
+                "name": "selector",
                 "kind": "byte",
                 "width": 1,
                 "offset": 2,
