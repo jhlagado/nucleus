@@ -151,10 +151,7 @@ TypedExpressionPush:
             CALL TypedExpressionAddress
             EX   DE,HL
             LD   HL,ExpressionSavedState
-            LD   BC,ExpressionSavedStateSize
-            LDIR
-            LD   HL,ExpressionValuePosition
-            LD   BC,6
+            LD   BC,ExpressionStackEntrySize
             LDIR
             LD   HL,ExpressionStackDepth
             INC  (HL)

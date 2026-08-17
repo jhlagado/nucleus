@@ -114,16 +114,17 @@ ExpressionLeftValue     .equ SymbolTableLimit+$04
 ExpressionOperator      .equ SymbolTableLimit+$06
 ExpressionOperatorOffset .equ SymbolTableLimit+$07
 ExpressionSavedStateSize .equ 7
-ExpressionStackDepth    .equ SymbolTableLimit+$09
-ExpressionRightMeta     .equ SymbolTableLimit+$0A
-ExpressionRightValue    .equ SymbolTableLimit+$0B
-DeclarationInfo         .equ SymbolTableLimit+$0D
-DeclarationPayload      .equ SymbolTableLimit+$0E
-DeclarationNamePointer  .equ SymbolTableLimit+$10
-DeclarationNameLength   .equ SymbolTableLimit+$12
-ExpressionCallOffset    .equ SymbolTableLimit+$13
-DeclarationNamePosition .equ SymbolTableLimit+$15 ; offset, line, column
-ExpressionValuePosition .equ SymbolTableLimit+$1B ; offset, line, column
+; The saved state and its complete value position form one 13-byte frame copy.
+ExpressionValuePosition .equ SymbolTableLimit+$09 ; offset, line, column
+ExpressionStackDepth    .equ SymbolTableLimit+$0F
+ExpressionRightMeta     .equ SymbolTableLimit+$10
+ExpressionRightValue    .equ SymbolTableLimit+$11
+DeclarationInfo         .equ SymbolTableLimit+$13
+DeclarationPayload      .equ SymbolTableLimit+$14
+DeclarationNamePointer  .equ SymbolTableLimit+$16
+DeclarationNameLength   .equ SymbolTableLimit+$18
+ExpressionCallOffset    .equ SymbolTableLimit+$19
+DeclarationNamePosition .equ SymbolTableLimit+$1B ; offset, line, column
 ExpressionLeftPositionPointer .equ SymbolTableLimit+$21
 ExpressionStackBase     .equ SymbolTableLimit+$23
 ExpressionStackCapacity .equ 16

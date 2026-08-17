@@ -696,13 +696,30 @@ and 0.007 percent. Exact folded and runtime byte arithmetic, semantic
 transcripts, generated Z80, NOBJ, D8, and failure behavior pass. Relocation
 passes at `$0100`, `$8000`, and the highest-fitting origin.
 
+### Expression frame and emitter-register consolidation
+
+The seven-byte saved expression state now sits immediately before its complete
+six-byte value position. One 13-byte `LDIR` publishes a pending-expression
+frame; the seven-byte restore still leaves HL at the frame's retained position.
+The right result remains outside the restored range. The indexed emitter,
+comparison emitter, and fixed-sequence emitter also use the C preservation
+already proved for `EmitPair` and `EmitBytes`, removing redundant BC saves.
+
+The checkpoint recovers 15 compiler-code bytes with immutable data, workspace,
+frame capacity, and generated output unchanged. The production core is 15,798
+bytes. The representative proof executes 144 fewer instructions and 1,013
+fewer T-states, improvements of 0.015 and 0.010 percent. Exact nested
+expressions, all scalar widths, comparisons, range positions, semantic
+transcripts, generated Z80, NOBJ, D8, and returning-diagnostic layouts pass.
+Relocation passes at `$0100`, `$8000`, and the highest-fitting origin.
+
 ### Current recovery outlook
 
-With shared byte-binary prefixes added to the retained checkpoints above, the
-measured shipping core is 15,813 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 867 bytes. The earlier 15,360-byte target is 453 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 676 bytes,
-exceeding that phase target by 376 bytes.
+With expression-frame and emitter-register consolidation added to the retained
+checkpoints above, the measured shipping core is 15,798 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 882 bytes. The earlier
+15,360-byte target is 438 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 691 bytes, exceeding that phase target by 391 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

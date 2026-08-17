@@ -324,11 +324,8 @@ TypedLocalDisplacement:
 
 .routine in C,HL out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 TypedEmitIndexed:
-            LD   B,0
-            PUSH BC
             LD   B,2
             CALL EmitBytes
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -380,16 +377,15 @@ TypedPushHL:
             CALL EmitByteInline
             .db  $E5
 
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+.routine in C,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitSequence:
-            PUSH BC
             PUSH HL
             CALL TypedPopOperands
             POP  HL
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   B,C
             CALL EmitBytes
 .if CompilerDiagnosticReturns
             RET  C
@@ -442,18 +438,18 @@ TypedOr16:
             LD   HL,TypedOr16Bytes
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBinary6:
-            LD   B,6
+            LD   C,6
             JR   TypedEmitSequence
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedAdd16:
             LD   HL,TypedAdd16Bytes
-            LD   B,1
+            LD   C,1
             JR   TypedEmitSequence
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedSubtract16:
             LD   HL,TypedSubtract16Bytes
-            LD   B,3
+            LD   C,3
             JR   TypedEmitSequence
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -678,9 +674,7 @@ TypedEmitCompare:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedCompare:
             LD   C,A
-            PUSH BC
             CALL TypedPopOperands
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
