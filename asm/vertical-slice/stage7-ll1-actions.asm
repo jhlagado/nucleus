@@ -633,14 +633,25 @@ HybridLL1ResetParametersAndResult:
             LD   (Stage7CurrentResultType),A
             RET
 
+.if CompilerDiagnosticReturns
+.else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1BeginSub:
+HybridLL1ClassifySubName:
             CALL HybridLL1RestoreSubName
             CALL HybridLL1RequireBeforeMain
-.if CompilerDiagnosticReturns
-            RET  C
+            JP   TypedNameEqualsMain
 .endif
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+HybridLL1BeginSub:
+.if CompilerDiagnosticReturns
+            CALL HybridLL1RestoreSubName
+            CALL HybridLL1RequireBeforeMain
+            RET  C
             CALL TypedNameEqualsMain
+.else
+            CALL HybridLL1ClassifySubName
+.endif
             JR   C,HybridLL1BeginMainSignature
             LD   A,(Stage7RoutineCount)
             CP   Stage7RoutineCapacity
@@ -770,12 +781,14 @@ HybridLL1SetRoutineFlag:
 ; sole stored signature, including the original parameter spellings.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginForwardBody:
+.if CompilerDiagnosticReturns
             CALL HybridLL1RestoreSubName
             CALL HybridLL1RequireBeforeMain
-.if CompilerDiagnosticReturns
             RET  C
-.endif
             CALL TypedNameEqualsMain
+.else
+            CALL HybridLL1ClassifySubName
+.endif
             JR   C,HybridLL1BeginForwardMainBody
             CALL Stage7FindRoutineCurrent
             JR   NZ,HybridLL1ForwardMissing

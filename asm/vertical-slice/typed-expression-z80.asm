@@ -474,6 +474,8 @@ TypedMultiply:
 
 ; Emit a call whose carry-clear success path must skip a generated failure
 ; outcome. DE returns the branch operand for the caller to patch.
+.if TargetStreamingOutput
+.else
 .routine in HL out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 TypedEmitFailableCall:
             CALL EmitCall
@@ -481,6 +483,7 @@ TypedEmitFailableCall:
             RET  C
 .endif
             JP   EmitJrNcPlaceholder
+.endif
 
 .if TargetStreamingOutput
 .routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,B,C,HL

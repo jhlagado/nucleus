@@ -1089,13 +1089,32 @@ instructions and from 9,581,378 to 9,583,881 T-states. Exact lexical anchors,
 token flags, folded metadata, Stage 7 transcripts, generated code, diagnostics,
 artifacts, historical layouts, and relocation remain unchanged.
 
+### Tenth audit line-ending, wrapper, and declaration-prefix checkpoint
+
+The tokenizer now reads adjacent line-token and delimiter-depth state once at
+end of input, and LF and CRLF handling share their final byte-consumption tail.
+The streaming compiler omits an absolute-call wrapper whose six callers exist
+only in returning-diagnostic layouts. Ordinary and forward-body subroutine
+declarations also share their restored-name classification prefix in the
+production nonlocal-diagnostic build.
+
+The line-ending changes recover six production code bytes, omitting the dead
+streaming wrapper recovers six, and sharing the declaration prefix recovers
+three. Together they reduce the production core from 15,502 to 15,487 bytes,
+with immutable data and workspace unchanged. Historical layouts retain the
+absolute-call wrapper and declaration sequence; their scanner still recovers
+six bytes. The representative proof improves from 877,071 to 876,949
+instructions and from 9,583,881 to 9,581,781 T-states. Exact line boundaries,
+diagnostic behavior, generated code,
+artifacts, historical contracts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the ninth audit checkpoint added to the retained work above, the measured
-shipping core is 15,502 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,178 bytes. The earlier 15,360-byte target is 142 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 987 bytes,
-exceeding that phase target by 687 bytes. The compiler has 882 bytes of headroom
+With the tenth audit checkpoint added to the retained work above, the measured
+shipping core is 15,487 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,193 bytes. The earlier 15,360-byte target is 127 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,002 bytes,
+exceeding that phase target by 702 bytes. The compiler has 897 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to

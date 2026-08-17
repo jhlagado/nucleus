@@ -327,7 +327,8 @@ TokenizerNext:
             JR   TokenizerNextLoop
 
 TokenizerAtEof:
-            LD   A,(SourceDelimiterDepth)
+            LD   HL,(SourceLineHasToken)
+            LD   A,H                     ; SourceDelimiterDepth
             OR   A
             JR   NZ,TokenizerLineLexicalFailure
 .if AggregateCallSlices
@@ -362,7 +363,7 @@ TokenizerAdvancePart:
             JR   TokenizerNextLoop
 TokenizerAtCompilationEof:
 .endif
-            LD   A,(SourceLineHasToken)
+            LD   A,L
             OR   A
             JR   Z,TokenizerEmitEof
 TokenizerClearLineAndReturnNewline:
@@ -377,14 +378,12 @@ TokenizerEmitEof:
 TokenizerLineLexicalFailure:
             JP   TokenLexicalFailure
 
-TokenizerLf:
-            CALL SourceTake
-            JR   TokenizerFinishLine
 TokenizerCrLf:
             CALL SourceTakePeek
             JR   C,TokenizerLineLexicalFailure
             CP   10
             JR   NZ,TokenizerLineLexicalFailure
+TokenizerLf:
             CALL SourceTake
 TokenizerFinishLine:
 .if AggregateCallSlices
