@@ -8,11 +8,6 @@ TokenRecordStart:
             LDIR
             RET
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-TokenLexicalFailure:
-            CALL SetDiagInline
-            .db  DiagnosticLexical
-
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,C
 TokenIsLetter:
             LD   C,A
@@ -92,7 +87,7 @@ TokenScanNameLoop:
             JR   NC,TokenScanNameDone
             CALL SourceTake
             INC  B
-            JR   Z,TokenLexicalFailure
+            JP   Z,TokenLexicalFailure
             JR   TokenScanNameLoop
 TokenScanNameDone:
             LD   A,B
@@ -211,9 +206,13 @@ TokenTakeRequired:
             CALL SourceTake
             RET  NC
 .routine noreturn
+.else
+.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 .endif
 TokenScanCharacterFailure:
-            JP   TokenLexicalFailure
+TokenLexicalFailure:
+            CALL SetDiagInline
+            .db  DiagnosticLexical
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
 ; needs only the validity flag; the static-image decoder reuses the value.

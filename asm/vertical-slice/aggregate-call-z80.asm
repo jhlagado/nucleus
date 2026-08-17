@@ -670,10 +670,15 @@ Stage7LoadAliasReady:
 
 Stage7LoadParameterAlias .equ TypedLoadLocal16
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7SelectField:
+.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+Stage7ReadPathOffset:
             CALL ReadSemanticWord
             LD   (Stage7PathOffset),DE
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7SelectField:
+            CALL Stage7ReadPathOffset
             CALL EmitPairIndexedInline
             .db  EmitPairPopHLLoadDE
 .if CompilerDiagnosticReturns
@@ -689,8 +694,7 @@ Stage7SelectField:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7SelectIndex:
-            CALL ReadSemanticWord
-            LD   (Stage7PathOffset),DE     ; length
+            CALL Stage7ReadPathOffset      ; length
             CALL Stage7ReadExtentAndOffset ; stride and source position
             CALL EmitPairIndexedInline
             .db  EmitPairPopDEHL
@@ -1113,8 +1117,7 @@ Stage7PrepareOpenArgument:
             CALL Stage8ReadArgumentCount
             JR   Stage7PrepareOpenArgumentPayloadReady
 Stage7ReadOpenArrayArgument:
-            CALL ReadSemanticWord
-            LD   (Stage7PathOffset),DE
+            CALL Stage7ReadPathOffset
 Stage7PrepareOpenArgumentPayloadReady:
             CALL EmitByteInlineChecked
             .db  $D1                    ; POP DE address carrier

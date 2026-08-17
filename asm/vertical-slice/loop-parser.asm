@@ -118,8 +118,7 @@ ParserTake:
             LD   D,A
             XOR  A
             LD   (ParserLookaheadKind),A
-            LD   A,D
-            OR   A
+            XOR  D
             RET
 
 ; Frequent token checks enter the common ParserExpect tail. These wrappers

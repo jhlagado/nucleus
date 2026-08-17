@@ -640,6 +640,7 @@ TypedReduceDivideResultReady:
             OR   A
 TypedReduceIntegerConstantDone:
             CALL TypedMaskResultWidth
+TypedReduceIntegerConstantMeta:
             LD   A,C
             OR   ScalarMetaConstant
             RET
@@ -1053,9 +1054,7 @@ TypedPrimaryConvertInteger:
             LD   B,C
             JP   TypedNarrowFailure
 TypedPrimaryConstantConvertReady:
-            LD   A,C
-            OR   ScalarMetaConstant
-            RET
+            JP   TypedReduceIntegerConstantMeta
 TypedPrimaryDynamicConvert:
             LD   A,D
             AND  ScalarMetaTypeMask
@@ -1276,9 +1275,7 @@ TypedUnaryMinusEmit:
             RET  Z
             CALL TypedNegateConstantHL
             CALL TypedMaskResultWidth
-            LD   A,C
-            OR   ScalarMetaConstant
-            RET
+            JP   TypedReduceIntegerConstantMeta
 
 .routine in A,BC,DE,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitUnaryOperation:
@@ -1681,9 +1678,7 @@ TypedNotIntegerConstant:
             LD   H,A
             CALL TypedMaskResultWidth
 TypedNotConstantDone:
-            LD   A,C
-            OR   ScalarMetaConstant
-            RET
+            JP   TypedReduceIntegerConstantMeta
 
 ; Boolean short circuit is represented by prefix/suffix operations so the
 ; Z80 backend can branch around the right operand. Integer and/or use the
@@ -1865,9 +1860,7 @@ TypedBooleanConstantReady:
             LD   L,A
             LD   H,0
 TypedBooleanConstant:
-            LD   A,ScalarMetaConstant+ScalarTypeBoolean
-            OR   A
-            RET
+            JP   TypedComparisonConstantDone
 
 ; Assignment compatibility resolves exact constants and the value-preserving
 ; unsigned/signed widening family. A/HL is the expression; E is destination.
