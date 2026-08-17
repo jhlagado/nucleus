@@ -1550,6 +1550,133 @@ RewriteBackendEscapeOpenStringResize:
             LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringResizeOperandSourceOffsetOffset)
             JP   RewriteBackendEmitBoundsGuard
 
+; Exact aggregate assignment checks the complete destination and source
+; regions before LDIR can change the first destination byte. Both carriers are
+; retained on the target stack across the first region helper.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeCopyAggregate:
+            LD   A,$D1                    ; POP DE source / POP HL destination
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,$E5                    ; retain destination / source
+            CALL RewriteBackendEmitByte
+            LD   A,$D5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandExtentOffset)
+            LD   A,$01                    ; LD BC,extent
+            CALL RewriteBackendEmitOpcodeWord
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; POP HL source / PUSH HL retained
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandExtentOffset)
+            LD   A,$01
+            CALL RewriteBackendEmitOpcodeWord
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandSourceOffsetOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; POP HL source / POP DE destination
+            CALL RewriteBackendEmitByte
+            LD   A,$D1
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandExtentOffset)
+            LD   A,$01
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,$ED                    ; LDIR
+            CALL RewriteBackendEmitByte
+            LD   A,$B0
+            JP   RewriteBackendEmitByte
+
+; Four producer-active operations retain the historical mode byte and compact
+; payload widths. Validate that redundant mode before output, then convert the
+; evaluated carrier into two target-stack words: bound below, address above.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapePrepareOpenArgument:
+            LD   A,(RewriteBackendCurrentOperation)
+            CP   RewriteSemanticPrepareOpenStringDirect
+            JP   Z,RewriteBackendPrepareOpenStringDirect
+            CP   RewriteSemanticPrepareOpenStringForward
+            JP   Z,RewriteBackendPrepareOpenStringForward
+            CP   RewriteSemanticPrepareOpenArrayDirect
+            JP   Z,RewriteBackendPrepareOpenArrayDirect
+            CP   RewriteSemanticPrepareOpenArrayForward
+            JP   NZ,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandArgumentModeOffset)
+            CP   3
+            JP   NZ,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset+1)
+            OR   A
+            JP   NZ,RewriteBackendInvalid
+            LD   A,$D1                    ; POP DE address carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD L,(IX-countOffset)
+            CALL RewriteBackendEmitByte
+            LD   A,$6E
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset)
+            CPL
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD H,(IX-countOffset-1)
+            CALL RewriteBackendEmitByte
+            LD   A,$66
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset)
+            INC  A
+            CPL
+            CALL RewriteBackendEmitByte
+            JR   RewriteBackendPrepareOpenPush
+
+RewriteBackendPrepareOpenStringDirect:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandArgumentModeOffset)
+            OR   A
+            JP   NZ,RewriteBackendInvalid
+            LD   A,$D1                    ; POP DE address carrier
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandCapacityOffset)
+            LD   L,A
+            LD   H,0
+            LD   A,$21                    ; LD HL,capacity
+            CALL RewriteBackendEmitOpcodeWord
+            JR   RewriteBackendPrepareOpenPush
+
+RewriteBackendPrepareOpenStringForward:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandArgumentModeOffset)
+            CP   1
+            JP   NZ,RewriteBackendInvalid
+            LD   A,$D1                    ; POP DE address carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$DD                    ; LD L,(IX-capacityOffset)
+            CALL RewriteBackendEmitByte
+            LD   A,$6E
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandCapacityOffsetOffset)
+            CPL
+            CALL RewriteBackendEmitByte
+            LD   A,$26                    ; LD H,0
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            JR   RewriteBackendPrepareOpenPush
+
+RewriteBackendPrepareOpenArrayDirect:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandArgumentModeOffset)
+            CP   2
+            JP   NZ,RewriteBackendInvalid
+            LD   A,$D1                    ; POP DE address carrier
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandCountOffset)
+            LD   A,$21                    ; LD HL,count
+            CALL RewriteBackendEmitOpcodeWord
+RewriteBackendPrepareOpenPush:
+            LD   A,$E5                    ; PUSH HL bound / PUSH DE carrier
+            CALL RewriteBackendEmitByte
+            LD   A,$D5
+            JP   RewriteBackendEmitByte
+
 .routine noreturn
 RewriteBackendCapacity:
             LD   A,DiagnosticTargetCapacity

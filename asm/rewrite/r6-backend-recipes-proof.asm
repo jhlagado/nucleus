@@ -818,6 +818,107 @@ ProofBackendStringPathCompare:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendCarrierTransfer:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   HL,13
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandExtentOffset),HL
+            LD   HL,$8888
+            LD   (RewriteSemanticOperandArea+RewriteSemanticCopyAggregateOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticCopyAggregate
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandArgumentModeOffset),A
+            LD   A,253
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandCapacityOffset),A
+            LD   A,RewriteSemanticPrepareOpenStringDirect
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,1
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandArgumentModeOffset),A
+            LD   A,7
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringForwardOperandCapacityOffsetOffset),A
+            LD   A,RewriteSemanticPrepareOpenStringForward
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandArgumentModeOffset),A
+            LD   HL,300
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayDirectOperandCountOffset),HL
+            LD   A,RewriteSemanticPrepareOpenArrayDirect
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandArgumentModeOffset),A
+            LD   HL,9
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset),HL
+            LD   A,RewriteSemanticPrepareOpenArrayForward
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedCarrierTransferEnd-ProofExpectedCarrierTransfer
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedCarrierTransfer
+            LD   BC,ProofExpectedCarrierTransferEnd-ProofExpectedCarrierTransfer
+ProofBackendCarrierTransferCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendCarrierTransferCompare
+            LD   A,$A9
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendOpenArgumentInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,1                      ; direct string requires mode zero
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenStringDirectOperandArgumentModeOffset),A
+            LD   A,RewriteSemanticPrepareOpenStringDirect
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
+ProofBackendOpenArgumentOffsetInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,3
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandArgumentModeOffset),A
+            LD   HL,$0109                 ; cannot narrow to an IX displacement
+            LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset),HL
+            LD   A,RewriteSemanticPrepareOpenArrayForward
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendSourceCallMissingBank:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1773,6 +1874,83 @@ ProofExpectedOpenStringResizeRegionReady:
             JP   $A200
 ProofExpectedOpenStringResizeReady:
 ProofExpectedStringPathsEnd:
+
+ProofExpectedCarrierTransfer:
+            POP  DE
+            POP  HL
+            PUSH HL
+            PUSH DE
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   BC,13
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedCopyDestinationReady
+            LD   HL,$8888
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedCopyDestinationReady:
+            POP  HL
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   BC,13
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedCopySourceReady
+            LD   HL,$8888
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedCopySourceReady:
+            POP  HL
+            POP  DE
+            LD   BC,13
+            LDIR
+
+            POP  DE
+            LD   HL,253
+            PUSH HL
+            PUSH DE
+
+            POP  DE
+            LD   L,(IX-8)
+            LD   H,0
+            PUSH HL
+            PUSH DE
+
+            POP  DE
+            LD   HL,300
+            PUSH HL
+            PUSH DE
+
+            POP  DE
+            LD   L,(IX-10)
+            LD   H,(IX-11)
+            PUSH HL
+            PUSH DE
+ProofExpectedCarrierTransferEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset

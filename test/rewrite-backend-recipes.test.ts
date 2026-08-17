@@ -200,6 +200,39 @@ describe("ground-up rewrite backend recipes", () => {
     ).toBe(523);
   });
 
+  it("checks both copy regions and preserves full open-view bounds", () => {
+    const { memory, instructions, cycles } = run("ProofBackendCarrierTransfer");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa9);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 4_282,
+      cycles: 41_472,
+    });
+    expect(
+      (image.symbols.ProofExpectedCarrierTransferEnd ?? 0) -
+        (image.symbols.ProofExpectedCarrierTransfer ?? 0),
+    ).toBe(146);
+  });
+
+  it("rejects corrupt open-argument mode metadata before output", () => {
+    const { memory } = run("ProofBackendOpenArgumentInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+    }).toEqual({ diagnostic: 67, cursor: output });
+  });
+
+  it("rejects a forwarded open-array offset that cannot be represented", () => {
+    const { memory } = run("ProofBackendOpenArgumentOffsetInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+    }).toEqual({ diagnostic: 67, cursor: output });
+  });
+
   it("emits the canonical routine frame and all retained parameter widths", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
@@ -435,13 +468,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 2_670,
+      engine: 2_939,
       recipes: 738,
-      code: 14_890,
+      code: 15_159,
       immutable: 2_202,
-      core: 17_092,
+      core: 17_361,
       workspace: 3_425,
-      supported: 83,
+      supported: 88,
     });
   });
 });

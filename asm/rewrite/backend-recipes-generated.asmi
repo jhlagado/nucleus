@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 83
+RewriteBackendSupportedOperationCount .equ 88
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -75,7 +75,7 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeCallService ; callService
             .dw RewriteBackendEscapeEndRoutine ; endRoutine
             .dw RewriteBackendEscapeSelectIndex ; selectIndex
-            .dw 0 ; copyAggregate
+            .dw RewriteBackendEscapeCopyAggregate ; copyAggregate
             .dw RewriteBackendEscapeStringLength ; stringLength
             .dw RewriteBackendEscapeStringIndex ; stringIndex
             .dw 0 ; failRoutine
@@ -89,7 +89,7 @@ RewriteBackendEscapeDirectory:
             .dw 0 ; beginCallableMain
             .dw RewriteBackendEscapeOpenStringLength ; openStringLength
             .dw RewriteBackendEscapeOpenStringIndex ; openStringIndex
-            .dw 0 ; prepareOpenArgument
+            .dw RewriteBackendEscapePrepareOpenArgument ; prepareOpenArgument
             .dw RewriteBackendEscapeOpenStringResize ; openStringResize
             .dw RewriteBackendEscapeOpenArrayIndex ; openArrayIndex
             .dw RewriteBackendEscapeConvertInteger ; convertInteger

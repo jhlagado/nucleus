@@ -2,11 +2,11 @@
 ; data; every
 ; compiler-executed instruction uses an ordinary Z80 mnemonic.
 
-CompilerWorkBase    .equ $6000
+CompilerWorkBase    .equ $B000
 SourceBase          .equ $7000
 SourceLimit         .equ $8200
-RewriteAdapterBase  .equ $A000
-RewriteAdapterLimit .equ $A100
+RewriteAdapterBase  .equ $D000
+RewriteAdapterLimit .equ $D100
 DebugHooks          .equ 0
 
             .org $1000

@@ -12,6 +12,8 @@
     "callService": "RewriteBackendEscapeCallService",
     "selectIndex": "RewriteBackendEscapeSelectIndex",
     "openArrayIndex": "RewriteBackendEscapeOpenArrayIndex",
+    "copyAggregate": "RewriteBackendEscapeCopyAggregate",
+    "prepareOpenArgument": "RewriteBackendEscapePrepareOpenArgument",
     "stringLength": "RewriteBackendEscapeStringLength",
     "stringIndex": "RewriteBackendEscapeStringIndex",
     "openStringLength": "RewriteBackendEscapeOpenStringLength",
