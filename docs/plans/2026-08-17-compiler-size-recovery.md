@@ -380,15 +380,31 @@ remains byte-identical. Relocation passes at `$0100`, `$8000`, and the
 highest-fitting origin; all provider addresses, identities, and extents retain
 their complete 16-bit representation.
 
+### Range-checked relative branches
+
+A fresh production listing identified sixteen absolute jumps whose assembled
+targets fit the Z80 signed relative range. These sites now use `JR`. Five retain
+their original `JP` form in historical diagnostic-return layouts where the
+different code arrangement exceeds that range; the other eleven are relative
+in every retained layout. No table, pointer, or externally visible address is
+shortened.
+
+The checkpoint recovers a measured 16 code bytes with immutable data and
+workspace unchanged. The production core is 16,267 bytes. Compiler instruction
+counts and generated artifacts do not change; the representative production
+proof adds 96 T-states from the selected branch timings. Strict assembly proves
+every displacement, and relocation passes at `$0100`, `$8000`, and the
+highest-fitting origin.
+
 ### Current recovery outlook
 
-After the scanner, comparison, expression-frame, action cleanup, reset, and two
-measured shipping core is 16,283 bytes and the remaining recovery to 15,360 is
-923 bytes. Total measured recovery from the frozen 16,680-byte compiler is 397
-bytes. The current 300-byte phase starts at 16,489 bytes and has recovered 206
+After the scanner, comparison, expression-frame, action cleanup, reset, backend,
+symbol, descriptor, provider, and relative-branch checkpoints, the measured
+shipping core is 16,267 bytes and the remaining recovery to 15,360 is 907
+bytes. Total measured recovery from the frozen 16,680-byte compiler is 413
+bytes. The current 300-byte phase starts at 16,489 bytes and has recovered 222
 of its required 300 bytes; its phase target is 16,189.
 
-The search continues in the
-selected original frontend and backend, and no local rewrite saving is counted
-until all adapters and displaced production code are included in the assembled
-core.
+The search continues in the selected original frontend and backend, and no
+local rewrite saving is counted until all adapters and displaced production
+code are included in the assembled core.

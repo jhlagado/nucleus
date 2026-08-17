@@ -134,7 +134,7 @@ AggregateSaveArrayDimension:
 .endif
             LD   A,(AggregateTypeDimensionCount)
             CP   AggregateTypeDimensionCapacity
-            JP   NC,AggregateTypeCapacityFailure
+            JR   NC,AggregateTypeCapacityFailure
             LD   C,L
             LD   B,H
             ADD  A,A
@@ -189,7 +189,7 @@ AggregateRejectOpenViewPlacement:
             LD   HL,AggregateTypeOpenArrayPosition
             LD   DE,TokenStartOffset
             CALL CompilerCopyPosition
-            JP   AggregateRejectOpenViewCurrent
+            JR   AggregateRejectOpenViewCurrent
 
 ; Wrap AggregateCurrentTypeId in one concrete array dimension. HL is the
 ; dimension length and the previous current type becomes the exact element ID.

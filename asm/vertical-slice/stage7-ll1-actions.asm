@@ -95,7 +95,7 @@ HybridLL1ResolveRecordType:
 HybridLL1BeginTypeBound:
 HybridLL1ExpectU16:
             LD   A,ScalarTypeU16
-            JP   HybridLL1SaveExpectedType
+            JR   HybridLL1SaveExpectedType
 
 ; Return the checked, positive, byte-sized constant bound in HL.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
@@ -855,7 +855,11 @@ HybridLL1ForwardMissing:
 HybridLL1BeginSubBody:
             LD   A,(Stage7CurrentRoutine)
             INC  A
+.if CompilerNonlocalDiagnostics
+            JR   Z,HybridLL1BeginMainBody
+.else
             JP   Z,HybridLL1BeginMainBody
+.endif
             DEC  A
             CALL HybridLL1PublishRoutine
             JR   HybridLL1OpenRoutineBody
@@ -994,7 +998,7 @@ HybridLL1BeginMainBody:
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1SetFallsThrough:
             LD   A,1
-            JP   HybridLL1StoreFallthrough
+            JR   HybridLL1StoreFallthrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndSub:
@@ -1217,7 +1221,7 @@ Stage8SelectPendingFailure:
 Stage8RetainOneAndSelectFailure:
             LD   A,1
             LD   (Stage8RetainedCarriers),A
-            JP   Stage8SelectFailureConsumer
+            JR   Stage8SelectFailureConsumer
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1LookupDeclaration:
@@ -1767,7 +1771,7 @@ HybridLL1BeginBranchClause:
             RET  C
 .endif
             LD   B,ControlFrameLabelA
-            JP   HybridLL1EmitFrameLabel
+            JR   HybridLL1EmitFrameLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginElseIf:
@@ -1815,7 +1819,7 @@ HybridLL1FinishIfClauses:
             RET  C
 .endif
             LD   B,ControlFrameLabelA
-            JP   HybridLL1EmitFrameLabel
+            JR   HybridLL1EmitFrameLabel
 
 ; B selects a field in the active control frame. All callers have already
 ; established that frame; the helper preserves their existing precondition.
@@ -1873,7 +1877,11 @@ HybridLL1BeginWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if CompilerNonlocalDiagnostics
+            JR   HybridLL1ExpectBoolean
+.else
             JP   HybridLL1ExpectBoolean
+.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginWhileBody:
@@ -1882,7 +1890,11 @@ HybridLL1BeginWhileBody:
             RET  C
 .endif
             LD   B,ControlFrameExit
+.if CompilerNonlocalDiagnostics
+            JR   HybridLL1BeginConditionBody
+.else
             JP   HybridLL1BeginConditionBody
+.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndWhile:

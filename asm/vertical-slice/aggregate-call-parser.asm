@@ -910,7 +910,7 @@ Stage7EmitExtentAndCallOffset:
             RET  C
 .endif
             LD   HL,(Stage7CallOffset)
-            JP   Stage7EmitWord
+            JR   Stage7EmitWord
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 Stage7EmitOperationAndPathOffset:
@@ -919,7 +919,7 @@ Stage7EmitOperationAndPathOffset:
             RET  C
 .endif
             LD   HL,(Stage7PathOffset)
-            JP   Stage7EmitWord
+            JR   Stage7EmitWord
 
 ; D is the symbol class and BC its byte offset. Emit its opaque root carrier
 ; and return the exact aggregate type in A.
@@ -1266,7 +1266,11 @@ Stage7PathIndex:
             LD   HL,(ExpressionRightValue)
             OR   A
             SBC  HL,BC
+.if CompilerNonlocalDiagnostics
+            JR   NC,Stage7PathIndexRangeFailure
+.else
             JP   NC,Stage7PathIndexRangeFailure
+.endif
 Stage7PathIndexDynamic:
             LD   (Stage7PathOffset),BC
             LD   A,(Stage7PathType)
@@ -1374,7 +1378,11 @@ Stage7PathIndexExpressionFailure:
 Stage7PathIndexRangeFailure:
             LD   A,(ExpressionSuppressFault)
             OR   A
+.if CompilerNonlocalDiagnostics
+            JR   NZ,Stage7PathIndexDynamic
+.else
             JP   NZ,Stage7PathIndexDynamic
+.endif
             LD   HL,(Stage7CallOffset)
             LD   (TokenStartOffset),HL
             POP  AF

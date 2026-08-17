@@ -285,7 +285,7 @@ TypedResolveValidateBothExact:
             LD   HL,(ExpressionLeftValue)
             LD   A,(ExpressionLeftMeta)
             CALL TypedConvertConstant
-            JP   C,TypedLeftRangeFailure
+            JR   C,TypedLeftRangeFailure
             LD   HL,(ExpressionRightValue)
             LD   A,(ExpressionRightMeta)
             CALL TypedConvertConstant
@@ -1295,7 +1295,7 @@ TypedUnaryMinus:
             JR   NZ,TypedUnaryMinusExactWasNegative
             LD   A,H
             CP   $80
-            JP   C,TypedUnaryMinusExactNegate
+            JR   C,TypedUnaryMinusExactNegate
             JP   NZ,TypedValueRangeFailure
             LD   A,L
             OR   A
