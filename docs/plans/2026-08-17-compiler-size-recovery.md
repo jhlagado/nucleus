@@ -491,15 +491,33 @@ executes 433 fewer instructions and 6,050 fewer T-states. Relocation passes at
 `$0100`, `$8000`, and the highest-fitting origin; no position or address is
 packed or shortened.
 
+### Bank-state and target-output cleanup
+
+Banked generation now initializes each full-width cursor and capacity pair when
+that bank is first visited, saves the active state before advancing, and keeps
+BC live across the entry-bank prefix. Flat and banked generation share the
+exact `BEGIN` wrapper and read-only-bound refresh routine. Two carry checks are
+removed only from address walks that are proper prefixes of a region already
+validated before `BEGIN`, and region validation returns directly with the same
+success or diagnostic result.
+
+The checkpoint recovers a measured 29 code bytes with immutable data and
+workspace unchanged. The production core is 16,125 bytes. The representative
+proof executes 359 fewer instructions and 2,646 fewer T-states. Pre-`BEGIN`
+capacity failures, post-`BEGIN` aborts, MAP, PATCH, NOBJ, D8, flat, loaded,
+banked, entry-bank-one, language, and failure-atomicity proofs pass. Relocation
+passes at `$0100`, `$8000`, and the highest-fitting origin; every bank cursor,
+capacity, region, and target address remains a full 16-bit value.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
 symbol, descriptor, provider, relative-branch, aggregate-metadata, Stage 7 tail,
-semantic/fixup, and diagnostic/parser checkpoints, the measured shipping core
-is 16,154 bytes and the remaining recovery to 15,360 is 794 bytes. Total
-measured recovery from the frozen 16,680-byte compiler is 526 bytes. The
-300-byte phase began at 16,489 bytes and recovered 335 bytes, exceeding its
-target by 35 bytes.
+semantic/fixup, diagnostic/parser, and target-output checkpoints, the measured
+shipping core is 16,125 bytes and the remaining recovery to 15,360 is 765
+bytes. Total measured recovery from the frozen 16,680-byte compiler is 555
+bytes. The 300-byte phase began at 16,489 bytes and recovered 364 bytes,
+exceeding its target by 64 bytes.
 
 The search continues in the selected original frontend and backend, and no
 local rewrite saving is counted until all adapters and displaced production

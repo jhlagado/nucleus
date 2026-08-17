@@ -168,10 +168,7 @@ TargetCapacityFailure:
             CALL SetDiagInline
             .db  DiagnosticTargetCapacity
 TargetCodeCapacityReady:
-
-            LD   IX,(TargetDescriptorPointer)
-            CALL TargetSinkBegin
-            JP   C,TargetOutputFailure
+            CALL TargetBeginOutput
             XOR  A
             LD   (TargetOutputBank),A
             LD   HL,(TargetImageBase)
@@ -186,12 +183,12 @@ TargetCodeCapacityReady:
 
             LD   HL,(EmitCursor)
             LD   (TargetLinkedRuntimeBase),HL
+            ; The complete prefix and image end were checked before BEGIN, so
+            ; this proper-prefix address walk cannot wrap.
             LD   DE,NucleusRuntimeExpectedLength
             ADD  HL,DE
-            JR   C,TargetCapacityFailure
             LD   DE,(TargetStartupLength)
             ADD  HL,DE
-            JR   C,TargetCapacityFailure
             LD   (TargetReadOnlyBase),HL
             CALL TargetPrepareRuntimeContext
 .if CompilerDiagnosticReturns
@@ -203,6 +200,14 @@ TargetCodeCapacityReady:
             RET  C
 .endif
             JP   TargetEmitStartup
+
+; Open one adapter generation from the retained full-width descriptor.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetBeginOutput:
+            LD   IX,(TargetDescriptorPointer)
+            CALL TargetSinkBegin
+            JP   C,TargetOutputFailure
+            RET
 
 ; Address one retained output-bank cursor and exact remaining-capacity word.
 .routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
@@ -259,12 +264,14 @@ TargetSelectOutputBank:
             INC  HL
             LD   D,(HL)
             LD   (EmitLimit),DE
+.routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+TargetRefreshReadOnlyBounds:
             LD   A,(TargetOutputBank)
             CALL TargetBankRoLengthAddress
-            LD   C,(HL)
+            LD   E,(HL)
             INC  HL
-            LD   B,(HL)
-            LD   (TargetCurrentRoCapacity),BC
+            LD   D,(HL)
+            LD   (TargetCurrentRoCapacity),DE
             LD   HL,(TargetImageBase)
             LD   DE,NucleusRuntimeExpectedLength+3
             ADD  HL,DE
@@ -337,9 +344,11 @@ TargetEmitRuntimeProviderReady:
             JP   C,TargetOutputFailure
             JR   TargetConsumeExtent
 
-; Banked output is always ROM. Initialize one retained cursor/capacity pair
-; per bank, emit every uniform runtime, the entry-only startup/initial image,
-; and then the declaration-ordered aggregate constants before source code.
+; Banked output is always ROM. Seed each cursor/capacity pair when its bank is
+; first visited and save it before advancing; the active final bank remains in
+; EmitCursor/EmitLimit until the ordinary switch or final MAP save. Emit every
+; uniform runtime, the entry-only startup/initial image, and then the
+; declaration-ordered aggregate constants before source code.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetBeginBankedProgram:
             LD   A,(TargetLayoutMode)
@@ -355,35 +364,11 @@ TargetBeginBankedProgram:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   IX,(TargetDescriptorPointer)
-            CALL TargetSinkBegin
-            JP   C,TargetOutputFailure
-            LD   A,(TargetDescriptorBankCountValue)
-            LD   B,A
-            LD   HL,TargetBankStateBase
-TargetInitializeBankStateLoop:
-            LD   DE,(TargetImageBase)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
-            INC  HL
-            LD   DE,(TargetImageCapacity)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
-            INC  HL
-            DJNZ TargetInitializeBankStateLoop
-            LD   A,TargetOutputClosed
-            LD   (TargetOutputBank),A
-            LD   C,0
+            CALL TargetBeginOutput
+            XOR  A
+            LD   C,A
+            JR   TargetStartFreshOutputBank
 TargetEmitBankPrefixLoop:
-            LD   A,C
-            PUSH BC
-            CALL TargetSelectOutputBank
-            POP  BC
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
             LD   A,(TargetDescriptorEntryBankValue)
             CP   C
             JR   NZ,TargetEmitBankEmptySlot
@@ -419,6 +404,10 @@ TargetEmitBankRuntime:
             ADD  HL,DE
             JP   C,TargetCapacityFailure
             LD   (TargetReadOnlyBase),HL
+.if CompilerDiagnosticReturns
+.else
+            PUSH BC
+.endif
             CALL TargetEmitStartup
 .if CompilerDiagnosticReturns
             RET  C
@@ -427,7 +416,9 @@ TargetEmitBankRuntime:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if CompilerDiagnosticReturns
             PUSH BC
+.endif
             LD   HL,StaticImageBase
             LD   BC,(StaticImageLength)
             CALL EmitBlock
@@ -436,13 +427,20 @@ TargetEmitBankRuntime:
             RET  C
 .endif
 TargetEmitBankPrefixNext:
-            LD   A,(TargetOutputBank)
-            LD   C,A
+            CALL TargetSaveOutputBank
             INC  C
             LD   A,(TargetDescriptorBankCountValue)
             CP   C
-            JR   NZ,TargetEmitBankPrefixLoop
-            JP   TargetEmitBankedAggregateConstants
+            JP   Z,TargetEmitBankedAggregateConstants
+TargetStartFreshOutputBank:
+            LD   A,C
+            LD   (TargetOutputBank),A
+            LD   HL,(TargetImageBase)
+            LD   (EmitCursor),HL
+            LD   HL,(TargetImageCapacity)
+            LD   (EmitLimit),HL
+            CALL TargetRefreshReadOnlyBounds
+            JR   TargetEmitBankPrefixLoop
 
 ; HL is a region base and DE a nonzero capacity. Carry reports every wrapped
 ; end except the legal exact mathematical end $10000.
@@ -452,12 +450,10 @@ TargetValidateRegion:
             OR   E
             JP   Z,TargetCapacityFailure
             ADD  HL,DE
-            JR   NC,TargetRegionReady
+            RET  NC
             LD   A,H
             OR   L
             JP   NZ,TargetCapacityFailure
-TargetRegionReady:
-            OR   A
             RET
 
 ; Classify two checked nonempty regions without storing an exclusive $10000
@@ -548,12 +544,11 @@ TargetPrepareFlatRoData:
             LD   A,(TargetLayoutMode)
             OR   A
             JR   Z,TargetContextRoDataReady
+            ; This is a sub-walk of the already checked flat ROM prefix.
             LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
             ADD  HL,DE
-            JR   C,TargetPrepareCapacityFailure
             LD   DE,(StaticImageLength)
             ADD  HL,DE
-            JR   C,TargetPrepareCapacityFailure
 TargetContextRoDataReady:
             LD   (TargetContextRoDataBase),HL
             LD   HL,(ReadOnlyImageLength)
