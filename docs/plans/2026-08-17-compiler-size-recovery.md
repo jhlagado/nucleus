@@ -148,3 +148,48 @@ Progress reports publish:
 - projected percentage of the complete recovery and cutover goal.
 
 No projected or hypothetical byte saving is included in production headroom.
+
+## Recovery ledger
+
+### Scanner representation experiment
+
+The first keyword experiment is rejected. High-bit-terminated keyword rows
+saved a projected 25 production-core bytes after scanner changes, but the
+representative flat proof rose from 1,025,324 to 1,141,451 compiler
+instructions: 116,127 additional instructions, or 11.3 percent. Historical
+scanner layouts also required a second representation. The repository's older
+compression ledger records the same failed design, so it will not be repeated.
+The production scanner remains unchanged while a complete adapter-level
+transplant is evaluated separately.
+
+### Expression bakeoff checkpoint
+
+Branch `codex/expression-bakeoff` at `ddcf3f3a` is the first verified recovery
+laboratory checkpoint. It combines the recovered constant/call publication
+pass with shared diagnostic and dataflow cleanup. The expression family now
+measures 4,073 code bytes plus 74 immutable bytes, or 4,147 bytes total. This
+is 139 code bytes below the preserved rewrite branch and 50 bytes above the
+4,097-byte frozen production family. The complete rewrite prototype measures
+17,765 core bytes and 3,938 workspace bytes at this checkpoint.
+
+The checkpoint passes 46 test files and 522 serial tests, strict AZM contracts,
+all generated rewrite authorities, compiler-image synchronization, TypeScript
+checking, the distribution build, and diff checks. It is not yet a production
+winner. The active experiment now replaces the postfix/path organization and
+then the call engine. Its first hard acceptance gate is a measured complete
+expression family no larger than 3,500 bytes.
+
+### Declaration, statement, and control decision
+
+The complete rewrite family measures 7,324 bytes against 5,861 bytes for the
+frozen implementation. Of the 1,463-byte regression, 136 bytes are semantic
+machinery, 227 bytes are double orchestration through the recursive driver and
+action interpreter, and 1,100 bytes are expanded handwritten semantics. The
+rewrite family is rejected as the production architecture.
+
+The frozen packed LL(1) engine, complete grammar, direct semantic actions, and
+residual parser islands remain selected. No honest local 100-byte saving was
+found in a fresh audit. A later direct-action regeneration is permitted only
+if its full-address code plus directory measures no more than 2,508 bytes,
+which would reduce the complete family to at most 5,761 bytes. Until an
+assembled prototype proves that result, no saving is counted.
