@@ -31,7 +31,8 @@
     "forSetup": "RewriteBackendEscapeForSetup",
     "forTest": "RewriteBackendEscapeForTest",
     "forNext": "RewriteBackendEscapeForNext",
-    "forCleanup": "RewriteBackendEscapeForCleanup"
+    "forCleanup": "RewriteBackendEscapeForCleanup",
+    "openStringCapacity": "RewriteBackendEscapeOpenStringCapacity"
   },
   "selectors": {
     "defineProgramU8": [],

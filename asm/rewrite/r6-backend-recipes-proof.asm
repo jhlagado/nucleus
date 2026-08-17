@@ -1177,6 +1177,61 @@ ProofBackendCountedLoopInvalid:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+ProofBackendOpenStringCapacity:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   HL,$6666
+            CALL RewriteBackendSetCurrentSourceOffset
+            LD   A,7
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset),A
+            LD   A,RewriteSemanticOpenStringCapacity
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedOpenStringCapacityEnd-ProofExpectedOpenStringCapacity
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedOpenStringCapacity
+            LD   BC,ProofExpectedOpenStringCapacityEnd-ProofExpectedOpenStringCapacity
+ProofBackendOpenStringCapacityCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendOpenStringCapacityCompare
+            LD   A,$AD
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendOpenStringCapacityInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,$FF
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset),A
+            LD   A,RewriteSemanticOpenStringCapacity
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendOpenArgumentInvalid:
             LD   SP,$FF00
             CALL RewriteReset
@@ -2404,6 +2459,40 @@ ProofExpectedForNextTest:
 ProofExpectedCountedLoopExit:
             POP  DE
 ProofExpectedCountedLoopEnd:
+
+ProofExpectedOpenStringCapacity:
+            POP  HL
+            PUSH HL
+            LD   DE,$A500
+            LD   IY,$0040
+            LD   C,(IX-8)
+            LD   B,0
+            INC  BC
+            INC  BC
+            CALL ProofRuntimeBase+NucleusRuntimeCheckAggregateRegionOffset
+            JR   NC,ProofExpectedOpenCapacityRegionReady
+            LD   HL,$6666
+            LD   A,1
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedOpenCapacityRegionReady:
+            POP  HL
+            LD   C,(IX-8)
+            LD   L,C
+            LD   H,0
+            PUSH HL
+ProofExpectedOpenStringCapacityEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset

@@ -357,8 +357,9 @@ RewriteBackendRuntimeCallAddress .equ RewriteBackendContextLimit ; word
 RewriteBackendTrapReason     .equ RewriteBackendContextLimit+2
 RewriteBackendTrapSourceOffset .equ RewriteBackendContextLimit+3 ; word
 RewriteBackendRelativeOperand .equ RewriteBackendContextLimit+5 ; word
-RewriteBackendBooleanFixupDepth .equ RewriteBackendContextLimit+7
-RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+8
+RewriteBackendCurrentSourceOffset .equ RewriteBackendContextLimit+7 ; word
+RewriteBackendBooleanFixupDepth .equ RewriteBackendContextLimit+9
+RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+10
 RewriteBackendBooleanFixupCapacity .equ 16
 RewriteBackendLabelCapacity    .equ RewriteControlLabelLimit
 RewriteBackendMainLabel        .equ RewriteBackendLabelCapacity-1

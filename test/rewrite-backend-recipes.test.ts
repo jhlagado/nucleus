@@ -282,6 +282,31 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({ diagnostic: 67, emitted: 0 });
   });
 
+  it("publishes open-string capacity after a complete carrier-region check", () => {
+    const { memory, instructions, cycles } = run(
+      "ProofBackendOpenStringCapacity",
+    );
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xad);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 1_989,
+      cycles: 20_656,
+    });
+    expect(
+      (image.symbols.ProofExpectedOpenStringCapacityEnd ?? 0) -
+        (image.symbols.ProofExpectedOpenStringCapacity ?? 0),
+    ).toBeGreaterThan(0);
+  });
+
+  it("rejects an unrepresentable open-string capacity offset before output", () => {
+    const { memory } = run("ProofBackendOpenStringCapacityInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted: (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({ diagnostic: 67, emitted: 0 });
+  });
+
   it("rejects corrupt open-argument mode metadata before output", () => {
     const { memory } = run("ProofBackendOpenArgumentInvalid");
     const output = image.symbols.ProofBackendOutput ?? -1;
@@ -537,13 +562,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 3_886,
+      engine: 3_954,
       recipes: 738,
-      code: 16_106,
+      code: 16_174,
       immutable: 2_202,
-      core: 18_308,
+      core: 18_376,
       workspace: 3_425,
-      supported: 104,
+      supported: 105,
     });
   });
 });

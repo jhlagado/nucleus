@@ -623,7 +623,7 @@
     {
       "name": "OpenStringCapacity",
       "operands": [["capacityOffset", "byte"]],
-      "backend": ["recipe", "openStringCapacity"],
+      "backend": ["escape", "openStringCapacity"],
       "stack": [1, 1],
       "source": "direct"
     },

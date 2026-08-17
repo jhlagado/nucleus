@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 104
+RewriteBackendSupportedOperationCount .equ 105
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -52,7 +52,6 @@ RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorStoreIndirect8 ; storeIndirect8
             .dw RewriteBackendRecipeSelectorStoreIndirect16 ; storeIndirect16
             .dw RewriteBackendRecipeSelectorLoadReadOnlyAlias ; loadReadOnlyAlias
-            .dw 0 ; openStringCapacity
             .dw RewriteBackendRecipeSelectorArrayLength ; arrayLength
             .dw RewriteBackendRecipeSelectorOpenArrayLength ; openArrayLength
             .dw RewriteBackendRecipeSelectorPromoteI8Pair ; promoteI8Pair
@@ -90,6 +89,7 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeOpenStringLength ; openStringLength
             .dw RewriteBackendEscapeOpenStringIndex ; openStringIndex
             .dw RewriteBackendEscapePrepareOpenArgument ; prepareOpenArgument
+            .dw RewriteBackendEscapeOpenStringCapacity ; openStringCapacity
             .dw RewriteBackendEscapeOpenStringResize ; openStringResize
             .dw RewriteBackendEscapeOpenArrayIndex ; openArrayIndex
             .dw RewriteBackendEscapeConvertInteger ; convertInteger

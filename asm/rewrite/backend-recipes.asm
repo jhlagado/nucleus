@@ -26,6 +26,14 @@ RewriteBackendInitializeLabels:
             DJNZ RewriteBackendInitializeLabels
             RET
 
+; The target driver publishes the active D8 source context before dispatching
+; an operation whose compact transcript does not carry its own trap offset.
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry
+RewriteBackendSetCurrentSourceOffset:
+            LD   (RewriteBackendCurrentSourceOffset),HL
+            XOR  A
+            RET
+
 ; Append one target byte to the bounded prototype sink. The later target/NOBJ
 ; milestone replaces only this sink boundary, not the recipe interpreter.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -2065,6 +2073,36 @@ RewriteBackendEscapeOpenStringIndex:
             LD   DE,NucleusRuntimeCheckStringIndexOffset
             LD   HL,(RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandSourceOffsetOffset)
             JP   RewriteBackendEmitCheckedStringResult
+
+; `.capacity` still validates the complete open-string carrier region before
+; publishing the hidden activation byte as a canonical word. Its frozen
+; compact record takes source provenance from the driver-maintained D8 context.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeOpenStringCapacity:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset)
+            CP   $FF                     ; -(offset+1) must remain representable
+            JP   Z,RewriteBackendInvalid
+            LD   A,$E1                    ; POP HL carrier / PUSH HL retained
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRegionPrefix
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringExtent
+            LD   HL,(RewriteBackendCurrentSourceOffset)
+            CALL RewriteBackendEmitRegionInvoke
+            LD   A,$E1                    ; discard carrier after validation
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset)
+            CALL RewriteBackendEmitOpenStringCapacityC
+            LD   A,$69                    ; LD L,C / LD H,0 / PUSH HL
+            CALL RewriteBackendEmitByte
+            LD   A,$26
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            JP   RewriteBackendEmitByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 RewriteBackendEscapeOpenStringResize:

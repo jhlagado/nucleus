@@ -1509,7 +1509,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 104 semantic ordinals: byte and word local
+- the current cohort covers all 105 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1557,10 +1557,13 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   resizing an open view. The dynamic `capacity + 2` extent is formed in a word,
   so capacity 253 cannot wrap. The 523-byte AZM reference covers fixed/open
   length and index plus atomic open resize in 14,311 compiler instructions and
-  133,929 T-states. Open `.capacity` remains deliberately outside this cohort:
-  its frozen compact operation has no offset operand, so it will use R7's
-  retained current-source attribution rather than publishing a false trap
-  position or widening the 511-byte transcript format;
+  133,929 T-states. Open `.capacity` retains its compact one-byte operand and
+  takes exact trap provenance from a separate driver-maintained current-source
+  word, so the settled 511-byte transcript format does not widen. Its 66-byte
+  AZM reference performs the complete dynamic region check before publishing
+  the hidden capacity as a canonical word; it executes in 1,989 compiler
+  instructions and 20,656 T-states and rejects an unrepresentable activation
+  offset before output;
 - exact aggregate copy checks the complete destination and source regions
   before emitting `LDIR`. Open-string and open-array argument preparation
   validates the frozen redundant mode, preserves the concrete bound below the
@@ -1601,9 +1604,10 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   explicit call-metadata bit determines whether successful lowering retains or
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
-- the recipe data plus 42-entry recipe and 31-entry escape directories occupy
-  738 immutable bytes. The shipping replacement is 16,106 code + 2,202
-  immutable = 18,308 core bytes; the instrumented replacement is 18,312 core
+- the recipe data plus 41-entry recipe and 32-entry escape directories occupy
+  738 immutable bytes. The measured shipping replacement is 16,174 code +
+  2,202 immutable = 18,376 core bytes; the measured instrumented replacement
+  is 18,380 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step
@@ -1727,9 +1731,9 @@ routine-body grammar, and the source-driven compilation-unit driver that
 selects every existing top-level declaration program. R6 now has the generated
 recipe authority, interpreter, bounded sink, relocation proof, runtime-call
 linking, nested relative fixups, a full deployment link context, local and
-banked trap endings, and a 73-operation scalar/storage/control/routine-call cohort including
-conversion and division/modulo escapes with exact trap attribution. The next work measures
-the complete prototype against equivalent frozen handlers and then advances
-the next backend cohort. Compression follows semantic and backend
-completion. The replacement remains test-selected until the complete cutover
-gate passes.
+banked trap endings, and a complete 105-operation semantic backend including
+conversion, division/modulo, open views, failure, callable main, and counted
+loops with exact trap attribution. The next work adds the source-attribution
+driver and complete flat/banked target layout, runtime linking, and artifact
+publication. Compression follows semantic and backend completion. The
+replacement remains test-selected until the complete cutover gate passes.
