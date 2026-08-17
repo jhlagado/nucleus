@@ -1473,8 +1473,7 @@ Stage7PushCallFrameSpace:
             LD   C,(HL)                  ; failure flags
             JR   Stage7PushCallFrameReady
 Stage7PushMainCallFrame:
-            LD   D,0                     ; parameter start
-            LD   E,0                     ; parameter count
+            LD   DE,0                    ; parameter start/count
             LD   B,0                     ; result-free
             LD   A,(Stage8ForwardMainFlags)
             LD   C,A

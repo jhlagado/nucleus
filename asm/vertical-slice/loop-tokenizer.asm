@@ -220,17 +220,16 @@ TokenLexicalFailure:
 TokenIsHexDigit:
             CP   "0"
             JR   C,TokenHexNo
-            CP   "9"+1
-            JR   C,TokenHexDecimal
             OR   $20
-            SUB  "a"
+            SUB  "0"
+            CP   10
+            JR   C,TokenHexDecimal
+            SUB  "a"-"0"
             CP   6
             JR   NC,TokenHexNo
             ADD  A,10
-            SCF
-            RET
 TokenHexDecimal:
-            SUB  "0"
+            OR   A
             SCF
             RET
 TokenHexNo:
@@ -485,8 +484,12 @@ TokenizerLeftDelimiter:
             LD   HL,SourceDelimiterDepth
             INC  (HL)
             JR   NZ,TokenFinishC
+.if TargetStreamingOutput
+.else
             DEC  (HL)
-            JR   TokenizerLexicalFailure
+.endif
+TokenizerLexicalFailure:
+            JP   TokenLexicalFailure
 
 TokenizerLess:
             LD   C,TokenLess
@@ -522,9 +525,6 @@ TokenFinish:
             AND  $7F
             LD   (SourceLineHasToken),A
             RET
-
-TokenizerLexicalFailure:
-            JP   TokenLexicalFailure
 
 ; The byte following the call is a token ordinal, not executable code.
 .routine noreturn

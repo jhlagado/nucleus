@@ -273,9 +273,9 @@ TargetRefreshReadOnlyBounds:
             JR   NZ,TargetSelectRoBaseReady
             LD   DE,(TargetStartupLength)
             ADD  HL,DE
-            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
-            ADD  HL,DE
-            LD   DE,(StaticImageLength)
+            PUSH HL
+            CALL TargetInitializedLength
+            POP  DE
             ADD  HL,DE
 TargetSelectRoBaseReady:
             LD   (TargetCurrentRoBase),HL
@@ -538,9 +538,9 @@ TargetPrepareFlatRoData:
             OR   A
             JR   Z,TargetContextRoDataReady
             ; This is a sub-walk of the already checked flat ROM prefix.
-            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
-            ADD  HL,DE
-            LD   DE,(StaticImageLength)
+            PUSH HL
+            CALL TargetInitializedLength
+            POP  DE
             ADD  HL,DE
 TargetContextRoDataReady:
             LD   (TargetContextRoDataBase),HL

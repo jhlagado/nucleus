@@ -295,7 +295,7 @@ TypedResolveLeftTyped:
             LD   A,(ExpressionRightMeta)
             CALL TypedConvertConstant
             JP   C,TypedValueRangeFailure
-            JR   TypedResolveDone
+            RET
 TypedResolveBothTyped:
             LD   A,D
             CP   E
@@ -2001,9 +2001,9 @@ TypedInferredConstantI8:
 TypedInferredConstantI16:
             BIT  7,H
 TypedInferredConstantSign:
-            LD   A,0
-            RET  Z
             LD   A,ScalarMetaNegative
+            RET  NZ
+            XOR  A
             RET
 
 ; Emit a typed static program object. D=type, BC=offset, HL=value.
