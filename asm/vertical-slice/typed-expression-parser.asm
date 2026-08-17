@@ -190,11 +190,12 @@ TypedRestoreOperands:
             ; Every reduction follows TypedSaveLeft. Keep the defensive test so
             ; a future parser change cannot turn a broken invariant into a
             ; wrapped address beyond CompilerWorkspaceEnd.
-            LD   A,(ExpressionStackDepth)
+            LD   HL,ExpressionStackDepth
+            LD   A,(HL)
             OR   A
             JR   Z,TypedExpressionStackUnderflow
             DEC  A
-            LD   (ExpressionStackDepth),A
+            LD   (HL),A
             CALL TypedExpressionAddress
             LD   DE,ExpressionSavedState
             LD   BC,ExpressionSavedStateSize
@@ -296,7 +297,6 @@ TypedResolveValidateBothExact:
             LD   A,(ExpressionRightMeta)
             CALL TypedConvertConstant
             JP   C,TypedValueRangeFailure
-            OR   A
             RET
 TypedResolveExactLeft:
             LD   C,E
@@ -305,7 +305,6 @@ TypedResolveExactLeft:
             CALL TypedConvertConstant
             JP   C,TypedLeftRangeFailure
 TypedResolveDone:
-            OR   A
             RET
 TypedResolveLeftTyped:
             LD   A,E
@@ -388,8 +387,8 @@ TypedBothConstant:
             LD   A,(ExpressionLeftMeta)
             AND  ScalarMetaConstant
             RET  Z
-            LD   A,(ExpressionRightMeta)
-            AND  ScalarMetaConstant
+            LD   HL,ExpressionRightMeta
+            AND  (HL)
             RET
 
 .routine in C,HL out BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -457,8 +456,7 @@ TypedReduceOr:
             LD   L,A
             LD   A,H
             OR   D
-            LD   H,A
-            JP   TypedReduceIntegerConstantDone
+            JR   TypedReduceBitwiseConstantDone
 TypedReduceXor:
             LD   D,SemanticXor8
             CALL TypedPrepareConstantBinary
@@ -472,8 +470,7 @@ TypedReduceXor:
             LD   L,A
             LD   A,H
             XOR  D
-            LD   H,A
-            JP   TypedReduceIntegerConstantDone
+            JR   TypedReduceBitwiseConstantDone
 TypedReduceAnd:
             LD   D,SemanticAnd8
             CALL TypedPrepareConstantBinary
@@ -487,6 +484,7 @@ TypedReduceAnd:
             LD   L,A
             LD   A,H
             AND  D
+TypedReduceBitwiseConstantDone:
             LD   H,A
             JP   TypedReduceIntegerConstantDone
 TypedReduceAdd:
@@ -497,7 +495,7 @@ TypedReduceAdd:
 .endif
             JP   Z,TypedReduceIntegerMeta
             ADD  HL,DE
-            JP   TypedReduceIntegerConstantDone
+            JR   TypedReduceAddSubtractDone
 TypedReduceSubtract:
             LD   D,SemanticSubtract8
             CALL TypedPrepareConstantBinary
@@ -507,6 +505,7 @@ TypedReduceSubtract:
             JP   Z,TypedReduceIntegerMeta
             OR   A
             SBC  HL,DE
+TypedReduceAddSubtractDone:
             JP   TypedReduceIntegerConstantDone
 TypedReduceMultiply:
             LD   D,SemanticMultiply8
@@ -1247,7 +1246,6 @@ TypedUnaryPlus:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            OR   A
             RET
 TypedUnaryMinus:
             CALL TypedUnaryPlus

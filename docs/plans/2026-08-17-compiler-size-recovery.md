@@ -735,13 +735,33 @@ save did not pass strict register-contract analysis. The cursor rewrite was
 therefore rejected, while deleting the old flag-neutralizing `OR A` retained
 one safe byte without weakening the contract gate.
 
+### Constant-fold and expression-state tails
+
+The constant-folder now tests the right constant bit directly after proving
+the left bit, and the adjacent byte AND, OR, and XOR reducers share their
+common high-byte publication tail. The adjacent add and subtract reducers
+likewise share their final constant-result jump. Expression-stack restoration
+addresses its depth cell once, while three redundant flag-normalizing `OR A`
+instructions are removed only where the immediately preceding checked helper
+already returns the identical accumulator, carry, and zero state.
+
+The checkpoint recovers ten compiler-code bytes with immutable data, workspace,
+semantic operations, and generated output unchanged. The production core is
+15,780 bytes. The representative proof executes five more instructions but
+148 fewer T-states, changes below 0.0015 percent; the typed-expression proof
+executes 23 more instructions and 421 fewer T-states. Exact constant and
+runtime arithmetic, nested expression state, diagnostics, semantic
+transcripts, generated Z80, NOBJ, D8, and returning-diagnostic layouts pass.
+All state addresses remain full-width symbolic values, and relocation passes
+at `$0100`, `$8000`, and the highest-fitting origin.
+
 ### Current recovery outlook
 
-With scanner branch and delimiter-state cleanup added to the retained
-checkpoints above, the measured shipping core is 15,790 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 890 bytes. The earlier
-15,360-byte target is 430 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 699 bytes, exceeding that phase target by 399 bytes.
+With constant-fold and expression-state tail cleanup added to the retained
+checkpoints above, the measured shipping core is 15,780 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 900 bytes. The earlier
+15,360-byte target is 420 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 709 bytes, exceeding that phase target by 409 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
