@@ -89,9 +89,7 @@ HybridLL1Nonterminal:
             LD   D,0
             LD   HL,HybridLL1Rows
             ADD  HL,DE
-            PUSH HL
             CALL ParserPeek
-            POP  HL
 .if CompilerDiagnosticBranches
             JR   C,HybridLL1PredictionPeekFailure
 .endif

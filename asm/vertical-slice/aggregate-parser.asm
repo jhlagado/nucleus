@@ -176,9 +176,8 @@ AggregateSaveOpenArrayDimension:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,TokenStartOffset
             LD   DE,AggregateTypeOpenArrayPosition
-            CALL CompilerCopyPosition
+            CALL CompilerCopyTokenPosition
             LD   A,1
             LD   (AggregateTypeOpenArrayFlag),A
             OR   A
@@ -194,8 +193,7 @@ AggregateRejectOpenViewPlacement:
             OR   A
             JP   P,AggregateRejectOpenViewCurrent
             LD   HL,AggregateTypeOpenArrayPosition
-            LD   DE,TokenStartOffset
-            CALL CompilerCopyPosition
+            CALL CompilerRestoreTokenPosition
             JR   AggregateRejectOpenViewCurrent
 
 ; Wrap AggregateCurrentTypeId in one concrete array dimension. HL is the

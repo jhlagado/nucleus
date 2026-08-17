@@ -617,8 +617,7 @@ HybridLL1RetainSubName .equ TypedRetainDeclarationNameReady
 HybridLL1RestoreSubName:
             CALL TypedRestoreDeclarationToken
             LD   HL,DeclarationNamePosition
-            LD   DE,TokenStartOffset
-            CALL CompilerCopyPosition
+            CALL CompilerRestoreTokenPosition
             OR   A
             RET
 

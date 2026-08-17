@@ -39,11 +39,6 @@ CompilerSetDiagnostic:
             LD   (DiagnosticCode),A
             LD   A,(SourcePartId)
             LD   (DiagnosticPartId),A
-            LD   HL,TokenStartOffset
-            LD   DE,DiagnosticOffset
-            PUSH BC
-            CALL CompilerCopyPosition
-            POP  BC
 .if CompilerNonlocalDiagnostics
             LD   SP,(CompilerAbortSp)
 .endif
@@ -64,6 +59,18 @@ CompilerCopyPosition:
             LDIR
             RET
 
+; Shared full-width source and destination setup for the three callers of each
+; direction. These helpers alter no position representation or address width.
+.routine in DE out BC,DE,HL clobbers parity,halfCarry
+CompilerCopyTokenPosition:
+            LD   HL,TokenStartOffset
+            JR   CompilerCopyPosition
+
+.routine in HL out BC,DE,HL clobbers parity,halfCarry
+CompilerRestoreTokenPosition:
+            LD   DE,TokenStartOffset
+            JR   CompilerCopyPosition
+
 ; E is the expected token ordinal. An ordinary mismatch reports the token
 ; ordinal with DiagnosticExpectedTokenBase set.
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
@@ -83,12 +90,14 @@ ParserExpect:
 ; The expression parser needs one token of lookahead. Token metadata remains
 ; current until another tokenizer request, so buffering kind and word payload
 ; is sufficient for names, positions, numbers, and characters.
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+.routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
             LD   A,(ParserLookaheadKind)
             CP   $FF
             JR   NZ,ParserPeekBuffered
+            PUSH HL
             CALL TokenizerNext
+            POP  HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -102,7 +111,7 @@ ParserPeekBuffered:
             OR   A
             RET
 
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+.routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserTake:
             CALL ParserPeek
 .if CompilerDiagnosticReturns

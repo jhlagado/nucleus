@@ -22,16 +22,16 @@ TokenLength             .equ CompilerStateBase+$15
 
 DiagnosticCode          .equ CompilerStateBase+$16
 DiagnosticPartId        .equ CompilerStateBase+$17
-DiagnosticOffset        .equ CompilerStateBase+$18
-DiagnosticLine          .equ CompilerStateBase+$1A
-DiagnosticColumn        .equ CompilerStateBase+$1C
+; Diagnostics are terminal and every path that needs an earlier source
+; position restores it to the token anchor before raising. The anchor remains
+; live through native emission, so the host-visible diagnostic record can
+; name those same full-width words without copying or packing them.
+DiagnosticOffset        .equ TokenStartOffset
+DiagnosticLine          .equ TokenStartLine
+DiagnosticColumn        .equ TokenStartColumn
 
-; A diagnostic ends parsing, so the live semantic sink may reuse the eventual
-; offset and line fields. DiagnosticCode and DiagnosticPartId remain clear on
-; successful compilation; an error overwrites all reused bytes before return.
-; The high byte of DiagnosticLine and both bytes of DiagnosticColumn extend
-; past CompilerStateEnd into the dead semantic buffer. The diagnostic is
-; terminal, so no semantic byte remains live.
+; DiagnosticCode and DiagnosticPartId remain clear on successful compilation.
+; The semantic sink occupies separate state while the token anchor stays live.
 SinkCursor              .equ CompilerStateBase+$18
 SinkOperationCount      .equ CompilerStateBase+$1A
 

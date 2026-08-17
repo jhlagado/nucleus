@@ -29,9 +29,8 @@ TypedRetainDeclarationName:
 TypedRetainDeclarationNameReady:
             LD   HL,DeclarationNamePointer
             CALL TokenRetainNameAtHL
-            LD   HL,TokenStartOffset
             LD   DE,DeclarationNamePosition
-            CALL CompilerCopyPosition
+            CALL CompilerCopyTokenPosition
             OR   A
             RET
 
@@ -63,8 +62,7 @@ TypedPrepareCurrentWord:
             PUSH BC
             PUSH DE
             LD   HL,DeclarationNamePosition
-            LD   DE,TokenStartOffset
-            CALL CompilerCopyPosition
+            CALL CompilerRestoreTokenPosition
 .if AggregateCallSlices
 .if TargetStreamingOutput
 .if DebugHooks
@@ -205,8 +203,7 @@ TypedValueRangeFailure:
 TypedLeftRangeFailure:
             LD   HL,(ExpressionLeftPositionPointer)
 TypedRangeFailureAtPosition:
-            LD   DE,TokenStartOffset
-            CALL CompilerCopyPosition
+            CALL CompilerRestoreTokenPosition
 TypedRangeFailure:
             CALL SetDiagInline
             .db  DiagnosticIntegerRange
@@ -679,9 +676,8 @@ TypedParsePrimary:
 .endif
             PUSH AF
             PUSH BC
-            LD   HL,TokenStartOffset
             LD   DE,ExpressionValuePosition
-            CALL CompilerCopyPosition
+            CALL CompilerCopyTokenPosition
             POP  BC
             POP  AF
             CP   TokenNumber
@@ -1430,7 +1426,6 @@ TypedParseAdditive:
 .endif
 TypedAdditiveLoop:
             PUSH AF
-            PUSH HL
             CALL ParserPeek
 .if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
@@ -1445,7 +1440,6 @@ TypedAdditiveOperator:
 .if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
 .endif
-            POP  HL
             POP  AF
 .if AggregateCallSlices
             CALL TypedComposableSaveLeft
@@ -1473,12 +1467,10 @@ TypedAdditiveOperator:
 .endif
             JR   TypedAdditiveLoop
 TypedAdditiveDone:
-            POP  HL
             POP  AF
             RET
 .if CompilerDiagnosticBranches
 TypedAdditivePeekFailure:
-            POP  HL
             POP  AF
             SCF
             RET
@@ -1790,7 +1782,6 @@ TypedParseAnd:
 .endif
 TypedAndLoop:
             PUSH AF
-            PUSH HL
             CALL ParserPeek
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
@@ -1802,7 +1793,6 @@ TypedAndLoop:
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
 .endif
-            POP  HL
             POP  AF
 .if AggregateCallSlices
             CALL TypedComposableSaveLeft
@@ -1856,7 +1846,6 @@ TypedParseOr:
 .endif
 TypedOrLoop:
             PUSH AF
-            PUSH HL
             CALL ParserPeek
 .if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
@@ -1877,7 +1866,6 @@ TypedOrOperator:
 .if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
 .endif
-            POP  HL
             POP  AF
             CALL TypedSaveLeft
 .if CompilerDiagnosticReturns
@@ -1920,7 +1908,6 @@ TypedOrParseRight:
 .endif
             JR   TypedOrLoop
 TypedBooleanDone:
-            POP  HL
             POP  AF
             RET
 .if AggregateCallSlices
@@ -1929,7 +1916,6 @@ TypedOrFailureContext:
 .endif
 .if CompilerDiagnosticBranches
 TypedBooleanPeekFailure:
-            POP  HL
             POP  AF
             SCF
             RET

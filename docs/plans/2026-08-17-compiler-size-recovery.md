@@ -91,6 +91,19 @@ and every retained handwritten escape. A wrapper must count all call sites and
 preservation code. A subsystem with deferred integration work has not reached
 its size gate.
 
+### Plateau rule
+
+For each experiment, `net saving = old complete core - new complete core`.
+Added code, immutable data, adapters, tables, and displaced code all belong in
+the new complete-core account. A candidate counts only after the full
+correctness, timing, artifact, and relocation gates pass.
+
+Recovery ends when every named candidate has been measured or rejected and
+three consecutive independent, non-overlapping fresh searches on the latest
+committed core each find a best net saving of no more than five bytes. Failed
+and sub-six-byte searches remain in this ledger so a later pass repeats them
+only after a premise changes.
+
 ## Recovery order
 
 ### 1. Source, tokenizer, and immutable names
@@ -458,14 +471,35 @@ normal, instrumented, historical, structured-control, language, and failure
 proofs pass, as does relocation at `$0100`, `$8000`, and the highest-fitting
 origin. Label and fixup addresses remain full 16-bit words.
 
+### Diagnostic positions and parser preservation
+
+Terminal diagnostics now publish the live token anchor directly as their
+full-width offset, line, and column record. Every path that reports an earlier
+position first restores that position to the same anchor, so the terminal copy
+is unnecessary. Two small helpers share the full-width source or destination
+setup for retained-position copies. `ParserPeek` preserves HL around tokenizer
+refill, allowing the LL(1), additive, and Boolean selection loops to remove
+their duplicate stack preservation; loops whose intervening work clobbers HL
+retain their original saves.
+
+The checkpoint recovers a measured 30 code bytes with immutable data and
+workspace unchanged. The production core is 16,154 bytes. Exact part, offset,
+line, and column diagnostics, returning-diagnostic historical layouts,
+multipart source, language, NOBJ, and D8 proofs pass. The worst measured parser
+proof increases by 0.40 percent in T-states, while the production flat proof
+executes 433 fewer instructions and 6,050 fewer T-states. Relocation passes at
+`$0100`, `$8000`, and the highest-fitting origin; no position or address is
+packed or shortened.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
 symbol, descriptor, provider, relative-branch, aggregate-metadata, Stage 7 tail,
-and semantic/fixup checkpoints, the measured shipping core is 16,184 bytes and
-the remaining recovery to 15,360 is 824 bytes. Total measured recovery from the
-frozen 16,680-byte compiler is 496 bytes. The 300-byte phase began at 16,489
-bytes and recovered 305 bytes, exceeding its target by five bytes.
+semantic/fixup, and diagnostic/parser checkpoints, the measured shipping core
+is 16,154 bytes and the remaining recovery to 15,360 is 794 bytes. Total
+measured recovery from the frozen 16,680-byte compiler is 526 bytes. The
+300-byte phase began at 16,489 bytes and recovered 335 bytes, exceeding its
+target by 35 bytes.
 
 The search continues in the selected original frontend and backend, and no
 local rewrite saving is counted until all adapters and displaced production
