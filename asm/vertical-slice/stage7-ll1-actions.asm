@@ -917,13 +917,10 @@ HybridLL1RoutineKindReady:
             OUT  (DebugTraceRoutinePort),A
 .endif
 .endif
-            LD   A,SemanticBeginGeneralRoutine
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
             LD   A,(Stage7CallLabel)
-            CALL SemanticSinkPut
+            LD   C,A
+            LD   A,SemanticBeginGeneralRoutine
+            CALL ParserEmitOperationC
 .if CompilerDiagnosticReturns
             RET  C
 .endif

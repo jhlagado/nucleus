@@ -371,13 +371,6 @@ TypedBothConstant:
             AND  (HL)
             RET
 
-.routine in C,HL out BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedMaskResultWidth:
-            BIT  1,C
-            RET  NZ
-            LD   H,0
-            RET
-
 ; Emit a width-selected binary operation. D=u8 ordinal; the u16 ordinal is next.
 .routine in C,D out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitWidthOperation:
@@ -638,8 +631,12 @@ TypedReduceDivideApplySign:
 TypedReduceDivideResultReady:
             POP  BC
             OR   A
+.routine in C,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedReduceIntegerConstantDone:
-            CALL TypedMaskResultWidth
+TypedMaskResultWidth:
+            BIT  1,C
+            JR   NZ,TypedReduceIntegerConstantMeta
+            LD   H,0
 TypedReduceIntegerConstantMeta:
             LD   A,C
             OR   ScalarMetaConstant
@@ -1274,8 +1271,7 @@ TypedUnaryMinusEmit:
             LD   A,C
             RET  Z
             CALL TypedNegateConstantHL
-            CALL TypedMaskResultWidth
-            JP   TypedReduceIntegerConstantMeta
+            JP   TypedMaskResultWidth
 
 .routine in A,BC,DE,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitUnaryOperation:
@@ -1668,7 +1664,7 @@ TypedNotEmit:
             XOR  1
             LD   L,A
             LD   H,0
-            JR   TypedNotConstantDone
+            JP   TypedReduceIntegerConstantMeta
 TypedNotIntegerConstant:
             LD   A,L
             CPL
@@ -1676,9 +1672,7 @@ TypedNotIntegerConstant:
             LD   A,H
             CPL
             LD   H,A
-            CALL TypedMaskResultWidth
-TypedNotConstantDone:
-            JP   TypedReduceIntegerConstantMeta
+            JP   TypedMaskResultWidth
 
 ; Boolean short circuit is represented by prefix/suffix operations so the
 ; Z80 backend can branch around the right operand. Integer and/or use the

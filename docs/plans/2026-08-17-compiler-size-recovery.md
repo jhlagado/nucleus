@@ -1108,13 +1108,31 @@ instructions and from 9,583,881 to 9,581,781 T-states. Exact line boundaries,
 diagnostic behavior, generated code,
 artifacts, historical contracts, and relocation remain unchanged.
 
+### Eleventh audit multipart, operation-byte, and constant-meta checkpoint
+
+Multipart EOF handling now derives the pending-part test and remaining-part
+mask from one shift, then reuses the already-loaded line-token byte. General
+routine and call publication use the existing operation-plus-byte semantic
+helper for their call labels. Integer constant width masking and result
+metadata also form one terminal path shared by reductions, unary operations,
+and conversions.
+
+The multipart path recovers three production code bytes, operation-byte reuse
+recovers four, and the constant-metadata paths recover eight. Together they
+reduce the production core from 15,487 to 15,472 bytes, with immutable data and
+workspace unchanged. The representative proof changes from 876,949 to 877,114
+instructions and from 9,581,781 to 9,582,794 T-states; the largest measured
+cycle regression is 0.032 percent. Exact multipart state, semantic transcripts, constant
+metadata, generated code, diagnostics, artifacts, historical layouts, and
+relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the tenth audit checkpoint added to the retained work above, the measured
-shipping core is 15,487 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,193 bytes. The earlier 15,360-byte target is 127 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,002 bytes,
-exceeding that phase target by 702 bytes. The compiler has 897 bytes of headroom
+With the eleventh audit checkpoint added to the retained work above, the
+measured shipping core is 15,472 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,208 bytes. The earlier 15,360-byte target is 112 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,017 bytes,
+exceeding that phase target by 717 bytes. The compiler has 912 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to

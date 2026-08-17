@@ -1780,13 +1780,10 @@ Stage7CallFailureClassReady:
 ; target, kind, and keep-result choice. Target-specific signature fields are
 ; present only for source routines.
 Stage7PublishCallable:
-            LD   A,SemanticCallGeneral
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
             LD   A,(Stage7CallLabel)
-            CALL SemanticSinkPut
+            LD   C,A
+            LD   A,SemanticCallGeneral
+            CALL ParserEmitOperationC
 .if CompilerDiagnosticReturns
             RET  C
 .endif

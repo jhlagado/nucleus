@@ -333,15 +333,15 @@ TokenizerAtEof:
             JR   NZ,TokenizerLineLexicalFailure
 .if AggregateCallSlices
             LD   A,(SourcePartsRemaining)
-            BIT  7,A
-            JR   NZ,TokenizerAdvancePart
+            ADD  A,A
+            JR   C,TokenizerAdvancePart
 .if TargetStreamingOutput
-            AND  SourcePartsRemainingMask
+            AND  SourcePartsRemainingMask*2
 .else
             OR   A
 .endif
             JR   Z,TokenizerAtCompilationEof
-            LD   A,(SourceLineHasToken)
+            LD   A,L
             OR   A
             JR   Z,TokenizerAdvancePart
             LD   HL,SourcePartsRemaining
