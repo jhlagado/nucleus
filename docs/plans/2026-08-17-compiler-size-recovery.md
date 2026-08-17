@@ -164,28 +164,33 @@ transplant is evaluated separately.
 
 ### Expression bakeoff checkpoint
 
-Branch `codex/expression-bakeoff` at `639fff61` is the current verified recovery
+Branch `codex/expression-bakeoff` at `2767fc10` is the current verified recovery
 laboratory checkpoint. It combines the recovered constant/call publication
 pass with shared diagnostic, dataflow, semantic-publication, root-selection,
-and postfix-string cleanup. The expression family now measures 3,984 code
-bytes plus 74 immutable bytes, or 4,058 bytes total. This is 228 code bytes
-below the preserved rewrite branch and 39 bytes below the 4,097-byte frozen
-production family. The complete rewrite prototype measures 17,676 core bytes
-and 3,938 workspace bytes at this checkpoint.
+and postfix-string cleanup. It also restores the frozen call boundary:
+predefined services retain their temporary state on the compiler hardware
+stack and no longer consume one of the four bounded source-call frames.
 
-The checkpoint passes 46 test files and 522 serial tests, strict AZM contracts,
-all generated rewrite authorities, compiler-image synchronization, TypeScript
-checking, the distribution build, and diff checks. It is the first complete
-rewrite family to beat its frozen counterpart, but it is not yet selected for
-production. The active experiment now removes services from the four-frame
-source-call pool and shares call finalization. The broader expression bakeoff
-continues toward its measured 3,500-byte gate.
+The expression family now measures 3,921 code bytes plus 74 immutable bytes, or
+3,995 bytes total. This is 291 code bytes below the preserved rewrite branch
+and 102 bytes below the 4,097-byte frozen production family. The complete
+rewrite prototype measures 17,613 core bytes and 3,938 workspace bytes at this
+checkpoint.
 
-The call audit also found a rewrite-only correctness defect: a predefined
-service currently consumes one source-call frame, so a service containing four
-nested source calls is rejected even though the frozen compiler accepts it.
-The next checkpoint must restore the frozen hardware-stack service path and add
-the missing boundary proof before claiming its projected 62–66-byte saving.
+The strict focused gate passes 102 expression, runtime, semantic, and backend
+tests, including a service containing four nested source calls with exact
+semantic offsets, zero residual call depth, and restored compiler SP. A full
+serial run executed 522 of 523 tests successfully; its sole 45-second
+relocation timeout then passed all 24 cases in isolation. Independent review,
+strict AZM contracts, all generated rewrite authorities, compiler-image
+synchronization, TypeScript checking, the distribution build, and diff checks
+pass. The proof-image setup budgets now allow for the measured AZM assembly
+cost.
+
+This remains the first complete rewrite family to beat its frozen counterpart,
+but it is not yet selected for production. The broader expression bakeoff
+continues toward its measured 3,500-byte gate. The next experiment targets
+repeated operator/type resolution without changing the semantic transcript.
 
 ### Declaration, statement, and control decision
 
@@ -196,7 +201,7 @@ action interpreter, and 1,100 bytes are expanded handwritten semantics. The
 rewrite family is rejected as the production architecture.
 
 The frozen packed LL(1) engine, complete grammar, direct semantic actions, and
-residual parser islands remain selected. No honest local 100-byte saving was
+residual parser islands remain selected. No verified local 100-byte saving was
 found in a fresh audit. A later direct-action regeneration is permitted only
 if its full-address code plus directory measures no more than 2,508 bytes,
 which would reduce the complete family to at most 5,761 bytes. Until an
