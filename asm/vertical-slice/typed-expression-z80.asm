@@ -229,8 +229,7 @@ TypedPrefetchMaskReady:
             AND  E
             LD   C,D
             RET  Z
-            CALL NextSemanticByte
-            RET
+            JP   NextSemanticByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDefine8:

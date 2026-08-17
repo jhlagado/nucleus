@@ -2211,13 +2211,13 @@ Stage7AggregateAssignmentWritable:
             JR   Z,Stage7ScalarAssignmentEmit
             LD   A,SemanticStoreIndirect16
 Stage7ScalarAssignmentEmit:
+.if Stage7LL1
+            JP   SemanticSinkOperation
+.else
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if Stage7LL1
-            RET
-.else
             JP   ParserExpectLine
 .endif
 Stage7AggregateCopyAssignment:
@@ -2243,13 +2243,13 @@ Stage7AggregateCopyAssignment:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if Stage7LL1
+            JP   Stage7EmitExtentAndCallOffset
+.else
             CALL Stage7EmitExtentAndCallOffset
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if Stage7LL1
-            RET
-.else
             JP   ParserExpectLine
 .endif
 Stage7StringResizeAssignment:
@@ -2280,13 +2280,13 @@ Stage7StringResizeAssignment:
             RET  C
 .endif
             LD   HL,(ExpressionValuePosition)
+.if Stage7LL1
+            JP   Stage7EmitWord
+.else
             CALL Stage7EmitWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if Stage7LL1
-            RET
-.else
             JP   ParserExpectLine
 .endif
 .if CompilerDiagnosticBranches

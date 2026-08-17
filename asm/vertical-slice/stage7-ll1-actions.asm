@@ -476,9 +476,6 @@ HybridLL1BeginRecordField:
             RET  C
 .endif
             LD   A,(AggregateFieldCount)
-            LD   B,A
-            LD   A,(AggregateCurrentFieldCount)
-            ADD  A,B
             CP   AggregateFieldCapacity
             JP   NC,AggregateTypeCapacityFailure
             PUSH AF
@@ -495,9 +492,6 @@ HybridLL1CommitRecordField:
             RET  C
 .endif
             LD   A,(AggregateFieldCount)
-            LD   B,A
-            LD   A,(AggregateCurrentFieldCount)
-            ADD  A,B
             CALL AggregateFieldAddress
             INC  HL
             INC  HL
@@ -521,6 +515,8 @@ HybridLL1CommitRecordField:
 .endif
             LD   (AggregateCurrentRecordExtent),HL
             LD   HL,AggregateCurrentFieldCount
+            INC  (HL)
+            LD   HL,AggregateFieldCount
             INC  (HL)
             XOR  A
             RET
@@ -555,10 +551,6 @@ HybridLL1CommitRecord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(AggregateCurrentFieldCount)
-            LD   HL,AggregateFieldCount
-            ADD  A,(HL)
-            LD   (HL),A
             LD   HL,AggregateRecordCount
             INC  (HL)
             XOR  A
@@ -568,11 +560,19 @@ HybridLL1CommitRecord:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 HybridLL1RequireBeforeMain:
+            LD   A,DiagnosticExpectedEof
+            JP   HybridLL1RequireNonMain
+
+; A selects the exact diagnostic if the current signature is main. Ordinary
+; routines return normally; compiler diagnostics retain the caller's token.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+HybridLL1RequireNonMain:
+            LD   D,A
             LD   A,(Stage7CurrentRoutine)
             INC  A
             RET  NZ
-            CALL SetDiagInline
-            .db  DiagnosticExpectedEof
+            LD   A,D
+            JP   CompilerSetDiagnostic
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 HybridLL1RequireMain:
@@ -715,9 +715,11 @@ HybridLL1CommitForwardMain:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1RetainParameter:
-            LD   A,(Stage7CurrentRoutine)
-            INC  A
-            JR   Z,HybridLL1MainParameterFailure
+            LD   A,DiagnosticExpectedRight
+            CALL HybridLL1RequireNonMain
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
             CALL Stage7CheckParameterDeclarationName
 .if CompilerDiagnosticReturns
             RET  C
@@ -731,9 +733,6 @@ HybridLL1RetainParameter:
 .endif
             OR   A
             RET
-HybridLL1MainParameterFailure:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedRight
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitParameter:
@@ -742,10 +741,8 @@ HybridLL1CommitParameter:
             JP   Stage7AppendParameter
 
 HybridLL1AllowSubResult:
-            LD   A,(Stage7CurrentRoutine)
-            INC  A
-            JR   Z,HybridLL1SubSignatureLineFailure
-            RET
+            LD   A,DiagnosticExpectedLine
+            JP   HybridLL1RequireNonMain
 
 HybridLL1SaveSubResult:
             CALL AggregateRejectOpenViewPlacement
@@ -764,9 +761,6 @@ HybridLL1SetRoutineFlag:
             LD   (Stage7CurrentFlags),A
             OR   A
             RET
-HybridLL1SubSignatureLineFailure:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedLine
 
 ; Open the abbreviated body of one exact incomplete forward and recover its
 ; sole stored signature, including the original parameter spellings.
@@ -1180,6 +1174,15 @@ Stage8SelectFailureConsumer:
             JR   Z,HybridLL1FailureContext
             OR   A
             RET
+
+; Address the selected field of the active control frame and load its byte.
+; Callers have already established the frame precondition.
+.routine in B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+HybridLL1TopFrameFieldToC:
+            CALL ControlTopFrameField
+            LD   C,(HL)
+            RET
+
 Stage8SelectPendingFailure:
             CALL ParserPeek
 .if CompilerDiagnosticReturns
@@ -1201,8 +1204,7 @@ Stage8SelectPendingFailure:
             LD   HL,(Stage8CallModePointer)
             LD   (HL),Stage8CallModeHandle
             LD   B,ControlFrameLabelA
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             LD   HL,(Stage8CallModePointer)
             INC  HL
             LD   (HL),C
@@ -1256,16 +1258,14 @@ Stage8HandlerCounterReady:
             CP   ScalarTypeU8
             JP   NZ,TypedTypeFailure
             LD   B,ControlFrameExit
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             LD   A,SemanticSkipHandler
             CALL Stage8EmitOperationLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   B,ControlFrameLabelA
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             LD   A,SemanticBeginHandler
             CALL Stage8EmitOperationLabel
 .if CompilerDiagnosticReturns
@@ -1308,8 +1308,7 @@ HybridLL1EndHandle:
 .endif
 .endif
             LD   B,ControlFrameExit
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             LD   A,SemanticEndHandler
             CALL Stage8EmitOperationLabel
 .if CompilerDiagnosticReturns
@@ -1758,8 +1757,7 @@ HybridLL1BeginBranchClause:
             RET  C
 .endif
             LD   B,ControlFrameExit
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C
@@ -1819,8 +1817,7 @@ HybridLL1FinishIfClauses:
 ; established that frame; the helper preserves their existing precondition.
 .routine in B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EmitFrameLabel:
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             JP   ControlEmitLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1898,8 +1895,7 @@ HybridLL1EndWhile:
 .endif
 .endif
             LD   B,ControlFrameContinue
-            CALL ControlTopFrameField
-            LD   C,(HL)
+            CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C

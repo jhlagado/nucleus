@@ -421,14 +421,31 @@ proofs pass, as does relocation at `$0100`, `$8000`, and the highest-fitting
 origin. Table bases, field offsets, object offsets, and extents remain complete
 16-bit values.
 
+### Stage 7 tail and field consolidation
+
+The final five production `CALL`-then-`RET` sequences are now direct tail
+jumps. Record fields increment the global field count when each checked field
+is committed, which removes repeated global-plus-current count arithmetic and
+the final publication sum. Three main-routine diagnostic paths share one exact
+diagnostic selector, and seven active-control-frame byte loads share one
+contracted field-to-C helper.
+
+The checkpoint recovers a measured 26 code bytes with immutable data and
+workspace unchanged. The production core is 16,216 bytes. The complete machine
+census contains no true production `CALL`-then-`RET` tail. Strict normal,
+instrumented, historical, aggregate, expression, structured-control, language,
+NOBJ, D8, and failure proofs pass. Relocation passes at `$0100`, `$8000`, and
+the highest-fitting origin; the shared tails and helpers retain full 16-bit
+targets.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
-symbol, descriptor, provider, relative-branch, and aggregate-metadata
-checkpoints, the measured shipping core is 16,242 bytes and the remaining
-recovery to 15,360 is 882 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 438 bytes. The current 300-byte phase starts at 16,489
-bytes and has recovered 247 of its required 300 bytes; its phase target is
+symbol, descriptor, provider, relative-branch, aggregate-metadata, and Stage 7
+tail checkpoints, the measured shipping core is 16,216 bytes and the remaining
+recovery to 15,360 is 856 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 464 bytes. The current 300-byte phase starts at 16,489
+bytes and has recovered 273 of its required 300 bytes; its phase target is
 16,189.
 
 The search continues in the selected original frontend and backend, and no

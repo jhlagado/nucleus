@@ -898,12 +898,12 @@ Stage7EmitRegionPrefix:
             RET  C
 .endif
             LD   A,$21
-            CALL EmitOpcodeWord
+            JP   EmitOpcodeWord
 .else
             LD   DE,ProgramDataRegionLimit
             CALL EmitLoadDeImmediate
-.endif
             RET
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitRegionInvoke:
