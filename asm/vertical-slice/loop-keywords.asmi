@@ -106,3 +106,14 @@ NameWriteOutputByte:    .db "writeOutputByte"
 .if LegacyCompilerSlices
 NameResult:             .db "result"
 .endif
+
+; Constant-comparison truth values. Rows follow the dense Comparison* ordinal
+; order; columns are equal, less, and greater relations. This is immutable
+; language data and contains no compiler address or encoded instruction.
+TypedComparisonResults:
+            .db 1,0,0
+            .db 0,1,1
+            .db 0,1,0
+            .db 1,1,0
+            .db 0,0,1
+            .db 1,0,1

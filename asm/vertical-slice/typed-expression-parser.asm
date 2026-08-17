@@ -1697,65 +1697,26 @@ TypedComparisonConstantSigned8:
 TypedComparisonConstantSubtract:
             OR   A
             SBC  HL,DE
+            ; Classify the relation as equal/less/greater (0/1/2), then use
+            ; the dense comparison ordinal to select one Boolean table cell.
+            ; The table contains language truth values, never code addresses.
+            LD   D,0
+            JR   Z,TypedComparisonRelationReady
+            INC  D
+            JR   C,TypedComparisonRelationReady
+            INC  D
+TypedComparisonRelationReady:
             LD   A,(ExpressionOperator)
-            JR   Z,TypedComparisonWasEqual
-            JR   C,TypedComparisonWasLess
-            LD   C,1
-            JR   TypedComparisonSelect
-TypedComparisonWasEqual:
-            LD   C,0
-            JR   TypedComparisonSelect
-TypedComparisonWasLess:
-            LD   C,$FF
-TypedComparisonSelect:
-            ; C is -1, 0, or 1. Map the requested relation to a Boolean.
-            LD   B,A
-            LD   HL,0
-            LD   A,B
-            CP   ComparisonEqual
-            JR   Z,TypedComparisonSelectEqual
-            CP   ComparisonNotEqual
-            JR   Z,TypedComparisonSelectNotEqual
-            CP   ComparisonLess
-            JR   Z,TypedComparisonSelectLess
-            CP   ComparisonLessEqual
-            JR   Z,TypedComparisonSelectLessEqual
-            CP   ComparisonGreater
-            JR   Z,TypedComparisonSelectGreater
-            LD   A,C
-            CP   $FF
-            JR   Z,TypedComparisonConstantDone
-            INC  L
-            JR   TypedComparisonConstantDone
-TypedComparisonSelectEqual:
-            LD   A,C
-            OR   A
-            JR   NZ,TypedComparisonConstantDone
-            INC  L
-            JR   TypedComparisonConstantDone
-TypedComparisonSelectNotEqual:
-            LD   A,C
-            OR   A
-            JR   Z,TypedComparisonConstantDone
-            INC  L
-            JR   TypedComparisonConstantDone
-TypedComparisonSelectLess:
-            LD   A,C
-            CP   $FF
-            JR   NZ,TypedComparisonConstantDone
-            INC  L
-            JR   TypedComparisonConstantDone
-TypedComparisonSelectLessEqual:
-            LD   A,C
-            CP   1
-            JR   Z,TypedComparisonConstantDone
-            INC  L
-            JR   TypedComparisonConstantDone
-TypedComparisonSelectGreater:
-            LD   A,C
-            CP   1
-            JR   NZ,TypedComparisonConstantDone
-            INC  L
+            LD   E,A
+            ADD  A,A
+            ADD  A,E
+            ADD  A,D
+            LD   E,A
+            LD   D,0
+            LD   HL,TypedComparisonResults
+            ADD  HL,DE
+            LD   L,(HL)
+            LD   H,0
 TypedComparisonConstantDone:
             LD   A,ScalarMetaConstant+ScalarTypeBoolean
             OR   A

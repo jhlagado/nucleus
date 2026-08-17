@@ -174,6 +174,76 @@ describe("signed integers", () => {
     );
   });
 
+  it("selects every constant and runtime comparison truth-table cell", async () => {
+    const operators = ["=", "<>", "<", "<=", ">", ">="] as const;
+    const truthByOperator = [
+      [true, false, false],
+      [false, true, true],
+      [false, true, false],
+      [true, true, false],
+      [false, false, true],
+      [true, false, true],
+    ] as const;
+    const cases = [
+      {
+        declarations: [] as string[],
+        operands: ["u16(255)", "u16(256)", "u16(255)"] as const,
+      },
+      {
+        declarations: [] as string[],
+        operands: ["i16(-1)", "i16(1)", "i16(-1)"] as const,
+      },
+      {
+        declarations: [
+          "var lower as u16 = 255",
+          "var upper as u16 = 256",
+          "var equal as u16 = 255",
+        ],
+        operands: ["lower", "upper", "equal"] as const,
+      },
+      {
+        declarations: [
+          "var lower as i16 = -1",
+          "var upper as i16 = 1",
+          "var equal as i16 = -1",
+        ],
+        operands: ["lower", "upper", "equal"] as const,
+      },
+    ] as const;
+
+    for (const { declarations, operands } of cases) {
+      const relations = [
+        [operands[0], operands[2]],
+        [operands[0], operands[1]],
+        [operands[1], operands[0]],
+      ] as const;
+      for (const operatorStart of [0, 3]) {
+        const lines = [...declarations, "sub main() fails"];
+        let output = 1;
+        operators
+          .slice(operatorStart, operatorStart + 3)
+          .forEach((operator, relativeOperatorIndex) => {
+            const operatorIndex = operatorStart + relativeOperatorIndex;
+            relations.forEach(([left, right], relationIndex) => {
+              const comparison = `${left} ${operator} ${right}`;
+              const condition = truthByOperator[operatorIndex][relationIndex]
+                ? comparison
+                : `not (${comparison})`;
+              lines.push(`if ${condition}`);
+              lines.push(`writeOutputByte(${output}) else fail`);
+              lines.push("end");
+              output += 1;
+            });
+          });
+        lines.push("end", "");
+        await expectOutput(
+          lines.join("\n"),
+          Array.from({ length: 9 }, (_, index) => index + 1),
+        );
+      }
+    }
+  });
+
   it("uses truncation toward zero and a dividend-signed remainder", async () => {
     const checks = [
       "i16(7) / 3 = 2",

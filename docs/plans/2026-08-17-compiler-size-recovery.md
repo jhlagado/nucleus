@@ -230,6 +230,15 @@ bytes while adding 16 immutable bytes. The four-byte net saving did not justify
 the extra representation, so the experiment was reverted. None of these
 figures is included in production headroom.
 
+A production-native comparison checkpoint is retained. The original constant
+comparison selector used a branch chain for six operators and three possible
+relations. The replacement classifies equal, less, or greater and indexes an
+18-byte table of language truth values by the existing dense comparison
+ordinal. The table contains neither addresses nor instructions. Exhaustive
+tests cover all 72 signed/unsigned, constant/runtime cells. Compiler code falls
+by 61 bytes, immutable data grows by 18, and the complete production core falls
+by a measured 43 bytes with no workspace or generated-program change.
+
 ### Declaration, statement, and control decision
 
 The complete rewrite family measures 7,324 bytes against 5,861 bytes for the
@@ -262,15 +271,14 @@ cannot supply the 1,320-byte production recovery target.
 
 ### Current recovery outlook
 
-After the production-native scanner checkpoint, the measured shipping core is
-16,655 bytes and the remaining recovery to 15,360 is 1,295 bytes. The next
-bounded production-native expression experiment is a comparison-result table,
-projected at about 35 bytes. The parity-safe backend work projects 195–285
-bytes, and a not-yet-assembled direct-action redesign projects 100–408 bytes.
-Together with the measured scanner result, the currently evidenced range is
-355–753 bytes, which would place the compiler between 15,927 and 16,325 bytes.
+After the scanner and comparison checkpoints, the measured shipping core is
+16,612 bytes and the remaining recovery to 15,360 is 1,252 bytes. The
+parity-safe backend work projects 195–285 bytes, and a not-yet-assembled
+direct-action redesign projects 100–408 bytes. Together with the measured
+68-byte recovery, the currently evidenced range is 363–761 bytes, which would
+place the compiler between 15,919 and 16,317 bytes.
 
-That range does not yet reach the target. A further 567–965 bytes therefore
+That range does not yet reach the target. A further 559–957 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled
