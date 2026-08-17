@@ -16,18 +16,23 @@ EmitControlExitLabel    .equ EmitFailureFixup+1
 .endif
 .routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredRecordFixup:
-            LD   A,C
 .if TargetStreamingOutput
-            AND  $1F
-.endif
+            ; Allocated labels are 0..31; bit 7 may additionally mark a far
+            ; operand. The former masked range check therefore could not fail.
+.else
+            LD   A,C
             CP   EmitControlLabelCapacity
             JP   NC,ControlLabelFailure
+.endif
             LD   A,(EmitControlFixupCount)
             CP   EmitControlFixupCapacity
             JR   NC,StructuredFixupFailure
             PUSH BC
             LD   L,A
+.if TargetStreamingOutput
+.else
             LD   H,0
+.endif
             ADD  A,A
             ADD  A,L
             LD   L,A
@@ -93,9 +98,18 @@ StructuredDefineLabel:
             LD   A,C
             CP   EmitControlLabelCapacity
             JP   NC,ControlLabelFailure
+.if TargetStreamingOutput
+            ADD  A,A
+            ADD  A,C
+            LD   L,A
+            LD   H,0
+            LD   BC,EmitControlLabelBase
+            ADD  HL,BC
+.else
             LD   B,0
             LD   HL,EmitControlLabelValidBase
             ADD  HL,BC
+.endif
             LD   A,(HL)
             OR   A
             JP   NZ,TypedInternalOperation
@@ -106,11 +120,15 @@ StructuredDefineLabel:
 .else
             LD   (HL),1
 .endif
+.if TargetStreamingOutput
+            INC  HL
+.else
             LD   L,C
             LD   H,0
             ADD  HL,HL
             LD   BC,EmitControlLabelAddressBase
             ADD  HL,BC
+.endif
             LD   DE,(EmitCursor)
             LD   (HL),E
             INC  HL
@@ -181,9 +199,19 @@ StructuredResolveNext:
             PUSH BC
             PUSH DE
 .endif
+.if TargetStreamingOutput
+            LD   A,C
+            ADD  A,A
+            ADD  A,C
+            LD   L,A
+            LD   H,0
+            LD   BC,EmitControlLabelBase
+            ADD  HL,BC
+.else
             LD   B,0
             LD   HL,EmitControlLabelValidBase
             ADD  HL,BC
+.endif
             LD   A,(HL)
             OR   A
             JR   Z,StructuredResolveUnwind
@@ -195,11 +223,15 @@ StructuredResolveNext:
             JR   NZ,StructuredResolveUnwind
 StructuredResolveBankReady:
 .endif
+.if TargetStreamingOutput
+            INC  HL
+.else
             LD   H,0
             LD   L,C
             ADD  HL,HL
             LD   BC,EmitControlLabelAddressBase
             ADD  HL,BC
+.endif
             LD   C,(HL)
             INC  HL
             LD   H,(HL)
@@ -327,10 +359,16 @@ StructuredForSetup:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForTest:
             LD   C,A                      ; counter
+.if TargetStreamingOutput
+            CALL ReadSemanticWord
+            LD   B,E                      ; mode
+            LD   A,D                      ; exit label
+.else
             CALL NextSemanticByte
             LD   B,A                      ; mode
             CALL NextSemanticByte
             LD   D,A                      ; exit label
+.endif
             LD   (EmitControlExitLabel),A
             PUSH BC
             PUSH DE
@@ -405,10 +443,15 @@ StructuredForNext:
             LD   (EmitControlTestLabel),A
             CALL NextSemanticByte
             LD   (EmitControlExitLabel),A
+.if TargetStreamingOutput
+            CALL ReadSemanticWord
+            LD   (EmitControlCounter),DE
+.else
             CALL NextSemanticByte
             LD   (EmitControlCounter),A
             CALL NextSemanticByte
             LD   (EmitControlMode),A
+.endif
             CALL ReadSemanticWord
             LD   (EmitControlStep),DE
             CALL ReadSemanticWord

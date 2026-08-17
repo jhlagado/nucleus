@@ -17,7 +17,11 @@ TypedDispatch:
             LD   (EmitBooleanFixupDepth),A
             LD   (EmitControlFixupCount),A
             LD   HL,EmitControlLabelValidBase
+.if TargetStreamingOutput
+            LD   B,EmitControlLabelCapacity*EmitControlLabelSize
+.else
             LD   B,EmitControlLabelCapacity
+.endif
 TypedResetControlLabels:
             LD   (HL),A
             INC  HL

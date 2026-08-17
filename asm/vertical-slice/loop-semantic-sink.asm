@@ -43,6 +43,15 @@ SemanticSinkPutPreserveHL:
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:
+.if TargetStreamingOutput
+            LD   B,A
+            LD   A,(SemanticBufferBase)
+            INC  A
+            JR   Z,SemanticSinkPutFull
+            LD   (SemanticBufferBase),A
+            LD   A,B
+            JP   SemanticSinkPut
+.else
             LD   B,A
             LD   A,(SinkOperationCount)
             CP   255
@@ -61,10 +70,15 @@ SemanticSinkOperation:
             INC  (HL)
             XOR  A
             RET
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 SemanticSinkFinish:
+.if TargetStreamingOutput
+            LD   A,(SemanticBufferBase)
+.else
             LD   A,(SinkOperationCount)
             LD   (SemanticBufferBase),A
+.endif
             OR   A
             RET

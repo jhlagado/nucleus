@@ -438,15 +438,34 @@ NOBJ, D8, and failure proofs pass. Relocation passes at `$0100`, `$8000`, and
 the highest-fitting origin; the shared tails and helpers retain full 16-bit
 targets.
 
+### Semantic and fixup metadata
+
+The production semantic transcript now increments its authoritative header byte
+as each operation is appended, eliminating a parallel operation-count path.
+Control labels store validity, bank, and the full address together in one
+three-byte record; the workspace account remains 96 bytes. Definition and
+resolution share the same bounded multiplication-by-three address form. The
+fixup path removes a label-range test made impossible by the preceding packed
+mask, and counted-loop lowering reads adjacent semantic operands in word-sized
+batches.
+
+The checkpoint recovers a measured 32 code bytes with immutable data and
+workspace unchanged. The production core is 16,184 bytes. Clearing the complete
+interleaved label table adds 1,145 instructions and 7,027 T-states to the
+representative proof, increases of 0.115 and 0.066 percent. The semantic stream,
+PATCH order, NOBJ, D8, diagnostics, and generated target remain exact. Strict
+normal, instrumented, historical, structured-control, language, and failure
+proofs pass, as does relocation at `$0100`, `$8000`, and the highest-fitting
+origin. Label and fixup addresses remain full 16-bit words.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
-symbol, descriptor, provider, relative-branch, aggregate-metadata, and Stage 7
-tail checkpoints, the measured shipping core is 16,216 bytes and the remaining
-recovery to 15,360 is 856 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 464 bytes. The current 300-byte phase starts at 16,489
-bytes and has recovered 273 of its required 300 bytes; its phase target is
-16,189.
+symbol, descriptor, provider, relative-branch, aggregate-metadata, Stage 7 tail,
+and semantic/fixup checkpoints, the measured shipping core is 16,184 bytes and
+the remaining recovery to 15,360 is 824 bytes. Total measured recovery from the
+frozen 16,680-byte compiler is 496 bytes. The 300-byte phase began at 16,489
+bytes and recovered 305 bytes, exceeding its target by five bytes.
 
 The search continues in the selected original frontend and backend, and no
 local rewrite saving is counted until all adapters and displaced production

@@ -169,10 +169,26 @@ ControlFrameTrapOffset  .equ 8
 ControlNoCounter        .equ $FF
 
 EmitControlFixupCount   .equ ControlWorkspaceBase+$00
+.if TargetStreamingOutput
+; Production labels retain validity/bank and the full address together. The
+; three-byte record keeps the ordinary 16-bit address while sharing one x3
+; address calculation between definition and resolution.
+EmitControlLabelBase    .equ ControlWorkspaceBase+$01
+EmitControlLabelSize    .equ 3
+EmitControlLabelValid   .equ 0
+EmitControlLabelAddress .equ 1
+EmitControlLabelValidBase .equ EmitControlLabelBase
+EmitControlLabelAddressBase .equ EmitControlLabelBase+EmitControlLabelAddress
+.else
 EmitControlLabelValidBase .equ ControlWorkspaceBase+$01
+.endif
 EmitControlLabelCapacity .equ 32
+.if TargetStreamingOutput
+EmitControlFixupBase    .equ EmitControlLabelBase+EmitControlLabelCapacity*EmitControlLabelSize
+.else
 EmitControlLabelAddressBase .equ EmitControlLabelValidBase+EmitControlLabelCapacity
 EmitControlFixupBase    .equ EmitControlLabelAddressBase+EmitControlLabelCapacity*2
+.endif
 EmitControlFixupSize    .equ 3
 EmitControlFixupCapacity .equ 32
 EmitControlFixupLimit   .equ EmitControlFixupBase+EmitControlFixupSize*EmitControlFixupCapacity
