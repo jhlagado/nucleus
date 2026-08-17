@@ -117,8 +117,8 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       semanticBytes: 288,
-      operationBytes: 1368,
-      coreBytes: 18_542,
+      operationBytes: 948,
+      coreBytes: 18_115,
       workspaceBytes: 3_938,
     });
     expect(rewriteSemanticOperations).toHaveLength(105);
@@ -161,39 +161,17 @@ describe("ground-up rewrite semantic authority", () => {
     expect(image.symbols.RewriteSemanticStackDynamic).toBe(15);
 
     const widths = image.symbols.RewriteSemanticOperationWidthTable ?? -1;
-    const descriptors =
-      image.symbols.RewriteSemanticOperationDescriptorTable ?? -1;
-    const sourceKinds = { none: 0, direct: 1, enclosing: 2 } as const;
+    const backendSelectors =
+      image.symbols.RewriteSemanticBackendSelectorTable ?? -1;
     for (const [index, operation] of rewriteSemanticOperations.entries()) {
-      const descriptor = descriptors + index * 5;
       expect(image.symbols[`RewriteSemantic${operation.name}`]).toBe(
         operation.id,
       );
       const memory = parseIntelHex(image.hex).memory;
       expect(memory[widths + index], operation.name).toBe(operation.width);
-      expect(memory[descriptor], operation.name).toBe(operation.width);
-      expect(memory[descriptor + 1] & 0x0f, operation.name).toBe(
-        operation.operands.length,
-      );
-      expect((memory[descriptor + 1] >>> 4) & 3, operation.name).toBe(
-        sourceKinds[operation.source],
-      );
-      expect((memory[descriptor + 1] >>> 6) & 1, operation.name).toBe(0);
-      expect(memory[descriptor + 1] >>> 7, operation.name).toBe(
-        operation.backend.kind === "escape" ? 1 : 0,
-      );
-      expect(memory[descriptor + 2], operation.name).toBe(
-        operation.operands.reduce(
-          (bits, operand, operandIndex) =>
-            bits | (operand.kind === "word" ? 1 << operandIndex : 0),
-          0,
-        ),
-      );
-      expect(memory[descriptor + 3], operation.name).toBe(
-        operation.backend.index,
-      );
-      expect(memory[descriptor + 4], operation.name).toBe(
-        operation.stack.encoded,
+      expect(memory[backendSelectors + index], operation.name).toBe(
+        operation.backend.index |
+          (operation.backend.kind === "escape" ? 0x80 : 0),
       );
       for (const operand of operation.operands) {
         expect(

@@ -1696,6 +1696,28 @@ Cross-cutting dense front-action checkpoint (Measured, retained):
   2,154 further bytes are required for the 16 KiB gate and 4,202 for the
   14 KiB design target before accounting for unfinished target-output work.
 
+Cross-cutting compact semantic-dispatch checkpoint (Measured, retained):
+
+- the JSON and generated TypeScript remain the complete operation authority:
+  every operand, record width, source class, backend class and selector, and
+  abstract stack effect is still checked. The target-resident compiler now
+  keeps only the two fields it executes: one width byte and one packed backend
+  selector per operation;
+- the former resident account duplicated the 105 width bytes in a separate
+  five-byte-per-operation descriptor table. Removing the 525-byte descriptor
+  and adding the 105-byte selector table reduces operation data from 1,368 to
+  948 bytes, a measured 420-byte saving. Selector bit 7 chooses the recipe or
+  escape namespace; neither namespace stores or shortens an address;
+- backend dispatch indexes the selector table directly instead of multiplying
+  the operation ordinal by five. The backend code account falls from 3,954 to
+  3,947 bytes, and every backend execution proof takes fewer instructions and
+  T-states while emitting byte-identical target code; and
+- the measured shipping replacement is 16,534 code + 1,577 immutable = 18,111
+  core bytes. The instrumented replacement is 18,115 core bytes, workspace
+  remains 3,938 bytes, and the complete checkpoint saves 427 bytes. A further
+  1,727 bytes are required for the 16 KiB gate and 3,775 for the 14 KiB design
+  target before accounting for unfinished target-output work.
+
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the
 complete oracle corpus; PATCH attribution, bank identity, abort atomicity, and

@@ -16,8 +16,8 @@ meaning; these files make its current Stage 7 syntax executable and testable.
 
 `scripts/generate-rewrite-operations.mjs` turns the replacement operation
 source into Z80 ordinals, producer-facing operand offsets, record widths,
-dispatcher descriptors, backend selectors, and the TypeScript boundary
-decoder. `npm run check:rewrite-operations` rejects either generated view when
+compact runtime selector tables, complete TypeScript descriptors, and the
+TypeScript boundary decoder. `npm run check:rewrite-operations` rejects either generated view when
 it differs from that source. Every replacement record has a fixed declared
 width. Source and service calls, local and program handlers, and each direct or
 forwarded open-view form use distinct operations rather than data-dependent
@@ -29,23 +29,21 @@ little-endian word. The width table includes the ordinal. Generated
 `Operand...Offset` equates address the operand-only staging buffer accepted by
 `RewriteSemanticAppend`, so the first operand is at offset zero. Generated
 `RecordOperand...Offset` equates address the published record and include its
-ordinal, so the first operand is at offset one. The descriptor is five bytes:
-
-1. complete record width;
-2. operand count in bits 0–3, source class in bits 4–5, bit 6 reserved, and
-   recipe/escape class in bit 7;
-3. one bit per operand, set for a word and clear for a byte;
-4. a dense selector in the recipe or escape namespace; and
-5. abstract stack input and output in the high and low nibbles.
+ordinal, so the first operand is at offset one. The compiler-resident Z80 view
+contains one width byte and one packed backend-selector byte per operation.
+Selector bit 7 selects the escape namespace; bits 0–6 hold its dense ordinal.
+The generated TypeScript view retains the complete logical descriptor:
+operands and widths, source class, backend class and selector, and abstract
+stack input and output. Keeping Host/D8 metadata out of the target compiler
+does not weaken the checked authority or consume resident Z80 bytes.
 
 Stack effects 0–14 are literal carrier counts. Nibble `$F` is reserved for the
 named `dynamic` effect used by calls; the source generator rejects numeric 15.
 The source classes are zero for no attribution, one for the current direct
 source context, and two for the resumed enclosing-construct context used for
 compiler-generated closure. Backend selectors are namespace
-ordinals, not addresses. Later backend milestones build complete full-address
-directories from them without using an address bit or assuming a compiler
-origin.
+ordinals, not addresses. The backend maps them through complete full-address
+directories without using an address bit or assuming a compiler origin.
 
 The top-level trace policy is `operation-start`: after validating the complete
 transcript, the instrumented dispatcher reports one `$DD` event at each record

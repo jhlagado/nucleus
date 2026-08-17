@@ -69,8 +69,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRecipes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 10_959,
-      cycles: 96_447,
+      instructions: 10_617,
+      cycles: 93_939,
     });
     const output = image.symbols.ProofBackendOutput ?? -1;
     const expected = image.symbols.ProofExpectedBackend ?? -1;
@@ -130,8 +130,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendEscapes");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 6_597,
-      cycles: 62_809,
+      instructions: 6_557,
+      cycles: 62_514,
     });
     expect(
       (image.symbols.ProofExpectedEscapesEnd ?? 0) -
@@ -143,8 +143,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendBankedTrap");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_524,
-      cycles: 16_411,
+      instructions: 1_516,
+      cycles: 16_352,
     });
   });
 
@@ -152,8 +152,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendAddresses");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 4_359,
-      cycles: 39_737,
+      instructions: 4_188,
+      cycles: 38_483,
     });
     expect(
       (image.symbols.ProofExpectedAddressesEnd ?? 0) -
@@ -165,8 +165,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendControl");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_567,
-      cycles: 16_087,
+      instructions: 1_513,
+      cycles: 15_691,
     });
     expect(
       (image.symbols.ProofExpectedControlEnd ?? 0) -
@@ -178,8 +178,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendArrayPaths");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa7);
     expect({ instructions, cycles }).toEqual({
-      instructions: 3_994,
-      cycles: 38_709,
+      instructions: 3_960,
+      cycles: 38_459,
     });
     expect(
       (image.symbols.ProofExpectedArrayPathsEnd ?? 0) -
@@ -191,8 +191,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendStringPaths");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa8);
     expect({ instructions, cycles }).toEqual({
-      instructions: 14_311,
-      cycles: 133_929,
+      instructions: 14_271,
+      cycles: 133_634,
     });
     expect(
       (image.symbols.ProofExpectedStringPathsEnd ?? 0) -
@@ -204,8 +204,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendCarrierTransfer");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa9);
     expect({ instructions, cycles }).toEqual({
-      instructions: 4_282,
-      cycles: 41_472,
+      instructions: 4_242,
+      cycles: 41_177,
     });
     expect(
       (image.symbols.ProofExpectedCarrierTransferEnd ?? 0) -
@@ -217,8 +217,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendFailureHandlers");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xaa);
     expect({ instructions, cycles }).toEqual({
-      instructions: 3_502,
-      cycles: 33_711,
+      instructions: 3_422,
+      cycles: 33_121,
     });
     expect(
       (image.symbols.ProofExpectedFailureHandlersEnd ?? 0) -
@@ -240,8 +240,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendCallableMain");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xab);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_673,
-      cycles: 26_712,
+      instructions: 2_657,
+      cycles: 26_594,
     });
     expect(
       (image.symbols.ProofExpectedCallableMainEnd ?? 0) -
@@ -263,8 +263,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendCountedLoop");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xac);
     expect({ instructions, cycles }).toEqual({
-      instructions: 3_938,
-      cycles: 37_715,
+      instructions: 3_888,
+      cycles: 37_347,
     });
     expect(
       (image.symbols.ProofExpectedCountedLoopEnd ?? 0) -
@@ -288,8 +288,8 @@ describe("ground-up rewrite backend recipes", () => {
     );
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xad);
     expect({ instructions, cycles }).toEqual({
-      instructions: 1_989,
-      cycles: 20_656,
+      instructions: 1_981,
+      cycles: 20_597,
     });
     expect(
       (image.symbols.ProofExpectedOpenStringCapacityEnd ?? 0) -
@@ -313,8 +313,8 @@ describe("ground-up rewrite backend recipes", () => {
     );
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xae);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_145,
-      cycles: 22_131,
+      instructions: 2_137,
+      cycles: 22_072,
     });
   });
 
@@ -342,8 +342,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_001,
-      cycles: 20_000,
+      instructions: 1_953,
+      cycles: 19_646,
     });
     expect(
       (image.symbols.ProofExpectedRoutineFrameEnd ?? 0) -
@@ -369,8 +369,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendSourceCalls");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 5_908,
-      cycles: 56_254,
+      instructions: 5_884,
+      cycles: 56_077,
     });
     expect(
       (image.symbols.ProofExpectedSourceCallsEnd ?? 0) -
@@ -396,8 +396,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendServiceCalls");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa6);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_020,
-      cycles: 20_595,
+      instructions: 1_996,
+      cycles: 20_418,
     });
     expect(
       (image.symbols.ProofExpectedServiceCallsEnd ?? 0) -
@@ -573,11 +573,11 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 3_954,
+      engine: 3_947,
       recipes: 738,
-      code: 16_541,
-      immutable: 1_997,
-      core: 18_538,
+      code: 16_534,
+      immutable: 1_577,
+      core: 18_111,
       workspace: 3_938,
       supported: 105,
     });

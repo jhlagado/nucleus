@@ -50,8 +50,8 @@ RewriteBackendEmitByte:
             XOR  A
             RET
 
-; Dispatch one already-prefetched semantic operation in A. The semantic
-; descriptor supplies a dense recipe or escape selector. Both generated
+; Dispatch one already-prefetched semantic operation in A. The compact
+; runtime table supplies a dense recipe or escape selector. Both generated
 ; directories retain complete handler addresses; no compiler origin bits are
 ; packed into either selector.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -64,19 +64,10 @@ RewriteBackendDispatchOperation:
             DEC  A
             LD   E,A
             LD   D,0
-            LD   L,E
-            LD   H,D
-            ADD  HL,HL
-            ADD  HL,HL
+            LD   HL,RewriteSemanticBackendSelectorTable
             ADD  HL,DE
-            LD   DE,RewriteSemanticOperationDescriptorTable
-            ADD  HL,DE
-            INC  HL
-            LD   B,(HL)
-            INC  HL
-            INC  HL
             LD   A,(HL)
-            BIT  7,B
+            BIT  7,A
             JR   NZ,RewriteBackendDispatchEscape
             CP   RewriteRecipeCount
             JP   NC,RewriteBackendInvalid
@@ -95,6 +86,7 @@ RewriteBackendDispatchOperation:
             JP   RewriteBackendRunRecipe
 
 RewriteBackendDispatchEscape:
+            AND  $7F
             CP   RewriteEscapeCount
             JP   NC,RewriteBackendInvalid
             LD   L,A
