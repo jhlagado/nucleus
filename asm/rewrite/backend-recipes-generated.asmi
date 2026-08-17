@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 100
+RewriteBackendSupportedOperationCount .equ 104
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -65,10 +65,10 @@ RewriteBackendRecipeDirectoryEnd:
 RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeDivideUnsigned ; divideUnsigned
             .dw RewriteBackendEscapeNarrowU8 ; narrowU8
-            .dw 0 ; forSetup
-            .dw 0 ; forTest
-            .dw 0 ; forNext
-            .dw 0 ; forCleanup
+            .dw RewriteBackendEscapeForSetup ; forSetup
+            .dw RewriteBackendEscapeForTest ; forTest
+            .dw RewriteBackendEscapeForNext ; forNext
+            .dw RewriteBackendEscapeForCleanup ; forCleanup
             .dw RewriteBackendEscapeBeginRoutine ; beginRoutine
             .dw RewriteBackendEscapeBindParameter ; bindParameter
             .dw RewriteBackendEscapeCallSource ; callSource

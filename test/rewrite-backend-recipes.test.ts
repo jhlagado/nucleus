@@ -259,6 +259,29 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({ diagnostic: 67, emitted: 0 });
   });
 
+  it("lowers a complete signed counted loop with overshoot-before-step", () => {
+    const { memory, instructions, cycles } = run("ProofBackendCountedLoop");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xac);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 3_938,
+      cycles: 37_715,
+    });
+    expect(
+      (image.symbols.ProofExpectedCountedLoopEnd ?? 0) -
+        (image.symbols.ProofExpectedCountedLoop ?? 0),
+    ).toBeGreaterThan(0);
+  });
+
+  it("rejects corrupt counted-loop mode metadata before output", () => {
+    const { memory } = run("ProofBackendCountedLoopInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted: (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({ diagnostic: 67, emitted: 0 });
+  });
+
   it("rejects corrupt open-argument mode metadata before output", () => {
     const { memory } = run("ProofBackendOpenArgumentInvalid");
     const output = image.symbols.ProofBackendOutput ?? -1;
@@ -514,13 +537,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 3_357,
+      engine: 3_886,
       recipes: 738,
-      code: 15_577,
+      code: 16_106,
       immutable: 2_202,
-      core: 17_779,
+      core: 18_308,
       workspace: 3_425,
-      supported: 100,
+      supported: 104,
     });
   });
 });

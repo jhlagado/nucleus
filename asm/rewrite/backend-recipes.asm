@@ -1347,6 +1347,299 @@ RewriteBackendCallableMainSuccess:
             CALL RewriteBackendDefineLabel
             JP   RewriteBackendEmitCallableFrame
 
+; Counted-loop mode bits are inclusive, negative step, word width, and signed
+; scalar respectively. Reject every undeclared bit before target output.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+RewriteBackendValidateForMode:
+            AND  $F0
+            JP   NZ,RewriteBackendInvalid
+            RET
+
+; Load/store a local loop counter without changing the target value stack.
+; A is the mode and C the positive activation offset.
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitLoadCounter:
+            LD   D,A
+            LD   A,C
+            CPL
+            LD   C,A
+            LD   A,$6E                    ; LD L,(IX-n)
+            PUSH DE
+            CALL RewriteBackendEmitIxByte
+            POP  DE
+            BIT  2,D
+            JR   NZ,RewriteBackendLoadCounterWord
+            LD   A,$26                    ; LD H,0
+            CALL RewriteBackendEmitByte
+            XOR  A
+            JP   RewriteBackendEmitByte
+RewriteBackendLoadCounterWord:
+            DEC  C
+            LD   A,$66                    ; LD H,(IX-n-1)
+            JP   RewriteBackendEmitIxByte
+
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEmitStoreCounter:
+            LD   D,A
+            LD   A,C
+            CPL
+            LD   C,A
+            LD   A,$75                    ; LD (IX-n),L
+            PUSH DE
+            CALL RewriteBackendEmitIxByte
+            POP  DE
+            BIT  2,D
+            RET  Z
+            DEC  C
+            LD   A,$74                    ; LD (IX-n-1),H
+            JP   RewriteBackendEmitIxByte
+
+.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+RewriteBackendEmitLoadDeImmediate:
+            LD   A,$11                    ; LD DE,nn
+            LD   H,D
+            LD   L,E
+            JP   RewriteBackendEmitOpcodeWord
+
+; Emit the same comparison carrier used by scalar expressions. A is the
+; complete comparison mode, including signed and byte-signed flags.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitCompareCurrent:
+            LD   (RewriteBackendTrapReason),A
+            LD   A,(RewriteBackendTrapReason)
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   DE,NucleusRuntimeCompareU16Offset
+            JP   RewriteBackendEmitRuntimeOffset
+
+; Emit an absolute branch whose target is the cursor reached later in the same
+; escape. DE returns the complete operand address.
+.routine in A out A,DE,carry,zero clobbers sign,parity,halfCarry,B,HL
+RewriteBackendEmitAbsolutePlaceholder:
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   D,H
+            LD   E,L
+            PUSH DE
+            XOR  A
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            POP  DE
+            RET
+
+.routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,B,HL
+RewriteBackendPatchAbsolute:
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   A,L
+            LD   (DE),A
+            INC  DE
+            LD   A,H
+            LD   (DE),A
+            XOR  A
+            RET
+
+; Start and bound carriers are consumed once. The bound remains beneath the
+; loop body until ForCleanup; the counter lives in its declared activation.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEscapeForSetup:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForSetupOperandModeOffset)
+            CALL RewriteBackendValidateForMode
+            LD   A,$D1                    ; POP DE bound / POP HL start
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForSetupOperandCounterOffset)
+            LD   C,A
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForSetupOperandModeOffset)
+            CALL RewriteBackendEmitStoreCounter
+            LD   A,$D5                    ; PUSH DE retained bound
+            JP   RewriteBackendEmitByte
+
+; Compare the retained bound against the current counter and leave the bound
+; in place. A false comparison jumps to the loop's common cleanup label.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeForTest:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandModeOffset)
+            CALL RewriteBackendValidateForMode
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandExitLabelOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
+            LD   A,$D1                    ; POP DE / PUSH DE
+            CALL RewriteBackendEmitByte
+            LD   A,$D5
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandCounterOffset)
+            LD   C,A
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandModeOffset)
+            CALL RewriteBackendEmitLoadCounter
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandModeOffset)
+            LD   B,A
+            BIT  1,A
+            JR   NZ,RewriteBackendForTestNegative
+            BIT  0,A
+            LD   A,2                      ; less
+            JR   Z,RewriteBackendForTestComparisonReady
+            INC  A                        ; less-equal
+            JR   RewriteBackendForTestComparisonReady
+RewriteBackendForTestNegative:
+            BIT  0,A
+            LD   A,4                      ; greater
+            JR   Z,RewriteBackendForTestComparisonReady
+            INC  A                        ; greater-equal
+RewriteBackendForTestComparisonReady:
+            BIT  3,B
+            JR   Z,RewriteBackendForTestEmitComparison
+            OR   $80                      ; signed
+            BIT  2,B
+            JR   NZ,RewriteBackendForTestEmitComparison
+            OR   $40                      ; signed byte
+RewriteBackendForTestEmitComparison:
+            CALL RewriteBackendEmitCompareCurrent
+            LD   A,$7D
+            CALL RewriteBackendEmitByte
+            LD   A,$B7
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForTestOperandExitLabelOffset)
+            LD   C,A
+            LD   B,$CA                    ; JP Z,exit cleanup
+            JP   RewriteBackendEmitLocalFixup
+
+; Complete one loop update. The distance test happens before arithmetic so an
+; overshoot exits normally; only a required next value that does not fit traps.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeForNext:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            CALL RewriteBackendValidateForMode
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandStepOffset)
+            LD   A,H
+            OR   L
+            JP   Z,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandTestLabelOffset)
+            CALL RewriteBackendRequireLabelBank
+            LD   B,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   B
+            JP   NZ,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandExitLabelOffset)
+            CALL RewriteBackendRequireLabelBank
+            LD   B,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   B
+            JP   NZ,RewriteBackendInvalid
+
+            LD   A,$D1                    ; POP DE / PUSH DE retained bound
+            CALL RewriteBackendEmitByte
+            LD   A,$D5
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandCounterOffset)
+            LD   C,A
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            CALL RewriteBackendEmitLoadCounter
+            LD   A,$E5                    ; PUSH HL current counter
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            BIT  1,A
+            JR   NZ,RewriteBackendForNextDistance
+            LD   A,$EB                    ; EX DE,HL => bound-current
+            CALL RewriteBackendEmitByte
+RewriteBackendForNextDistance:
+            LD   A,$B7                    ; OR A / SBC HL,DE
+            CALL RewriteBackendEmitByte
+            LD   A,$ED
+            CALL RewriteBackendEmitByte
+            LD   A,$52
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            AND  $0C
+            CP   $08
+            JR   NZ,RewriteBackendForNextDistanceWidthReady
+            LD   A,$26                    ; signed-byte distance wraps modulo 256
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+RewriteBackendForNextDistanceWidthReady:
+            LD   DE,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandStepOffset)
+            CALL RewriteBackendEmitLoadDeImmediate
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            BIT  0,A
+            LD   A,2                      ; to: distance < step
+            JR   NZ,RewriteBackendForNextDistanceCompare
+            INC  A                        ; until: distance <= step
+RewriteBackendForNextDistanceCompare:
+            CALL RewriteBackendEmitCompareCurrent
+            LD   A,$7D                    ; LD A,L / OR A / POP HL current
+            CALL RewriteBackendEmitByte
+            LD   A,$B7
+            CALL RewriteBackendEmitByte
+            LD   A,$E1
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandExitLabelOffset)
+            LD   C,A
+            LD   B,$C2                    ; JP NZ,exit cleanup
+            CALL RewriteBackendEmitLocalFixup
+
+            LD   DE,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandStepOffset)
+            CALL RewriteBackendEmitLoadDeImmediate
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            BIT  3,A
+            JR   NZ,RewriteBackendForNextSigned
+            BIT  1,A
+            JR   NZ,RewriteBackendForNextSubtract
+            LD   A,$19                    ; ADD HL,DE
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            BIT  2,A
+            JR   NZ,RewriteBackendForNextStore
+            LD   A,$7C                    ; LD A,H / OR A / JP Z,fit
+            CALL RewriteBackendEmitByte
+            LD   A,$B7
+            CALL RewriteBackendEmitByte
+            LD   A,$CA
+            CALL RewriteBackendEmitAbsolutePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandSourceOffsetOffset)
+            LD   A,4                      ; loop-range trap
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchAbsolute
+            JR   RewriteBackendForNextStore
+RewriteBackendForNextSubtract:
+            LD   A,$B7                    ; OR A / SBC HL,DE
+            CALL RewriteBackendEmitByte
+            LD   A,$ED
+            CALL RewriteBackendEmitByte
+            LD   A,$52
+            CALL RewriteBackendEmitByte
+            JR   RewriteBackendForNextStore
+RewriteBackendForNextSigned:
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   DE,NucleusRuntimeSignedLoopStepOffset
+            CALL RewriteBackendEmitRuntimeOffset
+            LD   A,$30                    ; JR NC,fit
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandSourceOffsetOffset)
+            LD   A,4
+            CALL RewriteBackendEmitTrap
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchRelative
+RewriteBackendForNextStore:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandCounterOffset)
+            LD   C,A
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset)
+            CALL RewriteBackendEmitStoreCounter
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticForNextOperandTestLabelOffset)
+            LD   B,$C3                    ; JP test
+            JP   RewriteBackendEmitLocalFixup
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEscapeForCleanup:
+            LD   A,$D1                    ; POP DE retained bound
+            JP   RewriteBackendEmitByte
+
 ; Lower a source-routine call after argument evaluation has left canonical
 ; words on the target stack. Claim occurs before the call and all caller
 ; mutation. Failable paths preserve A/carry across release, then propagate or

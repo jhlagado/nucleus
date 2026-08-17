@@ -27,7 +27,11 @@
     "beginHandler": "RewriteBackendEscapeBeginHandler",
     "beginHandlerBss": "RewriteBackendEscapeBeginHandlerBss",
     "endHandler": "RewriteBackendEscapeEndHandler",
-    "beginCallableMain": "RewriteBackendEscapeBeginCallableMain"
+    "beginCallableMain": "RewriteBackendEscapeBeginCallableMain",
+    "forSetup": "RewriteBackendEscapeForSetup",
+    "forTest": "RewriteBackendEscapeForTest",
+    "forNext": "RewriteBackendEscapeForNext",
+    "forCleanup": "RewriteBackendEscapeForCleanup"
   },
   "selectors": {
     "defineProgramU8": [],

@@ -1509,7 +1509,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 100 semantic ordinals: byte and word local
+- the current cohort covers 104 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1577,6 +1577,11 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   terminal trap, publishes success through the same local/far terminal policy,
   and then begins the ordinary callable body frame. The 84-byte reference
   executes in 2,673 compiler instructions and 26,712 T-states;
+- counted-loop lowering consumes start and bound once, retains the bound below
+  the body, compares before every update so overshoot exits without a store,
+  and delegates signed complete-width arithmetic to the runtime helper. The
+  110-byte reference covers signed word stepping, exact loop-range provenance,
+  counter storage, and cleanup in 3,938 instructions and 37,715 T-states;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
   and 66,046 T-states for the first cohort, and 10,959 instructions and 96,447
@@ -1597,8 +1602,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
 - the recipe data plus 42-entry recipe and 31-entry escape directories occupy
-  738 immutable bytes. The shipping replacement is 15,577 code + 2,202
-  immutable = 17,779 core bytes; the instrumented replacement is 17,783 core
+  738 immutable bytes. The shipping replacement is 16,106 code + 2,202
+  immutable = 18,308 core bytes; the instrumented replacement is 18,312 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step

@@ -1,7 +1,7 @@
 ; R6 recipe-interpreter proof. Expected target bytes are assembled from legal
 ; Z80 mnemonics, never reproduced as disguised compiler instruction data.
 
-CompilerWorkBase    .equ $6000
+CompilerWorkBase    .equ $8000
 SourceBase          .equ $5000
 SourceLimit         .equ $5800
 RewriteAdapterBase  .equ $A000
@@ -1075,6 +1075,105 @@ ProofBackendCallableMainInvalid:
             LD   A,$80                    ; reserved flag metadata
             LD   (RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandFlagsOffset),A
             LD   A,RewriteSemanticBeginCallableMain
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
+ProofBackendCountedLoop:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForSetupOperandCounterOffset),A
+            LD   A,$0F
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForSetupOperandModeOffset),A
+            LD   A,RewriteSemanticForSetup
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticControlLabelDirectOperandLabelOffset),A
+            LD   A,RewriteSemanticControlLabelDirect
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForTestOperandCounterOffset),A
+            LD   A,$0F
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForTestOperandModeOffset),A
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForTestOperandExitLabelOffset),A
+            LD   A,RewriteSemanticForTest
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandTestLabelOffset),A
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandExitLabelOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandCounterOffset),A
+            LD   A,$0F
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandModeOffset),A
+            LD   HL,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandStepOffset),HL
+            LD   HL,$4444
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForNextOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticForNext
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticControlLabelEnclosingOperandLabelOffset),A
+            LD   A,RewriteSemanticControlLabelEnclosing
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,RewriteSemanticForCleanup
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            CALL RewriteBackendResolveFixups
+            JP   C,ProofFailure
+            LD   HL,ProofBackendOutput+ProofExpectedCountedLoopExit-ProofExpectedCountedLoop
+            LD   (ProofExpectedForTestExit+1),HL
+            LD   (ProofExpectedForNextExit+1),HL
+            LD   HL,ProofBackendOutput+ProofExpectedCountedLoopTest-ProofExpectedCountedLoop
+            LD   (ProofExpectedForNextTest+1),HL
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedCountedLoopEnd-ProofExpectedCountedLoop
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedCountedLoop
+            LD   BC,ProofExpectedCountedLoopEnd-ProofExpectedCountedLoop
+ProofBackendCountedLoopCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendCountedLoopCompare
+            LD   A,$AC
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendCountedLoopInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,$80
+            LD   (RewriteSemanticOperandArea+RewriteSemanticForSetupOperandModeOffset),A
+            LD   A,RewriteSemanticForSetup
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
@@ -2245,6 +2344,66 @@ ProofExpectedCallableMainBody:
             POP  IX
             RET
 ProofExpectedCallableMainEnd:
+
+ProofExpectedCountedLoop:
+            POP  DE
+            POP  HL
+            LD   (IX-1),L
+            LD   (IX-2),H
+            PUSH DE
+ProofExpectedCountedLoopTest:
+            POP  DE
+            PUSH DE
+            LD   L,(IX-1)
+            LD   H,(IX-2)
+            LD   A,$85                    ; signed greater-equal
+            CALL ProofRuntimeBase+NucleusRuntimeCompareU16Offset
+            LD   A,L
+            OR   A
+ProofExpectedForTestExit:
+            JP   Z,ProofExpectedCountedLoopExit
+            POP  DE
+            PUSH DE
+            LD   L,(IX-1)
+            LD   H,(IX-2)
+            PUSH HL
+            OR   A
+            SBC  HL,DE
+            LD   DE,2
+            LD   A,2
+            CALL ProofRuntimeBase+NucleusRuntimeCompareU16Offset
+            LD   A,L
+            OR   A
+            POP  HL
+ProofExpectedForNextExit:
+            JP   NZ,ProofExpectedCountedLoopExit
+            LD   DE,2
+            LD   A,$0F
+            CALL ProofRuntimeBase+NucleusRuntimeSignedLoopStepOffset
+            JR   NC,ProofExpectedForNextFit
+            LD   HL,$4444
+            LD   A,4
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedForNextFit:
+            LD   (IX-1),L
+            LD   (IX-2),H
+ProofExpectedForNextTest:
+            JP   ProofExpectedCountedLoopTest
+ProofExpectedCountedLoopExit:
+            POP  DE
+ProofExpectedCountedLoopEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset
