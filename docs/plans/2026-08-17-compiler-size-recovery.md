@@ -1162,13 +1162,31 @@ cycle increase. Exact character classification, delimiter diagnostics,
 scalar metadata, target MAP/NOBJ/D8 artifacts, historical layouts, and
 relocation remain unchanged.
 
+### Fourteenth audit hex, comparison, and label-entry checkpoint
+
+Hexadecimal digit classification subtracts the decimal base before case
+folding, and final EOF returns directly with its already-canonical flags. The
+typed comparison classifier derives all six relation codes from the locked
+token-ordinal run instead of scanning a table. Structured label definition and
+fixup resolution also share the complete label-record address, load, and
+validity test.
+
+The scanner and comparison changes each recover eight production core bytes,
+and the shared label entry recovers four. Together they reduce the production
+core from 15,446 to 15,426 bytes, with immutable data and workspace unchanged.
+The representative proof improves from 877,189 to 874,954 instructions and
+from 9,583,396 to 9,566,481 T-states. Exact hexadecimal classification,
+comparison semantics, label fixups,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the thirteenth audit checkpoint added to the retained work above, the
-measured shipping core is 15,446 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,234 bytes. The earlier 15,360-byte target is 86 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,043 bytes,
-exceeding that phase target by 743 bytes. The compiler has 938 bytes of headroom
+With the fourteenth audit checkpoint added to the retained work above, the
+measured shipping core is 15,426 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,254 bytes. The earlier 15,360-byte target is 66 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,063 bytes,
+exceeding that phase target by 763 bytes. The compiler has 958 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to

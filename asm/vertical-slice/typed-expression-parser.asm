@@ -1400,28 +1400,23 @@ TypedAdditivePeekFailure:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedComparisonToken:
-            LD   HL,TypedComparisonTokens
-            LD   B,6
-TypedComparisonTokenNext:
-            CP   (HL)
-            JR   Z,TypedComparisonTokenYes
-            INC  HL
-            INC  HL
-            DJNZ TypedComparisonTokenNext
-            OR   A
-            RET
+            LD   C,ComparisonEqual
+            CP   TokenEquals
+            SCF
+            RET  Z
+            SUB  TokenLess
+            CP   TokenNotEqual-TokenLess+1
+            RET  NC
+            INC  A
+            INC  A
+            CP   ComparisonGreaterEqual+1
+            JR   NZ,TypedComparisonTokenSelected
+            LD   A,ComparisonNotEqual
+TypedComparisonTokenSelected:
+            LD   C,A
 TypedComparisonTokenYes:
-            INC  HL
-            LD   C,(HL)
             SCF
             RET
-TypedComparisonTokens:
-            .db TokenEquals,ComparisonEqual
-            .db TokenNotEqual,ComparisonNotEqual
-            .db TokenLess,ComparisonLess
-            .db TokenLessEqual,ComparisonLessEqual
-            .db TokenGreater,ComparisonGreater
-            .db TokenGreaterEqual,ComparisonGreaterEqual
 
 TypedParseComparison:
             CALL TypedParseAdditive

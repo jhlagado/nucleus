@@ -216,24 +216,20 @@ TokenLexicalFailure:
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
 ; needs only the validity flag; the static-image decoder reuses the value.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+.routine in A out A,carry clobbers zero,sign,parity,halfCarry
 TokenIsHexDigit:
-            CP   "0"
-            JR   C,TokenHexNo
-            OR   $20
             SUB  "0"
             CP   10
             JR   C,TokenHexDecimal
+            OR   $20
             SUB  "a"-"0"
             CP   6
             JR   NC,TokenHexNo
             ADD  A,10
 TokenHexDecimal:
-            OR   A
             SCF
             RET
 TokenHexNo:
-            OR   A
             RET
 
 ; Scan and validate a bounded-string literal. BC returns the decoded byte
@@ -352,16 +348,12 @@ TokenizerAtCompilationEof:
 .endif
             LD   A,L
             OR   A
-            JR   Z,TokenizerEmitEof
+            RET  Z
 TokenizerClearLineAndReturnNewline:
             XOR  A
             LD   (SourceLineHasToken),A
             INC  A                       ; TokenNewline
             RET
-TokenizerEmitEof:
-            ; The line-token test reaches this label with A already zero.
-            RET
-
 TokenizerLineLexicalFailure:
             JP   TokenLexicalFailure
 

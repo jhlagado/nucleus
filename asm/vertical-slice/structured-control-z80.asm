@@ -92,6 +92,19 @@ StructuredEmitFixup:
 .endif
             JR   StructuredRecordFixup
 
+.if TargetStreamingOutput
+.routine in A,C out A,BC,HL,carry,zero clobbers sign,parity,halfCarry
+StructuredControlLabelEntry:
+            ADD  A,A
+            ADD  A,C
+            LD   L,A
+            LD   H,0
+            LD   BC,EmitControlLabelBase
+            ADD  HL,BC
+            LD   A,(HL)
+            OR   A
+            RET
+.endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredLabel:
             LD   C,A
@@ -101,19 +114,14 @@ StructuredDefineLabel:
             CP   EmitControlLabelCapacity
             JP   NC,ControlLabelFailure
 .if TargetStreamingOutput
-            ADD  A,A
-            ADD  A,C
-            LD   L,A
-            LD   H,0
-            LD   BC,EmitControlLabelBase
-            ADD  HL,BC
+            CALL StructuredControlLabelEntry
 .else
             LD   B,0
             LD   HL,EmitControlLabelValidBase
             ADD  HL,BC
-.endif
             LD   A,(HL)
             OR   A
+.endif
             JP   NZ,TypedInternalOperation
 .if TargetStreamingOutput
             LD   A,(TargetOutputBank)
@@ -204,19 +212,14 @@ StructuredResolveNext:
 .endif
 .if TargetStreamingOutput
             LD   A,C
-            ADD  A,A
-            ADD  A,C
-            LD   L,A
-            LD   H,0
-            LD   BC,EmitControlLabelBase
-            ADD  HL,BC
+            CALL StructuredControlLabelEntry
 .else
             LD   B,0
             LD   HL,EmitControlLabelValidBase
             ADD  HL,BC
-.endif
             LD   A,(HL)
             OR   A
+.endif
             JR   Z,StructuredResolveUnwind
 .if TargetStreamingOutput
             DEC  A
