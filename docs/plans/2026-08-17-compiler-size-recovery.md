@@ -778,13 +778,30 @@ to 881,556 instructions and from 10,399,640 to 9,615,786 T-states,
 improvements of 10.33 and 7.54 percent. Strict normal, instrumented,
 historical, packed-grammar, artifact, and relocation proofs pass.
 
+### Cached expression-operator consumption
+
+Five binary-expression loops used `ParserPeek` to classify an operator, then
+called `ParserTake`, which repeated the cached lookup before invalidating the
+lookahead cell. One contracted helper now retains the selected operator and
+stores the `$FF` empty marker directly. `XOR A` followed by `DEC A` forms that
+marker while returning carry clear and zero clear, including the comparison
+path whose table lookup reports a match with carry set.
+
+The checkpoint recovers six compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,758 bytes. The representative
+proof falls from 881,556 to 881,322 instructions and from 9,615,786 to
+9,613,550 T-states. Operator positions, nested-expression frames, semantic
+transcripts, diagnostics, generated Z80, NOBJ, and D8 remain exact. Historical
+returning-diagnostic layouts and relocation at `$0100`, `$8000`, and the
+highest-fitting origin pass; the helper changes no address representation.
+
 ### Current recovery outlook
 
-With length-grouped keyword lookup added to the retained checkpoints above,
-the measured shipping core is 15,764 bytes. Total measured recovery from the
-frozen 16,680-byte compiler is 916 bytes. The earlier 15,360-byte target is 404
-bytes away. The 300-byte phase began at 16,489 bytes and has recovered 725
-bytes, exceeding that phase target by 425 bytes.
+With cached operator consumption added to the retained checkpoints above, the
+measured shipping core is 15,758 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 922 bytes. The earlier 15,360-byte target is 398 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 731 bytes,
+exceeding that phase target by 431 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

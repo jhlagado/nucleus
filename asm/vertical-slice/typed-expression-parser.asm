@@ -127,6 +127,18 @@ TypedEmitOperationBC:
             JR   TypedEmitWord
 .endif
 
+; Retain an operator that ParserPeek has already returned, then consume that
+; cached token without asking ParserTake to peek a second time. XOR/DEC forms
+; the empty-lookahead marker while guaranteeing the same carry-clear,
+; zero-clear result that ParserTake returns for every nonzero operator token.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+TypedTakeOperator:
+            LD   (ExpressionOperator),A
+            XOR  A
+            DEC  A
+            LD   (ParserLookaheadKind),A
+            RET
+
 ; Push one pending binary-expression context into the bounded compiler stack.
 ; Retaining the operator source offset is necessary because a nested operation
 ; may replace the global offset before the outer operation is reduced.
@@ -1345,8 +1357,7 @@ TypedMultiplicativeLoop:
             CP   TokenMod
             JR   NZ,TypedMultiplicativeDone
 TypedMultiplicativeOperator:
-            LD   (ExpressionOperator),A
-            CALL ParserTake
+            CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedMultiplicativePeekFailure
 .endif
@@ -1400,8 +1411,7 @@ TypedAdditiveLoop:
             CP   TokenMinus
             JR   NZ,TypedAdditiveDone
 TypedAdditiveOperator:
-            LD   (ExpressionOperator),A
-            CALL ParserTake
+            CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
 .endif
@@ -1472,8 +1482,7 @@ TypedParseComparison:
             CALL TypedComparisonToken
             JR   NC,TypedComparisonNone
             LD   A,C
-            LD   (ExpressionOperator),A
-            CALL ParserTake
+            CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
 .endif
@@ -1731,8 +1740,7 @@ TypedAndLoop:
 .endif
             CP   TokenAnd
             JP   NZ,TypedBooleanDone
-            LD   (ExpressionOperator),A
-            CALL ParserTake
+            CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
 .endif
@@ -1796,8 +1804,7 @@ TypedOrLoop:
             LD   A,TokenOr
 .endif
 TypedOrOperator:
-            LD   (ExpressionOperator),A
-            CALL ParserTake
+            CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
 .endif
