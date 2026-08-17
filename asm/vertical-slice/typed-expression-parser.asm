@@ -402,19 +402,18 @@ TypedMaskResultWidth:
             LD   H,0
             RET
 
-; Emit a width-selected binary operation. D=u8 ordinal, E=u16 ordinal.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+; Emit a width-selected binary operation. D=u8 ordinal; the u16 ordinal is next.
+.routine in C,D out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitWidthOperation:
-            BIT  1,C
-            LD   A,D
-            JR   Z,TypedEmitWidthSelected
-            LD   A,E
-TypedEmitWidthSelected:
+            LD   A,C
+            AND  2
+            RRCA
+            ADD  A,D
             JP   TypedEmitOperation
 
 ; Emit the selected operation, then retain both values only when the pair is
 ; compile-time constant. Carry reports emission failure; zero reports dynamic.
-.routine in C,D,E out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+.routine in C,D out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedPrepareConstantBinary:
             CALL TypedEmitWidthOperation
 .if CompilerDiagnosticReturns
@@ -449,7 +448,7 @@ TypedReduceIntegerBinary:
             CP   TokenXor
             JR   Z,TypedReduceXor
 TypedReduceOr:
-            LD   DE,SemanticOr8*$100+SemanticOr16
+            LD   D,SemanticOr8
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -464,7 +463,7 @@ TypedReduceOr:
             LD   H,A
             JP   TypedReduceIntegerConstantDone
 TypedReduceXor:
-            LD   DE,SemanticXor8*$100+SemanticXor16
+            LD   D,SemanticXor8
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -479,7 +478,7 @@ TypedReduceXor:
             LD   H,A
             JP   TypedReduceIntegerConstantDone
 TypedReduceAnd:
-            LD   DE,SemanticAnd8*$100+SemanticAnd16
+            LD   D,SemanticAnd8
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -495,7 +494,6 @@ TypedReduceAnd:
             JP   TypedReduceIntegerConstantDone
 TypedReduceAdd:
             LD   D,SemanticAdd8
-            LD   E,SemanticAdd16
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -505,7 +503,6 @@ TypedReduceAdd:
             JP   TypedReduceIntegerConstantDone
 TypedReduceSubtract:
             LD   D,SemanticSubtract8
-            LD   E,SemanticSubtract16
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -516,7 +513,6 @@ TypedReduceSubtract:
             JP   TypedReduceIntegerConstantDone
 TypedReduceMultiply:
             LD   D,SemanticMultiply8
-            LD   E,SemanticMultiply16
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
@@ -545,10 +541,10 @@ TypedReduceMultiplySkip:
             POP  BC
             JP   TypedReduceIntegerConstantDone
 TypedReduceDivide:
-            LD   DE,SemanticDivide8*$100+SemanticDivide16
+            LD   D,SemanticDivide8
             JR   TypedReduceDivisionSelect
 TypedReduceModulo:
-            LD   DE,SemanticModulo8*$100+SemanticModulo16
+            LD   D,SemanticModulo8
 TypedReduceDivisionSelect:
             LD   A,C
             AND  ScalarTypeSignedFlag
@@ -794,19 +790,16 @@ TypedPrimaryVariableName:
 .endif
             LD   D,A
 TypedPrimaryNameResolved:
+            AND  ScalarMetaTypeMask
+            LD   E,A
+            LD   A,D
             CALL TypedRequireScalarSymbolClass
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             JR   Z,TypedPrimaryConstantName
-            LD   A,D
-            AND  ScalarMetaTypeMask
-            LD   E,A
-            LD   A,D
-            AND  SymbolClassMask
             RRCA
             RRCA
-            JP   Z,TypedTypeFailure
             CP   SymbolClassParameter/4
             JR   Z,TypedPrimaryParameterName
             ADD  A,SemanticLoadProgramU8-1
@@ -1300,10 +1293,9 @@ TypedUnaryMinusTyped:
             AND  ScalarMetaTypeMask
 TypedUnaryMinusResolved:
             LD   C,A
-            BIT  1,A
-            LD   A,SemanticNegate8
-            JR   Z,TypedUnaryMinusEmit
-            LD   A,SemanticNegate16
+            AND  2
+            RRCA
+            ADD  A,SemanticNegate8
 TypedUnaryMinusEmit:
             CALL TypedEmitUnaryOperation
 .if CompilerDiagnosticReturns
@@ -1566,10 +1558,9 @@ TypedComparisonInteger:
             JR   NZ,TypedComparisonSigned
             LD   A,D
             LD   D,0
-            BIT  1,A
-            LD   A,SemanticCompare8
-            JR   Z,TypedComparisonEmit
-            LD   A,SemanticCompare16
+            AND  2
+            RRCA
+            ADD  A,SemanticCompare8
             JR   TypedComparisonEmit
 TypedComparisonSigned:
             BIT  1,D
@@ -1668,12 +1659,12 @@ TypedParseNot:
 .endif
             LD   D,A
             AND  ScalarMetaTypeMask
+            LD   C,A
             CP   ScalarTypeBoolean
-            LD   C,ScalarTypeBoolean
             LD   A,SemanticNotBoolean
             JR   Z,TypedNotEmit
-            LD   A,D
-            AND  ScalarMetaTypeMask
+            LD   A,C
+            OR   A
             JR   NZ,TypedNotTypedInteger
             LD   A,(ExpressionExpectedType)
             CP   ScalarTypeU8
@@ -1695,13 +1686,10 @@ TypedNotExactU8Ready:
             LD   A,SemanticNot8
             JR   TypedNotEmit
 TypedNotTypedInteger:
-            LD   A,D
-            AND  ScalarMetaTypeMask
-            LD   C,A
             CP   ScalarTypeU8
-            LD   A,SemanticNot8
-            JR   Z,TypedNotEmit
             LD   A,SemanticNot16
+            JR   NZ,TypedNotEmit
+            DEC  A
 TypedNotEmit:
             CALL TypedEmitUnaryOperation
 .if CompilerDiagnosticReturns

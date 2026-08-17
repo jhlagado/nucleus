@@ -1961,10 +1961,9 @@ Stage7FinishScalarPath:
             OR   A
             JR   NZ,Stage7ScalarPathReady
             LD   A,(Stage7PathType)
-            BIT  1,A
-            LD   A,SemanticLoadIndirect8
-            JR   Z,Stage7ScalarPathEmit
-            LD   A,SemanticLoadIndirect16
+            AND  2
+            RRCA
+            ADD  A,SemanticLoadIndirect8
 Stage7ScalarPathEmit:
             CALL SemanticSinkOperation
 .if CompilerDiagnosticBranches
@@ -2207,10 +2206,9 @@ Stage7AggregateAssignmentWritable:
             RET  C
 .endif
             LD   A,(Stage7PathType)
-            BIT  1,A
-            LD   A,SemanticStoreIndirect8
-            JR   Z,Stage7ScalarAssignmentEmit
-            LD   A,SemanticStoreIndirect16
+            AND  2
+            RRCA
+            ADD  A,SemanticStoreIndirect8
 Stage7ScalarAssignmentEmit:
 .if Stage7LL1
             JP   SemanticSinkOperation

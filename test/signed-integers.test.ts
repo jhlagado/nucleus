@@ -544,6 +544,10 @@ describe("signed integers", () => {
   it("rejects Boolean/integer mixing and the disallowed common-type pairs", async () => {
     const expressions = [
       "true + 1",
+      "+true",
+      "-true",
+      "u8(true)",
+      "u16(true)",
       "u16(1) + i8(1)",
       "u16(1) + i16(1)",
       "i16(1) + u16(1)",

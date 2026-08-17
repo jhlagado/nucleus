@@ -625,13 +625,32 @@ multipart positions, diagnostics, and artifacts pass. Relocation passes at
 `$0100`, `$8000`, and the highest-fitting origin; source cursors and positions
 remain full 16-bit values.
 
+### Algebraic expression-operation selection
+
+The expression parser now derives adjacent byte and word semantic operations
+from the existing type-width bit. This replaces branch ladders for binary
+arithmetic, unary negation, unsigned comparison, Boolean complement, and
+indirect scalar loads and stores without renumbering an operation. Scalar-name
+resolution also keeps the class already validated by the shared helper. The
+full type discriminator remains in place so Boolean values cannot enter the
+integer paths.
+
+The checkpoint recovers 37 code bytes with immutable data and workspace
+unchanged. The production core is 15,841 bytes. The representative proof
+executes 86 fewer instructions and 894 fewer T-states than the preceding
+checkpoint. Exact constant and runtime arithmetic, all scalar widths and
+classes, signed operations, Boolean logic, diagnostics, semantic transcripts,
+NOBJ, D8, and generated artifacts pass. Relocation passes at `$0100`, `$8000`,
+and the highest-fitting origin. The selectors use only published type bits and
+semantic ordinals; no address or source position is shortened.
+
 ### Current recovery outlook
 
-With the shared newline and EOF returns added to the retained checkpoints
-above, the measured shipping core is 15,878 bytes. Total measured recovery from
-the frozen 16,680-byte compiler is 802 bytes. The earlier 15,360-byte target is
-518 bytes away. The 300-byte phase began at 16,489 bytes and has recovered 611
-bytes, exceeding that phase target by 311 bytes.
+With algebraic expression-operation selection added to the retained
+checkpoints above, the measured shipping core is 15,841 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 839 bytes. The earlier
+15,360-byte target is 481 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 648 bytes, exceeding that phase target by 348 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
