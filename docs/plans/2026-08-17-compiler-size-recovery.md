@@ -821,13 +821,34 @@ diagnostics, semantic transcripts, generated Z80, NOBJ, and D8 remain
 unchanged; production and returning-diagnostic layouts pass strict register
 contracts.
 
+### Rotated semantic-operand prefetch
+
+The semantic dispatcher still uses its 13-byte operand-presence bitset and
+full-width handler directory. Its selector now addresses the bitset row first,
+then rotates that row `(operation & 7) + 1` times and tests the resulting carry.
+This replaces construction of a one-hot mask without changing operation
+ordinals, transcript bytes, or any address representation. A permanent runtime
+test executes all 99 operation indices, checks every marked and unmarked row,
+and repeats the test at `$0000`, `$0100`, `$8000`, and the highest-fitting
+origin.
+
+The checkpoint recovers eight compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,738 bytes. The representative
+proof falls from 881,480 to 879,126 instructions and from 9,612,396 to
+9,600,053 T-states, improvements of 0.27 and 0.13 percent. The typed-expression
+proof falls from 643,380 to 639,366 instructions and from 6,600,653 to
+6,579,533 T-states. Exact semantic transcripts, diagnostics, generated Z80,
+NOBJ, D8, production and returning-diagnostic layouts remain unchanged. The
+bitset contains only operand metadata; handler addresses remain independent
+full 16-bit words.
+
 ### Current recovery outlook
 
-With scanner control-flow layout added to the retained checkpoints above, the
-measured shipping core is 15,746 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 934 bytes. The earlier 15,360-byte target is 386 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 743 bytes,
-exceeding that phase target by 443 bytes.
+With rotated semantic-operand prefetch added to the retained checkpoints above,
+the measured shipping core is 15,738 bytes. Total measured recovery from the
+frozen 16,680-byte compiler is 942 bytes. The earlier 15,360-byte target is 378
+bytes away. The 300-byte phase began at 16,489 bytes and has recovered 751
+bytes, exceeding that phase target by 451 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

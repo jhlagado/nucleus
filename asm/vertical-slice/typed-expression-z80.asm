@@ -208,31 +208,24 @@ TypedOperationCount .equ 62
 ; operations A returns the first operand; otherwise A is scratch.
 .routine in A out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,E,HL
 TypedPrefetchFirstOperand:
-            LD   D,A
+            LD   C,A
             AND  7
-            INC  A
             LD   B,A
-            LD   A,1
-TypedPrefetchMaskLoop:
-            DEC  B
-            JR   Z,TypedPrefetchMaskReady
-            RLCA
-            JR   TypedPrefetchMaskLoop
-TypedPrefetchMaskReady:
-            LD   E,A
-            LD   A,D
+            INC  B
+            LD   A,C
             RRCA
             RRCA
             RRCA
             AND  $1F
-            LD   C,A
-            LD   B,0
+            LD   E,A
+            LD   D,0
             LD   HL,TypedPrefetchBits
-            ADD  HL,BC
+            ADD  HL,DE
             LD   A,(HL)
-            AND  E
-            LD   C,D
-            RET  Z
+TypedPrefetchBitLoop:
+            RRCA
+            DJNZ TypedPrefetchBitLoop
+            RET  NC
             JP   NextSemanticByte
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL

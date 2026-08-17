@@ -182,6 +182,68 @@ const executeDiagnosticAt = (image: RelocatedImage): void => {
   expect(runtime.cpu.sp).toBe(0x5d00);
 };
 
+const executePrefetchSelectorsAt = (
+  image: RelocatedImage,
+  prefetchedOperations: readonly number[],
+): void => {
+  const entry = image.addresses.get("TypedPrefetchFirstOperand");
+  const cursor = image.values.get("SemanticReadCursor");
+  const operationBase = image.values.get("SemanticDefineProgramU8");
+  const operationCount = image.values.get("TypedOperationCount");
+  expect(entry).toBeDefined();
+  expect(cursor).toBeDefined();
+  expect(operationBase).toBeDefined();
+  expect(operationCount).toBe(99);
+  if (
+    entry === undefined ||
+    cursor === undefined ||
+    operationBase === undefined ||
+    operationCount === undefined
+  ) {
+    return;
+  }
+
+  const prefetched = new Set(prefetchedOperations);
+  const returnAddress = 0x5d00;
+  const stackPointer = 0x5cfe;
+  const operandAddress = 0x5d10;
+  const operand = 0xa5;
+  for (let index = 0; index < operationCount; index += 1) {
+    const memory = image.memory.slice();
+    memory[returnAddress] = 0x76; // HALT after the helper's RET.
+    memory[stackPointer] = returnAddress & 0xff;
+    memory[stackPointer + 1] = returnAddress >>> 8;
+    memory[operandAddress] = operand;
+    memory[cursor] = operandAddress & 0xff;
+    memory[cursor + 1] = operandAddress >>> 8;
+    const runtime = createZ80Runtime({ memory, startAddress: entry }, entry);
+    runtime.cpu.sp = stackPointer;
+    runtime.cpu.a = index;
+    runtime.cpu.c = 0xff;
+    runtime.cpu.flags.C = 1;
+    let instructions = 0;
+    while (!runtime.isHalted() && instructions < 100) {
+      runtime.step();
+      instructions += 1;
+    }
+    const runtimeMemory = (
+      runtime.hardware as unknown as { memory: Uint8Array }
+    ).memory;
+    const operation = operationBase + index;
+    const shouldPrefetch = prefetched.has(operation);
+    expect(runtime.isHalted(), `prefetch selector ${index}`).toBe(true);
+    expect(runtime.cpu.c, `prefetch selector ${index} index`).toBe(index);
+    expect(runtime.cpu.flags.C, `prefetch selector ${index} carry`).toBe(0);
+    expect(
+      wordAt(runtimeMemory, cursor),
+      `prefetch selector ${index} cursor`,
+    ).toBe(operandAddress + (shouldPrefetch ? 1 : 0));
+    if (shouldPrefetch) {
+      expect(runtime.cpu.a, `prefetch selector ${index} operand`).toBe(operand);
+    }
+  }
+};
+
 describe("compiler origin independence", () => {
   it("relocates full-width code addresses at CP/M, high, and top-fitting origins", async () => {
     const baseline = await assembleAt(0x0000);
@@ -303,6 +365,9 @@ describe("compiler origin independence", () => {
         }
       }
     }
-    for (const image of images) executeDiagnosticAt(image);
+    for (const image of images) {
+      executePrefetchSelectorsAt(image, prefetchedOperations);
+      executeDiagnosticAt(image);
+    }
   }, 30_000);
 });
