@@ -164,20 +164,28 @@ transplant is evaluated separately.
 
 ### Expression bakeoff checkpoint
 
-Branch `codex/expression-bakeoff` at `ddcf3f3a` is the first verified recovery
+Branch `codex/expression-bakeoff` at `639fff61` is the current verified recovery
 laboratory checkpoint. It combines the recovered constant/call publication
-pass with shared diagnostic and dataflow cleanup. The expression family now
-measures 4,073 code bytes plus 74 immutable bytes, or 4,147 bytes total. This
-is 139 code bytes below the preserved rewrite branch and 50 bytes above the
-4,097-byte frozen production family. The complete rewrite prototype measures
-17,765 core bytes and 3,938 workspace bytes at this checkpoint.
+pass with shared diagnostic, dataflow, semantic-publication, root-selection,
+and postfix-string cleanup. The expression family now measures 3,984 code
+bytes plus 74 immutable bytes, or 4,058 bytes total. This is 228 code bytes
+below the preserved rewrite branch and 39 bytes below the 4,097-byte frozen
+production family. The complete rewrite prototype measures 17,676 core bytes
+and 3,938 workspace bytes at this checkpoint.
 
 The checkpoint passes 46 test files and 522 serial tests, strict AZM contracts,
 all generated rewrite authorities, compiler-image synchronization, TypeScript
-checking, the distribution build, and diff checks. It is not yet a production
-winner. The active experiment now replaces the postfix/path organization and
-then the call engine. Its first hard acceptance gate is a measured complete
-expression family no larger than 3,500 bytes.
+checking, the distribution build, and diff checks. It is the first complete
+rewrite family to beat its frozen counterpart, but it is not yet selected for
+production. The active experiment now removes services from the four-frame
+source-call pool and shares call finalization. The broader expression bakeoff
+continues toward its measured 3,500-byte gate.
+
+The call audit also found a rewrite-only correctness defect: a predefined
+service currently consumes one source-call frame, so a service containing four
+nested source calls is rejected even though the frozen compiler accepts it.
+The next checkpoint must restore the frozen hardware-stack service path and add
+the missing boundary proof before claiming its projected 62–66-byte saving.
 
 ### Declaration, statement, and control decision
 
@@ -193,3 +201,18 @@ found in a fresh audit. A later direct-action regeneration is permitted only
 if its full-address code plus directory measures no more than 2,508 bytes,
 which would reduce the complete family to at most 5,761 bytes. Until an
 assembled prototype proves that result, no saving is counted.
+
+### Backend decision
+
+The selected frozen backend and output boundary measures 5,302 bytes. A fresh
+parity audit found only 195–285 projected bytes of native recovery: canonical
+single-pass layout state, direct flat-MAP formation, one-bank ROM prefix
+sharing, and small provider/setup tails. Two larger-looking candidates were
+rejected because they would change the semantic transcript or PATCH/NOBJ
+ordering.
+
+Moving MAP and runtime-context construction into the operating adapter could
+save another projected 105–135 compiler bytes, but that is an ABI redesign and
+may simply move 90–150 hypothetical bytes into every adapter. It is not counted
+without an explicit compiler/adapter/deployment comparison. The backend alone
+cannot supply the 1,320-byte production recovery target.
