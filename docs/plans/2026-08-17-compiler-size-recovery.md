@@ -883,13 +883,32 @@ two EOF peeks, an EOF take, the returned payload and flags, full source and toke
 positions, and the expression-operator helper. Strict production, debug,
 historical, packed-grammar, artifact, and relocation proofs pass.
 
+### Inline fixed unary templates
+
+The five fixed unary backend entries now call one contracted inline-template
+emitter. Each call is followed by a byte length and the same assembler-written
+target instructions that the old named template selected. The helper removes
+its inline return address, emits the bytes through the existing checked sink,
+then publishes the result with the existing `HL` push tail. Compiler addresses
+remain full-width, and the inline data contains target instructions rather
+than hidden compiler opcodes.
+
+The checkpoint recovers ten compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,703 bytes. The complete typed
+program remains 857 bytes with the same SHA-256 digest. A returning-diagnostic
+proof forces a failure on the fourth byte of 16-bit negation and checks the
+three-byte prefix, untouched fourth byte, exact diagnostic, cursor, carry, and
+restored stack. The ordinary typed path adds only 20 compiler instructions and
+225 T-states, below 0.004 percent. Strict production, debug, historical,
+artifact, and relocation proofs pass.
+
 ### Current recovery outlook
 
-With zero-valued empty lookahead added to the retained checkpoints above, the
-measured shipping core is 15,713 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 967 bytes. The earlier 15,360-byte target is 353 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 776 bytes,
-exceeding that phase target by 476 bytes.
+With inline fixed unary templates added to the retained checkpoints above, the
+measured shipping core is 15,703 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 977 bytes. The earlier 15,360-byte target is 343 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 786 bytes,
+exceeding that phase target by 486 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

@@ -301,11 +301,11 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 15_221,
+      bytes: 15_211,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_823,
+      bytes: 14_813,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",

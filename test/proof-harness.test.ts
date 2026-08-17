@@ -23,9 +23,9 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.instructions).toBe(877_020);
     expect(outcome.cycles).toBe(9_571_424);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_315 },
+      { name: "compiler-code", bytes: 15_305 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_713 },
+      { name: "compiler-core", bytes: 15_703 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_192 },
@@ -106,10 +106,10 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.instructions).toBe(880_811);
     expect(outcome.cycles).toBe(9_613_215);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_371 },
+      { name: "compiler-code", bytes: 15_361 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_769 },
-      { name: "instrumented-core-gap", bytes: 8_807 },
+      { name: "compiler-core", bytes: 15_759 },
+      { name: "instrumented-core-gap", bytes: 8_817 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_194 },
@@ -219,9 +219,9 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.instructions).toBe(1_412_855);
     expect(outcome.cycles).toBe(13_974_973);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 14_823 },
+      { name: "compiler-code", bytes: 14_813 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_221 },
+      { name: "compiler-core", bytes: 15_211 },
       { name: "compiler-workspace", bytes: 3_623 },
       { name: "generated-z80-bound", bytes: 4_096 },
       { name: "z80-runtime", bytes: 921 },
@@ -341,9 +341,9 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.instructions).toBe(1_730_175);
     expect(outcome.cycles).toBe(16_816_175);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 14_823 },
+      { name: "compiler-code", bytes: 14_813 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_221 },
+      { name: "compiler-core", bytes: 15_211 },
       { name: "compiler-workspace", bytes: 3_623 },
       { name: "generated-z80-bound", bytes: 4_096 },
       { name: "z80-runtime", bytes: 921 },
@@ -648,11 +648,11 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "semantic-sink", bytes: 66 },
       { name: "symbol-table", bytes: 110 },
       { name: "parser", bytes: 7_673 },
-      { name: "z80-output-sink", bytes: 3_444 },
+      { name: "z80-output-sink", bytes: 3_434 },
       { name: "z80-expression-backend", bytes: 351 },
-      { name: "compiler-code", bytes: 12_140 },
+      { name: "compiler-code", bytes: 12_130 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 12_407 },
+      { name: "compiler-core", bytes: 12_397 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80", bytes: 116 },
       { name: "z80-runtime", bytes: 796 },
@@ -676,8 +676,8 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     const generatedSize =
       (outcome.memory[sizeAddress] ?? 0) |
       ((outcome.memory[sizeAddress + 1] ?? 0) << 8);
-    expect(outcome.instructions).toBe(636_250);
-    expect(outcome.cycles).toBe(6_533_687);
+    expect(outcome.instructions).toBe(636_404);
+    expect(outcome.cycles).toBe(6_535_316);
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 8_696 },
       { name: "source-adapter", bytes: 84 },
@@ -685,14 +685,14 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "semantic-sink", bytes: 66 },
       { name: "symbol-table", bytes: 110 },
       { name: "parser", bytes: 7_673 },
-      { name: "typed-z80-sink", bytes: 1_935 },
-      { name: "compiler-code", bytes: 11_040 },
+      { name: "typed-z80-sink", bytes: 1_925 },
+      { name: "compiler-code", bytes: 11_030 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 11_307 },
+      { name: "compiler-core", bytes: 11_297 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80-bound", bytes: 857 },
       { name: "z80-runtime", bytes: 796 },
-      { name: "proof-code-and-data", bytes: 1_791 },
+      { name: "proof-code-and-data", bytes: 1_929 },
     ]);
     expect(generatedSize).toBe(857);
   }, 30_000);
@@ -758,10 +758,10 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 8_696 },
       { name: "parser", bytes: 7_673 },
-      { name: "structured-z80-sink", bytes: 1_935 },
-      { name: "compiler-code", bytes: 11_040 },
+      { name: "structured-z80-sink", bytes: 1_925 },
+      { name: "compiler-code", bytes: 11_030 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 11_307 },
+      { name: "compiler-core", bytes: 11_297 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80-bound", bytes: 715 },
       { name: "z80-runtime", bytes: 796 },
@@ -781,10 +781,10 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 7_377 },
       { name: "parser", bytes: 6_357 },
-      { name: "typed-z80-sink", bytes: 1_981 },
-      { name: "compiler-code", bytes: 9_767 },
+      { name: "typed-z80-sink", bytes: 1_971 },
+      { name: "compiler-code", bytes: 9_757 },
       { name: "compiler-immutable", bytes: 251 },
-      { name: "compiler-core", bytes: 10_018 },
+      { name: "compiler-core", bytes: 10_008 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "static-image", bytes: 255 },
       { name: "z80-runtime", bytes: 796 },

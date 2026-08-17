@@ -676,6 +676,49 @@ ProofFillOperationCount:
             CP   DiagnosticInternalOperation
             JP   NZ,ProofFailRetiredOperation
 
+            ; A unary template that exhausts the output after three bytes
+            ; must return through both inline continuations with SP restored.
+            ; The emitted prefix and untouched fourth byte lock the precise
+            ; failure point of the returning-diagnostic historical layout.
+            LD   HL,0
+            ADD  HL,SP
+            LD   (ProofExpectedSP),HL
+            XOR  A
+            LD   (DiagnosticCode),A
+            LD   HL,GeneratedBase
+            LD   (EmitCursor),HL
+            LD   HL,GeneratedBase+3
+            LD   (EmitLimit),HL
+            LD   A,$CC
+            LD   (GeneratedBase+3),A
+            CALL TypedNegate16
+            JP   NC,ProofFailUnaryEmitReturn
+            LD   HL,0
+            ADD  HL,SP
+            LD   DE,(ProofExpectedSP)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailUnaryEmitStack
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticSinkCapacity
+            JP   NZ,ProofFailUnaryEmitDiagnostic
+            LD   HL,(EmitCursor)
+            LD   DE,GeneratedBase+3
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailUnaryEmitCursor
+            LD   HL,(GeneratedBase)
+            LD   DE,$AFE1
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailUnaryEmitPrefixWord
+            LD   A,(GeneratedBase+2)
+            CP   $95
+            JP   NZ,ProofFailUnaryEmitPrefixByte
+            LD   A,(GeneratedBase+3)
+            CP   $CC
+            JP   NZ,ProofFailUnaryEmitCanary
+
             LD   A,1
             LD   (EmitBooleanFixupDepth),A
             CALL TypedEndMain
@@ -898,19 +941,19 @@ ProofFailNotRange:            LD A,43
 ProofFailMalformedHex:        LD A,44
                               JP ProofFailed
 ProofFailMalformedSuffix:     LD A,45
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailSuppressedDivideType: LD A,65
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailSuppressedNarrowType: LD A,66
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailMissingConversionRight: LD A,67
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailMissingParenRight:   LD A,68
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailMalformedAfterLeft:  LD A,69
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailDefaultLocalCapacity: LD A,70
-                              JR ProofFailed
+                              JP ProofFailed
 ProofFailOperationCapacityFill: LD A,71
                               JP ProofFailed
 ProofFailOperationCapacityBoundary: LD A,72
@@ -920,6 +963,20 @@ ProofFailOperationCapacityAccept: LD A,73
 ProofFailOperationCapacityDiagnostic: LD A,74
                               JP ProofFailed
 ProofFailEofLookahead:       LD A,75
+                              JP ProofFailed
+ProofFailUnaryEmitReturn:    LD A,76
+                              JP ProofFailed
+ProofFailUnaryEmitStack:     LD A,77
+                              JP ProofFailed
+ProofFailUnaryEmitDiagnostic: LD A,78
+                              JP ProofFailed
+ProofFailUnaryEmitCursor:    LD A,79
+                              JP ProofFailed
+ProofFailUnaryEmitPrefixWord: LD A,80
+                              JP ProofFailed
+ProofFailUnaryEmitPrefixByte: LD A,81
+                              JP ProofFailed
+ProofFailUnaryEmitCanary:    LD A,82
                               JP ProofFailed
 ProofFailCoverageCompile:     LD A,46
                               JR ProofFailed

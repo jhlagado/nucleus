@@ -619,36 +619,75 @@ TypedPromoteI8Pair:
             JP   EmitPair
 .endif
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-TypedNegate8:
-            LD   HL,TypedNegate8Bytes
-            LD   B,6
-            JR   TypedUnarySequence
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-TypedNegate16:
-            LD   HL,TypedNegate16Bytes
-            LD   B,8
-            JR   TypedUnarySequence
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-TypedNot8:
-            LD   HL,TypedNot8Bytes
-            LD   B,6
-            JR   TypedUnarySequence
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-TypedNot16:
-            LD   HL,TypedNot16Bytes
-            LD   B,7
-            JR   TypedUnarySequence
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedNotBoolean:
-            LD   HL,TypedNotBooleanBytes
-            LD   B,7
-TypedUnarySequence:
+.routine noreturn
+TypedUnaryInline:
+            POP  HL
+            LD   B,(HL)
+            INC  HL
             CALL EmitBytes
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             JP   TypedPushHL
+
+; The length byte is compiler metadata.  The following ordinary Z80
+; instructions are the target template copied by TypedUnaryInline; the
+; noreturn call keeps the compiler from ever executing through the data.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedNegate8:
+            CALL TypedUnaryInline
+            .db  6
+TypedNegate8Bytes:
+            POP  HL
+            XOR  A
+            SUB  L
+            LD   L,A
+            LD   H,0
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedNegate16:
+            CALL TypedUnaryInline
+            .db  8
+TypedNegate16Bytes:
+            POP  HL
+            XOR  A
+            SUB  L
+            LD   L,A
+            LD   A,0
+            SBC  A,H
+            LD   H,A
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedNot8:
+            CALL TypedUnaryInline
+            .db  6
+TypedNot8Bytes:
+TypedPopHLtoA           .equ TypedNot8Bytes
+            POP  HL
+            LD   A,L
+            CPL
+            LD   L,A
+            LD   H,0
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedNot16:
+            CALL TypedUnaryInline
+            .db  7
+TypedNot16Bytes:
+            POP  HL
+            LD   A,L
+            CPL
+            LD   L,A
+            LD   A,H
+            CPL
+            LD   H,A
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+TypedNotBoolean:
+            CALL TypedUnaryInline
+            .db  7
+TypedNotBooleanBytes:
+            POP  HL
+            LD   A,L
+            XOR  1
+            LD   L,A
+            LD   H,0
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitCompare:
@@ -1252,12 +1291,6 @@ TypedAdd16Bytes          .equ Stage7OffsetAddress+3
 TypedAdd16Bytes:        .db $19
 .endif
 TypedSubtract16Bytes:   .db $AF,$ED,$52
-TypedNegate8Bytes:      .db $E1,$AF,$95,$6F,$26,$00
-TypedNegate16Bytes:     .db $E1,$AF,$95,$6F,$3E,$00,$9C,$67
-TypedNot8Bytes:         .db $E1,$7D,$2F,$6F,$26,$00
-TypedPopHLtoA           .equ TypedNot8Bytes
-TypedNot16Bytes:        .db $E1,$7D,$2F,$6F,$7C,$2F,$67
-TypedNotBooleanBytes:   .db $E1,$7D,$EE,$01,$6F,$26,$00
 TypedAnd16Bytes:        .db $7D,$A3,$6F,$7C,$A2,$67
 TypedOr16Bytes:         .db $7D,$B3,$6F,$7C,$B2,$67
 TypedXor16Bytes:        .db $7D,$AB,$6F,$7C,$AA,$67
