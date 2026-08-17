@@ -32,14 +32,10 @@ TokenIsLetter:
 TokenIsNameByte:
             CALL TokenIsLetter
             RET  C
-            CP   "0"
-            JR   C,TokenIsNameByteUnderscore
-            CP   "9"+1
-            JR   C,TokenIsNameByteYes
-TokenIsNameByteUnderscore:
             CP   "_"
             JR   Z,TokenIsNameByteYes
-            OR   A
+            SUB  "0"
+            CP   10
             RET
 TokenIsNameByteYes:
             SCF
@@ -74,8 +70,7 @@ TokenNameRecordEquals:
             INC  HL
             LD   D,(HL)
             INC  HL
-            LD   A,(HL)
-            LD   B,A
+            LD   B,(HL)
             EX   DE,HL
             CALL TokenNameEquals
             POP  HL
@@ -193,10 +188,15 @@ TokenScanNumberEof:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TokenScanCharacter:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CP   $20
             JR   C,TokenScanCharacterFailure
             CP   $7F
@@ -206,14 +206,29 @@ TokenScanCharacter:
             CP   "\\"
             JR   Z,TokenScanCharacterFailure
             LD   C,A
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CP   "'"
             JR   NZ,TokenScanCharacterFailure
             LD   A,TokenCharacter
             JP   TokenFinish
 TokenScanCharacterFailure:
             JP   TokenLexicalFailure
+
+.if TargetStreamingOutput
+; Production diagnostics do not return, so required literal bytes share one
+; checked source-take path without adding a carry-propagation site per caller.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+TokenTakeRequired:
+            CALL SourceTake
+            RET  NC
+            CALL SetDiagInline
+            .db  DiagnosticLexical
+.endif
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
 ; needs only the validity flag; the static-image decoder reuses the value.
@@ -243,12 +258,20 @@ TokenHexNo:
 ; declaration parser can decode the bytes directly into the static image.
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenScanString:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             LD   C,0
 TokenScanStringNext:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CP   '"'
             JR   Z,TokenScanStringDone
             CP   $20
@@ -262,8 +285,12 @@ TokenScanStringCount:
             JR   Z,TokenScanCharacterFailure
             JR   TokenScanStringNext
 TokenScanStringEscape:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CP   "x"
             JR   Z,TokenScanStringHex
             LD   HL,StringEscapeTable
@@ -275,12 +302,20 @@ TokenScanStringEscapeLoop:
             DJNZ TokenScanStringEscapeLoop
             JR   TokenScanCharacterFailure
 TokenScanStringHex:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CALL TokenIsHexDigit
             JR   NC,TokenScanCharacterFailure
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
+.endif
             CALL TokenIsHexDigit
             JR   NC,TokenScanCharacterFailure
             JR   TokenScanStringCount

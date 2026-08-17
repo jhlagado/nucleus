@@ -12,8 +12,8 @@ SourceInitialize:
             LD   (SourceLine),HL
             LD   (SourceColumn),HL
             XOR  A
-            LD   (SourceLineHasToken),A
-            LD   (SourceDelimiterDepth),A
+            DEC  HL
+            LD   (SourceLineHasToken),HL
             RET
 
 .if AggregateCallSlices
@@ -58,7 +58,7 @@ SourceLoadPart:
 .endif
 
 ; Return the current source byte in A. Carry denotes the separate EOF event.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
 SourcePeek:
             LD   HL,(SourceCursor)
             LD   DE,(SourceEnd)
@@ -79,7 +79,6 @@ SourcePeekByte:
 SourceTake:
             CALL SourcePeek
             RET  C
-            LD   HL,(SourceCursor)
             INC  HL
             LD   (SourceCursor),HL
             LD   HL,(SourceOffset)

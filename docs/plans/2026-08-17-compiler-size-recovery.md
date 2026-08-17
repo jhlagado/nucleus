@@ -554,16 +554,35 @@ views, nested arrays, diagnostics, NOBJ, D8, and generated artifacts pass.
 Relocation passes at `$0100`, `$8000`, and the highest-fitting origin; no type,
 value, source position, or code address is shortened.
 
+### Scanner native cleanup
+
+`SourcePeek` now returns its restored full-width cursor in HL, so `SourceTake`
+increments that value without loading the cursor again. Source initialization
+clears the adjacent line-token and delimiter-depth bytes with one word store.
+The name-byte classifier uses the carry result of one destructive decimal
+range check, retained names load their length directly, and production literal
+scanners share one required-byte path. Historical returning-diagnostic layouts
+retain their explicit carry checks. The punctuation table no longer contains a
+slash row because slash and comment dispatch always occurs before the table.
+
+The checkpoint recovers 19 code bytes and two immutable bytes, reducing the
+production core by 21 bytes with workspace unchanged. The production core is
+15,957 bytes. The representative proof executes 7,937 fewer instructions and
+88,385 fewer T-states, improvements of 0.80 and 0.84 percent. Keyword
+maximality, multipart and CRLF positions, literal diagnostics, exact artifacts,
+and all historical scanner layouts pass. Relocation passes at `$0100`, `$8000`,
+and the highest-fitting origin; all cursors and source positions remain full
+16-bit values.
+
 ### Current recovery outlook
 
-With the typed-expression cleanup applied after the retained checkpoints above,
-the measured shipping core is 15,978 bytes. Total measured recovery from the
-frozen 16,680-byte compiler is 702 bytes. The earlier 15,360-byte target is 618
-bytes away. The 300-byte phase began at 16,489 bytes and has recovered 511
-bytes, exceeding that phase target by 211 bytes.
+With the typed-expression and scanner cleanups added to the retained
+checkpoints above, the measured shipping core is 15,957 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 723 bytes. The earlier
+15,360-byte target is 597 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 532 bytes, exceeding that phase target by 232 bytes.
 
-The plateau count is zero of three because the first two fresh subsystem
-searches after the preceding checkpoint each found a candidate above five
-bytes. The search continues in the selected original frontend and backend. No
-local saving is counted until all adapters and displaced production code are
-included in the assembled account.
+The plateau count is zero of three because fresh subsystem searches continue to
+find candidates above five bytes. The search continues in the selected
+original frontend and backend. No local saving is counted until all adapters
+and displaced production code are included in the assembled account.
