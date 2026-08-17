@@ -39,6 +39,19 @@ RewriteSemanticAppend:
             CP   C
             JP   C,RewriteSemanticCapacity
 RewriteSemanticAppendRoom:
+            ; The operation count is the zero-based source-ledger index. All
+            ; transcript capacity checks have completed, so this fixed word
+            ; publication and the record append form one nonfailing commit.
+            LD   A,(RewriteSemanticBufferBase)
+            LD   L,A
+            LD   H,0
+            ADD  HL,HL
+            LD   DE,RewriteSemanticSourceOffsetBase
+            ADD  HL,DE
+            LD   DE,(TokenStartOffset)
+            LD   (HL),E
+            INC  HL
+            LD   (HL),D
             LD   HL,(RewriteSemanticPendingOperands)
             LD   A,(RewriteSemanticPendingOperation)
             LD   DE,(RewriteSemanticSinkCursor)
@@ -100,12 +113,23 @@ RewriteSemanticValidateAtEnd:
             JP   NZ,RewriteSemanticInvalid
             RET
 
-; R2 has no target backend yet. This checked dispatcher proves the permanent
-; boundary: validate the whole stream, copy each record's declared operands to
-; the fixed operand area, emit one start event per operation, and emit exactly
-; one end event after the successful walk.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+; Validate and walk without a target backend. This remains the R2 authority
+; proof entry and shares the permanent record reader with target generation.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 RewriteSemanticDispatch:
+            XOR  A
+            JP   RewriteSemanticDispatchSelected
+
+; Validate and walk while dispatching every operation to the backend. The
+; current source offset is selected from the parallel ledger before any IMAGE
+; byte can be emitted. The caller initializes the backend output/context.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+RewriteSemanticDispatchBackend:
+            LD   A,1
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+RewriteSemanticDispatchSelected:
+            LD   (RewriteSemanticPendingOperands),A
             CALL RewriteSemanticValidate
             LD   HL,RewriteSemanticPayloadBase
             LD   (RewriteSemanticReadCursor),HL
@@ -120,6 +144,7 @@ RewriteSemanticDispatchNext:
 .endif
             LD   HL,(RewriteSemanticReadCursor)
             LD   A,(HL)
+            LD   (RewriteSemanticPendingOperation),A
             CALL RewriteSemanticOperationWidth
             DEC  A
             LD   C,A
@@ -133,6 +158,25 @@ RewriteSemanticDispatchNext:
             LDIR
 RewriteSemanticDispatchNoOperands:
             LD   (RewriteSemanticReadCursor),HL
+            LD   A,(RewriteSemanticPendingOperands)
+            OR   A
+            JR   Z,RewriteSemanticDispatchAdvance
+            LD   A,(RewriteSemanticBufferBase)
+            LD   HL,RewriteSemanticReadRemaining
+            SUB  (HL)
+            LD   L,A
+            LD   H,0
+            ADD  HL,HL
+            LD   DE,RewriteSemanticSourceOffsetBase
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            EX   DE,HL
+            CALL RewriteBackendSetCurrentSourceOffset
+            LD   A,(RewriteSemanticPendingOperation)
+            CALL RewriteBackendDispatchOperation
+RewriteSemanticDispatchAdvance:
             LD   HL,RewriteSemanticReadRemaining
             DEC  (HL)
             JR   RewriteSemanticDispatchNext

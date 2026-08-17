@@ -352,7 +352,7 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 239, immutable: 445, core: 18_376, workspace: 3_425 });
+    }).toEqual({ code: 239, immutable: 445, core: 18_440, workspace: 3_935 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {

@@ -392,6 +392,14 @@ RewriteStaticImageCapacity   .equ 1024
 RewriteStaticImageBase       .equ RewriteInitializerLimit
 RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapacity
 
+; Every semantic operation retains its complete source byte offset in a
+; parallel word ledger. The fixed transcript stays byte-identical, while a
+; compact operation such as open-string `.capacity` can still emit an exact
+; target trap. Offsets are data, not packed pointers or address metadata.
+RewriteSemanticSourceOffsetCapacity .equ 255
+RewriteSemanticSourceOffsetBase .equ RewriteStaticImageLimit
+RewriteSemanticSourceOffsetLimit .equ RewriteSemanticSourceOffsetBase+2*RewriteSemanticSourceOffsetCapacity
+
 ; Structured-control frames are live only while compiling routine statements.
 ; Static initializer scratch is live only while compiling top-level static
 ; declarations, so the two phases share the first 88 scratch bytes. A frame
@@ -418,7 +426,7 @@ RewriteControlKindHandler    .equ 4
 RewriteControlNoCounter      .equ $FF
 RewriteControlLabelLimit     .equ 27
 
-RewriteWorkspaceEnd          .equ RewriteStaticImageLimit
+RewriteWorkspaceEnd          .equ RewriteSemanticSourceOffsetLimit
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never

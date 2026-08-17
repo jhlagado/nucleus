@@ -307,6 +307,17 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({ diagnostic: 67, emitted: 0 });
   });
 
+  it("restores parse-time source attribution through semantic dispatch", () => {
+    const { memory, instructions, cycles } = run(
+      "ProofBackendSemanticDriver",
+    );
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xae);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 2_145,
+      cycles: 22_131,
+    });
+  });
+
   it("rejects corrupt open-argument mode metadata before output", () => {
     const { memory } = run("ProofBackendOpenArgumentInvalid");
     const output = image.symbols.ProofBackendOutput ?? -1;
@@ -564,10 +575,10 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({
       engine: 3_954,
       recipes: 738,
-      code: 16_174,
+      code: 16_238,
       immutable: 2_202,
-      core: 18_376,
-      workspace: 3_425,
+      core: 18_440,
+      workspace: 3_935,
       supported: 105,
     });
   });

@@ -1232,6 +1232,48 @@ ProofBackendOpenStringCapacityInvalid:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+; The permanent semantic driver restores the parse-time source offset before
+; backend dispatch, without widening the compact `.capacity` record.
+ProofBackendSemanticDriver:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,$6666
+            LD   (TokenStartOffset),HL
+            LD   A,7
+            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset),A
+            LD   A,RewriteSemanticOpenStringCapacity
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            CALL RewriteSemanticDispatchBackend
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedOpenStringCapacityEnd-ProofExpectedOpenStringCapacity
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedOpenStringCapacity
+            LD   BC,ProofExpectedOpenStringCapacityEnd-ProofExpectedOpenStringCapacity
+ProofBackendSemanticDriverCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendSemanticDriverCompare
+            LD   A,$AE
+            LD   (ProofStatus),A
+            HALT
+
 ProofBackendOpenArgumentInvalid:
             LD   SP,$FF00
             CALL RewriteReset

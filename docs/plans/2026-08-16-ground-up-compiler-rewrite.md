@@ -1605,11 +1605,10 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
 - the recipe data plus 41-entry recipe and 32-entry escape directories occupy
-  738 immutable bytes. The measured shipping replacement is 16,174 code +
-  2,202 immutable = 18,376 core bytes; the measured instrumented replacement
-  is 18,380 core
-  bytes. Workspace remains 3,425
-  bytes because backend state overlays dead initializer scratch. This is a
+  738 immutable bytes. At the completed R6 backend checkpoint, the measured
+  shipping replacement was 16,174 code + 2,202 immutable = 18,376 core bytes;
+  the measured instrumented replacement was 18,380 core bytes and workspace
+  was 3,425 bytes. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step
   measures the complete migrated cohort against the equivalent frozen
   handlers before applying the 20-percent stop rule.
@@ -1620,6 +1619,21 @@ Add routines, activations, aggregate aliases, region checks, indexes, copies,
 open views, structured control, failure, traps, runtime linking, flat and
 banked target layout, NOBJ image/patch/map/commit production, and conditional
 D8 image tracing.
+
+R7 source-attributed dispatch checkpoint (Measured, in progress):
+
+- a 510-byte parallel word ledger retains the complete parse-time source
+  offset of every possible semantic operation. It neither widens the
+  byte-identical 511-byte transcript nor packs source data into pointer bits;
+- the checked semantic walker restores that offset before backend dispatch and
+  retains the existing semantic-start/end trace boundary. An executable proof
+  drives compact open-string `.capacity` through the complete walker and
+  compares the same 66 generated target bytes in 2,145 compiler instructions
+  and 22,131 T-states; and
+- the measured shipping replacement is 16,238 code + 2,202 immutable = 18,440
+  core bytes, the measured instrumented replacement is 18,444 core bytes, and
+  measured workspace is 3,935 bytes. The workspace ledger has 161 bytes of
+  margin below its independent 4,096-byte ceiling.
 
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the

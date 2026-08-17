@@ -729,11 +729,11 @@ describe("ground-up rewrite tokenizer", () => {
         tokenizerBytes: 821,
         keywordBytes: 184,
         operationBytes: 1368,
-        semanticBytes: 220,
+        semanticBytes: 284,
         metadataBytes: 10_753,
         sourceTokenBytes: 1_099,
-        coreBytes: 18_376,
-        workspaceBytes: 3_425,
+        coreBytes: 18_440,
+        workspaceBytes: 3_935,
       });
       const layouts: readonly {
         readonly origin: number;
@@ -743,7 +743,7 @@ describe("ground-up rewrite tokenizer", () => {
       }[] = [
         { origin: 0, image: zero },
         { origin: 0x0100 },
-        { origin: 0x6000, workBase: 0xa000, adapterBase: 0xb000 },
+        { origin: 0x6000, workBase: 0xb000, adapterBase: 0xc000 },
         { origin: 0x8000 },
         { origin: 0x1_0000 - coreBytes },
       ];
