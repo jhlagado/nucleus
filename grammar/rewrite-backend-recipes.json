@@ -18,7 +18,15 @@
     "stringIndex": "RewriteBackendEscapeStringIndex",
     "openStringLength": "RewriteBackendEscapeOpenStringLength",
     "openStringIndex": "RewriteBackendEscapeOpenStringIndex",
-    "openStringResize": "RewriteBackendEscapeOpenStringResize"
+    "openStringResize": "RewriteBackendEscapeOpenStringResize",
+    "failRoutine": "RewriteBackendEscapeFailRoutine",
+    "failMain": "RewriteBackendEscapeFailMain",
+    "returnFailable": "RewriteBackendEscapeReturnFailable",
+    "endFailableRoutine": "RewriteBackendEscapeEndFailableRoutine",
+    "skipHandler": "RewriteBackendEscapeSkipHandler",
+    "beginHandler": "RewriteBackendEscapeBeginHandler",
+    "beginHandlerBss": "RewriteBackendEscapeBeginHandlerBss",
+    "endHandler": "RewriteBackendEscapeEndHandler"
   },
   "selectors": {
     "defineProgramU8": [],

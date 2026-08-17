@@ -1509,7 +1509,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 88 semantic ordinals: byte and word local
+- the current cohort covers 99 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1528,8 +1528,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   `IX` frame, bind byte, word, aggregate-alias, and open-string parameters,
   and restore result-free frames at ordinary fallthrough. Open arrays retain
   their existing two-word representation as two `u16` bindings. The proof
-  compares 55 assembled target bytes in 1,998 compiler instructions and
-  19,973 T-states, verifies the full label address and bank, and rejects a
+  compares 55 assembled target bytes in 2,000 compiler instructions and
+  19,990 T-states, verifies the full label address and bank, and rejects a
   routine presented to the wrong selected output bank before emitting a byte;
 - source-call lowering predeclares each routine bank in a separate table,
   retains full label addresses for later fixup, and selects ordinary or
@@ -1537,14 +1537,14 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   The 182-byte proof covers local failure propagation, a cross-bank
   result-bearing call whose result is discarded, local handling, activation
   claim/release, result carriers, argument cleanup, and retained-carrier cleanup
-  in 5,907 compiler instructions and 56,244 T-states. A missing declaration-bank
+  in 5,908 compiler instructions and 56,254 T-states. A missing declaration-bank
   pass is rejected before the first output byte;
 - service-call lowering validates the dense selector independently of its
   keep-result metadata, consumes byte and word arguments, calls the full-width
   deployment vector, and shares the settled propagate/handle outcome contract.
   Its 51-byte proof covers a retained `u8` result, handled byte argument with a
   retained carrier, and a result-bearing call statement that discards success;
-  it takes 2,018 compiler instructions and 20,575 T-states. Reserved selector
+  it takes 2,020 compiler instructions and 20,595 T-states. Reserved selector
   metadata is rejected before the first output byte;
 - fixed and open arrays share one checked index tail. Fixed arrays load their
   static bound; open arrays load the retained full-word count from the
@@ -1567,6 +1567,11 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   address carrier, retains capacity 253 and count 300 without narrowing, and
   rejects an unrepresentable forwarded activation offset before output. The
   146-byte proof takes 4,282 compiler instructions and 41,472 T-states;
+- explicit failure, successful failable return, fallthrough completion, and
+  local handling now cover 11 more semantic ordinals. Handler destinations
+  validate their redundant class/type metadata before output, then store the
+  error code into initialized, BSS, local, or parameter storage. The 98-byte
+  reference executes in 3,501 compiler instructions and 33,701 T-states;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
   and 66,046 T-states for the first cohort, and 10,959 instructions and 96,447
@@ -1587,8 +1592,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
 - the recipe data plus 42-entry recipe and 31-entry escape directories occupy
-  738 immutable bytes. The shipping replacement is 15,159 code + 2,202
-  immutable = 17,361 core bytes; the instrumented replacement is 17,365 core
+  738 immutable bytes. The shipping replacement is 15,370 code + 2,202
+  immutable = 17,572 core bytes; the instrumented replacement is 17,576 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step

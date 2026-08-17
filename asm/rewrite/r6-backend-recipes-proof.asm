@@ -885,6 +885,135 @@ ProofBackendCarrierTransferCompare:
             LD   (ProofStatus),A
             HALT
 
+ProofBackendFailureHandlers:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+
+            LD   A,RewriteSemanticReturnFailableScalar
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndFailableRoutineDirectOperandResultTypeOffset),A
+            LD   A,RewriteSemanticEndFailableRoutineDirect
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   HL,(RewriteBackendOutputCursor)
+            PUSH HL
+            LD   A,RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndFailableRoutineEnclosingOperandResultTypeOffset),A
+            LD   A,RewriteSemanticEndFailableRoutineEnclosing
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            POP  DE
+            LD   HL,(RewriteBackendOutputCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+
+            LD   HL,$1234
+            LD   (RewriteSemanticOperandArea+RewriteSemanticFailRoutineOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticFailRoutine
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,21
+            LD   (RewriteSemanticOperandArea+RewriteSemanticSkipHandlerOperandLabelOffset),A
+            LD   A,RewriteSemanticSkipHandler
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,20
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandLabelOffset),A
+            LD   A,RewriteSymbolClassLocal*4+RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandSymbolInfoOffset),A
+            LD   A,2
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandOffsetOffset),A
+            LD   A,RewriteSemanticBeginHandlerLocal
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            LD   A,21
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndHandlerOperandLabelOffset),A
+            LD   A,RewriteSemanticEndHandler
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,22
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandLabelOffset),A
+            LD   A,RewriteSymbolClassProgram*4+RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandSymbolInfoOffset),A
+            LD   HL,$0123
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandAddressOffset),HL
+            LD   A,RewriteSemanticBeginHandlerProgram
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   A,23
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerBssOperandLabelOffset),A
+            LD   A,RewriteSymbolClassProgram*4+RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerBssOperandSymbolInfoOffset),A
+            LD   HL,$0345
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerBssOperandAddressOffset),HL
+            LD   A,RewriteSemanticBeginHandlerBss
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            LD   HL,$5555
+            LD   (RewriteSemanticOperandArea+RewriteSemanticFailMainOperandSourceOffsetOffset),HL
+            LD   A,RewriteSemanticFailMain
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+
+            CALL RewriteBackendResolveFixups
+            JP   C,ProofFailure
+            LD   HL,ProofBackendOutput+ProofExpectedHandlerExit-ProofExpectedFailureHandlers
+            LD   (ProofExpectedHandlerSkip+1),HL
+
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedFailureHandlersEnd-ProofExpectedFailureHandlers
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedFailureHandlers
+            LD   BC,ProofExpectedFailureHandlersEnd-ProofExpectedFailureHandlers
+ProofBackendFailureHandlersCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendFailureHandlersCompare
+            LD   A,$AA
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendHandlerMetadataInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,20
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandLabelOffset),A
+            LD   A,RewriteSymbolClassProgram*4+RewriteScalarTypeU8
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandSymbolInfoOffset),A
+            LD   A,RewriteSemanticBeginHandlerLocal
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendOpenArgumentInvalid:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1951,6 +2080,67 @@ ProofExpectedCopySourceReady:
             PUSH HL
             PUSH DE
 ProofExpectedCarrierTransferEnd:
+
+ProofExpectedFailureHandlers:
+            POP  HL
+            LD   SP,IX
+            POP  IX
+            OR   A
+            RET
+            LD   SP,IX
+            POP  IX
+            OR   A
+            RET
+            POP  HL
+            LD   A,L
+            LD   HL,$1234
+            LD   ($A100+3),HL
+            LD   SP,IX
+            POP  IX
+            SCF
+            RET
+ProofExpectedHandlerSkip:
+            JP   ProofExpectedHandlerExit
+ProofExpectedHandlerEntry:
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            POP  HL
+            LD   (IX-3),L
+ProofExpectedHandlerExit:
+ProofExpectedProgramHandler:
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            POP  HL
+            LD   A,L
+            LD   ($A300+$0123),A
+ProofExpectedBssHandler:
+            LD   L,A
+            LD   H,0
+            PUSH HL
+            POP  HL
+            LD   A,L
+            LD   ($A400+$0345),A
+            POP  HL
+            LD   A,L
+            LD   HL,$5555
+            LD   ($A100+5),A
+            LD   A,6
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedFailureHandlersEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset

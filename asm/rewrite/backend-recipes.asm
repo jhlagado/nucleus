@@ -645,6 +645,8 @@ RewriteBackendEmitTrap:
             LD   A,(RewriteBackendTrapReason)
             CALL RewriteBackendEmitLoadAImmediate
 
+RewriteBackendEmitTrapEnding:
+
             LD   A,$ED                    ; LD SP,(nn)
             CALL RewriteBackendEmitByte
             LD   A,$7B
@@ -706,6 +708,21 @@ RewriteBackendEmitTrapLocal:
 RewriteBackendEmitTrapJump:
             LD   A,$C3                    ; JP nn
             JP   RewriteBackendEmitOpcodeWord
+
+; Runtime A is an unhandled source failure and HL is its exact source offset.
+; Publish the private error carrier before entering the ordinary terminal-trap
+; ending with reason six. The shared ending deliberately assumes that target
+; A already contains the trap reason.
+.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitUnhandledTrap:
+            LD   (RewriteBackendTrapSourceOffset),HL
+            LD   A,$21                    ; LD HL,sourceOffset
+            CALL RewriteBackendEmitOpcodeWord
+            LD   DE,5                     ; TrapError-StateBase
+            CALL RewriteBackendEmitStateStoreA
+            LD   A,6                      ; unhandled-error trap
+            CALL RewriteBackendEmitLoadAImmediate
+            JP   RewriteBackendEmitTrapEnding
 
 ; Patch the retained success branch after a terminal trap body.
 .routine in DE out A,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
@@ -973,14 +990,21 @@ RewriteBackendEscapeEndRoutine:
             OR   A
             RET  NZ
             LD   A,$DD                    ; LD SP,IX
+            CALL RewriteBackendEmitRestoreCallableFrame
+            LD   A,$C9                    ; RET
+            JP   RewriteBackendEmitByte
+
+; Restore the canonical callable frame without imposing any compiler address
+; policy. These are emitted target instructions, assembled here as mnemonics.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitRestoreCallableFrame:
+            LD   A,$DD                    ; LD SP,IX
             CALL RewriteBackendEmitByte
             LD   A,$F9
             CALL RewriteBackendEmitByte
             LD   A,$DD                    ; POP IX
             CALL RewriteBackendEmitByte
             LD   A,$E1
-            CALL RewriteBackendEmitByte
-            LD   A,$C9                    ; RET
             JP   RewriteBackendEmitByte
 
 ; Return the predeclared bank for label A. Source-routine banks are collected
@@ -1085,18 +1109,133 @@ RewriteBackendEmitFailureReturn:
             ADD  HL,DE
             LD   A,$22                    ; LD (nn),HL
             CALL RewriteBackendEmitOpcodeWord
-            LD   A,$DD                    ; LD SP,IX / POP IX
-            CALL RewriteBackendEmitByte
-            LD   A,$F9
-            CALL RewriteBackendEmitByte
-            LD   A,$DD
-            CALL RewriteBackendEmitByte
-            LD   A,$E1
-            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRestoreCallableFrame
             LD   A,$37                    ; SCF / RET
             CALL RewriteBackendEmitByte
             LD   A,$C9
             JP   RewriteBackendEmitByte
+
+; Explicit failure consumes the error carrier. A routine propagates carry plus
+; A after recording source provenance; main converts the same carrier into the
+; terminal unhandled-error trap.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeFailRoutine:
+            LD   A,$E1                    ; POP HL / LD A,L
+            CALL RewriteBackendEmitByte
+            LD   A,$7D
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticFailRoutineOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitFailureReturn
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeFailMain:
+            LD   A,$E1                    ; POP HL / LD A,L
+            CALL RewriteBackendEmitByte
+            LD   A,$7D
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticFailMainOperandSourceOffsetOffset)
+            JP   RewriteBackendEmitUnhandledTrap
+
+; Both scalar and aggregate returns leave one canonical result carrier in HL.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEscapeReturnFailable:
+            LD   A,$E1                    ; POP HL result
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitRestoreCallableFrame
+            LD   A,$B7                    ; OR A / RET
+            CALL RewriteBackendEmitByte
+            LD   A,$C9
+            JP   RewriteBackendEmitByte
+
+; Result-bearing fallthrough is unreachable; a result-free failable routine
+; returns success explicitly as carry clear.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEscapeEndFailableRoutine:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticEndFailableRoutineDirectOperandResultTypeOffset)
+            OR   A
+            RET  NZ
+            CALL RewriteBackendEmitRestoreCallableFrame
+            LD   A,$B7                    ; OR A / RET
+            CALL RewriteBackendEmitByte
+            LD   A,$C9
+            JP   RewriteBackendEmitByte
+
+; Success jumps around the handler. The forward label is declared in the
+; current output bank before retaining the complete fixup operand address.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEscapeSkipHandler:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticSkipHandlerOperandLabelOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
+            LD   B,$C3                    ; JP handler exit
+            JP   RewriteBackendEmitLocalFixup
+
+; Validate the frozen redundant symbol metadata before defining a label or
+; emitting a byte. Program and BSS destinations are distinguished by their
+; semantic ordinal; activation destinations admit local or parameter class.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeBeginHandler:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandSymbolInfoOffset)
+            LD   B,A
+            LD   A,(RewriteBackendCurrentOperation)
+            CP   RewriteSemanticBeginHandlerLocal
+            JR   Z,RewriteBackendBeginHandlerLocalValidate
+            LD   A,B
+            CP   RewriteSymbolClassProgram*4+RewriteScalarTypeU8
+            JP   NZ,RewriteBackendInvalid
+            JR   RewriteBackendBeginHandlerReady
+RewriteBackendBeginHandlerLocalValidate:
+            LD   A,B
+            CP   RewriteSymbolClassLocal*4+RewriteScalarTypeU8
+            JR   Z,RewriteBackendBeginHandlerReady
+            CP   RewriteSymbolClassParameter*4+RewriteScalarTypeU8
+            JP   NZ,RewriteBackendInvalid
+RewriteBackendBeginHandlerReady:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandLabelOffset)
+            CALL RewriteBackendDefineLabel
+            LD   A,$6F                    ; LD L,A / LD H,0 / PUSH HL
+            CALL RewriteBackendEmitByte
+            LD   A,$26
+            CALL RewriteBackendEmitByte
+            XOR  A
+            CALL RewriteBackendEmitByte
+            LD   A,$E5
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteBackendCurrentOperation)
+            CP   RewriteSemanticBeginHandlerLocal
+            JR   Z,RewriteBackendBeginHandlerLocal
+            LD   A,$E1                    ; POP HL / LD A,L / LD (nn),A
+            CALL RewriteBackendEmitByte
+            LD   A,$7D
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteSemanticOperandArea+RewriteSemanticBeginHandlerProgramOperandAddressOffset)
+            LD   DE,(RewriteBackendDataBase)
+            LD   A,(RewriteBackendCurrentOperation)
+            CP   RewriteSemanticBeginHandlerBss
+            JR   NZ,RewriteBackendBeginHandlerProgramAddress
+            LD   DE,(RewriteBackendBssBase)
+RewriteBackendBeginHandlerProgramAddress:
+            ADD  HL,DE
+            LD   A,$32
+            JP   RewriteBackendEmitOpcodeWord
+RewriteBackendBeginHandlerLocal:
+            LD   A,$E1                    ; POP HL / LD (IX-n),L
+            CALL RewriteBackendEmitByte
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginHandlerLocalOperandOffsetOffset)
+            CPL
+            LD   C,A
+            LD   A,$75
+            JP   RewriteBackendEmitIxByte
+
+RewriteBackendEscapeBeginHandlerBss .equ RewriteBackendEscapeBeginHandler
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteBackendEscapeEndHandler:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticEndHandlerOperandLabelOffset)
+            JP   RewriteBackendDefineLabel
 
 ; Lower a source-routine call after argument evaluation has left canonical
 ; words on the target stack. Claim occurs before the call and all caller
