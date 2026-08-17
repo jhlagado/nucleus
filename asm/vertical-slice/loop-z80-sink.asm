@@ -68,6 +68,8 @@ EmitPairIndexedInline:
             LD   A,(HL)
             INC  HL
             PUSH HL
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+EmitPairIndexed:
             ADD  A,A
             LD   L,A
             LD   H,0
@@ -93,6 +95,11 @@ EmitPairPopHLLoadDE     .equ 10
 EmitPairPopHLDE         .equ 11
 EmitPairZeroH           .equ 12
 EmitPairLDIR            .equ 13
+EmitPairAdd8            .equ 14
+EmitPairSubtract8       .equ 15
+EmitPairAnd8            .equ 16
+EmitPairOr8             .equ 17
+EmitPairXor8            .equ 18
 EmitPairInlineTable:
             .db  $3B,$3B                 ; DEC SP / DEC SP
             .db  $DD,$6E                 ; LD L,(IX+n)
@@ -108,6 +115,11 @@ EmitPairInlineTable:
             .db  $E1,$D1                 ; POP HL / POP DE
             .db  $26,$00                 ; LD H,0
             .db  $ED,$B0                 ; LDIR
+            .db  $7D,$83                 ; LD A,L / ADD A,E
+            .db  $7D,$93                 ; LD A,L / SUB E
+            .db  $7D,$A3                 ; LD A,L / AND E
+            .db  $7D,$B3                 ; LD A,L / OR E
+            .db  $7D,$AB                 ; LD A,L / XOR E
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:
@@ -122,7 +134,7 @@ EmitWord:
 
 ; Copy B retained opcode bytes. Shared fixed sequences are cheaper as data
 ; once two or more encoder paths need four or more emitted bytes.
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 EmitBytes:
 .if TargetStreamingOutput
             PUSH BC
@@ -184,10 +196,10 @@ EmitFour:
 EmitThree:
             LD   B,3
             JR   EmitGo
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 EmitPair:
             LD   B,2
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 EmitGo:
             JR   EmitBytes
 

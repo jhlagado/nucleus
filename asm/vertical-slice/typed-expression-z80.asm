@@ -398,27 +398,36 @@ TypedEmitSequence:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedAdd8:
-            LD   HL,TypedAdd8Bytes
-            JR   TypedBinary5
+            LD   C,EmitPairAdd8
+            JR   TypedBinary8
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedSubtract8:
-            LD   HL,TypedSubtract8Bytes
-            JR   TypedBinary5
+            LD   C,EmitPairSubtract8
+            JR   TypedBinary8
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedXor8:
-            LD   HL,TypedXor8Bytes
-            JR   TypedBinary5
+            LD   C,EmitPairXor8
+            JR   TypedBinary8
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedAnd8:
-            LD   HL,TypedAnd8Bytes
-            JR   TypedBinary5
+            LD   C,EmitPairAnd8
+            JR   TypedBinary8
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedOr8:
-            LD   HL,TypedOr8Bytes
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedBinary5:
-            LD   B,5
-            JR   TypedEmitSequence
+            LD   C,EmitPairOr8
+.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+TypedBinary8:
+            CALL TypedPopOperands
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,C
+            CALL EmitPairIndexed
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,TypedAtoHL
+            JP   EmitFour
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedXor16:
@@ -1250,13 +1259,11 @@ TypedPopOperandsBytes:  .db $D1,$E1
 .if AggregateCallSlices
 TypedPushOperandsBytes: .db $E5,$D5
 .endif
-TypedAdd8Bytes:         .db $7D,$83,$6F,$26,$00
 .if AggregateCallSlices
 TypedAdd16Bytes          .equ Stage7OffsetAddress+3
 .else
 TypedAdd16Bytes:        .db $19
 .endif
-TypedSubtract8Bytes:    .db $7D,$93,$6F,$26,$00
 TypedSubtract16Bytes:   .db $AF,$ED,$52
 TypedNegate8Bytes:      .db $E1,$AF,$95,$6F,$26,$00
 TypedNegate16Bytes:     .db $E1,$AF,$95,$6F,$3E,$00,$9C,$67
@@ -1264,11 +1271,8 @@ TypedNot8Bytes:         .db $E1,$7D,$2F,$6F,$26,$00
 TypedPopHLtoA           .equ TypedNot8Bytes
 TypedNot16Bytes:        .db $E1,$7D,$2F,$6F,$7C,$2F,$67
 TypedNotBooleanBytes:   .db $E1,$7D,$EE,$01,$6F,$26,$00
-TypedAnd8Bytes:         .db $7D,$A3,$6F,$26,$00
 TypedAnd16Bytes:        .db $7D,$A3,$6F,$7C,$A2,$67
-TypedOr8Bytes:          .db $7D,$B3,$6F,$26,$00
 TypedOr16Bytes:         .db $7D,$B3,$6F,$7C,$B2,$67
-TypedXor8Bytes:         .db $7D,$AB,$6F,$26,$00
 TypedXor16Bytes:        .db $7D,$AB,$6F,$7C,$AA,$67
 ; POP HL; LD A,L; OR A; JR NZ/Z,+3; PUSH HL
 TypedBeginAndBytes:     .db $E1,$7D,$B7,$20,$03,$E5
