@@ -226,7 +226,7 @@ ParserCurrentNameIsForward:
             RET
 ParserCurrentNameNotForward .equ ParserExpectNamedNo
 
-.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectForwardName:
             PUSH DE
             LD   E,TokenName
@@ -258,7 +258,7 @@ ParserRetainForwardParameter:
 .endif
 
 .if LegacyCompilerSlices
-.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+.routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectForwardParameter:
             PUSH DE
             LD   E,TokenName

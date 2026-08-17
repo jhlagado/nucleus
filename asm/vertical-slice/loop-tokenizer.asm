@@ -1,23 +1,16 @@
 ; Tokenizer subset for the scalar-local, counted-loop, and array proofs.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+.routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL
 TokenRecordStart:
-            LD   HL,(SourceOffset)
-            LD   (TokenStartOffset),HL
-            LD   HL,(SourceLine)
-            LD   (TokenStartLine),HL
-            LD   HL,(SourceColumn)
-            LD   (TokenStartColumn),HL
-            LD   HL,(SourceCursor)
-            LD   (TokenLexemePointer),HL
+            LD   HL,SourceOffset
+            LD   DE,TokenStartOffset
+            LD   BC,8
+            LDIR
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,D
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
 TokenFinish:
-            LD   D,A
-            LD   A,1
             LD   (SourceLineHasToken),A
-            LD   A,D
             OR   A
             RET
 

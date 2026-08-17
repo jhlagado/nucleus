@@ -159,8 +159,29 @@ representative flat proof rose from 1,025,324 to 1,141,451 compiler
 instructions: 116,127 additional instructions, or 11.3 percent. Historical
 scanner layouts also required a second representation. The repository's older
 compression ledger records the same failed design, so it will not be repeated.
-The production scanner remains unchanged while a complete adapter-level
-transplant is evaluated separately.
+
+The complete adapter-level transplant is also rejected. The comparable frozen
+scanner boundary is 1,243 bytes: 141 source-adapter bytes, 869 tokenizer bytes,
+and 233 bytes of scanner-owned immutable data. The earlier 1,420-byte account
+incorrectly charged 177 bytes of parser and service names to the scanner. The
+rewrite scanner is 1,099 bytes before integration, but it lacks 50 bytes of
+production name utilities, compiler-side line and column publication, the
+published token ordinals, and the production multipart source-bank path. A
+straight integration projects to 1,253 core bytes, ten bytes larger than the
+frozen boundary, and adds 255 workspace bytes for delimiter kinds. A more
+invasive source-part representation projects only a 15-byte saving and does
+not justify its second representation or proof burden.
+
+A production-native scanner checkpoint is retained instead. `SourceTake` no
+longer saves and shuffles a byte that remains live in A, `TokenFinish` stores
+its guaranteed-nonzero token directly as the line-has-token marker, and the
+four full-width token-position fields are copied as one contiguous eight-byte
+snapshot. No address or position is shortened or packed. The shipping compiler
+measures 16,245 code bytes plus 410 immutable bytes, or 16,655 core bytes: a
+measured 25-byte recovery from the frozen baseline, with workspace unchanged
+at 3,639 bytes. The representative flat proof falls from 1,025,324 to
+1,002,744 compiler instructions and from 9,980,322 to 9,973,900 T-states while
+preserving the generated artifact and diagnostics exactly.
 
 ### Expression bakeoff checkpoint
 
@@ -187,10 +208,16 @@ synchronization, TypeScript checking, the distribution build, and diff checks
 pass. The proof-image setup budgets now allow for the measured AZM assembly
 cost.
 
-This remains the first complete rewrite family to beat its frozen counterpart,
-but it is not yet selected for production. The broader expression bakeoff
-continues toward its measured 3,500-byte gate. The next experiment targets
-repeated operator/type resolution without changing the semantic transcript.
+This was the first complete rewrite family to beat its frozen counterpart in
+isolation, but it is rejected as a production transplant. Its fixed-record
+producer adds 110 code bytes and ten immutable bytes, requires a parallel
+source-offset ledger, uses different operation ordinals and eight-byte symbols,
+and retains only part and offset where the production compiler publishes line
+and column. Even an optimistic lower bound that counts only the candidate, its
+producer, and an ordinal remap raises the production core from 16,680 to 16,803
+bytes before diagnostic, symbol, D8, path, or call adapters. The original
+expression family therefore remains selected. The 3,995-byte rewrite remains
+a semantic and compression laboratory, not credited production recovery.
 
 Three follow-up expression experiments are rejected. Removing the second
 integer-pair resolution from runtime emission recovered only a projected five
@@ -232,3 +259,19 @@ save another projected 105–135 compiler bytes, but that is an ABI redesign and
 may simply move 90–150 hypothetical bytes into every adapter. It is not counted
 without an explicit compiler/adapter/deployment comparison. The backend alone
 cannot supply the 1,320-byte production recovery target.
+
+### Current recovery outlook
+
+After the production-native scanner checkpoint, the measured shipping core is
+16,655 bytes and the remaining recovery to 15,360 is 1,295 bytes. The next
+bounded production-native expression experiment is a comparison-result table,
+projected at about 35 bytes. The parity-safe backend work projects 195–285
+bytes, and a not-yet-assembled direct-action redesign projects 100–408 bytes.
+Together with the measured scanner result, the currently evidenced range is
+355–753 bytes, which would place the compiler between 15,927 and 16,325 bytes.
+
+That range does not yet reach the target. A further 567–965 bytes therefore
+remain an architectural gap, not booked recovery. The search continues in the
+selected original frontend and backend, and no local rewrite saving is counted
+until all adapters and displaced production code are included in the assembled
+core.

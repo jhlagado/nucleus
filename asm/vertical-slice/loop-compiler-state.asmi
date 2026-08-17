@@ -3,11 +3,14 @@
 CompilerStateBase       .equ CompilerWorkBase
 
 SourcePartId            .equ CompilerStateBase+$00
-SourceCursor            .equ CompilerStateBase+$01
-SourceEnd               .equ CompilerStateBase+$03
-SourceOffset            .equ CompilerStateBase+$05
-SourceLine              .equ CompilerStateBase+$07
-SourceColumn            .equ CompilerStateBase+$09
+; The live source position and cursor form one eight-byte snapshot. The
+; tokenizer copies the complete full-width record to the token anchor without
+; shortening or packing any address or position.
+SourceOffset            .equ CompilerStateBase+$01
+SourceLine              .equ CompilerStateBase+$03
+SourceColumn            .equ CompilerStateBase+$05
+SourceCursor            .equ CompilerStateBase+$07
+SourceEnd               .equ CompilerStateBase+$09
 SourceLineHasToken       .equ CompilerStateBase+$0B
 SourceDelimiterDepth    .equ CompilerStateBase+$0C
 

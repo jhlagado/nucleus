@@ -77,10 +77,8 @@ SourcePeekByte:
 ; is separate because LF and CRLF each advance the logical line only once.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 SourceTake:
-            PUSH BC
             CALL SourcePeek
-            JR   C,SourceTakeEof
-            LD   B,A
+            RET  C
             LD   HL,(SourceCursor)
             INC  HL
             LD   (SourceCursor),HL
@@ -90,13 +88,7 @@ SourceTake:
             LD   HL,(SourceColumn)
             INC  HL
             LD   (SourceColumn),HL
-            LD   A,B
-            POP  BC
             OR   A
-            RET
-SourceTakeEof:
-            POP  BC
-            SCF
             RET
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
