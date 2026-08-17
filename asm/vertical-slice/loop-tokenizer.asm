@@ -385,8 +385,7 @@ TokenizerLf:
             CALL SourceTake
             JR   TokenizerFinishLine
 TokenizerCrLf:
-            CALL SourceTake
-            CALL SourcePeek
+            CALL SourceTakePeek
             JR   C,TokenizerLineLexicalFailure
             CP   10
             JR   NZ,TokenizerLineLexicalFailure
@@ -468,8 +467,7 @@ TokenizerSkipByte:
 
 TokenizerSlash:
             LD   C,TokenSlash
-            CALL SourceTake
-            CALL SourcePeek
+            CALL SourceTakePeek
             JR   C,TokenFinishC
             CP   "/"
             JR   NZ,TokenFinishC
@@ -507,8 +505,7 @@ TokenizerLess:
 TokenizerGreater:
             LD   C,TokenGreater
 TokenizerComparison:
-            CALL SourceTake
-            CALL SourcePeek
+            CALL SourceTakePeek
             JR   C,TokenFinishC
             CP   "="
             JR   Z,TokenizerComparisonEqual

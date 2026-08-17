@@ -1001,13 +1001,31 @@ The representative proof changes from 877,586 to 877,609 instructions and from
 Historical layouts, semantic transcripts, generated output, diagnostics,
 artifacts, and relocation remain exact.
 
+### Fifth three-audit source, sink, and bank-record checkpoint
+
+Three consume-then-peek tokenizer paths now call one fall-through source helper;
+legacy scanner paths use it too, so no configuration grows. The streaming
+semantic operation counter increments in place, and its word emitter omits a
+carry return that production nonlocal diagnostics cannot reach. Finally, each
+bank's cursor, remaining capacity, and read-only length form one six-byte
+record. Banked MAP publication consumes that record directly instead of
+carrying a second read-only pointer through the private adapter ABI.
+
+The source helper recovers six compiler bytes, the semantic sink recovers six,
+and the unified bank records recover eight. The compiler core falls from
+15,587 to 15,567 bytes with immutable data and workspace unchanged. Removing
+the adapter's obsolete pointer recovers one additional deployment byte. The
+representative proof improves from 877,609 to 876,569 instructions and from
+9,572,809 to 9,566,782 T-states. Public Host, NOBJ, MAP, D8, diagnostics,
+artifacts, historical layouts, and relocation remain exact.
+
 ### Current recovery outlook
 
-With the fourth three-audit checkpoint added to the retained work above, the
-measured shipping core is 15,587 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,093 bytes. The earlier 15,360-byte target is 227 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 902 bytes,
-exceeding that phase target by 602 bytes.
+With the fifth three-audit checkpoint added to the retained work above, the
+measured shipping core is 15,567 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,113 bytes. The earlier 15,360-byte target is 207 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 922 bytes,
+exceeding that phase target by 622 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

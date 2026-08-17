@@ -21,7 +21,10 @@ TypedEmitWord:
             LD   A,L
             CALL TypedEmitByte
             POP  HL
+.if TargetStreamingOutput
+.else
             RET  C
+.endif
             LD   A,H
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitByte:
@@ -69,12 +72,9 @@ TypedEmitOperation:
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:
 .if TargetStreamingOutput
-            LD   B,A
-            LD   A,(SemanticBufferBase)
-            INC  A
+            LD   HL,SemanticBufferBase
+            INC  (HL)
             JR   Z,SemanticSinkPutFull
-            LD   (SemanticBufferBase),A
-            LD   A,B
             JR   SemanticSinkPut
 .else
             LD   B,A

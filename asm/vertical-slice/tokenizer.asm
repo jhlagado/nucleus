@@ -210,8 +210,7 @@ TokenizerSkipByte:
             JR   TokenizerNextLoop
 
 TokenizerSlash:
-            CALL SourceTake
-            CALL SourcePeek
+            CALL SourceTakePeek
             JP   C,TokenLexicalFailure
             CP   "/"
             JP   NZ,TokenLexicalFailure
@@ -255,8 +254,7 @@ TokenizerLf:
             RET
 
 TokenizerCrLf:
-            CALL SourceTake
-            CALL SourcePeek
+            CALL SourceTakePeek
             JP   C,TokenLexicalFailure
             CP   10
             JP   NZ,TokenLexicalFailure

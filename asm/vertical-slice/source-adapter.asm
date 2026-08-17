@@ -56,22 +56,6 @@ SourceLoadPart:
             JR   SourceInitialize
 .endif
 
-; Return the current source byte in A. Carry denotes the separate EOF event.
-.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
-SourcePeek:
-            LD   HL,(SourceCursor)
-            LD   DE,(SourceEnd)
-            OR   A
-            SBC  HL,DE
-            ADD  HL,DE
-            JR   NZ,SourcePeekByte
-            SCF
-            RET
-SourcePeekByte:
-            LD   A,(HL)
-            OR   A
-            RET
-
 ; Consume one byte and advance byte offset and byte column. Newline handling
 ; is separate because LF and CRLF each advance the logical line only once.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
@@ -86,6 +70,30 @@ SourceTake:
             LD   HL,(SourceColumn)
             INC  HL
             LD   (SourceColumn),HL
+            RET
+
+; The tokenizer has three paths where a known-present byte is consumed and
+; the following byte is inspected immediately. The helper falls through to
+; SourcePeek so the pair retains full-width source state without a second
+; call site.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SourceTakePeek:
+            CALL SourceTake
+
+; Return the current source byte in A. Carry denotes the separate EOF event.
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SourcePeek:
+            LD   HL,(SourceCursor)
+            LD   DE,(SourceEnd)
+            OR   A
+            SBC  HL,DE
+            ADD  HL,DE
+            JR   NZ,SourcePeekByte
+            SCF
+            RET
+SourcePeekByte:
+            LD   A,(HL)
+            OR   A
             RET
 
 .if AggregateCallSlices

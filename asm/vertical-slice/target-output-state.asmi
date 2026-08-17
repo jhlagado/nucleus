@@ -17,14 +17,16 @@ TargetStackRequirement            .equ 3840
 
 ; Target-only parse-time aggregate-constant lengths reuse dead post-fixup
 ; workspace at the same addresses as the historical segmented proof fields.
-; They do not depend on generated-image publication metadata.
-TargetBankRoLengthBase  .equ EmitControlFixupLimit+2
-TargetBankRoLengthLimit .equ TargetBankRoLengthBase+2*TargetBankCapacity
-TargetBankStateBase      .equ EmitControlFixupLimit+16
-TargetBankStateSize      .equ 4
+; Generation adds each bank's cursor and remaining capacity to the same
+; six-byte record; the three full words remain ordinary 16-bit values.
+TargetBankStateBase      .equ EmitControlFixupLimit+2
+TargetBankStateSize      .equ 6
 TargetBankStateCursor    .equ 0 ; word
 TargetBankStateRemaining .equ 2 ; word
+TargetBankStateRoLength  .equ 4 ; word
+TargetBankRoLengthBase   .equ TargetBankStateBase+TargetBankStateRoLength
 TargetBankStateLimit     .equ TargetBankStateBase+TargetBankStateSize*TargetBankCapacity
+TargetBankRoLengthLimit  .equ TargetBankStateLimit
 
 TargetDescriptorPointer .equ SourceMultipartWorkspaceEnd ; word
 TargetCompilerWorkspaceEnd .equ TargetDescriptorPointer+2

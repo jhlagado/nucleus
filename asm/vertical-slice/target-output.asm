@@ -793,7 +793,6 @@ FinishTargetBankedProgram:
             JR   C,TargetFinishOutputFailure
             LD   IX,(TargetDescriptorPointer)
             LD   IY,TargetBankStateBase
-            LD   HL,TargetBankRoLengthBase
             CALL TargetSinkMapBanked
             JR   TargetFinishMapReady
 

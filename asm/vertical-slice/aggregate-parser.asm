@@ -28,6 +28,18 @@ AggregateAddress6:
             ADD  HL,DE
             RET
 
+.if TargetStreamingOutput
+.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
+TargetBankStateAddress:
+            LD   DE,TargetBankStateBase
+            JR   AggregateAddress6
+
+.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
+TargetBankRoLengthAddress:
+            LD   DE,TargetBankRoLengthBase
+            JR   AggregateAddress6
+.endif
+
 .routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 AggregateGetExtent:
             CP   AggregateFirstDynamicTypeId

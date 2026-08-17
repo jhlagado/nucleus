@@ -14,14 +14,6 @@ Stage7RoutineAddress:
             OR   A
             RET
 
-.if TargetStreamingOutput
-; The target bank state and retained parameters are both four-byte records.
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
-TargetBankStateAddress:
-            LD   DE,TargetBankStateBase
-            JR   Stage7Address4
-.endif
-
 .routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 Stage7ParameterAddress:
             LD   DE,Stage7ParameterTableBase
@@ -213,16 +205,6 @@ TargetUnpackBank:
             RRCA
             RRCA
             RRCA
-            RET
-
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
-TargetBankRoLengthAddress:
-            LD   L,A
-            LD   H,0
-            ADD  HL,HL
-            LD   DE,TargetBankRoLengthBase
-            ADD  HL,DE
-            OR   A
             RET
 
 ; Compare packed bank bits in D with the current source-part bank.

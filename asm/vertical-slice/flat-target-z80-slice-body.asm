@@ -1218,14 +1218,13 @@ TargetSinkMapReady:
             OR   A
             RET
 
-.routine in HL,IX,IY out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in IX,IY out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkMapBanked:
-            LD   (AdapterMapRoPointer),HL
             LD   A,(IX+TargetDescriptorBankCount)
             LD   B,A
-            LD   C,A
             LD   HL,AdapterCapturedBankCursors
             LD   DE,AdapterCapturedBankRemaining
+            LD   IX,AdapterCapturedBankRoLengths
 TargetSinkMapBankedCursorLoop:
             LD   A,(IY+0)
             LD   (HL),A
@@ -1239,22 +1238,17 @@ TargetSinkMapBankedCursorLoop:
             LD   A,(IY+3)
             LD   (DE),A
             INC  DE
+            LD   A,(IY+4)
+            LD   (IX+0),A
+            INC  IX
+            LD   A,(IY+5)
+            LD   (IX+0),A
+            INC  IX
             PUSH DE
             LD   DE,TargetBankStateSize
             ADD  IY,DE
             POP  DE
             DJNZ TargetSinkMapBankedCursorLoop
-            LD   HL,(AdapterMapRoPointer)
-            LD   DE,AdapterCapturedBankRoLengths
-            LD   A,C
-            ADD  A,A
-            LD   B,A
-TargetSinkMapBankedRoLoop:
-            LD   A,(HL)
-            LD   (DE),A
-            INC  HL
-            INC  DE
-            DJNZ TargetSinkMapBankedRoLoop
             OR   A
             RET
 
@@ -1409,7 +1403,6 @@ AdapterCapturedBank1Remaining .equ AdapterCapturedBankRemaining+2
 AdapterCapturedBankRoLengths: .ds TargetBankCapacity*2
 AdapterCapturedBank0RoLength .equ AdapterCapturedBankRoLengths
 AdapterCapturedBank1RoLength .equ AdapterCapturedBankRoLengths+2
-AdapterMapRoPointer: .dw 0
 AdapterCapturedBankedMapLength: .dw 0
 AdapterCapturedBankedMap: .ds 1
 AdapterCapturedRuntimeBase .equ TargetContextRuntimeBase
