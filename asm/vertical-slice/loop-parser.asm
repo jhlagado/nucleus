@@ -110,6 +110,7 @@ ParserPeekEmpty:
             LD   (ParserLookaheadValue),BC
             RET
 
+; Expression reductions keep the left value in HL across lookahead consumption.
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserTake:
             CALL ParserPeek
@@ -120,7 +121,6 @@ ParserTake:
             LD   A,$FF
             LD   (ParserLookaheadKind),A
             LD   A,D
-            OR   A
             RET
 
 ; Frequent token checks enter the common ParserExpect tail. These wrappers

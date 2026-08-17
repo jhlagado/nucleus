@@ -226,6 +226,9 @@ TokenScanCharacter:
             JR   NZ,TokenScanCharacterFailure
             CALL TokenFinishInline
             .db  TokenCharacter
+.if TargetStreamingOutput
+.routine noreturn
+.endif
 TokenScanCharacterFailure:
             JP   TokenLexicalFailure
 
@@ -236,8 +239,7 @@ TokenScanCharacterFailure:
 TokenTakeRequired:
             CALL SourceTake
             RET  NC
-            CALL SetDiagInline
-            .db  DiagnosticLexical
+            JR   TokenScanCharacterFailure
 .endif
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
@@ -458,20 +460,21 @@ TokenizerLeftBracket:
             LD   C,TokenLeftBracket
 TokenizerLeftDelimiter:
             CALL SourceTake
-            LD   A,(SourceDelimiterDepth)
+            LD   HL,SourceDelimiterDepth
+            LD   A,(HL)
             INC  A
             JR   Z,TokenizerLexicalFailure
-            LD   (SourceDelimiterDepth),A
+            LD   (HL),A
             JP   TokenFinishC
 
 TokenizerRightBracket:
             LD   C,TokenRightBracket
 TokenizerRightDelimiter:
-            LD   A,(SourceDelimiterDepth)
+            LD   HL,SourceDelimiterDepth
+            LD   A,(HL)
             OR   A
             JR   Z,TokenizerLexicalFailure
-            DEC  A
-            LD   (SourceDelimiterDepth),A
+            DEC  (HL)
             CALL SourceTake
             JP   TokenFinishC
 
@@ -585,8 +588,7 @@ TokenScanBinaryDigit:
             SUB  "0"
             JR   C,TokenScanBasedDone
             CP   2
-            JR   C,TokenScanBasedDigit
-            JR   TokenScanBasedDone
+            JR   NC,TokenScanBasedDone
 TokenScanBasedDigit:
             DEC  B
             JR   Z,TokenNumberFailure

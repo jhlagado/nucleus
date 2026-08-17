@@ -713,13 +713,35 @@ expressions, all scalar widths, comparisons, range positions, semantic
 transcripts, generated Z80, NOBJ, D8, and returning-diagnostic layouts pass.
 Relocation passes at `$0100`, `$8000`, and the highest-fitting origin.
 
+### Scanner branches and delimiter state
+
+Required literal reads now enter the existing terminal lexical-failure tail.
+The binary-digit test falls through for digits zero and one, and delimiter
+depth updates use one full-width HL address for their read and write. An opening
+delimiter still checks overflow before publishing the increment; a closing
+delimiter still checks zero before decrementing storage.
+
+The checkpoint recovers eight compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,790 bytes. The representative
+proof executes 1,015 fewer instructions and 4,752 fewer T-states, improvements
+of 0.103 and 0.046 percent. Exact character and string escapes, binary literals,
+delimiter capacity and underflow, multipart diagnostics, historical layouts,
+generated artifacts, NOBJ, and D8 pass. Relocation passes at `$0100`, `$8000`,
+and the highest-fitting origin.
+
+A separate three-byte `ParserTake` candidate changed the retained historical
+HL result and failed the Chapter 21 proof. Preserving HL with a balanced AF
+save did not pass strict register-contract analysis. The cursor rewrite was
+therefore rejected, while deleting the old flag-neutralizing `OR A` retained
+one safe byte without weakening the contract gate.
+
 ### Current recovery outlook
 
-With expression-frame and emitter-register consolidation added to the retained
-checkpoints above, the measured shipping core is 15,798 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 882 bytes. The earlier
-15,360-byte target is 438 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 691 bytes, exceeding that phase target by 391 bytes.
+With scanner branch and delimiter-state cleanup added to the retained
+checkpoints above, the measured shipping core is 15,790 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 890 bytes. The earlier
+15,360-byte target is 430 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 699 bytes, exceeding that phase target by 399 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
