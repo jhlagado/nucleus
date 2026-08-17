@@ -361,6 +361,7 @@ RewriteBackendBooleanFixupDepth .equ RewriteBackendContextLimit+7
 RewriteBackendBooleanFixupBase .equ RewriteBackendContextLimit+8
 RewriteBackendBooleanFixupCapacity .equ 16
 RewriteBackendLabelCapacity    .equ RewriteControlLabelLimit
+RewriteBackendMainLabel        .equ RewriteBackendLabelCapacity-1
 RewriteBackendLabelValidBase   .equ RewriteBackendBooleanFixupBase+RewriteBackendBooleanFixupCapacity*2
 RewriteBackendLabelBankKnownBase .equ RewriteBackendLabelValidBase+RewriteBackendLabelCapacity
 RewriteBackendLabelBankBase    .equ RewriteBackendLabelBankKnownBase+RewriteBackendLabelCapacity

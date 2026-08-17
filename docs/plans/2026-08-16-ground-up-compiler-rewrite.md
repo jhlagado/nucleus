@@ -1509,7 +1509,7 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   This is copied into backend state without
   narrowing. The same context drives local terminal jumps, identity-defined
   far-jump vector transfers, and segment-relative object addresses;
-- the current cohort covers 99 semantic ordinals: byte and word local
+- the current cohort covers 100 semantic ordinals: byte and word local
   allocation, a word literal, local and parameter loads and stores, five byte
   and five word non-multiply binary operations, byte and word multiplication,
   four integer unary operations, Boolean `not`, three comparison forms,
@@ -1528,8 +1528,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   `IX` frame, bind byte, word, aggregate-alias, and open-string parameters,
   and restore result-free frames at ordinary fallthrough. Open arrays retain
   their existing two-word representation as two `u16` bindings. The proof
-  compares 55 assembled target bytes in 2,000 compiler instructions and
-  19,990 T-states, verifies the full label address and bank, and rejects a
+  compares 55 assembled target bytes in 2,001 compiler instructions and
+  20,000 T-states, verifies the full label address and bank, and rejects a
   routine presented to the wrong selected output bank before emitting a byte;
 - source-call lowering predeclares each routine bank in a separate table,
   retains full label addresses for later fixup, and selects ordinary or
@@ -1571,7 +1571,12 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   local handling now cover 11 more semantic ordinals. Handler destinations
   validate their redundant class/type metadata before output, then store the
   error code into initialized, BSS, local, or parameter storage. The 98-byte
-  reference executes in 3,501 compiler instructions and 33,701 T-states;
+  reference executes in 3,502 compiler instructions and 33,711 T-states;
+- callable `main` now saves the full outer machine frame, invokes an ordinary
+  origin-independent main label, converts final failure into an unhandled
+  terminal trap, publishes success through the same local/far terminal policy,
+  and then begins the ordinary callable body frame. The 84-byte reference
+  executes in 2,673 compiler instructions and 26,712 T-states;
 - the executable proof compares 242 generated target bytes with ordinary
   AZM-assembled Z80 instructions. It completes in 7,406 compiler instructions
   and 66,046 T-states for the first cohort, and 10,959 instructions and 96,447
@@ -1592,8 +1597,8 @@ R6 recipe-and-scalar-escape checkpoint (Measured, in progress):
   discards the result. The bit lives only in declared flag/selector operands;
   it is never address metadata and does not constrain compiler placement;
 - the recipe data plus 42-entry recipe and 31-entry escape directories occupy
-  738 immutable bytes. The shipping replacement is 15,370 code + 2,202
-  immutable = 17,572 core bytes; the instrumented replacement is 17,576 core
+  738 immutable bytes. The shipping replacement is 15,577 code + 2,202
+  immutable = 17,779 core bytes; the instrumented replacement is 17,783 core
   bytes. Workspace remains 3,425
   bytes because backend state overlays dead initializer scratch. This is a
   feature checkpoint, not yet the R6 acceptance measurement: the next step

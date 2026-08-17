@@ -26,7 +26,8 @@
     "skipHandler": "RewriteBackendEscapeSkipHandler",
     "beginHandler": "RewriteBackendEscapeBeginHandler",
     "beginHandlerBss": "RewriteBackendEscapeBeginHandlerBss",
-    "endHandler": "RewriteBackendEscapeEndHandler"
+    "endHandler": "RewriteBackendEscapeEndHandler",
+    "beginCallableMain": "RewriteBackendEscapeBeginCallableMain"
   },
   "selectors": {
     "defineProgramU8": [],

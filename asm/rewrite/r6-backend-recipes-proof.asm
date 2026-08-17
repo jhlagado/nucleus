@@ -1014,6 +1014,70 @@ ProofBackendHandlerMetadataInvalid:
             CALL RewriteBackendDispatchOperation
             JP   ProofFailure
 
+ProofBackendCallableMain:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,RewriteRoutineFlagMain+RewriteRoutineFlagFails
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandFlagsOffset),A
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandBankOffset),A
+            LD   A,RewriteSemanticBeginCallableMain
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            XOR  A
+            LD   (RewriteSemanticOperandArea+RewriteSemanticEndGeneralRoutineEnclosingOperandResultTypeOffset),A
+            LD   A,RewriteSemanticEndGeneralRoutineEnclosing
+            CALL RewriteBackendDispatchOperation
+            JP   C,ProofFailure
+            CALL RewriteBackendResolveFixups
+            JP   C,ProofFailure
+            LD   HL,ProofBackendOutput+ProofExpectedCallableMainBody-ProofExpectedCallableMain
+            LD   (ProofExpectedCallableMainCall+1),HL
+            LD   HL,(RewriteBackendOutputCursor)
+            LD   DE,ProofBackendOutput+ProofExpectedCallableMainEnd-ProofExpectedCallableMain
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofExpectedCallableMain
+            LD   BC,ProofExpectedCallableMainEnd-ProofExpectedCallableMain
+ProofBackendCallableMainCompare:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DEC  BC
+            LD   A,B
+            OR   C
+            JR   NZ,ProofBackendCallableMainCompare
+            LD   A,$AB
+            LD   (ProofStatus),A
+            HALT
+
+ProofBackendCallableMainInvalid:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofExpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   HL,ProofBackendOutput
+            LD   DE,ProofBackendOutputLimit
+            LD   IX,ProofBackendContext
+            CALL RewriteBackendInitialize
+            LD   A,$80                    ; reserved flag metadata
+            LD   (RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandFlagsOffset),A
+            LD   A,RewriteSemanticBeginCallableMain
+            CALL RewriteBackendDispatchOperation
+            JP   ProofFailure
+
 ProofBackendOpenArgumentInvalid:
             LD   SP,$FF00
             CALL RewriteReset
@@ -2141,6 +2205,46 @@ ProofExpectedBssHandler:
             LD   ($A100),A
             JP   $A200
 ProofExpectedFailureHandlersEnd:
+
+ProofExpectedCallableMain:
+            LD   ($A100+17),SP
+            LD   ($A100+19),IX
+ProofExpectedCallableMainCall:
+            CALL ProofExpectedCallableMainBody
+            JR   NC,ProofExpectedCallableMainSuccess
+            PUSH AF
+            LD   HL,($A100+3)
+            POP  AF
+            LD   ($A100+5),A
+            LD   A,6
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            PUSH AF
+            XOR  A
+            LD   ($A100+6),A
+            POP  AF
+            LD   ($A100+1),A
+            XOR  A
+            LD   ($A100+2),A
+            LD   ($A100+3),HL
+            LD   A,3
+            LD   ($A100),A
+            JP   $A200
+ProofExpectedCallableMainSuccess:
+            LD   SP,($A100+17)
+            LD   IX,($A100+19)
+            LD   A,1
+            LD   ($A100),A
+            JP   $A200
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+ProofExpectedCallableMainBody:
+            PUSH IX
+            LD   IX,0
+            ADD  IX,SP
+            LD   SP,IX
+            POP  IX
+            RET
+ProofExpectedCallableMainEnd:
 
 ProofExpectedSourceCalls:
             CALL ProofRuntimeBase+NucleusRuntimeActivationClaimOffset

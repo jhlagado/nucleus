@@ -689,6 +689,7 @@ RewriteBackendEmitTrapEnding:
             LD   DE,0                     ; RunState-StateBase
             CALL RewriteBackendEmitStateStoreA
 
+RewriteBackendEmitTerminalTransfer:
             LD   A,(RewriteBackendEntryBank)
             LD   B,A
             LD   A,(RewriteBackendOutputBank)
@@ -718,6 +719,9 @@ RewriteBackendEmitUnhandledTrap:
             LD   (RewriteBackendTrapSourceOffset),HL
             LD   A,$21                    ; LD HL,sourceOffset
             CALL RewriteBackendEmitOpcodeWord
+            JP   RewriteBackendEmitUnhandledTrapRuntime
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitUnhandledTrapRuntime:
             LD   DE,5                     ; TrapError-StateBase
             CALL RewriteBackendEmitStateStoreA
             LD   A,6                      ; unhandled-error trap
@@ -875,6 +879,10 @@ RewriteBackendEscapeBeginRoutine:
             JP   NZ,RewriteBackendInvalid
             LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginGeneralRoutineOperandLabelOffset)
             CALL RewriteBackendDefineLabel
+            JP   RewriteBackendEmitCallableFrame
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitCallableFrame:
             LD   A,$DD                    ; PUSH IX
             CALL RewriteBackendEmitByte
             LD   A,$E5
@@ -1236,6 +1244,108 @@ RewriteBackendEscapeBeginHandlerBss .equ RewriteBackendEscapeBeginHandler
 RewriteBackendEscapeEndHandler:
             LD   A,(RewriteSemanticOperandArea+RewriteSemanticEndHandlerOperandLabelOffset)
             JP   RewriteBackendDefineLabel
+
+; Save or restore the outer host frame through full deployment-state
+; addresses. No address bits or compiler-origin assumptions participate.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitSaveRootFrame:
+            LD   A,$ED                    ; LD (nn),SP
+            CALL RewriteBackendEmitByte
+            LD   A,$73
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,17
+            ADD  HL,DE
+            CALL RewriteBackendEmitWord
+            LD   A,$DD                    ; LD (nn),IX
+            CALL RewriteBackendEmitByte
+            LD   A,$22
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,19
+            ADD  HL,DE
+            JP   RewriteBackendEmitWord
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+RewriteBackendEmitRestoreRootFrame:
+            LD   A,$ED                    ; LD SP,(nn)
+            CALL RewriteBackendEmitByte
+            LD   A,$7B
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,17
+            ADD  HL,DE
+            CALL RewriteBackendEmitWord
+            LD   A,$DD                    ; LD IX,(nn)
+            CALL RewriteBackendEmitByte
+            LD   A,$2A
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,19
+            ADD  HL,DE
+            JP   RewriteBackendEmitWord
+
+; Publish successful host completion and transfer through the same local/far
+; terminal policy as a trap.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEmitSuccessEnding:
+            LD   A,1                      ; RunSucceeded
+            CALL RewriteBackendEmitLoadAImmediate
+            LD   DE,0                     ; RunState-StateBase
+            CALL RewriteBackendEmitStateStoreA
+            JP   RewriteBackendEmitTerminalTransfer
+
+; Emit startup around main's ordinary callable body. Main retains one frozen
+; label ordinal but no reserved address: complete address and bank metadata
+; flow through the ordinary origin-independent label tables.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+RewriteBackendEscapeBeginCallableMain:
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandFlagsOffset)
+            LD   B,A
+            AND  $FF-(RewriteRoutineFlagMain+RewriteRoutineFlagFails)
+            JP   NZ,RewriteBackendInvalid
+            LD   A,B
+            AND  RewriteRoutineFlagMain
+            JP   Z,RewriteBackendInvalid
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandBankOffset)
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            CP   C
+            JP   NZ,RewriteBackendInvalid
+
+            CALL RewriteBackendEmitSaveRootFrame
+            LD   A,RewriteBackendMainLabel
+            LD   C,A
+            LD   A,(RewriteBackendOutputBank)
+            LD   B,A
+            LD   A,C
+            CALL RewriteBackendEnsureLabelBank
+            LD   B,$CD                    ; CALL main
+            CALL RewriteBackendEmitLocalFixup
+            LD   A,(RewriteSemanticOperandArea+RewriteSemanticBeginCallableMainOperandFlagsOffset)
+            AND  RewriteRoutineFlagFails
+            JR   Z,RewriteBackendCallableMainSuccess
+            LD   A,$30                    ; JR NC,success
+            CALL RewriteBackendEmitRelativePlaceholder
+            LD   (RewriteBackendRelativeOperand),DE
+            LD   A,$F5                    ; PUSH AF / LD HL,(TrapOffset) / POP AF
+            CALL RewriteBackendEmitByte
+            LD   HL,(RewriteBackendStateBase)
+            LD   DE,3
+            ADD  HL,DE
+            LD   A,$2A
+            CALL RewriteBackendEmitOpcodeWord
+            LD   A,$F1
+            CALL RewriteBackendEmitByte
+            CALL RewriteBackendEmitUnhandledTrapRuntime
+            LD   DE,(RewriteBackendRelativeOperand)
+            CALL RewriteBackendPatchRelative
+RewriteBackendCallableMainSuccess:
+            CALL RewriteBackendEmitRestoreRootFrame
+            CALL RewriteBackendEmitSuccessEnding
+            LD   A,RewriteBackendMainLabel
+            CALL RewriteBackendDefineLabel
+            JP   RewriteBackendEmitCallableFrame
 
 ; Lower a source-routine call after argument evaluation has left canonical
 ; words on the target stack. Claim occurs before the call and all caller

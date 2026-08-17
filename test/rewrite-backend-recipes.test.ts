@@ -217,8 +217,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendFailureHandlers");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xaa);
     expect({ instructions, cycles }).toEqual({
-      instructions: 3_501,
-      cycles: 33_701,
+      instructions: 3_502,
+      cycles: 33_711,
     });
     expect(
       (image.symbols.ProofExpectedFailureHandlersEnd ?? 0) -
@@ -228,6 +228,29 @@ describe("ground-up rewrite backend recipes", () => {
 
   it("rejects corrupt handler destination metadata before output", () => {
     const { memory } = run("ProofBackendHandlerMetadataInvalid");
+    const output = image.symbols.ProofBackendOutput ?? -1;
+    const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      emitted: (memory[cursor] | (memory[cursor + 1] << 8)) - output,
+    }).toEqual({ diagnostic: 67, emitted: 0 });
+  });
+
+  it("wraps callable main and preserves failable terminal outcomes", () => {
+    const { memory, instructions, cycles } = run("ProofBackendCallableMain");
+    expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xab);
+    expect({ instructions, cycles }).toEqual({
+      instructions: 2_673,
+      cycles: 26_712,
+    });
+    expect(
+      (image.symbols.ProofExpectedCallableMainEnd ?? 0) -
+        (image.symbols.ProofExpectedCallableMain ?? 0),
+    ).toBeGreaterThan(0);
+  });
+
+  it("rejects corrupt callable-main metadata before output", () => {
+    const { memory } = run("ProofBackendCallableMainInvalid");
     const output = image.symbols.ProofBackendOutput ?? -1;
     const cursor = image.symbols.RewriteBackendOutputCursor ?? -1;
     expect({
@@ -260,8 +283,8 @@ describe("ground-up rewrite backend recipes", () => {
     const { memory, instructions, cycles } = run("ProofBackendRoutineFrame");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_000,
-      cycles: 19_990,
+      instructions: 2_001,
+      cycles: 20_000,
     });
     expect(
       (image.symbols.ProofExpectedRoutineFrameEnd ?? 0) -
@@ -491,13 +514,13 @@ describe("ground-up rewrite backend recipes", () => {
         (image.symbols.RewriteStateBase ?? 0),
       supported: image.symbols.RewriteBackendSupportedOperationCount,
     }).toEqual({
-      engine: 3_150,
+      engine: 3_357,
       recipes: 738,
-      code: 15_370,
+      code: 15_577,
       immutable: 2_202,
-      core: 17_572,
+      core: 17_779,
       workspace: 3_425,
-      supported: 99,
+      supported: 100,
     });
   });
 });

@@ -15,7 +15,7 @@ RewriteBackendRecipeAddressWord .equ 9
 RewriteBackendRecipeDefineLabel .equ 10
 RewriteBackendRecipeAbsoluteFixup .equ 11
 RewriteBackendRecipeInstructionCount .equ 12
-RewriteBackendSupportedOperationCount .equ 99
+RewriteBackendSupportedOperationCount .equ 100
 
 RewriteBackendRecipeDirectory:
             .dw RewriteBackendRecipeSelectorDefineProgramU8 ; defineProgramU8
@@ -86,7 +86,7 @@ RewriteBackendEscapeDirectory:
             .dw RewriteBackendEscapeBeginHandler ; beginHandler
             .dw RewriteBackendEscapeBeginHandlerBss ; beginHandlerBss
             .dw RewriteBackendEscapeEndHandler ; endHandler
-            .dw 0 ; beginCallableMain
+            .dw RewriteBackendEscapeBeginCallableMain ; beginCallableMain
             .dw RewriteBackendEscapeOpenStringLength ; openStringLength
             .dw RewriteBackendEscapeOpenStringIndex ; openStringIndex
             .dw RewriteBackendEscapePrepareOpenArgument ; prepareOpenArgument
