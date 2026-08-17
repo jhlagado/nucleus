@@ -609,13 +609,29 @@ semantic records and generated artifacts. Relocation passes at `$0100`,
 `$8000`, and the highest-fitting origin; the selector uses only public class
 and operation ordinals and introduces no address representation.
 
+### Shared newline and EOF returns
+
+Physical, synthetic multipart, and final implicit newlines now converge on one
+line-state clear and newline return. Multipart input marks the pending next
+part before entering that tail, with no intervening call or failure point. EOF
+returns its published zero token directly. CRLF handling, delimiter checking,
+and source-part advancement retain their existing order.
+
+The checkpoint recovers 16 code bytes with immutable data and workspace
+unchanged. The production core is 15,878 bytes. The representative proof
+executes 18 fewer instructions and 889 more T-states, a 0.009 percent cycle
+increase. Exact physical and synthetic newlines, final implicit newline, EOF,
+multipart positions, diagnostics, and artifacts pass. Relocation passes at
+`$0100`, `$8000`, and the highest-fitting origin; source cursors and positions
+remain full 16-bit values.
+
 ### Current recovery outlook
 
-With the algebraic scalar selector added to the retained checkpoints above,
-the measured shipping core is 15,894 bytes. Total measured recovery from the
-frozen 16,680-byte compiler is 786 bytes. The earlier 15,360-byte target is 534
-bytes away. The 300-byte phase began at 16,489 bytes and has recovered 595
-bytes, exceeding that phase target by 295 bytes.
+With the shared newline and EOF returns added to the retained checkpoints
+above, the measured shipping core is 15,878 bytes. Total measured recovery from
+the frozen 16,680-byte compiler is 802 bytes. The earlier 15,360-byte target is
+518 bytes away. The 300-byte phase began at 16,489 bytes and has recovered 611
+bytes, exceeding that phase target by 311 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

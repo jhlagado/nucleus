@@ -501,11 +501,7 @@ TokenizerFinishLine:
             LD   A,(SourceLineHasToken)
             OR   A
             JP   Z,TokenizerNextLoop
-            XOR  A
-            LD   (SourceLineHasToken),A
-            LD   A,TokenNewline
-            OR   A
-            RET
+            JR   TokenizerClearLineAndReturnNewline
 
 TokenizerAtEof:
             LD   A,(SourceDelimiterDepth)
@@ -523,13 +519,9 @@ TokenizerAtEof:
             LD   A,(SourceLineHasToken)
             OR   A
             JR   Z,TokenizerAdvancePart
-            XOR  A
-            LD   (SourceLineHasToken),A
             LD   HL,SourcePartsRemaining
             SET  7,(HL)
-            LD   A,TokenNewline
-            OR   A
-            RET
+            JR   TokenizerClearLineAndReturnNewline
 TokenizerAdvancePart:
             LD   HL,SourcePartsRemaining
 .if TargetStreamingOutput
@@ -549,14 +541,13 @@ TokenizerAtCompilationEof:
             LD   A,(SourceLineHasToken)
             OR   A
             JR   Z,TokenizerEmitEof
+TokenizerClearLineAndReturnNewline:
             XOR  A
             LD   (SourceLineHasToken),A
-            LD   A,TokenNewline
-            OR   A
+            INC  A                       ; TokenNewline
             RET
 TokenizerEmitEof:
-            LD   A,TokenEof
-            OR   A
+            XOR  A                       ; TokenEof
             RET
 
 .routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
