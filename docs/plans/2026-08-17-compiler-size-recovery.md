@@ -344,18 +344,36 @@ the `$0100` CP/M origin, the `$8000` TEC-1 origin, and the highest origin at
 which the complete compiler fits. Every symbol, table, and code address remains
 a full 16-bit value.
 
+### Unified aggregate descriptors
+
+Every dynamic aggregate type now uses one six-byte descriptor. The first four
+bytes retain the existing structural identity for strings and arrays, and the
+final word retains the complete storage extent. Nominal record descriptors use
+the auxiliary byte for the first field and the low length byte for the field
+count; records are still appended rather than structurally interned. This
+removes both the parallel extent table and the separate record directory.
+
+The checkpoint recovers a measured 43 code bytes and ten workspace bytes, with
+immutable data unchanged. The production core is 16,298 bytes and workspace is
+3,613 bytes. The production proof executes 18 fewer instructions and 6,930
+fewer T-states. Nested record and array formation, record initialization and
+paths, open views, full-word extents, capacity failures, and exact NOBJ and D8
+artifacts pass. Relocation again passes at `$0100`, `$8000`, and the
+highest-fitting origin; descriptor addresses and extents remain full 16-bit
+values.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, and two
-backend checkpoints, plus symbol type co-location, the measured shipping core
-is 16,341 bytes and the remaining recovery to 15,360 is 981 bytes. A unified
-aggregate descriptor projects another 52 bytes; provider tails project 10–20.
-Together with the measured 339-byte recovery, the currently evidenced range is
-401–411 bytes, which would place the compiler between 16,269 and 16,279 bytes.
-The current 300-byte phase starts at 16,489 bytes and has recovered 148 of its
-required 300 bytes; its phase target is 16,189.
+backend checkpoints, symbol type co-location, and descriptor consolidation, the
+measured shipping core is 16,298 bytes and the remaining recovery to 15,360 is
+938 bytes. Provider-tail consolidation has measured 15 bytes on the preceding
+checkpoint and awaits replay on the current core. Together with the measured
+382-byte recovery, that candidate would recover 397 bytes and place the
+compiler at 16,283 bytes. The current 300-byte phase starts at 16,489 bytes and
+has recovered 191 of its required 300 bytes; its phase target is 16,189.
 
-That range does not yet reach the target. A further 909–919 bytes therefore
+That result would not yet reach the target. A further 923 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled

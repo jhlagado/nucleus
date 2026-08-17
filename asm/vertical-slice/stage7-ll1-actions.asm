@@ -536,10 +536,12 @@ HybridLL1CommitRecord:
             JP   Z,AggregateRecordEmptyFailure
             LD   A,AggregateTypeKindRecord
             LD   (AggregateCandidateKind),A
-            LD   A,(AggregateRecordCount)
+            LD   A,(AggregateCurrentFieldStart)
             LD   (AggregateCandidateAux),A
-            LD   HL,0
-            LD   (AggregateCandidateLength),HL
+            LD   A,(AggregateCurrentFieldCount)
+            LD   (AggregateCandidateLength),A
+            XOR  A
+            LD   (AggregateCandidateLength+1),A
             LD   HL,(AggregateCurrentRecordExtent)
             LD   (AggregateCandidateExtent),HL
             CALL AggregateAppendType
@@ -547,13 +549,6 @@ HybridLL1CommitRecord:
             RET  C
 .endif
             LD   (AggregateCurrentTypeId),A
-            LD   A,(AggregateRecordCount)
-            CALL AggregateRecordTableEntry
-            LD   A,(AggregateCurrentFieldStart)
-            LD   (HL),A
-            INC  HL
-            LD   A,(AggregateCurrentFieldCount)
-            LD   (HL),A
             LD   D,SymbolInfoRecordType
             LD   A,(AggregateCurrentTypeId)
             LD   C,A

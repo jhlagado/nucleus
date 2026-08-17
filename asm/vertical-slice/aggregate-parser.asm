@@ -1,8 +1,9 @@
 ; Stage 6 aggregate layout and static-image construction.
 ;
 ; Types use one-byte IDs. Predefined scalars use contextual metadata values;
-; dynamic IDs begin at AggregateFirstDynamicTypeId and
-; index a bounded four-byte descriptor plus a retained word extent. Aggregate
+; dynamic IDs begin at AggregateFirstDynamicTypeId and index a bounded
+; six-byte descriptor whose first four bytes are its structural identity and
+; whose final word is its retained extent. Aggregate
 ; storage is allocated by top-level variables and aggregate constants.
 ; Initializer bytes are staged privately; the Z80 backend publishes them only
 ; after the complete source has succeeded.
@@ -11,29 +12,12 @@
 AggregateTypeAddress:
             SUB  AggregateFirstDynamicTypeId
             LD   L,A
+            ADD  A,A
+            ADD  A,L
+            ADD  A,A
+            LD   L,A
             LD   H,0
-            ADD  HL,HL
-            ADD  HL,HL
             LD   DE,AggregateTypeTableBase
-            ADD  HL,DE
-            RET
-
-.routine in A out A,DE,HL clobbers carry,zero,sign,parity,halfCarry
-AggregateRecordTableEntry:
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateRecordTableBase
-            ADD  HL,DE
-            RET
-
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
-AggregateExtentAddress:
-            SUB  AggregateFirstDynamicTypeId
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateTypeExtentBase
             ADD  HL,DE
             RET
 
@@ -51,7 +35,9 @@ AggregateGetU16Extent:
             OR   A
             RET
 AggregateGetDynamicExtent:
-            CALL AggregateExtentAddress
+            CALL AggregateTypeAddress
+            LD   DE,AggregateTypeExtent
+            ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
@@ -59,7 +45,7 @@ AggregateGetDynamicExtent:
             OR   A
             RET
 
-; Append the descriptor and extent in AggregateCandidate*. No structural
+; Append the complete descriptor in AggregateCandidate*. No structural
 ; lookup is performed, so this entry creates nominal record identity.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 AggregateAppendType:
@@ -76,11 +62,6 @@ AggregateAppendType:
             LD   A,(AggregateTypeCount)
             ADD  A,AggregateFirstDynamicTypeId
             LD   C,A
-            CALL AggregateExtentAddress
-            LD   DE,(AggregateCandidateExtent)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
             LD   HL,AggregateTypeCount
             INC  (HL)
             LD   A,C
@@ -91,7 +72,8 @@ AggregateTypeCapacityFailure:
             .db  DiagnosticTypeMetadataCapacity
 
 ; Intern a structural string or array descriptor. CandidateKind/Aux/Length and
-; CandidateExtent must already be complete.
+; CandidateExtent must already be complete. Extent is not part of structural
+; identity; the first four bytes determine it for structural types.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 AggregateInternType:
             LD   A,(AggregateTypeCount)
@@ -104,7 +86,7 @@ AggregateInternLoop:
             CALL AggregateTypeAddress
             LD   DE,AggregateCandidateKind
             PUSH BC
-            LD   B,AggregateTypeEntrySize
+            LD   B,4
 AggregateInternCompareLoop:
             LD   A,(DE)
             CP   (HL)
@@ -664,10 +646,12 @@ AggregateRecordFinish:
 .endif
             LD   A,AggregateTypeKindRecord
             LD   (AggregateCandidateKind),A
-            LD   A,(AggregateRecordCount)
+            LD   A,(AggregateCurrentFieldStart)
             LD   (AggregateCandidateAux),A
-            LD   HL,0
-            LD   (AggregateCandidateLength),HL
+            LD   A,(AggregateCurrentFieldCount)
+            LD   (AggregateCandidateLength),A
+            XOR  A
+            LD   (AggregateCandidateLength+1),A
             LD   HL,(AggregateCurrentRecordExtent)
             LD   (AggregateCandidateExtent),HL
             CALL AggregateAppendType
@@ -675,13 +659,6 @@ AggregateRecordFinish:
             RET  C
 .endif
             LD   (AggregateCurrentTypeId),A
-            LD   A,(AggregateRecordCount)
-            CALL AggregateRecordTableEntry
-            LD   A,(AggregateCurrentFieldStart)
-            LD   (HL),A
-            INC  HL
-            LD   A,(AggregateCurrentFieldCount)
-            LD   (HL),A
             LD   D,SymbolInfoRecordType
             LD   A,(AggregateCurrentTypeId)
             LD   C,A
@@ -954,8 +931,6 @@ AggregateParseRecordInitializer:
             LD   A,L
             CALL AggregateTypeAddress
             INC  HL
-            LD   A,(HL)
-            CALL AggregateRecordTableEntry
             LD   B,(HL)
             INC  HL
             LD   C,(HL)

@@ -240,26 +240,28 @@ AggregateCurrentObjectEnd .equ AggregateStateBase+$15 ; word
 AggregateStateEnd       .equ AggregateStateBase+$17
 
 AggregateTypeTableBase  .equ AggregateStateEnd
-AggregateTypeEntrySize  .equ 4
+; Every dynamic type is one self-contained six-byte descriptor. The first four
+; bytes remain the structural identity used to intern strings and arrays;
+; nominal records are always appended. The final word retains the complete
+; storage extent without a parallel index.
+AggregateTypeEntrySize  .equ 6
 AggregateTypeCapacity   .equ 8
 AggregateTypeTableLimit .equ AggregateTypeTableBase+AggregateTypeEntrySize*AggregateTypeCapacity
 AggregateTypeKind       .equ 0
 AggregateTypeAux        .equ 1
 AggregateTypeLength     .equ 2 ; word
+AggregateTypeExtent     .equ 4 ; word
 ; Every dynamic type retains its complete nonzero extent as a word. Strings
 ; remain byte-capacity values, while arrays and records may occupy the complete
 ; selected program-data region.
-AggregateTypeExtentBase .equ AggregateTypeTableLimit
-AggregateTypeExtentLimit .equ AggregateTypeExtentBase+2*AggregateTypeCapacity
-
-AggregateRecordTableBase .equ AggregateTypeExtentLimit
-AggregateRecordEntrySize .equ 2
 AggregateRecordCapacity .equ 5
-AggregateRecordTableLimit .equ AggregateRecordTableBase+AggregateRecordEntrySize*AggregateRecordCapacity
-AggregateRecordFieldStart .equ 0
-AggregateRecordFieldCount .equ 1
+; Record descriptors use Aux as the field-table start and Length low as the
+; field count. Length high remains zero. This embeds the old record directory
+; without weakening nominal record identity.
+AggregateRecordFieldStart .equ AggregateTypeAux
+AggregateRecordFieldCount .equ AggregateTypeLength
 
-AggregateFieldTableBase .equ AggregateRecordTableLimit
+AggregateFieldTableBase .equ AggregateTypeTableLimit
 AggregateFieldEntrySize .equ 6
 AggregateFieldCapacity  .equ 12
 AggregateFieldTableLimit .equ AggregateFieldTableBase+AggregateFieldEntrySize*AggregateFieldCapacity

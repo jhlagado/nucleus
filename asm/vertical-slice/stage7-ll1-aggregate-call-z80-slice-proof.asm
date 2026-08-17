@@ -1539,9 +1539,9 @@ ProofRunSuffixFailures:
             LD   DE,Stage7SuffixLengthSourceEnd
             CALL ProofPrepareSuffix
             LD   A,AggregateTypeKindString
-            LD   (AggregateTypeTableBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeKind),A
             LD   A,3
-            LD   (AggregateTypeTableBase+1),A
+            LD   (AggregateTypeTableBase+AggregateTypeAux),A
             LD   HL,SemanticBufferLimit
             LD   (SinkCursor),HL
             LD   A,AggregateFirstDynamicTypeId
@@ -1553,12 +1553,13 @@ ProofRunSuffixFailures:
             LD   DE,Stage7SuffixFieldSourceEnd
             CALL ProofPrepareSuffix
             LD   A,AggregateTypeKindRecord
-            LD   (AggregateTypeTableBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeKind),A
             XOR  A
-            LD   (AggregateTypeTableBase+1),A
-            LD   (AggregateRecordTableBase),A
+            LD   (AggregateTypeTableBase+AggregateRecordFieldStart),A
             INC  A
-            LD   (AggregateRecordTableBase+1),A
+            LD   (AggregateTypeTableBase+AggregateRecordFieldCount),A
+            XOR  A
+            LD   (AggregateTypeTableBase+AggregateRecordFieldCount+1),A
             LD   HL,Stage7SuffixFieldSource+1
             LD   (AggregateFieldTableBase),HL
             LD   A,5
@@ -1578,12 +1579,12 @@ ProofRunSuffixFailures:
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
             LD   A,AggregateTypeKindArray
-            LD   (AggregateTypeTableBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeKind),A
             LD   A,ScalarTypeU8
-            LD   (AggregateTypeTableBase+1),A
+            LD   (AggregateTypeTableBase+AggregateTypeAux),A
             LD   A,2
-            LD   (AggregateTypeTableBase+2),A
-            LD   (AggregateTypeExtentBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeLength),A
+            LD   (AggregateTypeTableBase+AggregateTypeExtent),A
             LD   HL,SemanticBufferLimit-7
             LD   (SinkCursor),HL
             LD   A,AggregateFirstDynamicTypeId
@@ -1595,12 +1596,12 @@ ProofRunSuffixFailures:
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
             LD   A,AggregateTypeKindString
-            LD   (AggregateTypeTableBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeKind),A
             LD   A,3
-            LD   (AggregateTypeTableBase+1),A
-            LD   (AggregateTypeTableBase+2),A
+            LD   (AggregateTypeTableBase+AggregateTypeAux),A
+            LD   (AggregateTypeTableBase+AggregateTypeLength),A
             INC  A
-            LD   (AggregateTypeExtentBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeExtent),A
             LD   HL,SemanticBufferLimit-6
             LD   (SinkCursor),HL
             LD   A,AggregateFirstDynamicTypeId
@@ -1612,7 +1613,7 @@ ProofRunSuffixFailures:
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
             LD   A,AggregateTypeKindRecord
-            LD   (AggregateTypeTableBase),A
+            LD   (AggregateTypeTableBase+AggregateTypeKind),A
             LD   A,AggregateFirstDynamicTypeId
             CALL ProofExpectSuffixTypeFailure
             RET

@@ -1143,8 +1143,6 @@ Stage7PathRecordField:
             CP   AggregateTypeKindRecord
             JP   NZ,TypedTypeFailure
             INC  HL
-            LD   A,(HL)
-            CALL AggregateRecordTableEntry
             LD   B,(HL)
             INC  HL
             LD   D,(HL)
