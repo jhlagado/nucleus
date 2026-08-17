@@ -86,7 +86,6 @@ EncodeAggregateProgramWithinLimit:
             LD   A,(TargetLayoutMode)
             OR   A
             JR   Z,AggregateTargetLoadedRoData
-            LD   HL,(EmitCursor)
             CALL TargetEmitRuntimeInitialImage
 .if CompilerDiagnosticBranches
             JP   C,AggregateAbortProgram

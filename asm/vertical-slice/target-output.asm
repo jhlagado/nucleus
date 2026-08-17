@@ -197,7 +197,6 @@ TargetCodeCapacityReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(TargetLinkedRuntimeBase)
             XOR  A
             CALL TargetEmitRuntimeImage
 .if CompilerDiagnosticReturns
@@ -307,15 +306,34 @@ TargetConsumeExtentReady:
             RET
 
 ; Ask the context-sensitive provider for one complete resolved runtime and
-; consume its identity-fixed extent from the selected bank.
-.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+; consume its identity-fixed extent from the selected bank. Carry distinguishes
+; the two fixed provider calls only until the call; the exact extent is kept on
+; the stack so the provider may retain its full clobber contract.
+; The initialized image always starts at the current output cursor.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetEmitRuntimeInitialImage:
+            LD   A,(TargetOutputBank)
+            LD   HL,(EmitCursor)
+            LD   BC,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
+            OR   A
+            JR   TargetEmitRuntimeProvider
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitRuntimeImage:
-            LD   DE,NucleusRuntimeIdentity
+            LD   HL,(TargetLinkedRuntimeBase)
             LD   BC,NucleusRuntimeExpectedLength
+            SCF
+TargetEmitRuntimeProvider:
+            PUSH BC
+            LD   DE,NucleusRuntimeIdentity
             LD   IX,TargetRuntimeContext
+            JR   C,TargetEmitRuntimeProviderCode
+            CALL TargetSinkRuntimeInitialImage
+            JR   TargetEmitRuntimeProviderReady
+TargetEmitRuntimeProviderCode:
             CALL TargetSinkRuntimeImage
-            LD   DE,NucleusRuntimeExpectedLength
-TargetConsumeProviderExtent:
+TargetEmitRuntimeProviderReady:
+            POP  DE
             JP   C,TargetOutputFailure
             JR   TargetConsumeExtent
 
@@ -388,7 +406,6 @@ TargetEmitBankEmptySlot:
 TargetEmitBankRuntime:
             PUSH BC
             LD   A,C
-            LD   HL,(TargetLinkedRuntimeBase)
             CALL TargetEmitRuntimeImage
             POP  BC
 .if CompilerDiagnosticReturns
@@ -406,7 +423,6 @@ TargetEmitBankRuntime:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
             CALL TargetEmitRuntimeInitialImage
 .if CompilerDiagnosticReturns
             RET  C
@@ -741,18 +757,6 @@ TargetStartupTerminalState:
             LD   A,8                      ; trap vector
             JP   EmitTargetVectorJump
 
-; Append the provider-owned initialized vector/state image at its run or load
-; address. The same complete context that linked the helper image selects it.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetEmitRuntimeInitialImage:
-            LD   A,(TargetOutputBank)
-            LD   DE,NucleusRuntimeIdentity
-            LD   BC,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
-            LD   IX,TargetRuntimeContext
-            CALL TargetSinkRuntimeInitialImage
-            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
-            JP   TargetConsumeProviderExtent
-
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 FinishTargetFlatProgram:
             LD   A,(TargetDescriptorBankCountValue)
@@ -774,7 +778,6 @@ FinishTargetFlatProgram:
             LD   (TargetOutputBank),A
             CALL TargetInitializedLength
             LD   (EmitLimit),HL
-            LD   HL,(TargetWritableBase)
             CALL TargetEmitRuntimeInitialImage
 .if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram

@@ -362,19 +362,33 @@ artifacts pass. Relocation again passes at `$0100`, `$8000`, and the
 highest-fitting origin; descriptor addresses and extents remain full 16-bit
 values.
 
+### Provider-tail consolidation
+
+The runtime-code and initialized-runtime provider paths now share their
+full-width identity, context, call, extent, and failure tail. The caller selects
+the provider with carry before entering the shared path and saves the exact
+extent on the compiler stack; `POP DE` restores that extent without changing
+the provider's returned flags. Runtime code still begins at the linked runtime
+base, and the initialized vector/state image still begins at the current output
+cursor.
+
+The checkpoint recovers a measured 15 code bytes with immutable data and
+workspace unchanged. The production core is 16,283 bytes. The representative
+flat proof executes 105 more instructions and 945 more T-states, while normal,
+instrumented, flat, banked, entry-bank-one, NOBJ, D8, and failure behavior
+remains byte-identical. Relocation passes at `$0100`, `$8000`, and the
+highest-fitting origin; all provider addresses, identities, and extents retain
+their complete 16-bit representation.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, and two
-backend checkpoints, symbol type co-location, and descriptor consolidation, the
-measured shipping core is 16,298 bytes and the remaining recovery to 15,360 is
-938 bytes. Provider-tail consolidation has measured 15 bytes on the preceding
-checkpoint and awaits replay on the current core. Together with the measured
-382-byte recovery, that candidate would recover 397 bytes and place the
-compiler at 16,283 bytes. The current 300-byte phase starts at 16,489 bytes and
-has recovered 191 of its required 300 bytes; its phase target is 16,189.
+measured shipping core is 16,283 bytes and the remaining recovery to 15,360 is
+923 bytes. Total measured recovery from the frozen 16,680-byte compiler is 397
+bytes. The current 300-byte phase starts at 16,489 bytes and has recovered 206
+of its required 300 bytes; its phase target is 16,189.
 
-That result would not yet reach the target. A further 923 bytes therefore
-remain an architectural gap, not booked recovery. The search continues in the
+The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled
 core.
