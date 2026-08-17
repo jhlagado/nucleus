@@ -79,8 +79,7 @@ EncodeAggregateProgram:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 EncodeAggregateProgramWithinLimit:
 .if TargetStreamingOutput
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JR   NZ,AggregateDispatch
             ; BeginTargetFlatProgram already selected the first read-only byte.
             LD   A,(TargetLayoutMode)
@@ -146,8 +145,7 @@ AggregateCopyLoop:
 .endif
 AggregateDispatch:
 .if TargetStreamingOutput
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JR   NZ,AggregateTargetCodeReady
             LD   HL,(EmitCursor)
             LD   (TargetCodeBase),HL
@@ -157,8 +155,7 @@ AggregateDispatch:
             LD   HL,(TargetCodeCapacity)
             LD   (EmitLimit),HL
 AggregateTargetCodeReady:
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JR   NZ,AggregateTargetBoundsReady
             LD   HL,(TargetContextRoDataBase)
             LD   (TargetCurrentRoBase),HL

@@ -981,6 +981,12 @@ Stage7EmitAggregateRootReady:
 ; carrier is live on the generated evaluation stack. D returns zero for an
 ; address path, one when a property has produced a scalar value, or two when
 ; assignment parsing has retained a bounded-string carrier for `.length =`.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+Stage7PathCompareOpenString:
+            LD   A,(Stage7PathType)
+            CP   AggregateOpenStringTypeId
+            RET
+
 .routine in A out A,D,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL,IX,IY
 Stage7ParsePathSuffix:
             LD   D,0
@@ -1043,8 +1049,7 @@ Stage7PathStringField:
             LD   B,8
             CALL TokenNameEquals
             JP   NC,Stage7PathFieldTypeFailure
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JP   NZ,Stage7PathFieldTypeFailure
             LD   A,(Stage7OpenViewCountOffset)
             LD   C,A
@@ -1058,8 +1063,7 @@ Stage7PathStringLength:
             LD   A,(Stage7PathAssignmentMode)
             OR   A
             JR   Z,Stage7PathStringLengthRead
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JP   NZ,Stage7PathFieldTypeFailure
             LD   A,(Stage7OpenViewCountOffset)
             LD   (Stage7StringResizeOffset),A
@@ -1068,8 +1072,7 @@ Stage7PathStringLength:
             OR   A
             RET
 Stage7PathStringLengthRead:
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JR   Z,Stage7PathOpenStringLengthRead
             CALL Stage7StringCapacity
             LD   C,A
@@ -1583,8 +1586,7 @@ Stage7CallAggregateArgument:
             JP   NZ,Stage7CallTypeFailure
             JR   Stage7CallAggregateTypeReady
 Stage7CallOpenStringType:
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JR   Z,Stage7CallAggregateTypeReady
             CALL Stage7StringCapacity
 .if CompilerDiagnosticBranches
@@ -1676,8 +1678,7 @@ Stage7CallArgumentReady:
 ; internal call form: actual capacity below the ordinary address carrier.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7PrepareOpenStringArgument:
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JR   Z,Stage7PrepareForwardedOpenString
             CALL Stage7StringCapacity
 .if CompilerDiagnosticReturns

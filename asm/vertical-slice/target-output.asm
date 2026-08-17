@@ -116,8 +116,7 @@ TargetStartupStackFits:
             POP  HL
 TargetStartupReady:
             LD   (TargetStartupLength),HL
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JP   NZ,TargetBeginBankedProgram
             LD   HL,(ReadOnlyImageLength)
             LD   A,(TargetLayoutMode)
@@ -170,11 +169,7 @@ TargetCapacityFailure:
 TargetCodeCapacityReady:
             CALL TargetBeginOutput
             XOR  A
-            LD   (TargetOutputBank),A
-            LD   HL,(TargetImageBase)
-            LD   (EmitCursor),HL
-            LD   HL,(TargetImageCapacity)
-            LD   (EmitLimit),HL
+            CALL TargetInitializeOutputBank
             LD   A,$C3
             CALL TargetEmitEntryPlaceholder
 .if CompilerDiagnosticReturns
@@ -207,6 +202,22 @@ TargetBeginOutput:
             LD   IX,(TargetDescriptorPointer)
             CALL TargetSinkBegin
             JP   C,TargetOutputFailure
+            RET
+
+; Compare the retained bank count with the flat-output count.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetCompareSingleBank:
+            LD   A,(TargetDescriptorBankCountValue)
+            CP   1
+            RET
+
+.routine in A out A,HL
+TargetInitializeOutputBank:
+            LD   (TargetOutputBank),A
+            LD   HL,(TargetImageBase)
+            LD   (EmitCursor),HL
+            LD   HL,(TargetImageCapacity)
+            LD   (EmitLimit),HL
             RET
 
 ; Address one retained output-bank cursor and exact remaining-capacity word.
@@ -343,6 +354,15 @@ TargetEmitRuntimeProviderReady:
             JP   C,TargetOutputFailure
             JR   TargetConsumeExtent
 
+.if TargetStreamingOutput
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TargetEmitInitialAndStatic:
+            CALL TargetEmitRuntimeInitialImage
+            LD   HL,StaticImageBase
+            LD   BC,(StaticImageLength)
+            JP   EmitBlock
+.endif
+
 ; Banked output is always ROM. Seed each cursor/capacity pair when its bank is
 ; first visited and save it before advancing; the active final bank remains in
 ; EmitCursor/EmitLimit until the ordinary switch or final MAP save. Emit every
@@ -411,19 +431,18 @@ TargetEmitBankRuntime:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if CompilerDiagnosticReturns
             CALL TargetEmitRuntimeInitialImage
-.if CompilerDiagnosticReturns
             RET  C
-.endif
-.if CompilerDiagnosticReturns
             PUSH BC
-.endif
             LD   HL,StaticImageBase
             LD   BC,(StaticImageLength)
             CALL EmitBlock
             POP  BC
-.if CompilerDiagnosticReturns
             RET  C
+.else
+            CALL TargetEmitInitialAndStatic
+            POP  BC
 .endif
 TargetEmitBankPrefixNext:
             CALL TargetSaveOutputBank
@@ -433,11 +452,7 @@ TargetEmitBankPrefixNext:
             JP   Z,TargetEmitBankedAggregateConstants
 TargetStartFreshOutputBank:
             LD   A,C
-            LD   (TargetOutputBank),A
-            LD   HL,(TargetImageBase)
-            LD   (EmitCursor),HL
-            LD   HL,(TargetImageCapacity)
-            LD   (EmitLimit),HL
+            CALL TargetInitializeOutputBank
             CALL TargetRefreshReadOnlyBounds
             JR   TargetEmitBankPrefixLoop
 
@@ -531,8 +546,7 @@ TargetPrepareRuntimeContext:
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextDataCapacity),HL
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JR   Z,TargetPrepareFlatRoData
             LD   HL,0
             LD   (TargetContextRoDataBase),HL
@@ -753,8 +767,7 @@ TargetStartupTerminalState:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 FinishTargetFlatProgram:
-            LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            CALL TargetCompareSingleBank
             JP   NZ,FinishTargetBankedProgram
             LD   HL,(EmitCursor)
             LD   DE,(TargetCodeBase)
@@ -772,15 +785,15 @@ FinishTargetFlatProgram:
             LD   (TargetOutputBank),A
             CALL TargetInitializedLength
             LD   (EmitLimit),HL
-            CALL TargetEmitRuntimeInitialImage
 .if CompilerDiagnosticBranches
+            CALL TargetEmitRuntimeInitialImage
             JP   C,AbortTargetProgram
-.endif
             LD   HL,StaticImageBase
             LD   BC,(StaticImageLength)
             CALL EmitBlock
-.if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram
+.else
+            CALL TargetEmitInitialAndStatic
 .endif
 TargetLoadedDataReady:
             CALL TargetSinkMapFlat

@@ -872,6 +872,15 @@ HybridLL1PublishRoutine:
             LD   HL,Stage7RoutineCount
             INC  (HL)
             RET
+.if TargetStreamingOutput
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+HybridLL1PutThenCurrentBank:
+            CALL SemanticSinkPut
+            LD   A,(Stage7CurrentFlags)
+            CALL TargetUnpackBank
+            JP   SemanticSinkPut
+.endif
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1SaveGlobalsResetLocals:
             LD   A,(SymbolCount)
@@ -912,19 +921,18 @@ HybridLL1RoutineKindReady:
             RET  C
 .endif
             LD   A,(Stage7CurrentParameterCount)
+.if TargetStreamingOutput
+            CALL HybridLL1PutThenCurrentBank
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.else
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if TargetStreamingOutput
-            LD   A,(Stage7CurrentFlags)
-            CALL TargetUnpackBank
-            CALL SemanticSinkPut
-.if CompilerDiagnosticReturns
-            RET  C
 .endif
             LD   A,(Stage7CurrentParameterCount)
-.endif
             LD   B,A
             LD   A,(Stage7CurrentParameterStart)
             LD   D,A
@@ -963,13 +971,12 @@ HybridLL1BeginMainBody:
             RET  C
 .endif
             LD   A,(Stage7CurrentFlags)
-            CALL SemanticSinkPut
+.if TargetStreamingOutput
+            CALL HybridLL1PutThenCurrentBank
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if TargetStreamingOutput
-            LD   A,(Stage7CurrentFlags)
-            CALL TargetUnpackBank
+.else
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C

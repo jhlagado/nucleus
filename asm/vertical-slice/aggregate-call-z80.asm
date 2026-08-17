@@ -34,8 +34,7 @@ Stage7BindParameter:
             LD   (Stage7PathOffset),A       ; -(destination + 1)
             CALL NextSemanticByte
             LD   (Stage7ArgumentIndex),A    ; positive source displacement
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JR   Z,Stage7BindOpenString
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7BindWord
@@ -98,8 +97,7 @@ Stage7BindWord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7PathType)
-            CP   AggregateOpenStringTypeId
+            CALL Stage7PathCompareOpenString
             JR   Z,Stage7BindOpenCapacity
             OR   A
             RET

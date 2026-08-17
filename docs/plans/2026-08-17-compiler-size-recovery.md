@@ -574,13 +574,32 @@ and all historical scanner layouts pass. Relocation passes at `$0100`, `$8000`,
 and the highest-fitting origin; all cursors and source positions remain full
 16-bit values.
 
+### Repeated Stage 7 and target-operation cleanup
+
+Seven aggregate-path tests share one open-string comparison. Flat and banked
+target paths share the retained bank-count comparison and the complete
+full-width output-bank cursor and limit initializer. Two image-publication
+paths share the ordered runtime-initial-image and static-image tail, while two
+routine-opening paths share the semantic value and current-bank publication.
+The helpers use ordinary full-address calls and preserve the existing
+production and returning-diagnostic contracts.
+
+The checkpoint recovers 35 code bytes with immutable data and workspace
+unchanged. The production core is 15,922 bytes. The representative proof adds
+253 instructions and 3,265 T-states, a 0.031 percent cycle increase. Exact
+semantic records, provider and sink order, banked and flat artifacts,
+diagnostics, and historical layouts pass. Relocation passes at `$0100`,
+`$8000`, and the highest-fitting origin; bank state, image bounds, source
+positions, and code addresses remain full 16-bit values.
+
 ### Current recovery outlook
 
-With the typed-expression and scanner cleanups added to the retained
-checkpoints above, the measured shipping core is 15,957 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 723 bytes. The earlier
-15,360-byte target is 597 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 532 bytes, exceeding that phase target by 232 bytes.
+With the typed-expression, scanner, and repeated-operation cleanups added to
+the retained checkpoints above, the measured shipping core is 15,922 bytes.
+Total measured recovery from the frozen 16,680-byte compiler is 758 bytes. The
+earlier 15,360-byte target is 562 bytes away. The 300-byte phase began at
+16,489 bytes and has recovered 567 bytes, exceeding that phase target by 267
+bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
