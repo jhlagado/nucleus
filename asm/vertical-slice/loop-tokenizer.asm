@@ -146,27 +146,21 @@ TokenScanNumberLoop:
             JR   NC,TokenScanNumberDone
             SUB  "0"
             LD   C,A
-            LD   A,H
-            CP   $19
-            JR   C,TokenScanNumberAccumulate
-            JR   NZ,TokenScanCharacterFailure
-            LD   A,L
-            CP   $99
-            JR   C,TokenScanNumberAccumulate
-            JR   NZ,TokenScanCharacterFailure
-            LD   A,C
-            CP   6
-            JR   NC,TokenScanCharacterFailure
 TokenScanNumberAccumulate:
             LD   D,0
             LD   E,C
             ADD  HL,HL
+            JR   C,TokenScanCharacterFailure
             LD   B,H
             LD   C,L
             ADD  HL,HL
+            JR   C,TokenScanCharacterFailure
             ADD  HL,HL
+            JR   C,TokenScanCharacterFailure
             ADD  HL,BC
+            JR   C,TokenScanCharacterFailure
             ADD  HL,DE
+            JR   C,TokenScanCharacterFailure
             PUSH HL
             CALL SourceTake
             POP  HL

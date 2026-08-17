@@ -1090,33 +1090,34 @@ TypedEndRoutine:
 
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedPushBooleanFixup:
-            LD   A,(EmitBooleanFixupDepth)
+            LD   HL,EmitBooleanFixupDepth
+            LD   A,(HL)
             CP   EmitBooleanFixupCapacity
             JP   NC,TypedBooleanFixupCapacity
+            INC  (HL)
+            INC  HL
             LD   C,A
             LD   B,0
-            LD   HL,EmitBooleanFixupBase
             ADD  HL,BC
             ADD  HL,BC
             LD   (HL),E
             INC  HL
             LD   (HL),D
-            LD   A,(EmitBooleanFixupDepth)
             INC  A
-            LD   (EmitBooleanFixupDepth),A
             OR   A
             RET
 
 .routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,C,HL
 TypedPopBooleanFixup:
-            LD   A,(EmitBooleanFixupDepth)
+            LD   HL,EmitBooleanFixupDepth
+            LD   A,(HL)
             OR   A
             JP   Z,TypedInternalOperation
+            DEC  (HL)
             DEC  A
-            LD   (EmitBooleanFixupDepth),A
+            INC  HL
             LD   C,A
             LD   B,0
-            LD   HL,EmitBooleanFixupBase
             ADD  HL,BC
             ADD  HL,BC
             LD   E,(HL)

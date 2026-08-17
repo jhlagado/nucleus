@@ -38,13 +38,13 @@ SinkOperationCount      .equ CompilerStateBase+$1A
 ; Emission begins only after parsing succeeds. Its scratch words therefore
 ; overlay dead source, token, diagnostic, and sink fields. SourcePartId and
 ; TokenStartOffset..TokenStartColumn remain intact for an emitter diagnostic.
-EmitCursor              .equ CompilerStateBase+$03
+EmitPatchAddress        .equ CompilerStateBase+$03
 EmitCodeStart           .equ CompilerStateBase+$05
 EmitLoopHead            .equ CompilerStateBase+$07
 EmitExitFixup           .equ CompilerStateBase+$09
 EmitFailureFixup        .equ CompilerStateBase+$0B
 EmitUpdateExitFixup     .equ CompilerStateBase+$19
-EmitPatchAddress        .equ CompilerStateBase+$13
+EmitCursor              .equ CompilerStateBase+$13
 EmitLimit               .equ CompilerStateBase+$15
 EmitDataFixup           .equ CompilerStateBase+$17
 

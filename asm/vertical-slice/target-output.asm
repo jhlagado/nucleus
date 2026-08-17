@@ -238,15 +238,13 @@ TargetSaveOutputBank:
             CP   TargetOutputClosed
             RET  Z
             CALL TargetBankStateAddress
-            LD   DE,(EmitCursor)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
-            INC  HL
-            LD   DE,(EmitLimit)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
+            PUSH HL
+            POP  DE
+            LD   HL,EmitCursor
+            PUSH BC
+            LD   BC,4
+            LDIR
+            POP  BC
             OR   A
             RET
 
@@ -266,15 +264,9 @@ TargetSelectOutputBank:
             LD   A,C
             LD   (TargetOutputBank),A
             CALL TargetBankStateAddress
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   (EmitCursor),DE
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   (EmitLimit),DE
+            LD   DE,EmitCursor
+            LD   BC,4
+            LDIR
 .routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TargetRefreshReadOnlyBounds:
             LD   A,(TargetOutputBank)

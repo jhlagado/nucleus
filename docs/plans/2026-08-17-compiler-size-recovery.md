@@ -964,13 +964,32 @@ regression is the delimiter-heavy array proof at 1.458 percent, below the
 two-percent gate. Exact diagnostics, semantic transcripts, generated output,
 NOBJ, D8, historical layouts, and relocation remain unchanged.
 
+### Third three-audit arithmetic, fixup, and bank-state checkpoint
+
+Decimal scanning now detects overflow from carry on the existing multiply-by-
+ten additions, before consuming the failing digit. Boolean-fixup push and pop
+address the adjacent depth byte and word stack through one full-width pointer.
+The post-parse state layout places the output cursor beside its limit, matching
+the four-byte per-bank state record so save and restore use `LDIR`; the patch
+address moves into the cursor's former, lifetime-disjoint word. No field,
+address, limit, or counter is narrowed.
+
+The decimal path recovers nine code bytes, Boolean-fixup addressing recovers
+nine, and bank-state transfer recovers ten. Together they reduce the production
+core from 15,635 to 15,607 bytes, with immutable data and workspace unchanged.
+The representative proof changes from 877,492 to 877,586 instructions and from
+9,570,464 to 9,572,533 T-states. The largest instruction-count regression is
+about 0.134 percent, and the largest T-state regression is about 0.076 percent.
+Decimal boundaries, Boolean-fixup capacity and underflow, flat and banked
+output, diagnostics, artifacts, and relocation remain exact.
+
 ### Current recovery outlook
 
-With the second three-audit checkpoint added to the retained work above, the
-measured shipping core is 15,635 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,045 bytes. The earlier 15,360-byte target is 275 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 854 bytes,
-exceeding that phase target by 554 bytes.
+With the third three-audit checkpoint added to the retained work above, the
+measured shipping core is 15,607 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,073 bytes. The earlier 15,360-byte target is 247 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 882 bytes,
+exceeding that phase target by 582 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
