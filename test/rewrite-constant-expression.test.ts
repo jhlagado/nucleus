@@ -117,10 +117,10 @@ describe("ground-up rewrite constant-expression engine", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      code: 4_073,
+      code: 3_984,
       immutable: 74,
       pendingCapacity: 16,
-      core: 17_765,
+      core: 17_676,
       workspace: 3_938,
     });
   });

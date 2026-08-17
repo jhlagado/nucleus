@@ -72,6 +72,14 @@ RewriteExpressionBeginRuntime:
             LD   (RewriteExpressionSuppressFault),A
             RET
 
+; The expression family always publishes from the shared operand staging
+; area. Keeping that address load at one contract-checked entry removes the
+; repeated three-byte immediate without changing any record representation.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+RewriteExpressionAppendSemantic:
+            LD   HL,RewriteSemanticOperandArea
+            JP   RewriteSemanticAppend
+
 ; B is the comparison-used flag for this recursive level and C is the minimum
 ; admitted binary precedence. The two-byte local preserves both through calls.
 .routine in B,C out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
@@ -229,8 +237,7 @@ _RewriteExpressionRuntimeBeginReady:
             PUSH DE
             PUSH HL
             PUSH BC
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             POP  BC
             POP  HL
             POP  DE
@@ -297,7 +304,7 @@ RewritePathFindRecordField:
             CALL RewriteTypeAddress
             LD   A,(HL)
             CP   RewriteTypeKindRecord
-            JR   NZ,_RewritePathRecordTypeFailure
+            JP   NZ,RewriteExpressionTypeFailure
             INC  HL
             LD   A,(HL)
             CALL RewriteRecordAddress
@@ -320,11 +327,10 @@ _RewritePathRecordFieldLoop:
 _RewritePathUnknownField:
             LD   A,DiagnosticUnknownName
             JP   RewriteRaiseDiagnostic
-_RewritePathRecordTypeFailure:
-            JP   RewriteExpressionTypeFailure
 _RewritePathRecordFieldFound:
-            LD   DE,RewriteFieldType
-            ADD  HL,DE
+            INC  HL
+            INC  HL
+            INC  HL
             LD   A,(HL)
             INC  HL
             LD   E,(HL)
@@ -333,34 +339,29 @@ _RewritePathRecordFieldFound:
             SCF
             RET
 
-; Publish one aggregate root. A is its exact type, B its symbol class, C its
-; activation count-offset for open parameters (otherwise zero), DE its full
-; segment/local payload, and RewriteExpressionRightMeta its storage tag.
+; Publish one aggregate root. A/C is its exact type, B its symbol class, DE
+; its full segment/local payload, and RewriteExpressionRightMeta its storage
+; tag. C returns the activation count-offset for open parameters or zero.
 .routine in A,B,C,DE out A,C,DE,carry,zero clobbers sign,parity,halfCarry,B,HL
 RewritePathEmitRoot:
-            LD   (RewritePathType),A
-            XOR  A
-            LD   (RewritePathCountOffset),A
-            LD   A,B
-            CP   RewriteSymbolClassConstant
-            JR   Z,_RewritePathRootReadOnly
-            CP   RewriteSymbolClassProgram
-            JR   Z,_RewritePathRootProgram
-            CP   RewriteSymbolClassParameter
-            JR   NZ,_RewritePathRootTypeFailure
-            LD   A,(RewritePathType)
+            PUSH AF
+            LD   C,0
             CP   RewriteOpenStringTypeId
-            JR   Z,_RewritePathRootOpenParameter
+            JR   Z,_RewritePathRootOpen
             CP   RewriteOpenArrayFlag
-            JR   NC,_RewritePathRootOpenParameter
-            LD   A,E
-            LD   (RewriteSemanticOperandArea+RewriteSemanticLoadParameterAliasOperandOffsetOffset),A
-            LD   A,RewriteSemanticLoadParameterAlias
-            JR   _RewritePathRootAppend
-_RewritePathRootOpenParameter:
+            JR   C,_RewritePathRootShapeReady
+_RewritePathRootOpen:
             LD   A,E
             ADD  A,2
-            LD   (RewritePathCountOffset),A
+            LD   C,A
+_RewritePathRootShapeReady:
+            LD   A,B
+            OR   A
+            JR   Z,_RewritePathRootReadOnly
+            DEC  A
+            JR   Z,_RewritePathRootProgram
+            CP   RewriteSymbolClassParameter-1
+            JR   NZ,_RewritePathRootTypeFailure
             LD   A,E
             LD   (RewriteSemanticOperandArea+RewriteSemanticLoadParameterAliasOperandOffsetOffset),A
             LD   A,RewriteSemanticLoadParameterAlias
@@ -369,29 +370,23 @@ _RewritePathRootProgram:
             LD   A,(RewriteExpressionRightMeta)
             CP   RewriteSymbolStorageReadOnly
             JR   Z,_RewritePathRootProgramReadOnly
+            DEC  A
             CP   RewriteSymbolStorageBss
-            JR   Z,_RewritePathRootProgramBss
-            CP   RewriteSymbolStorageInitialized
-            JR   NZ,_RewritePathRootTypeFailure
-            LD   A,RewriteSemanticLoadProgramAlias
+            JR   NC,_RewritePathRootTypeFailure
+            ADD  A,RewriteSemanticLoadProgramAlias
             JR   _RewritePathRootProgramReady
 _RewritePathRootProgramReadOnly:
             LD   A,RewriteSemanticLoadReadOnlyAlias
-            JR   _RewritePathRootProgramReady
-_RewritePathRootProgramBss:
-            LD   A,RewriteSemanticLoadBssAlias
             JR   _RewritePathRootProgramReady
 _RewritePathRootReadOnly:
             LD   A,RewriteSemanticLoadReadOnlyAlias
 _RewritePathRootProgramReady:
             LD   (RewriteSemanticOperandArea+RewriteSemanticLoadProgramAliasOperandOffsetOffset),DE
 _RewritePathRootAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
-            LD   A,(RewritePathCountOffset)
-            LD   C,A
-            LD   A,(RewritePathType)
-            OR   A
+            PUSH BC
+            CALL RewriteExpressionAppendSemantic
+            POP  BC
+            POP  AF
             RET
 _RewritePathRootTypeFailure:
             JP   RewriteExpressionTypeFailure
@@ -646,8 +641,7 @@ _RewriteCallOpenArrayForward:
             LD   (RewriteSemanticOperandArea+RewriteSemanticPrepareOpenArrayForwardOperandCountOffsetOffset),HL
             LD   A,RewriteSemanticPrepareOpenArrayForward
 _RewriteCallPrepareOpenAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             CALL RewriteCallCurrentFrame
             INC  HL
             INC  HL
@@ -719,8 +713,7 @@ RewriteCallPublishReady:
             ADD  HL,DE
             LD   (RewritePendingCallModePointer),HL
             LD   A,B
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             JP   RewriteCallFinish
 
 ; Publish the completed source call from the current frame. The call-mode
@@ -990,11 +983,7 @@ _RewriteCallConsumeModeReady:
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewritePathFinishScalar:
             LD   (RewritePathType),A
-            CALL RewriteParserPeek
-            CP   TokenDot
-            JR   Z,RewriteExpressionTypeFailure
-            CP   TokenLeftBracket
-            JR   Z,RewriteExpressionTypeFailure
+            CALL RewritePathRequireNoSuffix
             LD   A,(RewritePathAssignmentMode)
             OR   A
             JR   NZ,RewritePathFinishSelected
@@ -1004,8 +993,7 @@ RewritePathFinishScalar:
             JR   Z,_RewritePathFinishAppend
             LD   A,RewriteSemanticLoadIndirect16
 _RewritePathFinishAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
 ; Shared result tail for scalar aliases and already-emitted scalar properties.
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 RewritePathFinishSelected:
@@ -1020,17 +1008,33 @@ RewriteExpressionTypeFailure:
             LD   A,DiagnosticTypeMismatch
             JP   RewriteRaiseDiagnostic
 
-; Return a scalar already produced by a property or string-index operation.
-; A second postfix on that scalar is a type error, not a stray-line error.
-.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-RewritePathReturnScalarValue:
-            LD   (RewritePathType),A
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C
+RewritePathRequireNoSuffix:
             CALL RewriteParserPeek
             CP   TokenDot
             JR   Z,RewriteExpressionTypeFailure
             CP   TokenLeftBracket
             JR   Z,RewriteExpressionTypeFailure
+            RET
+
+; Return a scalar already produced by a property or source/service call.
+.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewritePathReturnScalarValue:
+            LD   (RewritePathType),A
+            CALL RewritePathRequireNoSuffix
             JP   RewritePathFinishSelected
+
+; The four checked string records share the same capacity/source operand
+; layout. A selects the exact semantic operation, C is the concrete capacity
+; or open-view capacity offset, and DE is the source offset.
+.routine in A,C,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+RewritePathAppendStringCheck:
+            LD   B,A
+            LD   A,C
+            LD   (RewriteSemanticOperandArea),A
+            LD   (RewriteSemanticOperandArea+1),DE
+            LD   A,B
+            JP   RewriteExpressionAppendSemantic
 
 ; A/C is the current aggregate type/open-count activation offset. This one
 ; iterative postfix engine serves record fields, concrete/open arrays, and
@@ -1086,8 +1090,7 @@ _RewritePathDot:
             LD   (RewriteSemanticOperandArea+RewriteSemanticSelectFieldOperandOffsetOffset),DE
             LD   (RewritePathType),A
             LD   A,RewriteSemanticSelectField
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             XOR  A
             LD   (RewritePathCountOffset),A
             JP   _RewritePathLoop
@@ -1111,8 +1114,7 @@ _RewritePathStringProperty:
             LD   A,(RewritePathCountOffset)
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringCapacityOperandCapacityOffsetOffset),A
             LD   A,RewriteSemanticOpenStringCapacity
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             JR   _RewritePathPropertyReady
 _RewritePathStringLength:
             LD   A,(RewritePathAssignmentMode)
@@ -1134,22 +1136,17 @@ _RewritePathStringLengthRead:
             CALL RewriteTypeAddress
             INC  HL
             INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandCapacityOffset),A
+            LD   C,(HL)
             LD   DE,(TokenStartOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticStringLengthOperandSourceOffsetOffset),DE
             LD   A,RewriteSemanticStringLength
-            JR   _RewritePathPropertyAppend
+            CALL RewritePathAppendStringCheck
+            JR   _RewritePathPropertyReady
 _RewritePathOpenStringLength:
             LD   A,(RewritePathCountOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandCapacityOffsetOffset),A
+            LD   C,A
             LD   DE,(TokenStartOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringLengthOperandSourceOffsetOffset),DE
             LD   A,RewriteSemanticOpenStringLength
-_RewritePathPropertyAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
-            LD   A,RewriteScalarTypeU8
+            CALL RewritePathAppendStringCheck
 _RewritePathPropertyReady:
             LD   A,RewriteScalarTypeU8
             JP   RewritePathReturnScalarValue
@@ -1180,8 +1177,7 @@ _RewritePathOpenArrayLength:
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayLengthOperandCountOffsetOffset),A
             LD   A,RewriteSemanticOpenArrayLength
 _RewritePathArrayPropertyAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             LD   A,RewriteScalarTypeU16
             JP   RewritePathReturnScalarValue
 
@@ -1272,29 +1268,25 @@ _RewritePathOpenArrayIndex:
             LD   (RewriteSemanticOperandArea+RewriteSemanticOpenArrayIndexOperandSourceOffsetOffset),DE
             LD   A,RewriteSemanticOpenArrayIndex
 _RewritePathIndexAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             XOR  A
             LD   (RewritePathCountOffset),A
             JP   _RewritePathLoop
 _RewritePathStringIndex:
             INC  HL
             INC  HL
-            LD   A,(HL)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandCapacityOffset),A
+            LD   C,(HL)
             LD   DE,(RewritePathSourceOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticStringIndexOperandSourceOffsetOffset),DE
             LD   A,RewriteSemanticStringIndex
-            JR   _RewritePathStringIndexAppend
+            CALL RewritePathAppendStringCheck
+            JR   _RewritePathStringIndexReady
 _RewritePathOpenStringIndex:
             LD   A,(RewritePathCountOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandCapacityOffsetOffset),A
+            LD   C,A
             LD   DE,(RewritePathSourceOffset)
-            LD   (RewriteSemanticOperandArea+RewriteSemanticOpenStringIndexOperandSourceOffsetOffset),DE
             LD   A,RewriteSemanticOpenStringIndex
-_RewritePathStringIndexAppend:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewritePathAppendStringCheck
+_RewritePathStringIndexReady:
             LD   A,RewriteScalarTypeU8
             JP   RewritePathFinishScalar
 
@@ -1414,8 +1406,7 @@ _RewriteExpressionPrimaryDynamic:
             LD   A,C
             LD   (RewriteExpressionRightMeta),A
             LD   A,B
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
             XOR  A
             LD   (RewriteExpressionKnown),A
             LD   A,(RewriteExpressionRightMeta)
@@ -1559,8 +1550,7 @@ _RewriteExpressionPrimaryKnown:
             JR   Z,_RewriteExpressionPrimaryKnownReady
             LD   (RewriteSemanticOperandArea),HL
             LD   A,RewriteSemanticLiteral16
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
 _RewriteExpressionPrimaryKnownReady:
             POP  HL
             POP  DE
@@ -1619,8 +1609,7 @@ _RewriteExpressionRuntimeUnaryMinus:
 _RewriteExpressionRuntimeUnaryMinus16:
             LD   A,RewriteSemanticNegate16
 _RewriteExpressionRuntimeUnaryEmit:
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
 _RewriteExpressionRuntimeUnaryDone:
             POP  HL
             POP  DE
@@ -2125,8 +2114,7 @@ _RewriteExpressionRuntimeComparisonOperationReady:
             LD   (RewriteSemanticOperandArea+RewriteSemanticCompare8OperandComparisonOffset),A
             LD   A,C
 _RewriteExpressionRuntimeEmitSelected:
-            LD   HL,RewriteSemanticOperandArea
-            JP   RewriteSemanticAppend
+            JP   RewriteExpressionAppendSemantic
 
 ; Resolve and, where necessary, publish sign extension of the left or right
 ; i8 carrier already on the target stack. C returns the common integer type.
@@ -2159,8 +2147,7 @@ _RewriteExpressionRuntimeResolveRight:
 _RewriteExpressionRuntimePromote:
             LD   (RewriteSemanticOperandArea+RewriteSemanticPromoteI8PairOperandModeOffset),A
             LD   A,RewriteSemanticPromoteI8Pair
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
+            CALL RewriteExpressionAppendSemantic
 _RewriteExpressionRuntimeResolveDone:
             LD   A,(RewriteExpressionResolvedType)
             LD   C,A

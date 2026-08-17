@@ -71,8 +71,8 @@ describe("ground-up rewrite compilation-unit driver", () => {
     const { memory, instructions, cycles } = run("ProofCompilationUnit");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 66_568,
-      cycles: 601_884,
+      instructions: 66_575,
+      cycles: 601_961,
     });
     expect({
       symbols: memory[image.symbols.RewriteSymbolCount ?? -1],
@@ -266,9 +266,9 @@ describe("ground-up rewrite compilation-unit driver", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       driver: 651,
-      code: 16_257,
+      code: 16_168,
       immutable: 1_508,
-      core: 17_765,
+      core: 17_676,
       workspace: 3_938,
     });
   });

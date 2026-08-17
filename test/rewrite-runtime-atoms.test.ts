@@ -132,8 +132,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 63_536,
-      cycles: 579_336,
+      instructions: 63_543,
+      cycles: 579_406,
     });
   });
 
@@ -144,8 +144,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 126_362,
-      cycles: 1_140_289,
+      instructions: 126_417,
+      cycles: 1_140_839,
     });
   });
 
@@ -168,8 +168,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 108_706,
-      cycles: 971_466,
+      instructions: 108_795,
+      cycles: 972_105,
     });
   });
 
@@ -182,8 +182,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xe7,
       diagnostic: 0,
-      instructions: 65_811,
-      cycles: 588_792,
+      instructions: 65_870,
+      cycles: 589_209,
     });
   });
 
@@ -195,8 +195,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 98_408,
-      cycles: 886_150,
+      instructions: 98_441,
+      cycles: 886_447,
     });
   });
 
@@ -206,8 +206,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_189,
-      cycles: 111_563,
+      instructions: 12_192,
+      cycles: 111_600,
     });
   });
 
@@ -217,8 +217,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_724,
-      cycles: 204_446,
+      instructions: 22_737,
+      cycles: 204_604,
     });
   });
 
@@ -228,8 +228,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 40_002,
-      cycles: 362_903,
+      instructions: 40_009,
+      cycles: 362_980,
     });
   });
 
@@ -239,8 +239,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_330,
-      cycles: 130_951,
+      instructions: 14_334,
+      cycles: 130_998,
     });
   });
 
@@ -251,8 +251,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 39_071,
-      cycles: 352_445,
+      instructions: 39_078,
+      cycles: 352_515,
     });
   });
 
@@ -285,8 +285,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xde,
       diagnostic: 0,
-      instructions: 35_137,
-      cycles: 318_159,
+      instructions: 35_141,
+      cycles: 318_199,
     });
   });
 
@@ -295,8 +295,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xe4,
       diagnostic: 0,
       semanticOperations: 3,
-      instructions: 10_014,
-      cycles: 92_645,
+      instructions: 10_017,
+      cycles: 92_670,
     });
   });
 
@@ -328,8 +328,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 28_188,
-      cycles: 253_621,
+      instructions: 28_193,
+      cycles: 253_671,
     });
   });
 
@@ -434,12 +434,12 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 56,
       actionCode: 230,
       actionData: 240,
-      expression: 4_073,
+      expression: 3_984,
       statements: 717,
       declarations: 1_528,
-      code: 16_257,
+      code: 16_168,
       immutable: 1_508,
-      core: 17_765,
+      core: 17_676,
       workspace: 3_938,
     });
   });

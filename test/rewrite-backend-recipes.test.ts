@@ -575,9 +575,9 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({
       engine: 3_947,
       recipes: 738,
-      code: 16_257,
+      code: 16_168,
       immutable: 1_508,
-      core: 17_765,
+      core: 17_676,
       workspace: 3_938,
       supported: 105,
     });
