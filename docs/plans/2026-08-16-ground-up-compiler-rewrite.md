@@ -1671,6 +1671,31 @@ R7 append-only transaction checkpoint (Measured, in progress):
   MAP production, and the generation-wide diagnostic catch remain subsequent
   R7 work.
 
+Cross-cutting dense front-action checkpoint (Measured, retained):
+
+- the generated action format now assigns one byte to every instruction.
+  Zero ends a program, codes 1 through 23 select the distinct token/diagnostic
+  pairs used by the grammar, and bit 7 selects one of 56 handwritten escapes.
+  The escape dispatcher still contains complete 16-bit routine addresses; the
+  compact instruction byte imposes no compiler-origin restriction;
+- the 35 programs contain 88 expectations, 71 escapes, and 35 endings. Their
+  programs occupy 194 bytes, and the expectation table occupies 46 bytes. The
+  former format occupied 441 program bytes plus a four-byte width table;
+- the interpreter and full-address escape dispatcher shrink from 239 to 230
+  code bytes. Action data shrinks from 445 to 240 immutable bytes. The complete
+  action-machine account therefore falls from 684 to 470 bytes, a 214-byte or
+  31.3-percent saving, and passes the complete-family 20-percent stop rule;
+- strict proofs still distinguish normal completion, the exact part and offset
+  of a token mismatch, invalid expectation and escape codes, trailing bytes,
+  and complete-address escape return. The revised execution path also reduces
+  instruction and T-state counts in the complete declaration, expression,
+  statement, control, and compilation-unit proofs; and
+- the measured shipping replacement is 16,541 code + 1,997 immutable = 18,538
+  core bytes. The instrumented replacement is 18,542 core bytes, and workspace
+  remains 3,938 bytes. This is the first retained whole-system size checkpoint;
+  2,154 further bytes are required for the 16 KiB gate and 4,202 for the
+  14 KiB design target before accounting for unfinished target-output work.
+
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the
 complete oracle corpus; PATCH attribution, bank identity, abort atomicity, and
@@ -1783,7 +1808,10 @@ recipe authority, interpreter, bounded sink, relocation proof, runtime-call
 linking, nested relative fixups, a full deployment link context, local and
 banked trap endings, and a complete 105-operation semantic backend including
 conversion, division/modulo, open views, failure, callable main, and counted
-loops with exact trap attribution. The next work adds the source-attribution
-driver and complete flat/banked target layout, runtime linking, and artifact
-publication. Compression follows semantic and backend completion. The
-replacement remains test-selected until the complete cutover gate passes.
+loops with exact trap attribution. R7 has source-attributed dispatch, complete
+target-layout validation, and the first append-only output transaction. The
+dense front-action conversion begins the measured whole-system size recovery
+and passes its complete-family stop rule. The next size checkpoint consolidates
+semantic and backend dispatch authority before runtime linking, MAP production,
+and final artifact publication resume. The replacement remains test-selected
+until the complete cutover gate passes.

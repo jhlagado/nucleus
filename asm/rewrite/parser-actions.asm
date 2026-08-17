@@ -36,25 +36,23 @@ RewriteActionRun:
 RewriteActionNext:
             LD   A,(HL)
             INC  HL
-            CP   RewriteActionInstructionCount
-            JP   NC,RewriteActionInvalid
             OR   A
             RET  Z
-            CP   RewriteActionExpect
-            JR   Z,RewriteActionDoExpect
-            CP   RewriteActionEscape
-            JR   Z,RewriteActionDoEscape
-            CP   RewriteActionRaise
-            JR   NZ,RewriteActionInvalid
-            LD   A,(HL)
-            JP   RewriteRaiseDiagnostic
+            LD   (RewriteActionCursor),HL
+            JP   M,RewriteActionDoEscape
 
 RewriteActionDoExpect:
+            DEC  A
+            CP   RewriteActionExpectCount
+            JR   NC,RewriteActionInvalid
+            ADD  A,A
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteActionExpectationTable
+            ADD  HL,DE
             LD   B,(HL)
             INC  HL
             LD   C,(HL)
-            INC  HL
-            LD   (RewriteActionCursor),HL
             PUSH BC
             CALL RewriteParserTake
             POP  BC
@@ -68,11 +66,9 @@ RewriteActionExpectedFailure:
             JP   RewriteRaiseDiagnostic
 
 RewriteActionDoEscape:
-            LD   A,(HL)
-            INC  HL
+            AND  $7F
             CP   RewriteActionEscapeCount
             JR   NC,RewriteActionInvalid
-            LD   (RewriteActionCursor),HL
             CALL RewriteActionEscapeDispatch
             JR   RewriteActionResume
 

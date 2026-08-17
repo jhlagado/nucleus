@@ -3,8 +3,7 @@
   "instructions": [
     { "name": "End", "operands": [] },
     { "name": "Expect", "operands": ["token", "diagnostic"] },
-    { "name": "Escape", "operands": ["selector"] },
-    { "name": "Raise", "operands": ["diagnostic"] }
+    { "name": "Escape", "operands": ["selector"] }
   ],
   "escapes": [
     {

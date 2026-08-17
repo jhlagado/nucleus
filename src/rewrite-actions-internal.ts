@@ -21,7 +21,7 @@ export const rewriteActionInstructions: readonly RewriteActionInstruction[] = [
       "diagnostic"
     ],
     "id": 1,
-    "width": 3
+    "width": 1
   },
   {
     "name": "Escape",
@@ -29,17 +29,149 @@ export const rewriteActionInstructions: readonly RewriteActionInstruction[] = [
       "selector"
     ],
     "id": 2,
-    "width": 2
-  },
-  {
-    "name": "Raise",
-    "operands": [
-      "diagnostic"
-    ],
-    "id": 3,
-    "width": 2
+    "width": 1
   }
 ];
+export const rewriteActionExpectations = [
+  {
+    "id": 0,
+    "token": "TokenConst",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 1
+  },
+  {
+    "id": 1,
+    "token": "TokenName",
+    "diagnostic": "DiagnosticExpectedName",
+    "code": 2
+  },
+  {
+    "id": 2,
+    "token": "TokenEquals",
+    "diagnostic": "DiagnosticExpectedEqual",
+    "code": 3
+  },
+  {
+    "id": 3,
+    "token": "TokenNewline",
+    "diagnostic": "DiagnosticExpectedLine",
+    "code": 4
+  },
+  {
+    "id": 4,
+    "token": "TokenAssert",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 5
+  },
+  {
+    "id": 5,
+    "token": "TokenVar",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 6
+  },
+  {
+    "id": 6,
+    "token": "TokenAs",
+    "diagnostic": "DiagnosticExpectedAs",
+    "code": 7
+  },
+  {
+    "id": 7,
+    "token": "TokenRecord",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 8
+  },
+  {
+    "id": 8,
+    "token": "TokenEnd",
+    "diagnostic": "DiagnosticExpectedEnd",
+    "code": 9
+  },
+  {
+    "id": 9,
+    "token": "TokenSub",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 10
+  },
+  {
+    "id": 10,
+    "token": "TokenForward",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 11
+  },
+  {
+    "id": 11,
+    "token": "TokenEof",
+    "diagnostic": "DiagnosticExpectedTopLevel",
+    "code": 12
+  },
+  {
+    "id": 12,
+    "token": "TokenReturn",
+    "diagnostic": "DiagnosticExpectedReturn",
+    "code": 13
+  },
+  {
+    "id": 13,
+    "token": "TokenFail",
+    "diagnostic": "DiagnosticExpectedFail",
+    "code": 14
+  },
+  {
+    "id": 14,
+    "token": "TokenIf",
+    "diagnostic": "DiagnosticExpectedIf",
+    "code": 15
+  },
+  {
+    "id": 15,
+    "token": "TokenElseIf",
+    "diagnostic": "DiagnosticExpectedIf",
+    "code": 16
+  },
+  {
+    "id": 16,
+    "token": "TokenElse",
+    "diagnostic": "DiagnosticExpectedIf",
+    "code": 17
+  },
+  {
+    "id": 17,
+    "token": "TokenWhile",
+    "diagnostic": "DiagnosticExpectedBoolean",
+    "code": 18
+  },
+  {
+    "id": 18,
+    "token": "TokenExit",
+    "diagnostic": "DiagnosticExpectedLoop",
+    "code": 19
+  },
+  {
+    "id": 19,
+    "token": "TokenContinue",
+    "diagnostic": "DiagnosticExpectedLoop",
+    "code": 20
+  },
+  {
+    "id": 20,
+    "token": "TokenFor",
+    "diagnostic": "DiagnosticLoopCounter",
+    "code": 21
+  },
+  {
+    "id": 21,
+    "token": "TokenName",
+    "diagnostic": "DiagnosticLoopCounter",
+    "code": 22
+  },
+  {
+    "id": 22,
+    "token": "TokenEquals",
+    "diagnostic": "DiagnosticLoopCounter",
+    "code": 23
+  }
+] as const;
 export const rewriteActionEscapes = [
   {
     "name": "ResetInitializer",
@@ -333,7 +465,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedTopLevel"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -342,7 +474,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedName"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -350,7 +482,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginScalarConstant"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -359,7 +491,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedEqual"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -367,7 +499,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeFinishScalarConstant"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -376,7 +508,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -384,1061 +516,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeCommitSymbol"
         ],
         "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
         "width": 1
-      }
-    ],
-    "width": 19
-  },
-  {
-    "name": "Assert",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAssert",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginAssert"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishAssert"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 11
-  },
-  {
-    "name": "ProgramBss",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenVar",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginProgram"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseOwnedType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishProgramBss"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitSymbol"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 21
-  },
-  {
-    "name": "ProgramScalarInitialized",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenVar",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginProgram"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseOwnedType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEquals",
-          "DiagnosticExpectedEqual"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishProgramScalar"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitSymbol"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 24
-  },
-  {
-    "name": "RecordBegin",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenRecord",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginRecord"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 12
-  },
-  {
-    "name": "RecordField",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginRecordField"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseRecordFieldType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishRecordField"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 16
-  },
-  {
-    "name": "RecordEnd",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEnd",
-          "DiagnosticExpectedEnd"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishRecord"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitSymbol"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 11
-  },
-  {
-    "name": "AggregateConstant",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenConst",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginAggregateConstant"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseOwnedType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEquals",
-          "DiagnosticExpectedEqual"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishAggregateConstant"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitSymbol"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 24
-  },
-  {
-    "name": "ProgramAggregateInitialized",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenVar",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginProgram"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseOwnedType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEquals",
-          "DiagnosticExpectedEqual"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishProgramAggregate"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitSymbol"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 24
-  },
-  {
-    "name": "RoutineDirectHeader",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenSub",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishDirectRoutineHeader"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 9
-  },
-  {
-    "name": "RoutineForwardHeader",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenForward",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenSub",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishForwardRoutineHeader"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 12
-  },
-  {
-    "name": "RoutineForwardBody",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenSub",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeOpenForwardBody"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 12
-  },
-  {
-    "name": "CompilationEnd",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEof",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeRequireComplete"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 6
-  },
-  {
-    "name": "RoutineEnd",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEnd",
-          "DiagnosticExpectedEnd"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCloseRoutineScope"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 9
-  },
-  {
-    "name": "RoutineBodyEnd",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEnd",
-          "DiagnosticExpectedEnd"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishRoutine"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 9
-  },
-  {
-    "name": "LocalDefault",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenVar",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginLocal"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseLocalScalarType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeEmitDefaultLocal"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitLocal"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 21
-  },
-  {
-    "name": "LocalInitializedExpression",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenVar",
-          "DiagnosticExpectedTopLevel"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginLocal"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenAs",
-          "DiagnosticExpectedAs"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseLocalScalarType"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEquals",
-          "DiagnosticExpectedEqual"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishRuntimeLocalExpression"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenNewline",
-          "DiagnosticExpectedLine"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeEmitLocalStore"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeCommitLocal"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 26
-  },
-  {
-    "name": "ScalarAssignment",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeBeginScalarAssignment"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenEquals",
-          "DiagnosticExpectedEqual"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishScalarAssignmentExpression"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishScalarAssignment"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "End",
-        "operands": [],
-        "id": 0,
-        "width": 1
-      }
-    ],
-    "width": 13
-  },
-  {
-    "name": "CallStatement",
-    "steps": [
-      {
-        "instruction": "Expect",
-        "operands": [
-          "TokenName",
-          "DiagnosticExpectedName"
-        ],
-        "id": 1,
-        "width": 3
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeParseCallStatement"
-        ],
-        "id": 2,
-        "width": 2
-      },
-      {
-        "instruction": "Escape",
-        "operands": [
-          "RewriteActionEscapeFinishCallStatement"
-        ],
-        "id": 2,
-        "width": 2
       },
       {
         "instruction": "End",
@@ -1450,16 +528,32 @@ export const rewriteActionPrograms = [
     "width": 8
   },
   {
-    "name": "HandleEnd",
+    "name": "Assert",
     "steps": [
       {
         "instruction": "Expect",
         "operands": [
-          "TokenEnd",
-          "DiagnosticExpectedEnd"
+          "TokenAssert",
+          "DiagnosticExpectedTopLevel"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginAssert"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishAssert"
+        ],
+        "id": 2,
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1468,15 +562,87 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 5
+  },
+  {
+    "name": "ProgramBss",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenVar",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
       },
       {
         "instruction": "Escape",
         "operands": [
-          "RewriteActionEscapeEndHandle"
+          "RewriteActionEscapeBeginProgram"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseOwnedType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishProgramBss"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1486,6 +652,972 @@ export const rewriteActionPrograms = [
       }
     ],
     "width": 9
+  },
+  {
+    "name": "ProgramScalarInitialized",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenVar",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginProgram"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseOwnedType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEquals",
+          "DiagnosticExpectedEqual"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishProgramScalar"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 10
+  },
+  {
+    "name": "RecordBegin",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenRecord",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginRecord"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 5
+  },
+  {
+    "name": "RecordField",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginRecordField"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseRecordFieldType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRecordField"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 7
+  },
+  {
+    "name": "RecordEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRecord"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 5
+  },
+  {
+    "name": "AggregateConstant",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenConst",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginAggregateConstant"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseOwnedType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEquals",
+          "DiagnosticExpectedEqual"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishAggregateConstant"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 10
+  },
+  {
+    "name": "ProgramAggregateInitialized",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenVar",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginProgram"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseOwnedType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEquals",
+          "DiagnosticExpectedEqual"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishProgramAggregate"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitSymbol"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 10
+  },
+  {
+    "name": "RoutineDirectHeader",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishDirectRoutineHeader"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 4
+  },
+  {
+    "name": "RoutineForwardHeader",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenForward",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishForwardRoutineHeader"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 5
+  },
+  {
+    "name": "RoutineForwardBody",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenSub",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeOpenForwardBody"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 5
+  },
+  {
+    "name": "CompilationEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEof",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeRequireComplete"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 3
+  },
+  {
+    "name": "RoutineEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCloseRoutineScope"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 4
+  },
+  {
+    "name": "RoutineBodyEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRoutine"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 4
+  },
+  {
+    "name": "LocalDefault",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenVar",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginLocal"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseLocalScalarType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeEmitDefaultLocal"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitLocal"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 9
+  },
+  {
+    "name": "LocalInitializedExpression",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenVar",
+          "DiagnosticExpectedTopLevel"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginLocal"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenAs",
+          "DiagnosticExpectedAs"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseLocalScalarType"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEquals",
+          "DiagnosticExpectedEqual"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishRuntimeLocalExpression"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeEmitLocalStore"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeCommitLocal"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 11
+  },
+  {
+    "name": "ScalarAssignment",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeBeginScalarAssignment"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEquals",
+          "DiagnosticExpectedEqual"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishScalarAssignmentExpression"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishScalarAssignment"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 6
+  },
+  {
+    "name": "CallStatement",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenName",
+          "DiagnosticExpectedName"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeParseCallStatement"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeFinishCallStatement"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 4
+  },
+  {
+    "name": "HandleEnd",
+    "steps": [
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenEnd",
+          "DiagnosticExpectedEnd"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Expect",
+        "operands": [
+          "TokenNewline",
+          "DiagnosticExpectedLine"
+        ],
+        "id": 1,
+        "width": 1
+      },
+      {
+        "instruction": "Escape",
+        "operands": [
+          "RewriteActionEscapeEndHandle"
+        ],
+        "id": 2,
+        "width": 1
+      },
+      {
+        "instruction": "End",
+        "operands": [],
+        "id": 0,
+        "width": 1
+      }
+    ],
+    "width": 4
   },
   {
     "name": "ReturnValue",
@@ -1497,7 +1629,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedReturn"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1505,7 +1637,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseReturnValue"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1514,7 +1646,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1523,7 +1655,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "BareReturn",
@@ -1535,7 +1667,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedReturn"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1543,7 +1675,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeCommitBareReturn"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1552,7 +1684,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1561,7 +1693,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "Fail",
@@ -1573,7 +1705,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedFail"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1581,7 +1713,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseFail"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1590,7 +1722,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1599,7 +1731,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "IfHeader",
@@ -1611,7 +1743,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedIf"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1619,7 +1751,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginIf"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1627,7 +1759,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseBoolean"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1636,7 +1768,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1644,7 +1776,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginIfBody"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1653,7 +1785,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 13
+    "width": 6
   },
   {
     "name": "ElseIfHeader",
@@ -1665,7 +1797,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedIf"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1673,7 +1805,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginElseIf"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1681,7 +1813,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseBoolean"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1690,7 +1822,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1698,7 +1830,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginIfBody"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1707,7 +1839,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 13
+    "width": 6
   },
   {
     "name": "ElseHeader",
@@ -1719,7 +1851,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedIf"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1727,7 +1859,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginElse"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1736,7 +1868,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1745,7 +1877,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "IfNoElseTail",
@@ -1756,7 +1888,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeFinishIfClauses"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1765,7 +1897,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 3
+    "width": 2
   },
   {
     "name": "IfElseTail",
@@ -1776,7 +1908,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeFinishElse"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1785,7 +1917,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 3
+    "width": 2
   },
   {
     "name": "IfEnd",
@@ -1797,7 +1929,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedEnd"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1806,7 +1938,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1814,7 +1946,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeEndIf"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1823,7 +1955,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "WhileHeader",
@@ -1835,7 +1967,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedBoolean"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1843,7 +1975,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginWhile"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1851,7 +1983,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseBoolean"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1860,7 +1992,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1868,7 +2000,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginWhileBody"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1877,7 +2009,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 13
+    "width": 6
   },
   {
     "name": "WhileEnd",
@@ -1889,7 +2021,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedEnd"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1898,7 +2030,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1906,7 +2038,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeEndWhile"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1915,7 +2047,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "Exit",
@@ -1927,7 +2059,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLoop"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1935,7 +2067,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeEmitExit"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1944,7 +2076,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1953,7 +2085,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "Continue",
@@ -1965,7 +2097,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLoop"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -1973,7 +2105,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeEmitContinue"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -1982,7 +2114,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "End",
@@ -1991,7 +2123,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   },
   {
     "name": "ForHeader",
@@ -2003,7 +2135,7 @@ export const rewriteActionPrograms = [
           "DiagnosticLoopCounter"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -2012,7 +2144,7 @@ export const rewriteActionPrograms = [
           "DiagnosticLoopCounter"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -2020,7 +2152,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginForCounter"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -2029,7 +2161,7 @@ export const rewriteActionPrograms = [
           "DiagnosticLoopCounter"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -2037,7 +2169,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeParseForRange"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -2046,7 +2178,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -2054,7 +2186,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeBeginForBody"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -2063,7 +2195,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 19
+    "width": 8
   },
   {
     "name": "ForEnd",
@@ -2075,7 +2207,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedEnd"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Expect",
@@ -2084,7 +2216,7 @@ export const rewriteActionPrograms = [
           "DiagnosticExpectedLine"
         ],
         "id": 1,
-        "width": 3
+        "width": 1
       },
       {
         "instruction": "Escape",
@@ -2092,7 +2224,7 @@ export const rewriteActionPrograms = [
           "RewriteActionEscapeEndFor"
         ],
         "id": 2,
-        "width": 2
+        "width": 1
       },
       {
         "instruction": "End",
@@ -2101,7 +2233,7 @@ export const rewriteActionPrograms = [
         "width": 1
       }
     ],
-    "width": 9
+    "width": 4
   }
 ] as const;
 
@@ -2110,16 +2242,16 @@ export const decodeRewriteActionProgram = (bytes: Uint8Array): readonly number[]
   let cursor = 0;
   while (cursor < bytes.length) {
     const start = cursor;
-    const instruction = rewriteActionInstructions[bytes[cursor] ?? -1];
-    if (instruction === undefined || cursor + instruction.width > bytes.length) {
-      throw new Error(`invalid rewrite action at byte ${cursor}`);
+    const code = bytes[cursor] ?? -1;
+    if (code !== 0 && (code & 0x80) === 0 && rewriteActionExpectations[code - 1] === undefined) {
+      throw new Error(`invalid rewrite action expectation at byte ${cursor}`);
     }
-    if (instruction.name === "Escape" && (bytes[cursor + 1] ?? 256) >= rewriteActionEscapes.length) {
-      throw new Error(`invalid rewrite action escape at byte ${cursor + 1}`);
+    if ((code & 0x80) !== 0 && rewriteActionEscapes[code & 0x7f] === undefined) {
+      throw new Error(`invalid rewrite action escape at byte ${cursor}`);
     }
     starts.push(start);
-    cursor += instruction.width;
-    if (instruction.id === 0) {
+    cursor += 1;
+    if (code === 0) {
       if (cursor !== bytes.length) throw new Error(`trailing rewrite action bytes at ${cursor}`);
       return starts;
     }

@@ -89,18 +89,18 @@ ProofFailure:
 
 ProofStatus: .db 0
 ProofValidActions:
-            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
-            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedTopLevel
-            .db RewriteActionEscape,RewriteActionEscapeResetInitializer
+            .db RewriteActionExpectTokenVarDiagnosticExpectedTopLevel
+            .db RewriteActionExpectTokenNewlineDiagnosticExpectedLine
+            .db RewriteActionEscapeResetInitializer
             .db RewriteActionEnd
 ProofMismatchActions:
-            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
-            .db RewriteActionExpect,TokenNewline,DiagnosticExpectedTopLevel
-            .db RewriteActionExpect,TokenName,DiagnosticExpectedTopLevel
-            .db RewriteActionExpect,TokenVar,DiagnosticExpectedTopLevel
+            .db RewriteActionExpectTokenVarDiagnosticExpectedTopLevel
+            .db RewriteActionExpectTokenNewlineDiagnosticExpectedLine
+            .db RewriteActionExpectTokenNameDiagnosticExpectedName
+            .db RewriteActionExpectTokenVarDiagnosticExpectedTopLevel
             .db RewriteActionEnd
 ProofInvalidActions:
-            .db RewriteActionInstructionCount
+            .db RewriteActionEscapeMask+RewriteActionEscapeCount
 
             .org $4000
 ProofVarSource: .db "var"

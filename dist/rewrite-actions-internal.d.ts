@@ -5,6 +5,122 @@ export interface RewriteActionInstruction {
     readonly width: number;
 }
 export declare const rewriteActionInstructions: readonly RewriteActionInstruction[];
+export declare const rewriteActionExpectations: readonly [{
+    readonly id: 0;
+    readonly token: "TokenConst";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 1;
+}, {
+    readonly id: 1;
+    readonly token: "TokenName";
+    readonly diagnostic: "DiagnosticExpectedName";
+    readonly code: 2;
+}, {
+    readonly id: 2;
+    readonly token: "TokenEquals";
+    readonly diagnostic: "DiagnosticExpectedEqual";
+    readonly code: 3;
+}, {
+    readonly id: 3;
+    readonly token: "TokenNewline";
+    readonly diagnostic: "DiagnosticExpectedLine";
+    readonly code: 4;
+}, {
+    readonly id: 4;
+    readonly token: "TokenAssert";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 5;
+}, {
+    readonly id: 5;
+    readonly token: "TokenVar";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 6;
+}, {
+    readonly id: 6;
+    readonly token: "TokenAs";
+    readonly diagnostic: "DiagnosticExpectedAs";
+    readonly code: 7;
+}, {
+    readonly id: 7;
+    readonly token: "TokenRecord";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 8;
+}, {
+    readonly id: 8;
+    readonly token: "TokenEnd";
+    readonly diagnostic: "DiagnosticExpectedEnd";
+    readonly code: 9;
+}, {
+    readonly id: 9;
+    readonly token: "TokenSub";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 10;
+}, {
+    readonly id: 10;
+    readonly token: "TokenForward";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 11;
+}, {
+    readonly id: 11;
+    readonly token: "TokenEof";
+    readonly diagnostic: "DiagnosticExpectedTopLevel";
+    readonly code: 12;
+}, {
+    readonly id: 12;
+    readonly token: "TokenReturn";
+    readonly diagnostic: "DiagnosticExpectedReturn";
+    readonly code: 13;
+}, {
+    readonly id: 13;
+    readonly token: "TokenFail";
+    readonly diagnostic: "DiagnosticExpectedFail";
+    readonly code: 14;
+}, {
+    readonly id: 14;
+    readonly token: "TokenIf";
+    readonly diagnostic: "DiagnosticExpectedIf";
+    readonly code: 15;
+}, {
+    readonly id: 15;
+    readonly token: "TokenElseIf";
+    readonly diagnostic: "DiagnosticExpectedIf";
+    readonly code: 16;
+}, {
+    readonly id: 16;
+    readonly token: "TokenElse";
+    readonly diagnostic: "DiagnosticExpectedIf";
+    readonly code: 17;
+}, {
+    readonly id: 17;
+    readonly token: "TokenWhile";
+    readonly diagnostic: "DiagnosticExpectedBoolean";
+    readonly code: 18;
+}, {
+    readonly id: 18;
+    readonly token: "TokenExit";
+    readonly diagnostic: "DiagnosticExpectedLoop";
+    readonly code: 19;
+}, {
+    readonly id: 19;
+    readonly token: "TokenContinue";
+    readonly diagnostic: "DiagnosticExpectedLoop";
+    readonly code: 20;
+}, {
+    readonly id: 20;
+    readonly token: "TokenFor";
+    readonly diagnostic: "DiagnosticLoopCounter";
+    readonly code: 21;
+}, {
+    readonly id: 21;
+    readonly token: "TokenName";
+    readonly diagnostic: "DiagnosticLoopCounter";
+    readonly code: 22;
+}, {
+    readonly id: 22;
+    readonly token: "TokenEquals";
+    readonly diagnostic: "DiagnosticLoopCounter";
+    readonly code: 23;
+}];
 export declare const rewriteActionEscapes: readonly [{
     readonly name: "ResetInitializer";
     readonly target: "RewriteInitializerReset";
@@ -236,689 +352,37 @@ export declare const rewriteActionPrograms: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenConst", "DiagnosticExpectedTopLevel"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginScalarConstant"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeFinishScalarConstant"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
         readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
         readonly width: 1;
-    }];
-    readonly width: 19;
-}, {
-    readonly name: "Assert";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAssert", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginAssert"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishAssert"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 11;
-}, {
-    readonly name: "ProgramBss";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishProgramBss"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 21;
-}, {
-    readonly name: "ProgramScalarInitialized";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishProgramScalar"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 24;
-}, {
-    readonly name: "RecordBegin";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenRecord", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginRecord"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 12;
-}, {
-    readonly name: "RecordField";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginRecordField"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseRecordFieldType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishRecordField"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 16;
-}, {
-    readonly name: "RecordEnd";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishRecord"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 11;
-}, {
-    readonly name: "AggregateConstant";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenConst", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginAggregateConstant"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishAggregateConstant"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 24;
-}, {
-    readonly name: "ProgramAggregateInitialized";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishProgramAggregate"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 24;
-}, {
-    readonly name: "RoutineDirectHeader";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishDirectRoutineHeader"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 9;
-}, {
-    readonly name: "RoutineForwardHeader";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenForward", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishForwardRoutineHeader"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 12;
-}, {
-    readonly name: "RoutineForwardBody";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeOpenForwardBody"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 12;
-}, {
-    readonly name: "CompilationEnd";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEof", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeRequireComplete"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 6;
-}, {
-    readonly name: "RoutineEnd";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCloseRoutineScope"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 9;
-}, {
-    readonly name: "RoutineBodyEnd";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishRoutine"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 9;
-}, {
-    readonly name: "LocalDefault";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginLocal"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseLocalScalarType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeEmitDefaultLocal"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitLocal"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 21;
-}, {
-    readonly name: "LocalInitializedExpression";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginLocal"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseLocalScalarType"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishRuntimeLocalExpression"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeEmitLocalStore"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeCommitLocal"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 26;
-}, {
-    readonly name: "ScalarAssignment";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeBeginScalarAssignment"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignmentExpression"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignment"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "End";
-        readonly operands: readonly [];
-        readonly id: 0;
-        readonly width: 1;
-    }];
-    readonly width: 13;
-}, {
-    readonly name: "CallStatement";
-    readonly steps: readonly [{
-        readonly instruction: "Expect";
-        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
-        readonly id: 1;
-        readonly width: 3;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeParseCallStatement"];
-        readonly id: 2;
-        readonly width: 2;
-    }, {
-        readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeFinishCallStatement"];
-        readonly id: 2;
-        readonly width: 2;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
@@ -927,22 +391,76 @@ export declare const rewriteActionPrograms: readonly [{
     }];
     readonly width: 8;
 }, {
-    readonly name: "HandleEnd";
+    readonly name: "Assert";
     readonly steps: readonly [{
         readonly instruction: "Expect";
-        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly operands: readonly ["TokenAssert", "DiagnosticExpectedTopLevel"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginAssert"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishAssert"];
+        readonly id: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 5;
+}, {
+    readonly name: "ProgramBss";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
-        readonly operands: readonly ["RewriteActionEscapeEndHandle"];
+        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishProgramBss"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
@@ -950,395 +468,993 @@ export declare const rewriteActionPrograms: readonly [{
         readonly width: 1;
     }];
     readonly width: 9;
+}, {
+    readonly name: "ProgramScalarInitialized";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishProgramScalar"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 10;
+}, {
+    readonly name: "RecordBegin";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenRecord", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginRecord"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 5;
+}, {
+    readonly name: "RecordField";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginRecordField"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseRecordFieldType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRecordField"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 7;
+}, {
+    readonly name: "RecordEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRecord"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 5;
+}, {
+    readonly name: "AggregateConstant";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenConst", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginAggregateConstant"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishAggregateConstant"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 10;
+}, {
+    readonly name: "ProgramAggregateInitialized";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginProgram"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseOwnedType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishProgramAggregate"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitSymbol"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 10;
+}, {
+    readonly name: "RoutineDirectHeader";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishDirectRoutineHeader"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 4;
+}, {
+    readonly name: "RoutineForwardHeader";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenForward", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishForwardRoutineHeader"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 5;
+}, {
+    readonly name: "RoutineForwardBody";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenSub", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeOpenForwardBody"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 5;
+}, {
+    readonly name: "CompilationEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEof", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeRequireComplete"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 3;
+}, {
+    readonly name: "RoutineEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCloseRoutineScope"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 4;
+}, {
+    readonly name: "RoutineBodyEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRoutine"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 4;
+}, {
+    readonly name: "LocalDefault";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginLocal"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseLocalScalarType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEmitDefaultLocal"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitLocal"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 9;
+}, {
+    readonly name: "LocalInitializedExpression";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenVar", "DiagnosticExpectedTopLevel"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginLocal"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenAs", "DiagnosticExpectedAs"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseLocalScalarType"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishRuntimeLocalExpression"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEmitLocalStore"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeCommitLocal"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 11;
+}, {
+    readonly name: "ScalarAssignment";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeBeginScalarAssignment"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEquals", "DiagnosticExpectedEqual"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignmentExpression"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishScalarAssignment"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 6;
+}, {
+    readonly name: "CallStatement";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenName", "DiagnosticExpectedName"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeParseCallStatement"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeFinishCallStatement"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 4;
+}, {
+    readonly name: "HandleEnd";
+    readonly steps: readonly [{
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Expect";
+        readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
+        readonly id: 1;
+        readonly width: 1;
+    }, {
+        readonly instruction: "Escape";
+        readonly operands: readonly ["RewriteActionEscapeEndHandle"];
+        readonly id: 2;
+        readonly width: 1;
+    }, {
+        readonly instruction: "End";
+        readonly operands: readonly [];
+        readonly id: 0;
+        readonly width: 1;
+    }];
+    readonly width: 4;
 }, {
     readonly name: "ReturnValue";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenReturn", "DiagnosticExpectedReturn"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseReturnValue"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "BareReturn";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenReturn", "DiagnosticExpectedReturn"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeCommitBareReturn"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "Fail";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenFail", "DiagnosticExpectedFail"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseFail"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "IfHeader";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenIf", "DiagnosticExpectedIf"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginIf"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseBoolean"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginIfBody"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 13;
+    readonly width: 6;
 }, {
     readonly name: "ElseIfHeader";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenElseIf", "DiagnosticExpectedIf"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginElseIf"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseBoolean"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginIfBody"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 13;
+    readonly width: 6;
 }, {
     readonly name: "ElseHeader";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenElse", "DiagnosticExpectedIf"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginElse"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "IfNoElseTail";
     readonly steps: readonly [{
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeFinishIfClauses"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 3;
+    readonly width: 2;
 }, {
     readonly name: "IfElseTail";
     readonly steps: readonly [{
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeFinishElse"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 3;
+    readonly width: 2;
 }, {
     readonly name: "IfEnd";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeEndIf"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "WhileHeader";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenWhile", "DiagnosticExpectedBoolean"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginWhile"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseBoolean"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginWhileBody"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 13;
+    readonly width: 6;
 }, {
     readonly name: "WhileEnd";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeEndWhile"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "Exit";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenExit", "DiagnosticExpectedLoop"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeEmitExit"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "Continue";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenContinue", "DiagnosticExpectedLoop"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeEmitContinue"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }, {
     readonly name: "ForHeader";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenFor", "DiagnosticLoopCounter"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenName", "DiagnosticLoopCounter"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginForCounter"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenEquals", "DiagnosticLoopCounter"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeParseForRange"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeBeginForBody"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 19;
+    readonly width: 8;
 }, {
     readonly name: "ForEnd";
     readonly steps: readonly [{
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenEnd", "DiagnosticExpectedEnd"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Expect";
         readonly operands: readonly ["TokenNewline", "DiagnosticExpectedLine"];
         readonly id: 1;
-        readonly width: 3;
+        readonly width: 1;
     }, {
         readonly instruction: "Escape";
         readonly operands: readonly ["RewriteActionEscapeEndFor"];
         readonly id: 2;
-        readonly width: 2;
+        readonly width: 1;
     }, {
         readonly instruction: "End";
         readonly operands: readonly [];
         readonly id: 0;
         readonly width: 1;
     }];
-    readonly width: 9;
+    readonly width: 4;
 }];
 export declare const decodeRewriteActionProgram: (bytes: Uint8Array) => readonly number[];

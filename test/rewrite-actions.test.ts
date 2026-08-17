@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   decodeRewriteActionProgram,
   rewriteActionEscapes,
+  rewriteActionExpectations,
   rewriteActionInstructions,
   rewriteActionPrograms,
 } from "../src/rewrite-actions-internal.js";
@@ -75,10 +76,10 @@ describe("ground-up rewrite front action machine", () => {
       rewriteActionInstructions.map(({ name, width }) => [name, width]),
     ).toEqual([
       ["End", 1],
-      ["Expect", 3],
-      ["Escape", 2],
-      ["Raise", 2],
+      ["Expect", 1],
+      ["Escape", 1],
     ]);
+    expect(rewriteActionExpectations).toHaveLength(23);
     expect(rewriteActionEscapes).toEqual([
       { name: "ResetInitializer", target: "RewriteInitializerReset", id: 0 },
       {
@@ -302,41 +303,41 @@ describe("ground-up rewrite front action machine", () => {
       { name: "EndHandle", target: "RewriteControlEndHandler", id: 55 },
     ]);
     expect(rewriteActionPrograms.map(({ name, width }) => [name, width])).toEqual([
-      ["ScalarConstant", 19],
-      ["Assert", 11],
-      ["ProgramBss", 21],
-      ["ProgramScalarInitialized", 24],
-      ["RecordBegin", 12],
-      ["RecordField", 16],
-      ["RecordEnd", 11],
-      ["AggregateConstant", 24],
-      ["ProgramAggregateInitialized", 24],
-      ["RoutineDirectHeader", 9],
-      ["RoutineForwardHeader", 12],
-      ["RoutineForwardBody", 12],
-      ["CompilationEnd", 6],
-      ["RoutineEnd", 9],
-      ["RoutineBodyEnd", 9],
-      ["LocalDefault", 21],
-      ["LocalInitializedExpression", 26],
-      ["ScalarAssignment", 13],
-      ["CallStatement", 8],
-      ["HandleEnd", 9],
-      ["ReturnValue", 9],
-      ["BareReturn", 9],
-      ["Fail", 9],
-      ["IfHeader", 13],
-      ["ElseIfHeader", 13],
-      ["ElseHeader", 9],
-      ["IfNoElseTail", 3],
-      ["IfElseTail", 3],
-      ["IfEnd", 9],
-      ["WhileHeader", 13],
-      ["WhileEnd", 9],
-      ["Exit", 9],
-      ["Continue", 9],
-      ["ForHeader", 19],
-      ["ForEnd", 9],
+      ["ScalarConstant", 8],
+      ["Assert", 5],
+      ["ProgramBss", 9],
+      ["ProgramScalarInitialized", 10],
+      ["RecordBegin", 5],
+      ["RecordField", 7],
+      ["RecordEnd", 5],
+      ["AggregateConstant", 10],
+      ["ProgramAggregateInitialized", 10],
+      ["RoutineDirectHeader", 4],
+      ["RoutineForwardHeader", 5],
+      ["RoutineForwardBody", 5],
+      ["CompilationEnd", 3],
+      ["RoutineEnd", 4],
+      ["RoutineBodyEnd", 4],
+      ["LocalDefault", 9],
+      ["LocalInitializedExpression", 11],
+      ["ScalarAssignment", 6],
+      ["CallStatement", 4],
+      ["HandleEnd", 4],
+      ["ReturnValue", 4],
+      ["BareReturn", 4],
+      ["Fail", 4],
+      ["IfHeader", 6],
+      ["ElseIfHeader", 6],
+      ["ElseHeader", 4],
+      ["IfNoElseTail", 2],
+      ["IfElseTail", 2],
+      ["IfEnd", 4],
+      ["WhileHeader", 6],
+      ["WhileEnd", 4],
+      ["Exit", 4],
+      ["Continue", 4],
+      ["ForHeader", 8],
+      ["ForEnd", 4],
     ]);
     expect(image.symbols.RewriteActionEscapeDispatch).toBeDefined();
     expect({
@@ -352,19 +353,17 @@ describe("ground-up rewrite front action machine", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
-    }).toEqual({ code: 239, immutable: 445, core: 18_752, workspace: 3_938 });
+    }).toEqual({ code: 230, immutable: 240, core: 18_538, workspace: 3_938 });
   });
 
   it("decodes exact boundaries and rejects malformed programs", () => {
     expect(
-      decodeRewriteActionProgram(new Uint8Array([1, 32, 37, 2, 0, 0])),
-    ).toEqual([0, 3, 5]);
-    expect(() => decodeRewriteActionProgram(new Uint8Array([4]))).toThrow();
+      decodeRewriteActionProgram(new Uint8Array([1, 0x80, 0])),
+    ).toEqual([0, 1, 2]);
     expect(() =>
-      decodeRewriteActionProgram(new Uint8Array([2, 56, 0])),
+      decodeRewriteActionProgram(new Uint8Array([0x80 + 56, 0])),
     ).toThrow();
-    expect(() => decodeRewriteActionProgram(new Uint8Array([1, 32]))).toThrow();
-    expect(() => decodeRewriteActionProgram(new Uint8Array([3, 56]))).toThrow();
+    expect(() => decodeRewriteActionProgram(new Uint8Array([24, 0]))).toThrow();
     expect(() => decodeRewriteActionProgram(new Uint8Array([0, 0]))).toThrow();
   });
 });
