@@ -300,17 +300,29 @@ workspace unchanged. The flat proof executes 47 fewer compiler instructions
 and 769 more T-states, a 0.008-percent timing increase, while its target,
 runtime context, MAP, and artifact remain byte-identical.
 
+The direct flat-MAP checkpoint is also retained. The public 40-byte flat MAP
+becomes the canonical post-parse layout record, so fields known during planning
+are written once rather than copied again during finalization. Provider context
+storage overlays only MAP cells whose provider lifetime has ended; the active
+output-bank selector remains independent for late commit and abort handling.
+Zero-length read-only and aggregate bases are still normalized, and the two
+published bank fields are explicitly zeroed. The checkpoint recovers a measured
+43 code bytes and 16 workspace bytes. The flat proof executes 77 fewer compiler
+instructions and 1,747 fewer T-states with byte-identical MAP, NOBJ, D8, loaded,
+ROM, banked, and failure artifacts.
+
 ### Current recovery outlook
 
-After the scanner, comparison, expression-frame, first backend, and
-action-cleanup checkpoints, the measured shipping core is 16,489 bytes and the
-remaining recovery to 15,360 is 1,129 bytes. A direct flat-MAP redesign,
-one-bank prefix sharing, and provider tails project a further 94–129 backend
-bytes. Together with the measured 191-byte recovery, the currently evidenced
-range is 285–320 bytes, which would place the compiler between 16,360 and
-16,395 bytes.
+After the scanner, comparison, expression-frame, action cleanup, and two
+backend checkpoints, the measured shipping core is 16,446 bytes and the
+remaining recovery to 15,360 is 1,086 bytes. One-bank prefix sharing and
+provider tails project a further 45–80 backend bytes. Together with the
+measured 234-byte recovery, the currently evidenced range is 279–314 bytes,
+which would place the compiler between 16,366 and 16,401 bytes. The current
+300-byte phase starts at 16,489 bytes and has recovered 43 of its required 300
+bytes; its phase target is 16,189.
 
-That range does not yet reach the target. A further 1,000–1,035 bytes therefore
+That range does not yet reach the target. A further 1,006–1,041 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled

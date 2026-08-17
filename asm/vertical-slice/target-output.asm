@@ -48,14 +48,17 @@ BeginTargetFlatProgram:
             CP   TargetDescriptorEstablishStack+1
             JP   NC,TargetConfigurationFailure
             LD   (TargetStackMode),A
-            ; Retain the descriptor's two checked regions as four complete
-            ; words. No address bit is packed or discarded.
+            ; Retain both checked descriptor regions as complete full-width
+            ; word pairs. Their final MAP positions are not adjacent.
             PUSH IX
             POP  HL
             LD   DE,TargetDescriptorImageBase
             ADD  HL,DE
             LD   DE,TargetImageBase
-            LD   BC,8
+            LD   BC,4
+            LDIR
+            LD   DE,TargetWritableBase
+            LD   BC,4
             LDIR
             LD   HL,(TargetImageBase)
             LD   DE,(TargetImageCapacity)
@@ -783,43 +786,47 @@ FinishTargetFlatProgram:
             JP   C,AbortTargetProgram
 .endif
 TargetLoadedDataReady:
-            LD   HL,(ReadOnlyImageLength)
-            LD   (TargetMapAggregateLength),HL
+            ; Lowering may leave the current output-bank selector nonzero.
+            ; Flat MAP publication always names bank zero, and no further
+            ; lowering uses the selector after this point.
+            XOR  A
+            LD   (TargetMapEntryBank),A
+            LD   (TargetMapDataLoadBank),A
+            ; The runtime context's read-only pair is already the final
+            ; aggregate pair. MAP requires a canonical zero base at zero
+            ; length; the provider no longer needs the original base.
+            LD   HL,(TargetMapAggregateLength)
             LD   A,H
             OR   L
-            LD   HL,0
-            JR   Z,TargetMapAggregateReady
-            LD   HL,(TargetContextRoDataBase)
-TargetMapAggregateReady:
+            JR   NZ,TargetMapAggregateReady
             LD   (TargetMapAggregateBase),HL
+TargetMapAggregateReady:
             LD   HL,(EmitCursor)
             LD   DE,(TargetImageBase)
             OR   A
             SBC  HL,DE
             LD   (TargetMapUsedLength),HL
-            LD   HL,(TargetImageBase)
-            LD   (TargetMapEntryAddress),HL
-            XOR  A
-            LD   (TargetMapEntryBank),A
-            LD   HL,(TargetReadOnlyBase)
-            LD   DE,(TargetReadOnlyLength)
-            LD   A,D
-            OR   E
+            ; Entry, code, writable, and capacity fields were written once
+            ; during planning. Only zero-length read-only publication needs
+            ; final canonicalization.
+            LD   HL,(TargetMapReadOnlyLength)
+            LD   A,H
+            OR   L
             JR   NZ,TargetMapReadOnlyReady
-            LD   HL,0
-TargetMapReadOnlyReady:
             LD   (TargetMapReadOnlyBase),HL
-            LD   (TargetMapReadOnlyLength),DE
-            LD   HL,(TargetCodeBase)
-            LD   (TargetMapCodeBase),HL
-            LD   HL,(TargetCodeLength)
-            LD   (TargetMapCodeLength),HL
+TargetMapReadOnlyReady:
             LD   HL,(TargetWritableBase)
-            LD   (TargetMapWritableBase),HL
             LD   (TargetMapInitializedBase),HL
             LD   (TargetMapVectorBase),HL
-            LD   HL,(TargetWritableCapacity)
-            LD   (TargetMapWritableCapacity),HL
+            ; Select the load source before later MAP fields overwrite the
+            ; retained layout mode and provider context.
+            LD   A,(TargetLayoutMode)
+            OR   A
+            JR   Z,TargetMapDataLoadReady
+            LD   HL,(TargetReadOnlyBase)
+TargetMapDataLoadReady:
+            LD   (TargetMapDataLoadAddress),HL
+            ; Writable capacity is already in its final MAP cell.
             LD   HL,NucleusRuntimeVectorLength
             LD   (TargetMapVectorLength),HL
             CALL TargetInitializedLength
@@ -831,15 +838,6 @@ TargetMapReadOnlyReady:
             LD   (TargetMapBssLength),HL
             LD   HL,TargetStackRequirement
             LD   (TargetMapStackRequirement),HL
-            XOR  A
-            LD   (TargetMapDataLoadBank),A
-            LD   HL,(TargetWritableBase)
-            LD   A,(TargetLayoutMode)
-            OR   A
-            JR   Z,TargetMapDataLoadReady
-            LD   HL,(TargetReadOnlyBase)
-TargetMapDataLoadReady:
-            LD   (TargetMapDataLoadAddress),HL
             LD   IX,TargetFlatMapBase
             CALL TargetSinkMapFlat
 TargetFinishMapReady:
