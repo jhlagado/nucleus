@@ -924,13 +924,33 @@ both changes remain below 0.04 percent. Exact source diagnostics, semantic
 transcripts, generated output, NOBJ, D8, strict historical layouts, and
 relocation remain unchanged.
 
+### Three-audit state, scanner, and sink checkpoint
+
+The next independent audit round retained three non-overlapping changes. The
+Stage 7 current-signature bytes now follow routine-table order, so forward-body
+restoration and routine publication each copy one complete four-byte run with
+`LDIR`. The grouped-keyword directory stores each group displacement relative
+to its own byte cell, while number, name, and delimiter paths converge on their
+existing nearby failure and flag tails. Finally, expression-gated semantic
+byte and operation entries sit beside the raw statement sinks and fall through
+when emission is enabled. All compiler addresses, source positions, routine
+fields, and workspace extents remain full-width.
+
+The state layout recovers 19 code bytes, the scanner paths recover 10, and the
+semantic sink layout recovers six. Together they reduce the production core by
+35 bytes, from 15,696 to 15,661, with immutable data and the 3,613-byte
+workspace unchanged. The representative proof improves from 877,392 to
+876,887 instructions and from 9,575,109 to 9,566,458 T-states. Exact keyword
+mapping, diagnostics, semantic transcripts, generated output, NOBJ, D8,
+historical layouts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the shared segmented-capacity predicate added to the retained checkpoints
-above, the measured shipping core is 15,696 bytes. Total measured recovery from
-the frozen 16,680-byte compiler is 984 bytes. The earlier 15,360-byte target is
-336 bytes away. The 300-byte phase began at 16,489 bytes and has recovered 793
-bytes, exceeding that phase target by 493 bytes.
+With the three-audit checkpoint added to the retained work above, the measured
+shipping core is 15,661 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,019 bytes. The earlier 15,360-byte target is 301 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 828 bytes,
+exceeding that phase target by 528 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

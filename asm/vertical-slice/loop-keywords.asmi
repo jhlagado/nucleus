@@ -2,6 +2,17 @@
 ; the bounded offsets below; bit 7 marks each group's final token descriptor.
 ; The low seven bits remain the published token ordinal.
 
+; Each byte is a displacement from its own cell to the selected group. The
+; scanner adds it to the full-width cell address; no address bits are packed.
+KeywordLengthOffsets:
+            .db  KeywordLength2-(KeywordLengthOffsets+0)
+            .db  KeywordLength3-(KeywordLengthOffsets+1)
+            .db  KeywordLength4-(KeywordLengthOffsets+2)
+            .db  KeywordLength5-(KeywordLengthOffsets+3)
+            .db  KeywordLength6-(KeywordLengthOffsets+4)
+            .db  KeywordLength7-(KeywordLengthOffsets+5)
+            .db  KeywordLength8-(KeywordLengthOffsets+6)
+
 KeywordTable:
 KeywordLength2:
             .db  "as",TokenAs
@@ -46,17 +57,6 @@ KeywordLength7:
 KeywordLength8:
             .db  "continue",TokenContinue+$80
 KeywordCount            .equ 35
-
-; These are offsets within KeywordTable, not shortened compiler addresses.
-; Every value is below 256 and is added to the table's full-width base.
-KeywordLengthOffsets:
-            .db  KeywordLength2-KeywordTable
-            .db  KeywordLength3-KeywordTable
-            .db  KeywordLength4-KeywordTable
-            .db  KeywordLength5-KeywordTable
-            .db  KeywordLength6-KeywordTable
-            .db  KeywordLength7-KeywordTable
-            .db  KeywordLength8-KeywordTable
 
 PunctuationTable:
             .db  "=",TokenEquals

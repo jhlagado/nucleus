@@ -82,38 +82,6 @@ TypedPrepareCurrentRoutineClear:
             POP  BC
             JP   SymbolPrepareCurrentWord
 
-; Expression-only sink wrappers allow the same parser to evaluate static
-; constant initializers without emitting runtime operations.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitOperation:
-            LD   D,A
-            LD   A,(ExpressionEmitEnabled)
-            OR   A
-            LD   A,D
-            RET  Z
-            JP   SemanticSinkOperation
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitByte:
-            LD   D,A
-            LD   A,(ExpressionEmitEnabled)
-            OR   A
-            LD   A,D
-            RET  Z
-            JP   SemanticSinkPut
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitWord:
-            PUSH HL
-            LD   A,L
-            CALL TypedEmitByte
-            POP  HL
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,H
-            JR   TypedEmitByte
-
 ; Emit one expression operation followed by a complete program address.
 .if AggregateCallSlices
 .routine in A,BC out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
@@ -124,7 +92,7 @@ TypedEmitOperationBC:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JR   TypedEmitWord
+            JP   TypedEmitWord
 .endif
 
 ; Retain an operator that ParserPeek has already returned, then consume that

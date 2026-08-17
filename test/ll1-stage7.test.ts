@@ -80,11 +80,34 @@ describe("Stage 7 packed LL(1)", () => {
       /KeywordLengthOffsets:\s*\n([\s\S]*?)\n\s*PunctuationTable:/,
     );
     expect(offsets).not.toBeNull();
+    const relativeGroups = [
+      ...(offsets?.[1]?.matchAll(
+        /^\s*\.db\s+KeywordLength(\d)-\(KeywordLengthOffsets\+(\d)\)\s*$/gm,
+      ) ?? []),
+    ].map((entry) => [Number(entry[1]), Number(entry[2])] as const);
+    expect(relativeGroups).toEqual([
+      [2, 0],
+      [3, 1],
+      [4, 2],
+      [5, 3],
+      [6, 4],
+      [7, 5],
+      [8, 6],
+    ]);
+
+    let byteOffset = 7;
+    const groupOffsets = new Map<number, number>();
+    for (const [spelling] of entries) {
+      if (!groupOffsets.has(spelling.length)) {
+        groupOffsets.set(spelling.length, byteOffset);
+      }
+      byteOffset += spelling.length + 1;
+    }
     expect(
-      [...(offsets?.[1]?.matchAll(
-        /^\s*\.db\s+KeywordLength(\d)-KeywordTable\s*$/gm,
-      ) ?? [])].map((entry) => Number(entry[1])),
-    ).toEqual([2, 3, 4, 5, 6, 7, 8]);
+      relativeGroups.map(([length, cell]) =>
+        (groupOffsets.get(length) ?? 0) - cell,
+      ),
+    ).toEqual([7, 24, 63, 87, 116, 157, 172]);
   });
 
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
@@ -284,9 +307,9 @@ describe("Stage 7 packed LL(1)", () => {
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
-    expect(outcome.instructions).toBe(1_919_564);
-    expect(outcome.cycles).toBe(18_402_767);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_556 });
+    expect(outcome.instructions).toBe(1_918_374);
+    expect(outcome.cycles).toBe(18_381_358);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_508 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 227,
@@ -297,15 +320,15 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-actions",
-      bytes: 2_406,
+      bytes: 2_387,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 15_211,
+      bytes: 15_175,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_813,
+      bytes: 14_777,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
@@ -324,7 +347,7 @@ describe("Stage 7 packed LL(1)", () => {
         (extents.get("ll1-engine") ?? -1) -
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
-    ).toBe(6_092);
+    ).toBe(6_063);
   }, 30_000);
 
   it("executes every retained Stage 7 action family", async () => {

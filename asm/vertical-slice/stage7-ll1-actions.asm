@@ -784,18 +784,9 @@ HybridLL1BeginForwardBody:
             CALL Stage7RoutineAddress
             LD   DE,Stage7RoutineParameterStart
             ADD  HL,DE
-            LD   A,(HL)
-            LD   (Stage7CurrentParameterStart),A
-            INC  HL
-            LD   A,(HL)
-            LD   (Stage7CurrentParameterCount),A
-            INC  HL
-            LD   A,(HL)
-            LD   (Stage7CurrentResultType),A
-            INC  HL
-            LD   A,(HL)
-            LD   (Stage7CallLabel),A
-            INC  HL
+            LD   DE,Stage7CurrentParameterStart
+            LD   BC,4
+            LDIR
             LD   A,(HL)
             BIT  2,A
             JP   Z,TypedDuplicateNameFailure
@@ -862,19 +853,13 @@ HybridLL1PublishRoutine:
             CALL Stage7RoutineAddress
             LD   DE,Stage7RoutineParameterCount
             ADD  HL,DE
-            LD   A,(Stage7CurrentParameterCount)
-            LD   (HL),A
-            INC  HL
-            LD   A,(Stage7CurrentResultType)
-            LD   (HL),A
-            INC  HL
+            EX   DE,HL
             LD   A,(Stage7CurrentRoutine)
             ADD  A,Stage7RoutineLabelBase
-            LD   (HL),A
             LD   (Stage7CallLabel),A
-            INC  HL
-            LD   A,(Stage7CurrentFlags)
-            LD   (HL),A
+            LD   HL,Stage7CurrentParameterCount
+            LD   BC,4
+            LDIR
             LD   HL,Stage7RoutineCount
             INC  (HL)
             RET

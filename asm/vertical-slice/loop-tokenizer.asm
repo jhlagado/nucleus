@@ -27,12 +27,10 @@ TokenIsNameByte:
             CALL TokenIsLetter
             RET  C
             CP   "_"
-            JR   Z,TokenIsNameByteYes
+            SCF
+            RET  Z
             SUB  "0"
             CP   10
-            RET
-TokenIsNameByteYes:
-            SCF
             RET
 
 .routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -108,7 +106,6 @@ TokenScanNameDone:
             LD   HL,KeywordLengthOffsets
             ADD  HL,DE
             LD   E,(HL)
-            LD   HL,KeywordTable
             ADD  HL,DE
 TokenScanKeyword:
             LD   B,C
@@ -179,7 +176,7 @@ TokenScanNumberDone:
             ; Reject forms such as 0x2a and 12u8 as one malformed number rather
             ; than exposing a misleading number/name token pair to the parser.
             CALL TokenIsNameByte
-            JP   C,TokenLexicalFailure
+            JR   C,TokenScanCharacterFailure
 TokenScanNumberEof:
             LD   B,H
             LD   C,L
@@ -503,11 +500,10 @@ TokenizerLeftBracket:
 TokenizerLeftDelimiter:
             CALL SourceTake
             LD   HL,SourceDelimiterDepth
-            LD   A,(HL)
-            INC  A
-            JR   Z,TokenizerLexicalFailure
-            LD   (HL),A
-            JR   TokenFinishC
+            INC  (HL)
+            JR   NZ,TokenFinishC
+            DEC  (HL)
+            JR   TokenizerLexicalFailure
 
 TokenizerRightBracket:
             LD   C,TokenRightBracket
@@ -591,7 +587,7 @@ TokenScanBinaryDigit:
             JR   NC,TokenScanBasedDone
 TokenScanBasedDigit:
             DEC  B
-            JR   Z,TokenNumberFailure
+            JR   Z,TokenizerLexicalFailure
             LD   E,A
             BIT  4,C
             JR   NZ,TokenScanBasedShift
@@ -610,13 +606,10 @@ TokenScanBasedShift:
 TokenScanBasedDone:
             LD   A,B
             CP   C
-            JR   Z,TokenNumberFailure
+            JR   Z,TokenizerLexicalFailure
             LD   A,D
             OR   A
             JP   Z,TokenScanNumberEof
             JP   TokenScanNumberDone
-TokenNumberFailure:
-            JP   TokenLexicalFailure
-
 StringEscapeTable:      .db "0nrt",$27,$22,"\\"
 StringEscapeCount       .equ 7

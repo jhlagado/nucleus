@@ -12,6 +12,24 @@ SemanticSinkReset:
             RET
 .endif
 
+; Expression-only gated entries fall through to the raw sinks when emission
+; is enabled. Keeping each entry beside its sink removes an absolute tail jump
+; without changing the raw sink ABI used by statement actions.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedEmitWord:
+            PUSH HL
+            LD   A,L
+            CALL TypedEmitByte
+            POP  HL
+            RET  C
+            LD   A,H
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedEmitByte:
+            LD   D,A
+            LD   A,(ExpressionEmitEnabled)
+            OR   A
+            LD   A,D
+            RET  Z
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkPut:
             LD   B,A
@@ -41,6 +59,13 @@ SemanticSinkPutPreserveHL:
             RET
 .endif
 
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedEmitOperation:
+            LD   D,A
+            LD   A,(ExpressionEmitEnabled)
+            OR   A
+            LD   A,D
+            RET  Z
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:
 .if TargetStreamingOutput
