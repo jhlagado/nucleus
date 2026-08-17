@@ -148,8 +148,7 @@ HybridLL1MakeOpenStringType:
             LD   A,AggregateOpenStringTypeId
             JR   HybridLL1SetCurrentType
 
-HybridLL1BeginArrayType:
-            JP   AggregateBeginArrayType
+HybridLL1BeginArrayType .equ AggregateBeginArrayType
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1SaveArrayDimension:
@@ -159,11 +158,9 @@ HybridLL1SaveArrayDimension:
 .endif
             JP   AggregateSaveArrayDimension
 
-HybridLL1SaveOpenArrayDimension:
-            JP   AggregateSaveOpenArrayDimension
+HybridLL1SaveOpenArrayDimension .equ AggregateSaveOpenArrayDimension
 
-HybridLL1FinishArrayType:
-            JP   AggregateFinishArrayType
+HybridLL1FinishArrayType .equ AggregateFinishArrayType
 
 ; --------------------------------------------------------- scalar constants
 
@@ -623,9 +620,7 @@ HybridLL1IncompleteForward:
 
 ; The grammar deliberately treats the lexeme `main` as the same NAME token as
 ; ordinary routine names. This action is the one semantic discriminator.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1RetainSubName:
-            JP   TypedRetainDeclarationNameReady
+HybridLL1RetainSubName .equ TypedRetainDeclarationNameReady
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1RestoreSubName:
@@ -708,11 +703,8 @@ HybridLL1BeginForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentFlags)
-            OR   Stage8RoutineIncomplete
-            LD   (Stage7CurrentFlags),A
-            OR   A
-            RET
+            LD   B,Stage8RoutineIncomplete
+            JR   HybridLL1SetRoutineFlag
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitForward:
@@ -774,8 +766,10 @@ HybridLL1SaveSubResult:
             RET
 
 HybridLL1MarkSubFails:
+            LD   B,Stage7RoutineFails
+HybridLL1SetRoutineFlag:
             LD   A,(Stage7CurrentFlags)
-            OR   Stage7RoutineFails
+            OR   B
             LD   (Stage7CurrentFlags),A
             OR   A
             RET
@@ -900,6 +894,8 @@ HybridLL1SaveGlobalsResetLocals:
             RET
 HybridLL1OpenRoutineBody:
             CALL HybridLL1SaveGlobalsResetLocals
+.if TargetStreamingOutput
+.else
             LD   A,(Stage7CurrentResultType)
             OR   A
             LD   A,ControlRoutineValue
@@ -909,6 +905,7 @@ HybridLL1RoutineKindReady:
             LD   (ControlRoutineKind),A
             LD   A,(Stage7CurrentResultType)
             LD   (ControlResultType),A
+.endif
             LD   A,1
             LD   (ControlSequenceFallsThrough),A
 .if TargetStreamingOutput
@@ -991,15 +988,16 @@ HybridLL1BeginMainBody:
 .endif
 .endif
             CALL HybridLL1SaveGlobalsResetLocals
+.if TargetStreamingOutput
+.else
             LD   (Stage7CurrentResultType),A
             LD   (ControlRoutineKind),A
+.endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1SetFallsThrough:
             LD   A,1
-            LD   (ControlSequenceFallsThrough),A
-            OR   A
-            RET
+            JP   HybridLL1StoreFallthrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndSub:
@@ -1104,7 +1102,10 @@ HybridLL1FailOperationReady:
 .endif
 HybridLL1NoFallthrough:
             XOR  A
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+HybridLL1StoreFallthrough:
             LD   (ControlSequenceFallsThrough),A
+            OR   A
             RET
 
 ; Validate one scalar fail/return value and reject an unconsumed nested
@@ -1531,12 +1532,26 @@ HybridLL1BeginReturnValue:
             RET  NC
             JP   HybridLL1SaveExpectedType
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1ReturnValue:
+.if TargetStreamingOutput
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+HybridLL1RequireReturnType:
             LD   A,(Stage7CurrentResultType)
             OR   A
             JP   Z,TypedRoutineFlowFailure
             CP   AggregateFirstDynamicTypeId
+            RET
+.endif
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1ReturnValue:
+.if TargetStreamingOutput
+            CALL HybridLL1RequireReturnType
+.else
+            LD   A,(Stage7CurrentResultType)
+            OR   A
+            JP   Z,TypedRoutineFlowFailure
+            CP   AggregateFirstDynamicTypeId
+.endif
             JR   NC,HybridLL1ReturnAggregateValue
             CALL TypedExpressionBeginRuntime
             JP   HybridLL1SaveExpressionResult
@@ -1550,10 +1565,14 @@ HybridLL1ReturnAggregateValue:
             RET
 
 HybridLL1CommitReturn:
+.if TargetStreamingOutput
+            CALL HybridLL1RequireReturnType
+.else
             LD   A,(Stage7CurrentResultType)
             OR   A
             JP   Z,TypedRoutineFlowFailure
             CP   AggregateFirstDynamicTypeId
+.endif
             JR   NC,HybridLL1CommitAggregateReturn
             LD   E,A
             CALL HybridLL1CheckFailureResult
@@ -1662,9 +1681,7 @@ HybridLL1FlowAddress:
 HybridLL1RestoreFlow:
             CALL HybridLL1FlowAddress
             LD   A,(HL)
-            LD   (ControlSequenceFallsThrough),A
-            OR   A
-            RET
+            JP   HybridLL1StoreFallthrough
 
 ; A is the completed compound statement's fallthrough bit.
 .routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
@@ -1677,9 +1694,7 @@ HybridLL1CombineFlow:
             CALL HybridLL1FlowAddress
             LD   A,(HL)
             AND  B
-            LD   (ControlSequenceFallsThrough),A
-            OR   A
-            RET
+            JP   HybridLL1StoreFallthrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CheckBooleanResult:
@@ -1754,10 +1769,8 @@ HybridLL1BeginBranchClause:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ControlTopFrame
-            INC  HL
-            LD   C,(HL)
-            JP   ControlEmitLabel
+            LD   B,ControlFrameLabelA
+            JP   HybridLL1EmitFrameLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginElseIf:
@@ -1804,10 +1817,8 @@ HybridLL1FinishIfClauses:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ControlTopFrame
-            INC  HL
-            LD   C,(HL)
-            JP   ControlEmitLabel
+            LD   B,ControlFrameLabelA
+            JP   HybridLL1EmitFrameLabel
 
 ; B selects a field in the active control frame. All callers have already
 ; established that frame; the helper preserves their existing precondition.
@@ -1860,10 +1871,8 @@ HybridLL1BeginWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ControlTopFrame
-            INC  HL
-            LD   C,(HL)
-            CALL ControlEmitLabel
+            LD   B,ControlFrameLabelA
+            CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2034,10 +2043,8 @@ HybridLL1ForModeReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ControlTopFrame
-            INC  HL
-            LD   C,(HL)
-            CALL ControlEmitLabel
+            LD   B,ControlFrameLabelA
+            CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif

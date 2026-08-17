@@ -254,6 +254,17 @@ if its full-address code plus directory measures no more than 2,508 bytes,
 which would reduce the complete family to at most 5,761 bytes. Until an
 assembled prototype proves that result, no saving is counted.
 
+The complete direct-action prototype did not reach that architectural gate. It
+reviewed all 79 logical actions and reduced the 2,608-byte action-plus-directory
+account to 2,548 bytes, 140 bytes above the required 2,408. The proposed action
+redesign is therefore rejected. Its 60 bytes came entirely from ordinary
+production-native cleanup, however, so those changes are retained separately:
+four jump-only handlers become aliases, production-dead state writes are gated
+while historical layouts retain them, and existing flag, flow, return, and
+frame-label tails are shared. The production core falls by a measured 60 code
+bytes with the directory, immutable data, semantic transcript, and workspace
+unchanged.
+
 ### Backend decision
 
 The selected frozen backend and output boundary measures 5,302 bytes. A fresh
@@ -281,14 +292,15 @@ runtime context, MAP, and artifact remain byte-identical.
 
 ### Current recovery outlook
 
-After the scanner, comparison, and first backend checkpoints, the measured
-shipping core is 16,596 bytes and the remaining recovery to 15,360 is 1,236
-bytes. The remaining parity-safe backend work projects 135–200 bytes, and a
-not-yet-assembled direct-action redesign projects 100–408 bytes. Together with
-the measured 84-byte recovery, the currently evidenced range is 319–692 bytes,
-which would place the compiler between 15,988 and 16,361 bytes.
+After the scanner, comparison, first backend, and action-cleanup checkpoints,
+the measured shipping core is 16,536 bytes and the remaining recovery to
+15,360 is 1,176 bytes. A direct flat-MAP redesign, one-bank prefix sharing, and
+provider tails project a further 94–129 backend bytes. Contiguous expression
+frame copying projects another 47 bytes. Together with the measured 144-byte
+recovery, the currently evidenced range is 285–320 bytes, which would place the
+compiler between 16,360 and 16,395 bytes.
 
-That range does not yet reach the target. A further 628–1,001 bytes therefore
+That range does not yet reach the target. A further 1,000–1,035 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled
