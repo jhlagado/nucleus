@@ -209,19 +209,19 @@ RewriteBackendRecipeSelectorStoreIndirect16:
             .db RewriteBackendRecipeEmit,5,$D1,$E1,$73,$23,$72
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBinary8:
-            .db RewriteBackendRecipeDispatch,12,6
+            .db RewriteBackendRecipeDispatch,1,6
             .dw RewriteBackendRecipeFragmentAdd8,RewriteBackendRecipeFragmentSubtract8,RewriteBackendRecipeFragmentMultiply8,RewriteBackendRecipeFragmentAnd8,RewriteBackendRecipeFragmentOr8,RewriteBackendRecipeFragmentXor8
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorUnary8:
-            .db RewriteBackendRecipeDispatch,18,2
+            .db RewriteBackendRecipeDispatch,7,2
             .dw RewriteBackendRecipeFragmentNegate8,RewriteBackendRecipeFragmentNot8
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBinary16:
-            .db RewriteBackendRecipeDispatch,20,6
+            .db RewriteBackendRecipeDispatch,9,6
             .dw RewriteBackendRecipeFragmentAdd16,RewriteBackendRecipeFragmentSubtract16,RewriteBackendRecipeFragmentMultiply16,RewriteBackendRecipeFragmentAnd16,RewriteBackendRecipeFragmentOr16,RewriteBackendRecipeFragmentXor16
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorUnary16:
-            .db RewriteBackendRecipeDispatch,26,2
+            .db RewriteBackendRecipeDispatch,15,2
             .dw RewriteBackendRecipeFragmentNegate16,RewriteBackendRecipeFragmentNot16
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorNotBoolean:
@@ -242,7 +242,7 @@ RewriteBackendRecipeSelectorPromoteI8Pair:
             .db RewriteBackendRecipeEmit,2,$E5,$D5
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBooleanBegin:
-            .db RewriteBackendRecipeDispatch,39,2
+            .db RewriteBackendRecipeDispatch,18,2
             .dw RewriteBackendRecipeFragmentBeginBooleanAnd,RewriteBackendRecipeFragmentBeginBooleanOr
             .db RewriteBackendRecipeEnd
 RewriteBackendRecipeSelectorBooleanEnd:

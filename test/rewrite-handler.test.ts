@@ -79,8 +79,8 @@ describe("ground-up rewrite local handlers", () => {
     expect(count).toBe(16);
     expect(Array.from(memory.slice(start, end))).toMatchSnapshot();
     expect({ instructions, cycles }).toEqual({
-      instructions: 50_329,
-      cycles: 453_215,
+      instructions: 50_991,
+      cycles: 457_688,
     });
   });
 
@@ -126,8 +126,8 @@ describe("ground-up rewrite local handlers", () => {
       depth: 0,
       labels: 6,
       operations: 15,
-      instructions: 32_991,
-      cycles: 295_034,
+      instructions: 33_480,
+      cycles: 298_321,
     });
   });
 });

@@ -139,6 +139,42 @@ ProofRuntimeExpressionSemanticDone:
             LD   (ProofStatus),A
             HALT
 
+; A nonconstant right operand carries a zero placeholder while the generated
+; Divide16 operation retains the actual runtime divisor. That placeholder must
+; not be diagnosed as a compile-time divide by zero.
+ProofRuntimeDynamicDivision:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsDynamicDivision
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunDirectHeader
+            CALL ProofRunLocalInitializedExpression
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   5
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedDynamicDivisionSemantics
+            LD   B,ProofExpectedDynamicDivisionSemanticsEnd-ProofExpectedDynamicDivisionSemantics
+_ProofRuntimeDynamicDivisionSemanticLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeDynamicDivisionSemanticLoop
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,$EB
+            LD   (ProofStatus),A
+            HALT
+
 ProofRuntimePaths:
             LD   SP,$FF00
             CALL RewriteReset
@@ -1351,6 +1387,15 @@ ProofExpectedExpressionSemantics:
             .db RewriteSemanticStoreLocalU8,22
 ProofExpectedExpressionSemanticsEnd:
 
+ProofExpectedDynamicDivisionSemantics:
+            .db RewriteSemanticDeclareLocal16,4
+            .db RewriteSemanticLoadParameter16,0
+            .db RewriteSemanticLoadParameter16,2
+            .db RewriteSemanticDivide16
+            .dw ProofDynamicDivideToken-ProofSourceDynamicDivision
+            .db RewriteSemanticStoreLocal16,4
+ProofExpectedDynamicDivisionSemanticsEnd:
+
 ProofExpectedPathSemantics:
             ; root.inner.values[1]
             .db RewriteSemanticDeclareLocal16,11
@@ -1710,6 +1755,13 @@ ProofUnsignedModuloToken:
             .db "end",10
             .db "sub main()",10,"end",10
 ProofSourceExpressionsEnd:
+
+ProofSourceDynamicDivision:
+            .db "sub worker(a as u16, b as u16)",10
+            .db "var quotient as u16 = a "
+ProofDynamicDivideToken:
+            .db "/ b",10
+ProofSourceDynamicDivisionEnd:
 
 ProofSourcePaths:
             .db "sub work(xs as u16[], text as string[], ix as i16, row as u16[3])",10
@@ -2103,6 +2155,9 @@ ProofPartsMixedWords:    .db 1
                          .dw ProofSourceMixedWords,ProofSourceMixedWordsEnd
 ProofPartsExpressions:   .db 1
                          .dw ProofSourceExpressions,ProofSourceExpressionsEnd
+ProofPartsDynamicDivision:
+                         .db 1
+                         .dw ProofSourceDynamicDivision,ProofSourceDynamicDivisionEnd
 ProofPartsPaths:         .db 1
                          .dw ProofSourcePaths,ProofSourcePathsEnd
 ProofPartsPostfixAssignments: .db 1

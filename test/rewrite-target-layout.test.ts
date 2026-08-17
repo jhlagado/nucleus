@@ -293,9 +293,9 @@ describe("ground-up rewrite target layout", () => {
         (image.symbols.RewriteAdapterCodeStart ?? 0),
     }).toEqual({
       planner: 312,
-      code: 16_534,
-      immutable: 1_577,
-      core: 18_111,
+      code: 16_396,
+      immutable: 1_508,
+      core: 17_904,
       workspace: 3_938,
       adapter: 187,
     });

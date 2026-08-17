@@ -63,6 +63,10 @@ const run = (entryName: string) => {
     image.symbols.ProofExpectedExpressionSemantics ?? -1;
   const expectedExpressionEnd =
     image.symbols.ProofExpectedExpressionSemanticsEnd ?? -1;
+  const expectedDynamicDivisionStart =
+    image.symbols.ProofExpectedDynamicDivisionSemantics ?? -1;
+  const expectedDynamicDivisionEnd =
+    image.symbols.ProofExpectedDynamicDivisionSemanticsEnd ?? -1;
   const expectedPathStart = image.symbols.ProofExpectedPathSemantics ?? -1;
   const expectedPathEnd = image.symbols.ProofExpectedPathSemanticsEnd ?? -1;
   const expectedPostfixAssignmentStart =
@@ -96,6 +100,9 @@ const run = (entryName: string) => {
     expectedExpressionSemantics: Array.from(
       memory.slice(expectedExpressionStart, expectedExpressionEnd),
     ),
+    expectedDynamicDivisionSemantics: Array.from(
+      memory.slice(expectedDynamicDivisionStart, expectedDynamicDivisionEnd),
+    ),
     expectedPathSemantics: Array.from(
       memory.slice(expectedPathStart, expectedPathEnd),
     ),
@@ -125,8 +132,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(run("ProofRuntimeAtoms")).toMatchObject({
       status: 0xc0,
       diagnostic: 0,
-      instructions: 63_085,
-      cycles: 576_333,
+      instructions: 63_520,
+      cycles: 579_176,
     });
   });
 
@@ -137,8 +144,19 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xc4,
       diagnostic: 0,
-      instructions: 125_052,
-      cycles: 1_132_082,
+      instructions: 126_255,
+      cycles: 1_139_228,
+    });
+  });
+
+  it("publishes a runtime divide when the divisor is a dynamic carrier", () => {
+    const result = run("ProofRuntimeDynamicDivision");
+    expect(result.semanticOperations).toBe(5);
+    expect(result.semantics).toEqual(result.expectedDynamicDivisionSemantics);
+    expect(result).toMatchObject({
+      status: 0xeb,
+      diagnostic: 0,
+      localOffset: 6,
     });
   });
 
@@ -150,8 +168,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xc9,
       diagnostic: 0,
       localOffset: 24,
-      instructions: 107_315,
-      cycles: 962_544,
+      instructions: 108_720,
+      cycles: 971_620,
     });
   });
 
@@ -164,8 +182,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xe7,
       diagnostic: 0,
-      instructions: 64_780,
-      cycles: 581_816,
+      instructions: 65_846,
+      cycles: 588_888,
     });
   });
 
@@ -177,8 +195,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xca,
       diagnostic: 0,
       localOffset: 15,
-      instructions: 97_364,
-      cycles: 878_867,
+      instructions: 98_509,
+      cycles: 886_681,
     });
   });
 
@@ -188,8 +206,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 3,
       localOffset: 1,
-      instructions: 12_076,
-      cycles: 110_823,
+      instructions: 12_188,
+      cycles: 111_553,
     });
   });
 
@@ -199,8 +217,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 1,
-      instructions: 22_290,
-      cycles: 201_172,
+      instructions: 22_780,
+      cycles: 204_562,
     });
   });
 
@@ -210,8 +228,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 7,
       localOffset: 2,
-      instructions: 39_616,
-      cycles: 359_969,
+      instructions: 40_044,
+      cycles: 362_974,
     });
   });
 
@@ -221,8 +239,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       diagnostic: 0,
       semanticOperations: 4,
       localOffset: 2,
-      instructions: 14_187,
-      cycles: 129_899,
+      instructions: 14_344,
+      cycles: 130_980,
     });
   });
 
@@ -233,8 +251,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xcf,
       diagnostic: 0,
-      instructions: 38_768,
-      cycles: 350_506,
+      instructions: 39_071,
+      cycles: 352_445,
     });
   });
 
@@ -267,8 +285,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xde,
       diagnostic: 0,
-      instructions: 34_893,
-      cycles: 316_579,
+      instructions: 35_137,
+      cycles: 318_159,
     });
   });
 
@@ -277,8 +295,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       status: 0xe4,
       diagnostic: 0,
       semanticOperations: 3,
-      instructions: 9_972,
-      cycles: 92_375,
+      instructions: 10_014,
+      cycles: 92_645,
     });
   });
 
@@ -310,8 +328,8 @@ describe("ground-up rewrite runtime scalar expressions", () => {
     expect(result).toMatchObject({
       status: 0xd9,
       diagnostic: 0,
-      instructions: 27_864,
-      cycles: 251_289,
+      instructions: 28_218,
+      cycles: 253_699,
     });
   });
 
@@ -416,12 +434,12 @@ describe("ground-up rewrite runtime scalar expressions", () => {
       escapes: 56,
       actionCode: 230,
       actionData: 240,
-      expression: 4_356,
+      expression: 4_212,
       statements: 717,
       declarations: 1_528,
-      code: 16_534,
-      immutable: 1_577,
-      core: 18_111,
+      code: 16_396,
+      immutable: 1_508,
+      core: 17_904,
       workspace: 3_938,
     });
   });

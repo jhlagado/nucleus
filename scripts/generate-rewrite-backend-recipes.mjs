@@ -26,17 +26,26 @@ if (semanticSource.version !== 1 || recipeSource.version !== 1) {
   throw new Error("unsupported rewrite backend-recipe authority");
 }
 
-const operations = semanticSource.operations.flatMap((operation) =>
+const sourceOperations = semanticSource.operations.flatMap((operation) =>
   operation.name === undefined
     ? operation.names.map((name) => ({ ...operation, name, names: undefined }))
     : [operation],
+);
+const operationWidth = (operation) =>
+  1 +
+  operation.operands.reduce(
+    (width, [, kind]) => width + (kind === "word" ? 2 : 1),
+    0,
+  );
+const operations = sourceOperations.toSorted(
+  (left, right) => operationWidth(left) - operationWidth(right),
 );
 const operationIds = new Map(
   operations.map((operation, index) => [operation.name, index + 1]),
 );
 const recipeSelectors = [];
 const escapeSelectors = [];
-for (const operation of operations) {
+for (const operation of sourceOperations) {
   const [kind, selector] = operation.backend ?? [];
   if (kind === "recipe" && !recipeSelectors.includes(selector)) {
     recipeSelectors.push(selector);
@@ -78,7 +87,7 @@ const labelName = (kind, name) =>
 const operationsForSelector = new Map(
   recipeSelectors.map((selector) => [
     selector,
-    operations.filter(
+    sourceOperations.filter(
       (operation) =>
         operation.backend?.[0] === "recipe" &&
         operation.backend?.[1] === selector,

@@ -8,12 +8,18 @@ RewriteSemanticOperationWidth:
             JP   Z,RewriteSemanticInvalid
             CP   RewriteSemanticOperationCount+1
             JP   NC,RewriteSemanticInvalid
-            DEC  A
-            LD   E,A
-            LD   D,0
-            LD   HL,RewriteSemanticOperationWidthTable
-            ADD  HL,DE
+            LD   B,A
+            LD   C,1
+            LD   HL,RewriteSemanticOperationWidthLimits
+_RewriteSemanticOperationWidthNext:
             LD   A,(HL)
+            CP   B
+            JR   NC,_RewriteSemanticOperationWidthReady
+            INC  HL
+            INC  C
+            JR   _RewriteSemanticOperationWidthNext
+_RewriteSemanticOperationWidthReady:
+            LD   A,C
             OR   A
             RET
 

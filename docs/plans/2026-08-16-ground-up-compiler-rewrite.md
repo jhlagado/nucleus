@@ -1718,6 +1718,41 @@ Cross-cutting compact semantic-dispatch checkpoint (Measured, retained):
   1,727 bytes are required for the 16 KiB gate and 3,775 for the 14 KiB design
   target before accounting for unfinished target-output work.
 
+Cross-cutting width-grouped semantic and first R4.1 checkpoint (Measured,
+retained):
+
+- semantic ordinals are private compiler data, so generation now assigns them
+  in nondecreasing record-width order while preserving authority order within
+  each width. The Z80 reader recovers widths from ten cumulative ordinal
+  limits instead of retaining one width byte for each of 105 operations;
+- complete operand layouts, generated producer offsets, backend selectors,
+  source classes, stack effects, and Host/D8 descriptors remain generated from
+  the same JSON authority. Operation record widths and the 511-byte transcript
+  capacity are unchanged. The backend recipe generator uses the same ordinal
+  policy, and target-byte proofs remain identical;
+- semantic code grows from 288 to 294 bytes, while operation data falls from
+  948 to 853 bytes. This part saves 89 core bytes. The smaller reader performs
+  more compiler-side instructions for uncommon wide records; it does not alter
+  generated code or target execution;
+- the first expression/path/call reduction shares scalar and aggregate actual
+  parsing, source/service publication, binary constant-result publication,
+  comparison results, call-frame copies, and scalar-load selection. The
+  expression region falls from 4,356 to 4,212 code bytes. A permanent dynamic
+  divisor proof also fixes the incorrect treatment of a runtime divisor's zero
+  placeholder as compile-time division by zero;
+- three alternatives were measured and rejected. A typed-pair result table
+  saved eight core bytes while adding about 300 compiler instructions to the
+  expression corpus; a shared postfix classifier added 24 core bytes; and
+  four-byte service-signature rows saved two core bytes while slowing calls.
+  They require a different premise before reconsideration; and
+- the shipping replacement is 16,396 code + 1,508 immutable = 17,904 core
+  bytes. The instrumented replacement is 17,908 core bytes, workspace remains
+  3,938 bytes, and this checkpoint saves 207 bytes. A further 1,520 bytes are
+  required for the 16 KiB gate and 3,568 bytes for the 14 KiB design target.
+  The R4.1 local account remains 1,140 bytes above its provisional 3,072-byte
+  threshold, so this checkpoint is progress rather than completion of the
+  expression redesign.
+
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the
 complete oracle corpus; PATCH attribution, bank identity, abort atomicity, and
@@ -1831,9 +1866,10 @@ linking, nested relative fixups, a full deployment link context, local and
 banked trap endings, and a complete 105-operation semantic backend including
 conversion, division/modulo, open views, failure, callable main, and counted
 loops with exact trap attribution. R7 has source-attributed dispatch, complete
-target-layout validation, and the first append-only output transaction. The
-dense front-action conversion begins the measured whole-system size recovery
-and passes its complete-family stop rule. The next size checkpoint consolidates
-semantic and backend dispatch authority before runtime linking, MAP production,
-and final artifact publication resume. The replacement remains test-selected
-until the complete cutover gate passes.
+target-layout validation, and the first append-only output transaction. Dense
+front actions and width-grouped semantic ordinals have begun the measured
+whole-system size recovery. The next checkpoint continues R4.1 by replacing
+repeated primary, postfix, and call policy with compact data-directed
+machinery. Runtime linking, MAP production, and final artifact publication
+resume after that local family is materially smaller. The replacement remains
+test-selected until the complete cutover gate passes.

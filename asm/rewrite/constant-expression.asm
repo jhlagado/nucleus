@@ -509,25 +509,15 @@ RewriteCallPushSourceFrame:
             LD   D,H
             LD   E,L
             POP  HL
-            LD   A,(HL)
-            LD   (DE),A
-            INC  HL
-            INC  DE
-            LD   A,(HL)
-            LD   (DE),A
-            INC  HL
-            INC  DE
+            PUSH BC
+            LDI
+            LDI
             XOR  A
             LD   (DE),A
             INC  DE
-            LD   A,(HL)
-            LD   (DE),A
-            INC  HL
-            INC  DE
-            LD   A,(HL)
-            LD   (DE),A
-            INC  HL
-            INC  DE
+            LDI
+            LDI
+            POP  BC
             LD   A,(HL)
             AND  RewriteRoutineFlagFails
             OR   C
@@ -547,18 +537,16 @@ RewriteCallCapacityFailure:
             LD   A,DiagnosticExpressionCapacity
             JP   RewriteRaiseDiagnostic
 
-; Parse one scalar actual under the formal type in A. Calls inside the argument
-; may be infallible, but a failable call cannot be consumed inside an argument.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-RewriteCallParseScalarArgument:
-            PUSH AF
+; Parse one argument expression with formal type A. B returns the formal type;
+; A/HL/DE return the actual metadata, value, and source offset. Publication and
+; aggregate compatibility remain with the two callers below.
+.routine in A out A,B,DE,HL,carry,zero clobbers sign,parity,halfCarry,C
+RewriteCallParseArgumentValue:
+            LD   B,A
             LD   A,(RewriteExpressionExpectedType)
             PUSH AF
-            POP  BC
-            POP  DE
-            PUSH DE
             PUSH BC
-            LD   A,D
+            LD   A,B
             LD   (RewriteExpressionExpectedType),A
             LD   B,0
             LD   C,0
@@ -567,15 +555,22 @@ RewriteCallParseScalarArgument:
             LD   (RewriteExpressionRightValue),HL
             LD   (RewriteExpressionRightOffset),DE
             POP  BC
-            LD   A,B
+            POP  AF
             LD   (RewriteExpressionExpectedType),A
-            POP  BC
             LD   A,(RewritePendingFailure)
             OR   A
             JP   NZ,RewriteCallFailureContext
             LD   A,(RewriteExpressionRightMeta)
             LD   HL,(RewriteExpressionRightValue)
             LD   DE,(RewriteExpressionRightOffset)
+            OR   A
+            RET
+
+; Parse one scalar actual under the formal type in A. Calls inside the argument
+; may be infallible, but a failable call cannot be consumed inside an argument.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+RewriteCallParseScalarArgument:
+            CALL RewriteCallParseArgumentValue
             LD   C,B
             CALL RewriteExpressionCheckRuntimeAssignable
             CALL RewriteCallCurrentFrame
@@ -594,28 +589,8 @@ RewriteCallParseAggregateArgument:
             CALL RewriteParserPeek
             CP   TokenStringLiteral
             JP   Z,_RewriteCallLiteralAggregateFailure
-            LD   A,(RewriteExpressionExpectedType)
-            PUSH AF
-            POP  BC
-            POP  DE
-            PUSH DE
-            PUSH BC
-            LD   A,D
-            LD   (RewriteExpressionExpectedType),A
-            LD   B,0
-            LD   C,0
-            CALL RewriteExpressionParsePrecedence
-            LD   (RewriteExpressionRightMeta),A
-            LD   (RewriteExpressionRightValue),HL
-            LD   (RewriteExpressionRightOffset),DE
-            POP  BC
-            LD   A,B
-            LD   (RewriteExpressionExpectedType),A
-            POP  BC
-            LD   A,(RewritePendingFailure)
-            OR   A
-            JP   NZ,RewriteCallFailureContext
-            LD   A,(RewriteExpressionRightMeta)
+            POP  AF
+            CALL RewriteCallParseArgumentValue
             LD   D,A
             LD   A,B
             CP   RewriteOpenStringTypeId
@@ -717,6 +692,31 @@ RewriteCallTakeExpected:
             LD   A,C
             JP   RewriteRaiseDiagnostic
 
+; A is the source/service semantic operation and DE its record-relative call
+; mode offset. The three statement-consumption operands begin cleared, and the
+; exact in-transcript mode byte is retained for the immediate consumer.
+.routine in A,DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallPublishReady:
+            LD   B,A
+            PUSH DE
+            DEC  DE
+            LD   HL,RewriteSemanticOperandArea
+            ADD  HL,DE
+            XOR  A
+            LD   (HL),A
+            INC  HL
+            LD   (HL),A
+            INC  HL
+            LD   (HL),A
+            POP  DE
+            LD   HL,(RewriteSemanticSinkCursor)
+            ADD  HL,DE
+            LD   (RewritePendingCallModePointer),HL
+            LD   A,B
+            LD   HL,RewriteSemanticOperandArea
+            CALL RewriteSemanticAppend
+            JP   RewriteCallFinish
+
 ; Publish the completed source call from the current frame. The call-mode
 ; pointer addresses the generated operand by its declared record-relative
 ; offset; no instruction address is packed or shortened.
@@ -741,18 +741,9 @@ RewriteCallPublishSource:
             INC  HL
             LD   D,(HL)
             LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandSourceOffsetOffset),DE
-            XOR  A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandCallModeOffset),A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandHandlerLabelOffset),A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallSourceOperandRetainedCarriersOffset),A
-            LD   HL,(RewriteSemanticSinkCursor)
             LD   DE,RewriteSemanticCallSourceRecordOperandCallModeOffset
-            ADD  HL,DE
-            LD   (RewritePendingCallModePointer),HL
             LD   A,RewriteSemanticCallSource
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
-            JP   RewriteCallFinish
+            JP   RewriteCallPublishReady
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteCallPublishService:
@@ -767,18 +758,9 @@ RewriteCallPublishService:
             INC  HL
             LD   D,(HL)
             LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),DE
-            XOR  A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandCallModeOffset),A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandHandlerLabelOffset),A
-            LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandRetainedCarriersOffset),A
-            LD   HL,(RewriteSemanticSinkCursor)
             LD   DE,RewriteSemanticCallServiceRecordOperandCallModeOffset
-            ADD  HL,DE
-            LD   (RewritePendingCallModePointer),HL
             LD   A,RewriteSemanticCallService
-            LD   HL,RewriteSemanticOperandArea
-            CALL RewriteSemanticAppend
-            JP   RewriteCallFinish
+            JP   RewriteCallPublishReady
 
 ; Complete either call kind. A failable nested call is invalid before its
 ; enclosing argument can observe a carrier; a direct failable call retains the
@@ -1429,49 +1411,38 @@ _RewriteExpressionPrimaryName:
             JP   Z,RewriteExpressionTypeFailure
             LD   A,B
             CP   RewriteSymbolClassProgram
-            JR   Z,_RewriteExpressionPrimaryProgram
-            CP   RewriteSymbolClassLocal
-            JR   Z,_RewriteExpressionPrimaryLocal
-            CP   RewriteSymbolClassParameter
-            JP   NZ,RewriteExpressionTypeFailure
-            LD   A,C
-            BIT  1,A
-            LD   A,RewriteSemanticLoadParameter8
-            JR   Z,_RewriteExpressionPrimaryActivationReady
-            LD   A,RewriteSemanticLoadParameter16
-            JR   _RewriteExpressionPrimaryActivationReady
-_RewriteExpressionPrimaryLocal:
-            LD   A,C
-            BIT  1,A
-            LD   A,RewriteSemanticLoadLocalU8
-            JR   Z,_RewriteExpressionPrimaryActivationReady
-            LD   A,RewriteSemanticLoadLocal16
-_RewriteExpressionPrimaryActivationReady:
+            JR   Z,_RewriteExpressionPrimaryProgramClass
+            SUB  RewriteSymbolClassLocal
+            CP   2
+            JP   NC,RewriteExpressionTypeFailure
+            ADD  A,2
+            JR   _RewriteExpressionPrimaryLoadClassReady
+_RewriteExpressionPrimaryProgramClass:
+            LD   A,(RewriteExpressionRightMeta)
+            DEC  A
+            CP   2
+            JP   NC,RewriteExpressionTypeFailure
+_RewriteExpressionPrimaryLoadClassReady:
             LD   B,A
+            CP   2
+            JR   NC,_RewriteExpressionPrimaryActivationOperand
+            LD   (RewriteSemanticOperandArea),DE
+            JR   _RewriteExpressionPrimaryLoadOperandReady
+_RewriteExpressionPrimaryActivationOperand:
             LD   A,E
             LD   (RewriteSemanticOperandArea),A
+_RewriteExpressionPrimaryLoadOperandReady:
             LD   A,B
-            JR   _RewriteExpressionPrimaryDynamic
-_RewriteExpressionPrimaryProgram:
-            LD   A,(RewriteExpressionRightMeta)
-            CP   RewriteSymbolStorageInitialized
-            JR   Z,_RewriteExpressionPrimaryProgramInitialized
-            CP   RewriteSymbolStorageBss
-            JP   NZ,RewriteExpressionTypeFailure
-            LD   A,C
-            BIT  1,A
-            LD   A,RewriteSemanticLoadBssU8
-            JR   Z,_RewriteExpressionPrimaryProgramReady
-            LD   A,RewriteSemanticLoadBss16
-            JR   _RewriteExpressionPrimaryProgramReady
-_RewriteExpressionPrimaryProgramInitialized:
-            LD   A,C
-            BIT  1,A
-            LD   A,RewriteSemanticLoadProgramU8
-            JR   Z,_RewriteExpressionPrimaryProgramReady
-            LD   A,RewriteSemanticLoadProgram16
-_RewriteExpressionPrimaryProgramReady:
-            LD   (RewriteSemanticOperandArea),DE
+            ADD  A,A
+            BIT  1,C
+            JR   Z,_RewriteExpressionPrimaryLoadWidthReady
+            INC  A
+_RewriteExpressionPrimaryLoadWidthReady:
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteExpressionScalarLoadOperations
+            ADD  HL,DE
+            LD   A,(HL)
 _RewriteExpressionPrimaryDynamic:
             LD   B,A
             LD   A,C
@@ -1829,11 +1800,11 @@ RewriteExpressionApplyBinary:
             LD   (RewriteExpressionOperator),A
             LD   A,(RewriteExpressionMode)
             OR   A
-            LD   A,(RewriteExpressionLeftMeta)
-            JP   Z,RewriteExpressionApplyBinaryConstant
+            LD   A,B
+            JP   Z,RewriteExpressionApplyBinaryConstantReady
             LD   HL,(RewriteExpressionLeftValue)
             LD   DE,(RewriteExpressionLeftOffset)
-            CALL RewriteExpressionApplyBinaryConstant
+            CALL RewriteExpressionApplyBinaryConstantReady
             OR   A
             PUSH AF
             PUSH HL
@@ -1848,12 +1819,7 @@ RewriteExpressionApplyBinary:
             RET
 
 .routine in A,B,DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE
-RewriteExpressionApplyBinaryConstant:
-            LD   (RewriteExpressionLeftMeta),A
-            LD   (RewriteExpressionLeftValue),HL
-            LD   (RewriteExpressionLeftOffset),DE
-            LD   A,B
-            LD   (RewriteExpressionOperator),A
+RewriteExpressionApplyBinaryConstantReady:
             CP   RewriteExpressionOpEqual
             JP   NC,_RewriteExpressionApplyComparisonOrLogic
             CALL RewriteExpressionResolveIntegerPair
@@ -1982,9 +1948,13 @@ _RewriteExpressionBinaryDivide:
             LD   A,H
             OR   L
             JR   NZ,_RewriteExpressionDivisionReady
+            LD   A,(RewriteExpressionRightKnown)
+            OR   A
+            JR   Z,_RewriteExpressionDivisionSuppressed
             LD   A,(RewriteExpressionSuppressFault)
             OR   A
             JR   Z,_RewriteExpressionDivisionZeroFailure
+_RewriteExpressionDivisionSuppressed:
             LD   HL,0
             LD   A,C
             RET
@@ -2089,50 +2059,18 @@ _RewriteExpressionCompareInteger:
             CALL RewriteExpressionCompareRelation
 _RewriteExpressionComparisonRelationReady:
             LD   A,(RewriteExpressionOperator)
-            CP   RewriteExpressionOpEqual
-            JR   Z,_RewriteExpressionComparisonEqual
-            CP   RewriteExpressionOpNotEqual
-            JR   Z,_RewriteExpressionComparisonNotEqual
-            CP   RewriteExpressionOpLess
-            JR   Z,_RewriteExpressionComparisonLess
-            CP   RewriteExpressionOpLessEqual
-            JR   Z,_RewriteExpressionComparisonLessEqual
-            CP   RewriteExpressionOpGreater
-            JR   Z,_RewriteExpressionComparisonGreater
-            LD   A,D
-            CP   1
-            JR   NZ,_RewriteExpressionComparisonTrue
-            JR   _RewriteExpressionComparisonFalse
-_RewriteExpressionComparisonEqual:
-            LD   A,D
-            OR   A
-            JR   Z,_RewriteExpressionComparisonTrue
-            JR   _RewriteExpressionComparisonFalse
-_RewriteExpressionComparisonNotEqual:
-            LD   A,D
-            OR   A
-            JR   NZ,_RewriteExpressionComparisonTrue
-            JR   _RewriteExpressionComparisonFalse
-_RewriteExpressionComparisonLess:
-            LD   A,D
-            CP   1
-            JR   Z,_RewriteExpressionComparisonTrue
-            JR   _RewriteExpressionComparisonFalse
-_RewriteExpressionComparisonLessEqual:
-            LD   A,D
-            CP   2
-            JR   NZ,_RewriteExpressionComparisonTrue
-            JR   _RewriteExpressionComparisonFalse
-_RewriteExpressionComparisonGreater:
-            LD   A,D
-            CP   2
-            JR   Z,_RewriteExpressionComparisonTrue
-_RewriteExpressionComparisonFalse:
-            LD   HL,0
-            LD   A,RewriteScalarTypeBoolean
-            RET
-_RewriteExpressionComparisonTrue:
-            LD   HL,1
+            SUB  RewriteExpressionOpEqual
+            LD   E,A
+            ADD  A,A
+            ADD  A,E
+            ADD  A,D
+            LD   E,A
+            LD   D,0
+            LD   HL,RewriteExpressionComparisonResults
+            ADD  HL,DE
+            LD   A,(HL)
+            LD   L,A
+            LD   H,0
             LD   A,RewriteScalarTypeBoolean
             RET
 

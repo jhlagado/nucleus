@@ -116,9 +116,9 @@ describe("ground-up rewrite semantic authority", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      semanticBytes: 288,
-      operationBytes: 948,
-      coreBytes: 18_115,
+      semanticBytes: 294,
+      operationBytes: 853,
+      coreBytes: 17_908,
       workspaceBytes: 3_938,
     });
     expect(rewriteSemanticOperations).toHaveLength(105);
@@ -144,6 +144,13 @@ describe("ground-up rewrite semantic authority", () => {
     ).toBe(true);
     expect(
       rewriteSemanticOperations.every(
+        ({ width }, index) =>
+          index === 0 ||
+          (rewriteSemanticOperations[index - 1]?.width ?? 0) <= width,
+      ),
+    ).toBe(true);
+    expect(
+      rewriteSemanticOperations.every(
         ({ trace }) => trace === "operation-start",
       ),
     ).toBe(true);
@@ -160,15 +167,26 @@ describe("ground-up rewrite semantic authority", () => {
     }
     expect(image.symbols.RewriteSemanticStackDynamic).toBe(15);
 
-    const widths = image.symbols.RewriteSemanticOperationWidthTable ?? -1;
+    const widthLimits =
+      image.symbols.RewriteSemanticOperationWidthLimits ?? -1;
     const backendSelectors =
       image.symbols.RewriteSemanticBackendSelectorTable ?? -1;
+    const memory = parseIntelHex(image.hex).memory;
+    for (
+      let width = 1;
+      width <= rewriteSemanticOperationMaximumWidth;
+      width += 1
+    ) {
+      expect(memory[widthLimits + width - 1], `width ${width} limit`).toBe(
+        rewriteSemanticOperations.filter(
+          (operation) => operation.width <= width,
+        ).length,
+      );
+    }
     for (const [index, operation] of rewriteSemanticOperations.entries()) {
       expect(image.symbols[`RewriteSemantic${operation.name}`]).toBe(
         operation.id,
       );
-      const memory = parseIntelHex(image.hex).memory;
-      expect(memory[widths + index], operation.name).toBe(operation.width);
       expect(memory[backendSelectors + index], operation.name).toBe(
         operation.backend.index |
           (operation.backend.kind === "escape" ? 0x80 : 0),
@@ -619,7 +637,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 547, cycles: 7_774 });
+    }).toEqual({ instructions: 811, cycles: 9_514 });
   });
 
   it("distinguishes exact fill, first overflow, and clean recovery", () => {
@@ -634,7 +652,7 @@ describe("ground-up rewrite semantic authority", () => {
     expect({
       instructions: result.instructions,
       cycles: result.cycles,
-    }).toEqual({ instructions: 12_164, cycles: 126_151 });
+    }).toEqual({ instructions: 17_019, cycles: 158_086 });
   });
 
   it("rejects a multi-byte record atomically when only three bytes remain", () => {

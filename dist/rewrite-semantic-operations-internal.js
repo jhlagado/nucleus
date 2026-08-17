@@ -3,39 +3,528 @@ export const rewriteSemanticTracePolicy = "operation-start";
 export const rewriteSemanticOperations = [
     {
         "id": 1,
-        "name": "DefineProgramU8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "initial",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 3,
+        "name": "Add8",
+        "operands": [],
+        "width": 1,
         "backend": {
             "kind": "recipe",
-            "name": "defineProgramU8",
-            "index": 0
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 2,
+        "name": "Subtract8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 3,
+        "name": "Multiply8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 4,
+        "name": "And8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 5,
+        "name": "Or8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 6,
+        "name": "Xor8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary8",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 7,
+        "name": "Negate8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "unary8",
+            "index": 12
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 8,
+        "name": "Not8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "unary8",
+            "index": 12
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 9,
+        "name": "Add16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 10,
+        "name": "Subtract16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 11,
+        "name": "Multiply16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 12,
+        "name": "And16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 13,
+        "name": "Or16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 14,
+        "name": "Xor16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "binary16",
+            "index": 13
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 15,
+        "name": "Negate16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "unary16",
+            "index": 14
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 16,
+        "name": "Not16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "unary16",
+            "index": 14
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 17,
+        "name": "NotBoolean",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "notBoolean",
+            "index": 15
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 18,
+        "name": "BeginBooleanAnd",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "booleanBegin",
+            "index": 19
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 19,
+        "name": "BeginBooleanOr",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "booleanBegin",
+            "index": 19
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 20,
+        "name": "EndBoolean",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "booleanEnd",
+            "index": 20
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 21,
+        "name": "ForCleanup",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "escape",
+            "name": "forCleanup",
+            "index": 5
         },
         "stack": {
             "in": 0,
             "out": 0,
             "encoded": 0
         },
-        "source": "none",
+        "source": "enclosing",
         "trace": "operation-start"
     },
     {
-        "id": 2,
+        "id": 22,
+        "name": "ReturnScalar",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "returnScalar",
+            "index": 24
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 23,
+        "name": "ReturnAggregate",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "returnScalar",
+            "index": 24
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 24,
+        "name": "LoadIndirect8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadIndirect8",
+            "index": 29
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 25,
+        "name": "LoadIndirect16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadIndirect16",
+            "index": 30
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 26,
+        "name": "StoreIndirect8",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeIndirect8",
+            "index": 31
+        },
+        "stack": {
+            "in": 2,
+            "out": 0,
+            "encoded": 32
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 27,
+        "name": "StoreIndirect16",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeIndirect16",
+            "index": 32
+        },
+        "stack": {
+            "in": 2,
+            "out": 0,
+            "encoded": 32
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 28,
+        "name": "ReturnFailableScalar",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "escape",
+            "name": "returnFailable",
+            "index": 17
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 29,
+        "name": "ReturnFailableAggregate",
+        "operands": [],
+        "width": 1,
+        "backend": {
+            "kind": "escape",
+            "name": "returnFailable",
+            "index": 17
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 30,
         "name": "DeclareLocalU8",
         "operands": [
             {
@@ -61,33 +550,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 3,
-        "name": "LoadProgramU8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadProgramU8",
-            "index": 2
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 4,
+        "id": 31,
         "name": "LoadLocalU8",
         "operands": [
             {
@@ -113,33 +576,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 5,
-        "name": "StoreProgramU8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeProgramU8",
-            "index": 4
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 6,
+        "id": 32,
         "name": "StoreLocalU8",
         "operands": [
             {
@@ -165,40 +602,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 7,
-        "name": "DefineProgram16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "initial",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "recipe",
-            "name": "defineProgram16",
-            "index": 6
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "none",
-        "trace": "operation-start"
-    },
-    {
-        "id": 8,
+        "id": 33,
         "name": "DeclareLocal16",
         "operands": [
             {
@@ -224,59 +628,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 9,
-        "name": "Literal16",
-        "operands": [
-            {
-                "name": "value",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "literal16",
-            "index": 8
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 10,
-        "name": "LoadProgram16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadProgram16",
-            "index": 9
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 11,
+        "id": 34,
         "name": "LoadLocal16",
         "operands": [
             {
@@ -302,417 +654,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 12,
-        "name": "Add8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 13,
-        "name": "Subtract8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 14,
-        "name": "Multiply8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 15,
-        "name": "And8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 16,
-        "name": "Or8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 17,
-        "name": "Xor8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary8",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 18,
-        "name": "Negate8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "unary8",
-            "index": 12
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 19,
-        "name": "Not8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "unary8",
-            "index": 12
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 20,
-        "name": "Add16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 21,
-        "name": "Subtract16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 22,
-        "name": "Multiply16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 23,
-        "name": "And16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 24,
-        "name": "Or16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 25,
-        "name": "Xor16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "binary16",
-            "index": 13
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 26,
-        "name": "Negate16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "unary16",
-            "index": 14
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 27,
-        "name": "Not16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "unary16",
-            "index": 14
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 28,
-        "name": "NotBoolean",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "notBoolean",
-            "index": 15
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 29,
-        "name": "Divide8",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "divideUnsigned",
-            "index": 0
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 30,
-        "name": "Divide16",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "divideUnsigned",
-            "index": 0
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 31,
-        "name": "Modulo8",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "divideUnsigned",
-            "index": 0
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 32,
-        "name": "Modulo16",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "divideUnsigned",
-            "index": 0
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 33,
+        "id": 35,
         "name": "Compare8",
         "operands": [
             {
@@ -738,7 +680,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 34,
+        "id": 36,
         "name": "Compare16",
         "operands": [
             {
@@ -764,7 +706,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 35,
+        "id": 37,
         "name": "CompareBoolean",
         "operands": [
             {
@@ -785,58 +727,6 @@ export const rewriteSemanticOperations = [
             "in": 2,
             "out": 1,
             "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 36,
-        "name": "NarrowU8",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "narrowU8",
-            "index": 1
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 37,
-        "name": "StoreProgram16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeProgram16",
-            "index": 17
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
         },
         "source": "direct",
         "trace": "operation-start"
@@ -869,60 +759,6 @@ export const rewriteSemanticOperations = [
     },
     {
         "id": 39,
-        "name": "BeginBooleanAnd",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "booleanBegin",
-            "index": 19
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 40,
-        "name": "BeginBooleanOr",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "booleanBegin",
-            "index": 19
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 41,
-        "name": "EndBoolean",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "booleanEnd",
-            "index": 20
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 42,
         "name": "ControlLabelDirect",
         "operands": [
             {
@@ -948,7 +784,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 43,
+        "id": 40,
         "name": "ControlLabelEnclosing",
         "operands": [
             {
@@ -974,7 +810,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 44,
+        "id": 41,
         "name": "BranchFalse",
         "operands": [
             {
@@ -1000,7 +836,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 45,
+        "id": 42,
         "name": "JumpDirect",
         "operands": [
             {
@@ -1026,7 +862,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 46,
+        "id": 43,
         "name": "JumpEnclosing",
         "operands": [
             {
@@ -1052,7 +888,664 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
+        "id": 44,
+        "name": "LoadParameter8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadLocalU8",
+            "index": 3
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 45,
+        "name": "LoadParameter16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadLocal16",
+            "index": 10
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 46,
+        "name": "StoreParameter8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeLocalU8",
+            "index": 5
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
         "id": 47,
+        "name": "StoreParameter16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeLocal16",
+            "index": 18
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 48,
+        "name": "EndGeneralRoutineDirect",
+        "operands": [
+            {
+                "name": "resultType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "endRoutine",
+            "index": 10
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 49,
+        "name": "EndGeneralRoutineEnclosing",
+        "operands": [
+            {
+                "name": "resultType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "endRoutine",
+            "index": 10
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "enclosing",
+        "trace": "operation-start"
+    },
+    {
+        "id": 50,
+        "name": "LoadParameterAlias",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadParameterAlias",
+            "index": 27
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 51,
+        "name": "EndFailableRoutineDirect",
+        "operands": [
+            {
+                "name": "resultType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "endFailableRoutine",
+            "index": 18
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 52,
+        "name": "EndFailableRoutineEnclosing",
+        "operands": [
+            {
+                "name": "resultType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "endFailableRoutine",
+            "index": 18
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "enclosing",
+        "trace": "operation-start"
+    },
+    {
+        "id": 53,
+        "name": "SkipHandler",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "skipHandler",
+            "index": 19
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 54,
+        "name": "EndHandler",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "endHandler",
+            "index": 22
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "enclosing",
+        "trace": "operation-start"
+    },
+    {
+        "id": 55,
+        "name": "OpenStringCapacity",
+        "operands": [
+            {
+                "name": "capacityOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "escape",
+            "name": "openStringCapacity",
+            "index": 27
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 56,
+        "name": "OpenArrayLength",
+        "operands": [
+            {
+                "name": "countOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "openArrayLength",
+            "index": 35
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 57,
+        "name": "PromoteI8Pair",
+        "operands": [
+            {
+                "name": "mode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 2,
+        "backend": {
+            "kind": "recipe",
+            "name": "promoteI8Pair",
+            "index": 36
+        },
+        "stack": {
+            "in": 2,
+            "out": 2,
+            "encoded": 34
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 58,
+        "name": "DefineProgramU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "initial",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "defineProgramU8",
+            "index": 0
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "none",
+        "trace": "operation-start"
+    },
+    {
+        "id": 59,
+        "name": "LoadProgramU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadProgramU8",
+            "index": 2
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 60,
+        "name": "StoreProgramU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeProgramU8",
+            "index": 4
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 61,
+        "name": "Literal16",
+        "operands": [
+            {
+                "name": "value",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "literal16",
+            "index": 8
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 62,
+        "name": "LoadProgram16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadProgram16",
+            "index": 9
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 63,
+        "name": "Divide8",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "divideUnsigned",
+            "index": 0
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 64,
+        "name": "Divide16",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "divideUnsigned",
+            "index": 0
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 65,
+        "name": "Modulo8",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "divideUnsigned",
+            "index": 0
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 66,
+        "name": "Modulo16",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "divideUnsigned",
+            "index": 0
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 67,
+        "name": "NarrowU8",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "narrowU8",
+            "index": 1
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 68,
+        "name": "StoreProgram16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeProgram16",
+            "index": 17
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 69,
         "name": "ForSetup",
         "operands": [
             {
@@ -1085,7 +1578,425 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 48,
+        "id": 70,
+        "name": "LoadProgramAlias",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadProgramAlias",
+            "index": 25
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 71,
+        "name": "LoadBssAlias",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadBssAlias",
+            "index": 26
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 72,
+        "name": "SelectField",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "selectField",
+            "index": 28
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 73,
+        "name": "FailRoutine",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "failRoutine",
+            "index": 15
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 74,
+        "name": "FailMain",
+        "operands": [
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "failMain",
+            "index": 16
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 75,
+        "name": "BeginCallableMain",
+        "operands": [
+            {
+                "name": "flags",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "bank",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "beginCallableMain",
+            "index": 23
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 76,
+        "name": "LoadReadOnlyAlias",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadReadOnlyAlias",
+            "index": 33
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 77,
+        "name": "PrepareOpenStringDirect",
+        "operands": [
+            {
+                "name": "argumentMode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "capacity",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "prepareOpenArgument",
+            "index": 26
+        },
+        "stack": {
+            "in": 1,
+            "out": 2,
+            "encoded": 18
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 78,
+        "name": "PrepareOpenStringForward",
+        "operands": [
+            {
+                "name": "argumentMode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "capacityOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "escape",
+            "name": "prepareOpenArgument",
+            "index": 26
+        },
+        "stack": {
+            "in": 1,
+            "out": 2,
+            "encoded": 18
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 79,
+        "name": "ArrayLength",
+        "operands": [
+            {
+                "name": "count",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "arrayLength",
+            "index": 34
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 80,
+        "name": "LoadBssU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadBssU8",
+            "index": 37
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 81,
+        "name": "LoadBss16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "loadBss16",
+            "index": 38
+        },
+        "stack": {
+            "in": 0,
+            "out": 1,
+            "encoded": 1
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 82,
+        "name": "StoreBssU8",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeBssU8",
+            "index": 39
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 83,
+        "name": "StoreBss16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            }
+        ],
+        "width": 3,
+        "backend": {
+            "kind": "recipe",
+            "name": "storeBss16",
+            "index": 40
+        },
+        "stack": {
+            "in": 1,
+            "out": 0,
+            "encoded": 16
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 84,
+        "name": "DefineProgram16",
+        "operands": [
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "initial",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "recipe",
+            "name": "defineProgram16",
+            "index": 6
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "none",
+        "trace": "operation-start"
+    },
+    {
+        "id": 85,
         "name": "ForTest",
         "operands": [
             {
@@ -1125,7 +2036,678 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 49,
+        "id": 86,
+        "name": "BeginGeneralRoutine",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "parameterCount",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "bank",
+                "kind": "byte",
+                "width": 1,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "beginRoutine",
+            "index": 6
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 87,
+        "name": "BindParameter",
+        "operands": [
+            {
+                "name": "type",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "localOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "argumentOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "bindParameter",
+            "index": 7
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "none",
+        "trace": "operation-start"
+    },
+    {
+        "id": 88,
+        "name": "StringLength",
+        "operands": [
+            {
+                "name": "capacity",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "stringLength",
+            "index": 13
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 89,
+        "name": "StringIndex",
+        "operands": [
+            {
+                "name": "capacity",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "stringIndex",
+            "index": 14
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 90,
+        "name": "BeginHandlerLocal",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "symbolInfo",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "offset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "beginHandler",
+            "index": 20
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 91,
+        "name": "OpenStringLength",
+        "operands": [
+            {
+                "name": "capacityOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "openStringLength",
+            "index": 24
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 92,
+        "name": "OpenStringIndex",
+        "operands": [
+            {
+                "name": "capacityOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "openStringIndex",
+            "index": 25
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 93,
+        "name": "PrepareOpenArrayDirect",
+        "operands": [
+            {
+                "name": "argumentMode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "count",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "prepareOpenArgument",
+            "index": 26
+        },
+        "stack": {
+            "in": 1,
+            "out": 2,
+            "encoded": 18
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 94,
+        "name": "PrepareOpenArrayForward",
+        "operands": [
+            {
+                "name": "argumentMode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "countOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "prepareOpenArgument",
+            "index": 26
+        },
+        "stack": {
+            "in": 1,
+            "out": 2,
+            "encoded": 18
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 95,
+        "name": "OpenStringResize",
+        "operands": [
+            {
+                "name": "capacityOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "openStringResize",
+            "index": 28
+        },
+        "stack": {
+            "in": 2,
+            "out": 0,
+            "encoded": 32
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 96,
+        "name": "DivideSigned",
+        "operands": [
+            {
+                "name": "mode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            }
+        ],
+        "width": 4,
+        "backend": {
+            "kind": "escape",
+            "name": "divideSigned",
+            "index": 31
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 97,
+        "name": "CopyAggregate",
+        "operands": [
+            {
+                "name": "extent",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 5,
+        "backend": {
+            "kind": "escape",
+            "name": "copyAggregate",
+            "index": 12
+        },
+        "stack": {
+            "in": 2,
+            "out": 0,
+            "encoded": 32
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 98,
+        "name": "BeginHandlerProgram",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "symbolInfo",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "address",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 5,
+        "backend": {
+            "kind": "escape",
+            "name": "beginHandler",
+            "index": 20
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 99,
+        "name": "BeginHandlerBss",
+        "operands": [
+            {
+                "name": "label",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "symbolInfo",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "address",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 5,
+        "backend": {
+            "kind": "escape",
+            "name": "beginHandlerBss",
+            "index": 21
+        },
+        "stack": {
+            "in": 0,
+            "out": 0,
+            "encoded": 0
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 100,
+        "name": "ConvertInteger",
+        "operands": [
+            {
+                "name": "sourceType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "targetType",
+                "kind": "byte",
+                "width": 1,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            }
+        ],
+        "width": 5,
+        "backend": {
+            "kind": "escape",
+            "name": "convertInteger",
+            "index": 30
+        },
+        "stack": {
+            "in": 1,
+            "out": 1,
+            "encoded": 17
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 101,
+        "name": "OpenArrayIndex",
+        "operands": [
+            {
+                "name": "countOffset",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "elementExtent",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 3,
+                "recordOffset": 4
+            }
+        ],
+        "width": 6,
+        "backend": {
+            "kind": "escape",
+            "name": "openArrayIndex",
+            "index": 29
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 102,
+        "name": "CallService",
+        "operands": [
+            {
+                "name": "selector",
+                "kind": "byte",
+                "width": 1,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 1,
+                "recordOffset": 2
+            },
+            {
+                "name": "callMode",
+                "kind": "byte",
+                "width": 1,
+                "offset": 3,
+                "recordOffset": 4
+            },
+            {
+                "name": "handlerLabel",
+                "kind": "byte",
+                "width": 1,
+                "offset": 4,
+                "recordOffset": 5
+            },
+            {
+                "name": "retainedCarriers",
+                "kind": "byte",
+                "width": 1,
+                "offset": 5,
+                "recordOffset": 6
+            }
+        ],
+        "width": 7,
+        "backend": {
+            "kind": "escape",
+            "name": "callService",
+            "index": 9
+        },
+        "stack": {
+            "in": "dynamic",
+            "out": "dynamic",
+            "encoded": 255
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 103,
+        "name": "SelectIndex",
+        "operands": [
+            {
+                "name": "count",
+                "kind": "word",
+                "width": 2,
+                "offset": 0,
+                "recordOffset": 1
+            },
+            {
+                "name": "elementExtent",
+                "kind": "word",
+                "width": 2,
+                "offset": 2,
+                "recordOffset": 3
+            },
+            {
+                "name": "sourceOffset",
+                "kind": "word",
+                "width": 2,
+                "offset": 4,
+                "recordOffset": 5
+            }
+        ],
+        "width": 7,
+        "backend": {
+            "kind": "escape",
+            "name": "selectIndex",
+            "index": 11
+        },
+        "stack": {
+            "in": 2,
+            "out": 1,
+            "encoded": 33
+        },
+        "source": "direct",
+        "trace": "operation-start"
+    },
+    {
+        "id": 104,
         "name": "ForNext",
         "operands": [
             {
@@ -1186,227 +2768,7 @@ export const rewriteSemanticOperations = [
         "trace": "operation-start"
     },
     {
-        "id": 50,
-        "name": "ForCleanup",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "escape",
-            "name": "forCleanup",
-            "index": 5
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "enclosing",
-        "trace": "operation-start"
-    },
-    {
-        "id": 51,
-        "name": "LoadParameter8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadLocalU8",
-            "index": 3
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 52,
-        "name": "LoadParameter16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadLocal16",
-            "index": 10
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 53,
-        "name": "ReturnScalar",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "returnScalar",
-            "index": 24
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 54,
-        "name": "StoreParameter8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeLocalU8",
-            "index": 5
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 55,
-        "name": "StoreParameter16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeLocal16",
-            "index": 18
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 56,
-        "name": "BeginGeneralRoutine",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "parameterCount",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "bank",
-                "kind": "byte",
-                "width": 1,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "beginRoutine",
-            "index": 6
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 57,
-        "name": "BindParameter",
-        "operands": [
-            {
-                "name": "type",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "localOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "argumentOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "bindParameter",
-            "index": 7
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "none",
-        "trace": "operation-start"
-    },
-    {
-        "id": 58,
+        "id": 105,
         "name": "CallSource",
         "operands": [
             {
@@ -1479,1372 +2841,10 @@ export const rewriteSemanticOperations = [
         },
         "source": "direct",
         "trace": "operation-start"
-    },
-    {
-        "id": 59,
-        "name": "CallService",
-        "operands": [
-            {
-                "name": "selector",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "callMode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 3,
-                "recordOffset": 4
-            },
-            {
-                "name": "handlerLabel",
-                "kind": "byte",
-                "width": 1,
-                "offset": 4,
-                "recordOffset": 5
-            },
-            {
-                "name": "retainedCarriers",
-                "kind": "byte",
-                "width": 1,
-                "offset": 5,
-                "recordOffset": 6
-            }
-        ],
-        "width": 7,
-        "backend": {
-            "kind": "escape",
-            "name": "callService",
-            "index": 9
-        },
-        "stack": {
-            "in": "dynamic",
-            "out": "dynamic",
-            "encoded": 255
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 60,
-        "name": "ReturnAggregate",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "returnScalar",
-            "index": 24
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 61,
-        "name": "EndGeneralRoutineDirect",
-        "operands": [
-            {
-                "name": "resultType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "endRoutine",
-            "index": 10
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 62,
-        "name": "EndGeneralRoutineEnclosing",
-        "operands": [
-            {
-                "name": "resultType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "endRoutine",
-            "index": 10
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "enclosing",
-        "trace": "operation-start"
-    },
-    {
-        "id": 63,
-        "name": "LoadProgramAlias",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadProgramAlias",
-            "index": 25
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 64,
-        "name": "LoadBssAlias",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadBssAlias",
-            "index": 26
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 65,
-        "name": "LoadParameterAlias",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadParameterAlias",
-            "index": 27
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 66,
-        "name": "SelectField",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "selectField",
-            "index": 28
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 67,
-        "name": "SelectIndex",
-        "operands": [
-            {
-                "name": "count",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "elementExtent",
-                "kind": "word",
-                "width": 2,
-                "offset": 2,
-                "recordOffset": 3
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 4,
-                "recordOffset": 5
-            }
-        ],
-        "width": 7,
-        "backend": {
-            "kind": "escape",
-            "name": "selectIndex",
-            "index": 11
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 68,
-        "name": "LoadIndirect8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadIndirect8",
-            "index": 29
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 69,
-        "name": "LoadIndirect16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadIndirect16",
-            "index": 30
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 70,
-        "name": "StoreIndirect8",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeIndirect8",
-            "index": 31
-        },
-        "stack": {
-            "in": 2,
-            "out": 0,
-            "encoded": 32
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 71,
-        "name": "StoreIndirect16",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeIndirect16",
-            "index": 32
-        },
-        "stack": {
-            "in": 2,
-            "out": 0,
-            "encoded": 32
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 72,
-        "name": "CopyAggregate",
-        "operands": [
-            {
-                "name": "extent",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 5,
-        "backend": {
-            "kind": "escape",
-            "name": "copyAggregate",
-            "index": 12
-        },
-        "stack": {
-            "in": 2,
-            "out": 0,
-            "encoded": 32
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 73,
-        "name": "StringLength",
-        "operands": [
-            {
-                "name": "capacity",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "stringLength",
-            "index": 13
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 74,
-        "name": "StringIndex",
-        "operands": [
-            {
-                "name": "capacity",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "stringIndex",
-            "index": 14
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 75,
-        "name": "FailRoutine",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "failRoutine",
-            "index": 15
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 76,
-        "name": "FailMain",
-        "operands": [
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "failMain",
-            "index": 16
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 77,
-        "name": "ReturnFailableScalar",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "escape",
-            "name": "returnFailable",
-            "index": 17
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 78,
-        "name": "ReturnFailableAggregate",
-        "operands": [],
-        "width": 1,
-        "backend": {
-            "kind": "escape",
-            "name": "returnFailable",
-            "index": 17
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 79,
-        "name": "EndFailableRoutineDirect",
-        "operands": [
-            {
-                "name": "resultType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "endFailableRoutine",
-            "index": 18
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 80,
-        "name": "EndFailableRoutineEnclosing",
-        "operands": [
-            {
-                "name": "resultType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "endFailableRoutine",
-            "index": 18
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "enclosing",
-        "trace": "operation-start"
-    },
-    {
-        "id": 81,
-        "name": "SkipHandler",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "skipHandler",
-            "index": 19
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 82,
-        "name": "BeginHandlerProgram",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "symbolInfo",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "address",
-                "kind": "word",
-                "width": 2,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 5,
-        "backend": {
-            "kind": "escape",
-            "name": "beginHandler",
-            "index": 20
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 83,
-        "name": "BeginHandlerBss",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "symbolInfo",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "address",
-                "kind": "word",
-                "width": 2,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 5,
-        "backend": {
-            "kind": "escape",
-            "name": "beginHandlerBss",
-            "index": 21
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 84,
-        "name": "BeginHandlerLocal",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "symbolInfo",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "offset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "beginHandler",
-            "index": 20
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 85,
-        "name": "EndHandler",
-        "operands": [
-            {
-                "name": "label",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "endHandler",
-            "index": 22
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "enclosing",
-        "trace": "operation-start"
-    },
-    {
-        "id": 86,
-        "name": "BeginCallableMain",
-        "operands": [
-            {
-                "name": "flags",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "bank",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "beginCallableMain",
-            "index": 23
-        },
-        "stack": {
-            "in": 0,
-            "out": 0,
-            "encoded": 0
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 87,
-        "name": "LoadReadOnlyAlias",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadReadOnlyAlias",
-            "index": 33
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 88,
-        "name": "OpenStringLength",
-        "operands": [
-            {
-                "name": "capacityOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "openStringLength",
-            "index": 24
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 89,
-        "name": "OpenStringIndex",
-        "operands": [
-            {
-                "name": "capacityOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "openStringIndex",
-            "index": 25
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 90,
-        "name": "PrepareOpenStringDirect",
-        "operands": [
-            {
-                "name": "argumentMode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "capacity",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "prepareOpenArgument",
-            "index": 26
-        },
-        "stack": {
-            "in": 1,
-            "out": 2,
-            "encoded": 18
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 91,
-        "name": "PrepareOpenStringForward",
-        "operands": [
-            {
-                "name": "argumentMode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "capacityOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "escape",
-            "name": "prepareOpenArgument",
-            "index": 26
-        },
-        "stack": {
-            "in": 1,
-            "out": 2,
-            "encoded": 18
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 92,
-        "name": "PrepareOpenArrayDirect",
-        "operands": [
-            {
-                "name": "argumentMode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "count",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "prepareOpenArgument",
-            "index": 26
-        },
-        "stack": {
-            "in": 1,
-            "out": 2,
-            "encoded": 18
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 93,
-        "name": "PrepareOpenArrayForward",
-        "operands": [
-            {
-                "name": "argumentMode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "countOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "prepareOpenArgument",
-            "index": 26
-        },
-        "stack": {
-            "in": 1,
-            "out": 2,
-            "encoded": 18
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 94,
-        "name": "OpenStringCapacity",
-        "operands": [
-            {
-                "name": "capacityOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "escape",
-            "name": "openStringCapacity",
-            "index": 27
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 95,
-        "name": "OpenStringResize",
-        "operands": [
-            {
-                "name": "capacityOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "openStringResize",
-            "index": 28
-        },
-        "stack": {
-            "in": 2,
-            "out": 0,
-            "encoded": 32
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 96,
-        "name": "ArrayLength",
-        "operands": [
-            {
-                "name": "count",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "arrayLength",
-            "index": 34
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 97,
-        "name": "OpenArrayLength",
-        "operands": [
-            {
-                "name": "countOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "openArrayLength",
-            "index": 35
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 98,
-        "name": "OpenArrayIndex",
-        "operands": [
-            {
-                "name": "countOffset",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "elementExtent",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 3,
-                "recordOffset": 4
-            }
-        ],
-        "width": 6,
-        "backend": {
-            "kind": "escape",
-            "name": "openArrayIndex",
-            "index": 29
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 99,
-        "name": "ConvertInteger",
-        "operands": [
-            {
-                "name": "sourceType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "targetType",
-                "kind": "byte",
-                "width": 1,
-                "offset": 1,
-                "recordOffset": 2
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 2,
-                "recordOffset": 3
-            }
-        ],
-        "width": 5,
-        "backend": {
-            "kind": "escape",
-            "name": "convertInteger",
-            "index": 30
-        },
-        "stack": {
-            "in": 1,
-            "out": 1,
-            "encoded": 17
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 100,
-        "name": "DivideSigned",
-        "operands": [
-            {
-                "name": "mode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            },
-            {
-                "name": "sourceOffset",
-                "kind": "word",
-                "width": 2,
-                "offset": 1,
-                "recordOffset": 2
-            }
-        ],
-        "width": 4,
-        "backend": {
-            "kind": "escape",
-            "name": "divideSigned",
-            "index": 31
-        },
-        "stack": {
-            "in": 2,
-            "out": 1,
-            "encoded": 33
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 101,
-        "name": "PromoteI8Pair",
-        "operands": [
-            {
-                "name": "mode",
-                "kind": "byte",
-                "width": 1,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 2,
-        "backend": {
-            "kind": "recipe",
-            "name": "promoteI8Pair",
-            "index": 36
-        },
-        "stack": {
-            "in": 2,
-            "out": 2,
-            "encoded": 34
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 102,
-        "name": "LoadBssU8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadBssU8",
-            "index": 37
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 103,
-        "name": "LoadBss16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "loadBss16",
-            "index": 38
-        },
-        "stack": {
-            "in": 0,
-            "out": 1,
-            "encoded": 1
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 104,
-        "name": "StoreBssU8",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeBssU8",
-            "index": 39
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
-    },
-    {
-        "id": 105,
-        "name": "StoreBss16",
-        "operands": [
-            {
-                "name": "offset",
-                "kind": "word",
-                "width": 2,
-                "offset": 0,
-                "recordOffset": 1
-            }
-        ],
-        "width": 3,
-        "backend": {
-            "kind": "recipe",
-            "name": "storeBss16",
-            "index": 40
-        },
-        "stack": {
-            "in": 1,
-            "out": 0,
-            "encoded": 16
-        },
-        "source": "direct",
-        "trace": "operation-start"
     }
 ];
 export const rewriteSemanticOperationMaximumWidth = 10;
-const rewriteSemanticWidths = Uint8Array.of(3, 2, 3, 2, 3, 2, 4, 2, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 3, 3, 2, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 9, 1, 2, 2, 1, 2, 2, 4, 4, 10, 7, 1, 2, 2, 3, 3, 2, 3, 7, 1, 1, 1, 1, 5, 4, 4, 3, 3, 1, 1, 2, 2, 2, 5, 5, 4, 2, 3, 3, 4, 4, 3, 3, 4, 4, 2, 4, 3, 2, 6, 5, 4, 2, 3, 3, 3, 3);
+const rewriteSemanticWidths = Uint8Array.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 7, 7, 9, 10);
 export const rewriteSemanticOperationKeys = (payload, operationCount) => {
     if (!Number.isInteger(operationCount) || operationCount < 0 || operationCount > 255) {
         throw new Error(`invalid rewrite semantic operation count ${operationCount}`);

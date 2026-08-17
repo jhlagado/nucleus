@@ -313,8 +313,8 @@ describe("ground-up rewrite backend recipes", () => {
     );
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xae);
     expect({ instructions, cycles }).toEqual({
-      instructions: 2_137,
-      cycles: 22_072,
+      instructions: 2_158,
+      cycles: 22_207,
     });
   });
 
@@ -575,9 +575,9 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({
       engine: 3_947,
       recipes: 738,
-      code: 16_534,
-      immutable: 1_577,
-      core: 18_111,
+      code: 16_396,
+      immutable: 1_508,
+      core: 17_904,
       workspace: 3_938,
       supported: 105,
     });

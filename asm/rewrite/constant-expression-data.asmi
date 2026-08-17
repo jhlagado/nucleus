@@ -17,6 +17,24 @@ RewriteExpressionOperatorTable:
             .db TokenXor,1
 RewriteExpressionOperatorTableEnd:
 
+; Rows are equal, not-equal, less, less-or-equal, greater, and
+; greater-or-equal. Columns are equal, less, and greater relations.
+RewriteExpressionComparisonResults:
+            .db 1,0,0
+            .db 0,1,1
+            .db 0,1,0
+            .db 1,1,0
+            .db 0,0,1
+            .db 1,0,1
+
+; Scalar load operations by storage class (initialized, BSS, local,
+; parameter), with byte then word width. These are semantic ordinals.
+RewriteExpressionScalarLoadOperations:
+            .db RewriteSemanticLoadProgramU8,   RewriteSemanticLoadProgram16
+            .db RewriteSemanticLoadBssU8,       RewriteSemanticLoadBss16
+            .db RewriteSemanticLoadLocalU8,     RewriteSemanticLoadLocal16
+            .db RewriteSemanticLoadParameter8, RewriteSemanticLoadParameter16
+
 ; Postfix property spellings are immutable name data, not encoded Z80
 ; instructions. Their explicit lengths avoid terminators in the scanner.
 RewritePathNameLength:

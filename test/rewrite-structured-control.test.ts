@@ -100,8 +100,8 @@ describe("ground-up rewrite structured control", () => {
 
   it("locks the complete four-type counted-loop compilation account", () => {
     expect(run("ProofCountedVariants")).toMatchObject({
-      instructions: 58_292,
-      cycles: 528_680,
+      instructions: 59_436,
+      cycles: 536_160,
     });
   });
 
