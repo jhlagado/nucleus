@@ -435,13 +435,13 @@ TokenizerNextLoop:
             CP   "/"
             JR   Z,TokenizerSlash
             CP   "("
-            JP   Z,TokenizerLeftParen
+            JR   Z,TokenizerLeftParen
             CP   ")"
-            JP   Z,TokenizerRightParen
+            JR   Z,TokenizerRightParen
             CP   "["
-            JP   Z,TokenizerLeftBracket
+            JR   Z,TokenizerLeftBracket
             CP   "]"
-            JP   Z,TokenizerRightBracket
+            JR   Z,TokenizerRightBracket
             CP   "<"
             JR   Z,TokenizerLess
             CP   ">"
@@ -451,7 +451,7 @@ TokenizerNextLoop:
 TokenizerTryPunctuation:
             CP   (HL)
             INC  HL
-            JP   Z,TokenizerPunctuation
+            JR   Z,TokenizerPunctuation
             INC  HL
             DJNZ TokenizerTryPunctuation
             CP   "'"
@@ -472,48 +472,23 @@ TokenizerSkipByte:
             JR   TokenizerNextLoop
 
 TokenizerSlash:
+            LD   C,TokenSlash
             CALL SourceTake
             CALL SourcePeek
-            JR   C,TokenizerSlashToken
+            JR   C,TokenFinishC
             CP   "/"
-            JR   NZ,TokenizerSlashToken
+            JR   NZ,TokenFinishC
             CALL SourceTake
             CALL TokenSkipComment
             JR   TokenizerNextLoop
-TokenizerSlashToken:
-            CALL TokenFinishInline
-            .db  TokenSlash
 
-TokenizerLess:
-            CALL SourceTake
-            CALL SourcePeek
-            JR   C,TokenizerLessToken
-            CP   "="
-            JR   Z,TokenizerLessEqual
-            CP   ">"
-            JR   Z,TokenizerNotEqual
-TokenizerLessToken:
-            CALL TokenFinishInline
-            .db  TokenLess
-TokenizerLessEqual:
-            LD   C,TokenLessEqual
-            JR   TokenizerSimpleToken
-TokenizerNotEqual:
-            LD   C,TokenNotEqual
-            JR   TokenizerSimpleToken
-
-TokenizerGreater:
-            CALL SourceTake
-            CALL SourcePeek
-            JR   C,TokenizerGreaterToken
-            CP   "="
-            JR   Z,TokenizerGreaterEqual
-TokenizerGreaterToken:
-            CALL TokenFinishInline
-            .db  TokenGreater
-TokenizerGreaterEqual:
-            LD   C,TokenGreaterEqual
-            JR   TokenizerSimpleToken
+TokenizerPunctuation:
+            LD   C,(HL)
+            BIT  7,C
+            JR   Z,TokenizerSimpleToken
+            RES  7,C
+            LD   B,C
+            JR   TokenScanBasedNumber
 
 TokenizerLeftParen:
             LD   C,TokenLeftParen
@@ -545,16 +520,34 @@ TokenizerRightDelimiter:
             CALL SourceTake
             JR   TokenFinishC
 
+TokenizerLess:
+            LD   C,TokenLess
+            JR   TokenizerComparison
+
+TokenizerGreater:
+            LD   C,TokenGreater
+TokenizerComparison:
+            CALL SourceTake
+            CALL SourcePeek
+            JR   C,TokenFinishC
+            CP   "="
+            JR   Z,TokenizerComparisonEqual
+            CP   ">"
+            JR   NZ,TokenFinishC
+            LD   A,C
+            CP   TokenLess
+            JR   NZ,TokenFinishC
+            LD   C,TokenNotEqual
+            JR   TokenizerComparisonConsume
+TokenizerComparisonEqual:
+            INC  C
+TokenizerComparisonConsume:
+            CALL SourceTake
+            JR   TokenFinishC
+
 TokenizerLexicalFailure:
             JP   TokenLexicalFailure
 
-TokenizerPunctuation:
-            LD   C,(HL)
-            BIT  7,C
-            JR   Z,TokenizerSimpleToken
-            RES  7,C
-            LD   B,C
-            JR   TokenScanBasedNumber
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 TokenizerSimpleToken:
             CALL SourceTake

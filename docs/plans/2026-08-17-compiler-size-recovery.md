@@ -842,13 +842,36 @@ NOBJ, D8, production and returning-diagnostic layouts remain unchanged. The
 bitset contains only operand metadata; handler addresses remain independent
 full 16-bit words.
 
+### Merged comparison and terminal token paths
+
+The tokenizer now shares one scanner for `<` and `>`. Their published token
+ordinals are adjacent to `<=` and `>=`, so the equals case increments the
+selected token; `<>` still selects its distinct ordinal explicitly. The shared
+path consumes the second character exactly once and leaves repeated operators
+such as `<<` and `>>` for the following token.
+
+Punctuation and delimiter handlers now occupy the terminal space beside the
+common token finisher. This shortens five symbolic branches without narrowing
+an address. The slash path also selects its ordinary token before checking for
+a comment, allowing plain slash at a line or part boundary to use the same
+finisher.
+
+The checkpoint recovers 18 compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,720 bytes. The representative
+proof falls from 879,126 to 879,118 instructions and from 9,600,053 to
+9,576,456 T-states. A permanent trace locks 14 exact token, offset, line,
+and column results for `<`, `<=`, `<>`, `>`, `>=`, `<<`, `>>`, plain slash,
+LF and CRLF comments, final EOF, and multipart boundaries. Strict production,
+instrumented, historical, packed-grammar, artifact, and relocation proofs
+pass.
+
 ### Current recovery outlook
 
-With rotated semantic-operand prefetch added to the retained checkpoints above,
-the measured shipping core is 15,738 bytes. Total measured recovery from the
-frozen 16,680-byte compiler is 942 bytes. The earlier 15,360-byte target is 378
-bytes away. The 300-byte phase began at 16,489 bytes and has recovered 751
-bytes, exceeding that phase target by 451 bytes.
+With merged comparison and terminal token paths added to the retained
+checkpoints above, the measured shipping core is 15,720 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 960 bytes. The earlier
+15,360-byte target is 360 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 769 bytes, exceeding that phase target by 469 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
