@@ -13,7 +13,7 @@
     { "at": "ProofStatus", "width": "u8", "equals": 165 },
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
-    { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4407 },
+    { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4353 },
     { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33906 },
     { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33682 },
     { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2958 },

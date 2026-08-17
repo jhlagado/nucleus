@@ -7,10 +7,11 @@ process. The tagged compiler remains the production floor. A rewritten
 subsystem replaces it only after the complete integrated candidate is smaller
 and preserves every published Nucleus 0.1 contract.
 
-The production target is a compiler core no larger than 15,360 bytes. This is
-1,024 bytes below the 16,384-byte implementation limit. A smaller result may
-be pursued after that target is proved, but it is not required for this
-recovery.
+The earlier production target was a compiler core no larger than 15,360 bytes,
+or 1,024 bytes below the 16,384-byte implementation limit. The owner replaced
+that fixed endpoint with the measured plateau rule below. The search therefore
+continues while a complete, proved experiment can recover more than five
+bytes, whether or not the compiler has crossed the earlier target.
 
 ## Frozen points
 
@@ -509,16 +510,44 @@ banked, entry-bank-one, language, and failure-atomicity proofs pass. Relocation
 passes at `$0100`, `$8000`, and the highest-fitting origin; every bank cursor,
 capacity, region, and target address remains a full 16-bit value.
 
+### Compiler and Host adapter boundary
+
+The compiler no longer copies its validated flat layout into a second 40-byte
+MAP record or appends an 18-byte runtime link context to every provider
+operation. The sole in-repository Host adapter derives the same public MAP and
+link context from the retained full-width compiler state, the checked target
+descriptor, and the target profile. The Z80 compiler still calls `map` at the
+same point and still observes its returned failure before `commit`; runtime
+image operations keep their original bank, address, identity, and extent.
+
+Compiler code falls by 102 bytes, from 15,697 to 15,595, while immutable data
+remains 428 bytes. The Z80 proof logger used to exercise the private sink also
+falls from 473 to 408 code bytes and from 263 to 83 state bytes, but those
+figures do not describe a production Host adapter. The built TypeScript Host
+file grows by 730 source bytes, from 19,069 to 19,799, because it now performs
+the derivation explicitly. This is an approved transfer from the size-bounded
+compiler to the external operating adapter, not a combined deployment-size
+saving. No new compiler table or workspace region carries the removed data.
+
+The production compiler core is 16,023 bytes, 361 bytes below 16 KiB. Flat,
+loaded, ROM, banked, entry-bank-one, provider, MAP, NOBJ, D8, commit, abort, and
+failure-order proofs pass. The Host API and serialized artifacts do not change.
+Relocation passes at `$0100`, `$8000`, and the highest-fitting origin; the Host
+derivation reads complete 16-bit values through the generated symbol map rather
+than assuming a compiler origin or fixed workspace address.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
 symbol, descriptor, provider, relative-branch, aggregate-metadata, Stage 7 tail,
-semantic/fixup, diagnostic/parser, and target-output checkpoints, the measured
-shipping core is 16,125 bytes and the remaining recovery to 15,360 is 765
-bytes. Total measured recovery from the frozen 16,680-byte compiler is 555
-bytes. The 300-byte phase began at 16,489 bytes and recovered 364 bytes,
-exceeding its target by 64 bytes.
+semantic/fixup, diagnostic/parser, target-output, and compiler/adapter
+checkpoints, the measured shipping core is 16,023 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 657 bytes. The earlier
+15,360-byte target is 663 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 466 bytes, exceeding that phase target by 166 bytes.
 
-The search continues in the selected original frontend and backend, and no
-local rewrite saving is counted until all adapters and displaced production
-code are included in the assembled core.
+The plateau count is zero of three because the first two fresh subsystem
+searches after the preceding checkpoint each found a candidate above five
+bytes. The search continues in the selected original frontend and backend. No
+local saving is counted until all adapters and displaced production code are
+included in the assembled account.

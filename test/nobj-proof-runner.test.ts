@@ -170,7 +170,7 @@ describe("the NOBJ-aware proof runner", () => {
           (producer.memory[cursor + 4] ?? 0) |
           ((producer.memory[cursor + 5] ?? 0) << 8);
         kinds.push(kind);
-        cursor += kind === 3 || kind === 4 ? 26 : 6 + count;
+        cursor += kind === 3 || kind === 4 ? 8 : 6 + count;
       }
       expect(cursor).toBe(end);
       return kinds;

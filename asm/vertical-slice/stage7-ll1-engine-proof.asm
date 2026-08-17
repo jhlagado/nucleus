@@ -5,6 +5,7 @@
 
             .include "memory-map.asmi"
 SegmentedOutput .equ 0
+TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "aggregate-call-state.asmi"
 
@@ -13,7 +14,7 @@ CompilerDiagnosticReturns .equ 1
 CompilerDiagnosticBranches .equ 1
 
             .org CompilerCoreBase
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+.routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
             LD   A,(MockPeekFailure)
             OR   A
@@ -21,18 +22,25 @@ ParserPeek:
             CALL SetDiagInline
             .db  DiagnosticExpectedTokenBase
 ParserPeekReady:
+            PUSH HL
             LD   HL,(MockTokenCursor)
             LD   A,(HL)
+            POP  HL
             OR   A
             RET
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+.routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserTake:
+            PUSH HL
             CALL ParserPeek
-            RET  C
+            JR   C,ParserTakeFailure
             LD   HL,(MockTokenCursor)
             INC  HL
             LD   (MockTokenCursor),HL
+            POP  HL
             OR   A
+            RET
+ParserTakeFailure:
+            POP  HL
             RET
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpect:

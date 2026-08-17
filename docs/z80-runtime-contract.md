@@ -158,19 +158,22 @@ length. It does not identify one address-bound byte sequence. A mismatch is a
 target-configuration diagnostic, not a runnable artifact.
 
 The operating layer supplies fully linked helper bytes through a runtime
-provider keyed by that identity. The adapter gives it the complete validated
-link context: runtime base, writable/vector state addresses, service
-destinations, and every data or read-only-data bound consumed by the runtime.
+provider keyed by that identity. Before it invokes the provider, the adapter
+derives the complete validated link context from the target profile and the
+compiler's checked full-width layout state: runtime base, writable/vector state
+addresses, service destinations, and every data or read-only-data bound
+consumed by the runtime.
 The provider deterministically assembles or links the canonical source for
 that context and verifies the resulting length and helper offsets against the
 identity. The compiler retains the identity, expected length, vector layout,
-and helper offsets; it does not retain the linked image. At each derived
-runtime base it submits the bank, target address, identity, link context, and
-expected length to the bounded provider operation. The provider appends fully
-resolved bytes to the image spool as ordinary NOBJ `IMAGE` records. NOBJ
-contains no runtime relocation records. An unavailable source revision,
-unsupported context, identity, length, or helper-layout mismatch, or output
-failure aborts the generation before commit.
+and helper offsets; it does not retain the linked image. At each derived runtime
+base it submits the bank, target address, identity, and expected length. The
+adapter associates that bounded request with the validated link context; the
+private Z80 handoff need not serialize the context into every request. The
+provider appends fully resolved bytes to the image spool as ordinary NOBJ
+`IMAGE` records. NOBJ contains no runtime relocation records. An unavailable
+source revision, unsupported context, identity, length, or helper-layout
+mismatch, or output failure aborts the generation before commit.
 
 ### 2.4 Loaded and ROM mappings
 

@@ -463,54 +463,21 @@ export const commitNobjAdapterGeneration = async ({
       ((producerMemory[cursor + 5] ?? 0) << 8);
     cursor += 6;
     if (kind === 3 || kind === 4) {
-      if (end - cursor < 20) {
+      if (end - cursor < 2) {
         throw new ProofFailure(`${name}: truncated runtime-image operation`);
       }
       const identity =
         (producerMemory[cursor] ?? 0) |
         ((producerMemory[cursor + 1] ?? 0) << 8);
       cursor += 2;
-      const contextWord = (offset: number): number =>
-        (producerMemory[cursor + offset] ?? 0) |
-        ((producerMemory[cursor + offset + 1] ?? 0) << 8);
-      const compilerContext: RuntimeLinkContext = {
-        runtimeBase: contextWord(0),
-        writableBase: contextWord(2),
-        writableCapacity: contextWord(4),
-        writableStateBase: contextWord(6),
-        vectorBase: contextWord(8),
-        programDataBase: contextWord(10),
-        programDataCapacity: contextWord(12),
-        readOnlyBase: contextWord(14),
-        readOnlyCapacity: contextWord(16),
-        services: runtimeLinkContext.services,
-      };
-      cursor += 18;
-      for (const field of [
-        "runtimeBase",
-        "writableBase",
-        "writableCapacity",
-        "writableStateBase",
-        "vectorBase",
-        "programDataBase",
-        "programDataCapacity",
-        "readOnlyBase",
-        "readOnlyCapacity",
-      ] as const) {
-        if (compilerContext[field] !== runtimeLinkContext[field]) {
-          throw new ProofFailure(
-            `${name}: runtime link context ${field} differs from the compiler operation`,
-          );
-        }
-      }
       if (kind === 3) {
-        sink.runtimeImage(bank, address, identity, compilerContext, count);
+        sink.runtimeImage(bank, address, identity, runtimeLinkContext, count);
       } else {
         sink.runtimeInitialImage(
           bank,
           address,
           identity,
-          compilerContext,
+          runtimeLinkContext,
           count,
         );
       }

@@ -128,30 +128,35 @@ ABI, RAM-vector and helper layout, deterministic link rules, and expected
 linked length. It does not identify one address-bound byte sequence.
 
 The operating layer owns a runtime provider keyed by `runtimeIdentity`. Before
-compilation begins, the adapter establishes the complete validated runtime link
-context. That context contains the derived runtime base, writable and vector
-state addresses, service destinations, and every data or read-only-data bound
-used by the runtime. The provider deterministically assembles or links the
-canonical source for that context, then verifies the linked length and every
-published helper offset against the identity. An unavailable source revision,
-unsupported context, identity mismatch, length mismatch, or helper-layout
-mismatch is a target-configuration diagnostic.
+it invokes that provider, the adapter establishes the complete validated
+runtime link context from the target profile and the compiler's checked
+full-width layout state. That context contains the derived runtime base,
+writable and vector state addresses, service destinations, and every data or
+read-only-data bound used by the runtime. The provider deterministically
+assembles or links the canonical source for that context, then verifies the
+linked length and every published helper offset against the identity. An
+unavailable source revision, unsupported context, identity mismatch, length
+mismatch, or helper-layout mismatch is a target-configuration diagnostic.
 
-At each derived runtime address, the compiler submits a bounded
+At each derived runtime address, the compiler submits the bank, address,
+runtime identity, and expected length to the adapter. The adapter supplies the
+validated context when it invokes the bounded
 `runtimeImage(bank, address, runtimeIdentity, linkContext, expectedLength)`
-operation. The provider streams the fully resolved bytes into the image spool
-as one or more ordinary `IMAGE` records in increasing target-address order. It
+operation. The private compiler-to-adapter handoff need not repeat the complete
+context. The provider streams the fully resolved bytes into the image spool as
+one or more ordinary `IMAGE` records in increasing target-address order. It
 must report exactly `expectedLength`. NOBJ remains non-relocatable: the emitted
 records contain no runtime relocation or link request. `runtimeImage` is a
-compiler-facing sink operation, not an NOBJ record kind.
+compiler-facing logical sink operation, not an NOBJ record kind.
 
-The companion bounded
+The adapter invokes the companion bounded
 `runtimeInitialImage(bank, address, runtimeIdentity, linkContext, expectedLength)`
-operation obtains the resolved vector table and identity-defined initial
-writable-state bytes from the same provider. It appends them at the selected
-run or ROM-load address as ordinary `IMAGE` records and likewise adds no NOBJ
-record kind. The provider verifies the vector and state lengths and layout
-against the identity before either operation appends a byte.
+operation with the same validated context. It obtains the resolved vector table
+and identity-defined initial writable-state bytes from the same provider. It
+appends them at the selected run or ROM-load address as ordinary `IMAGE`
+records and likewise adds no NOBJ record kind. The provider verifies the vector
+and state lengths and layout against the identity before either operation
+appends a byte.
 
 All banks whose complete link context is equal may use the same linked bytes.
 The banked profile gives every bank the same runtime base,

@@ -335,9 +335,11 @@ image spool as ordinary `IMAGE` records at the supplied bank and address. It
 must emit the declared runtime length and helper layout exactly. The compiler
 retains the identity and expected layout, not the runtime bytes;
 `runtimeInitialImage` selects the matching vector and fixed-state initial bytes
-for the same complete context. Neither operation adds a serialized record
-kind, and NOBJ adds no relocation record. No
-operation requires random access to an earlier compiler output byte.
+for the same complete context. The adapter may derive that context from the
+target profile and the compiler's checked full-width layout state instead of
+transporting it in every private Z80 request. Neither operation adds a
+serialized record kind, and NOBJ adds no relocation record. No operation
+requires random access to an earlier compiler output byte.
 
 The compiler retains only bounded unresolved-site metadata rather than a
 complete image or generated routine. Once a bank, address, and final replacement

@@ -467,41 +467,44 @@ ProofStart:
             LD   A,(TargetLayoutMode)
             OR   A
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedContext+$0E)
+            LD   HL,(TargetContextRoDataBase)
             LD   DE,$82D7
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+$03)
+            LD   HL,(EmitCursor)
+            LD   DE,(TargetImageBase)
+            OR   A
+            SBC  HL,DE
             LD   DE,$1048
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+$05)
+            LD   HL,(TargetReadOnlyLength)
             LD   A,H
             OR   L
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+$09)
+            LD   HL,(TargetCodeBase)
             LD   DE,$82D7
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+TargetMapWritableBase-TargetFlatMapBase)
+            LD   HL,(TargetWritableBase)
             LD   DE,$9000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+TargetMapInitializedLength-TargetFlatMapBase)
+            CALL TargetInitializedLength
             LD   DE,72
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+TargetMapDataLoadAddress-TargetFlatMapBase)
+            LD   HL,(TargetWritableBase)
             LD   DE,$9000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(AdapterCapturedMap+TargetMapAggregateBase-TargetFlatMapBase)
+            LD   HL,(TargetContextRoDataCapacity)
             LD   A,H
             OR   L
             JP   NZ,ProofLoadedFailure
@@ -679,52 +682,42 @@ ProofStart:
             LD   A,(TargetLayoutMode)
             CP   TargetLayoutRom
             JP   NZ,ProofRegionFailure
-            LD   HL,(AdapterCapturedContext+$00)
+            LD   HL,(TargetContextRuntimeBase)
             LD   DE,$8003
             OR   A
             SBC  HL,DE
             JP   NZ,ProofContextFailure
-            LD   HL,(AdapterCapturedContext+$06)
+            LD   HL,(TargetContextStateBase)
             LD   DE,$4021
             OR   A
             SBC  HL,DE
             JP   NZ,ProofContextFailure
-            LD   HL,(AdapterCapturedMap+$01)
+            LD   HL,(TargetImageBase)
             LD   DE,$8000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+$05)
+            LD   HL,(TargetReadOnlyBase)
             LD   DE,$82EF
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapWritableBase-TargetFlatMapBase)
+            LD   HL,(TargetWritableBase)
             LD   DE,$4000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapVectorLength-TargetFlatMapBase)
-            LD   DE,NucleusRuntimeVectorLength
-            OR   A
-            SBC  HL,DE
-            JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapInitializedLength-TargetFlatMapBase)
+            CALL TargetInitializedLength
             LD   DE,72
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapBssBase-TargetFlatMapBase)
+            LD   HL,(TargetBssBase)
             LD   DE,$4048
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapStackRequirement-TargetFlatMapBase)
-            LD   DE,TargetStackRequirement
-            OR   A
-            SBC  HL,DE
-            JP   NZ,ProofMapFailure
-            LD   HL,(AdapterCapturedMap+TargetMapDataLoadAddress-TargetFlatMapBase)
+            LD   HL,(TargetReadOnlyBase)
             LD   DE,$82EF
             OR   A
             SBC  HL,DE
@@ -741,10 +734,6 @@ ProofStart:
             LD   C,L
             LD   HL,AdapterLogBase
             LD   DE,AdapterSuccessLogBase
-            LDIR
-            LD   HL,AdapterCapturedMap
-            LD   DE,AdapterSuccessMap
-            LD   BC,TargetMapSize
             LDIR
 
             XOR  A
@@ -768,10 +757,6 @@ ProofStart:
             LD   HL,AdapterLogBase
             LD   DE,AdapterTrapLogBase
             LDIR
-            LD   HL,AdapterCapturedMap
-            LD   DE,AdapterTrapMap
-            LD   BC,TargetMapSize
-            LDIR
 
             XOR  A
             LD   (AdapterCommitted),A
@@ -793,10 +778,6 @@ ProofStart:
             LD   C,L
             LD   HL,AdapterLogBase
             LD   DE,AdapterUnhandledLogBase
-            LDIR
-            LD   HL,AdapterCapturedMap
-            LD   DE,AdapterUnhandledMap
-            LD   BC,TargetMapSize
             LDIR
 
             LD   A,(DiagnosticCode)
@@ -1121,14 +1102,14 @@ TargetSinkImageByteReserveFailure:
             SCF
             RET
 
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in A,BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkRuntimeImage:
             PUSH AF
             LD   A,3
             LD   (AdapterRuntimeKind),A
             POP  AF
             JR   TargetSinkRuntimeSelected
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in A,BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkRuntimeInitialImage:
             PUSH AF
             LD   A,4
@@ -1139,15 +1120,13 @@ TargetSinkRuntimeSelected:
             LD   (AdapterRuntimeLength),BC
             LD   (AdapterRuntimeIdentity),DE
             LD   (AdapterRuntimeAddress),HL
-            LD   (AdapterRuntimeContext),IX
-            LD   A,8+TargetContextSize
+            LD   A,8
             CALL AdapterReserve
             RET  C
             LD   A,(AdapterRuntimeBank)
             LD   BC,(AdapterRuntimeLength)
             LD   DE,(AdapterRuntimeIdentity)
             LD   HL,(AdapterRuntimeAddress)
-            LD   IX,(AdapterRuntimeContext)
             LD   A,(AdapterRuntimeKind)
             LD   (IY+0),A
             LD   A,(AdapterRuntimeBank)
@@ -1158,25 +1137,6 @@ TargetSinkRuntimeSelected:
             LD   (IY+5),B
             LD   (IY+6),E
             LD   (IY+7),D
-            LD   (AdapterRuntimeLog),IY
-            PUSH IY
-            POP  HL
-            LD   DE,8
-            ADD  HL,DE
-            EX   DE,HL
-            PUSH IX
-            POP  HL
-            LD   BC,TargetContextSize
-            LDIR
-            LD   IY,(AdapterRuntimeLog)
-            PUSH IY
-            POP  HL
-            LD   DE,8
-            ADD  HL,DE
-            LD   DE,AdapterCapturedContext
-            LD   BC,TargetContextSize
-            LDIR
-            LD   IY,(AdapterRuntimeLog)
             OR   A
             RET
 
@@ -1242,7 +1202,7 @@ TargetSinkPatchWordFailure:
             POP  IY
             RET
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IY
+.routine out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkMapFlat:
             LD   A,(AdapterMapFailure)
             OR   A
@@ -1251,14 +1211,6 @@ TargetSinkMapFlat:
             SCF
             RET
 TargetSinkMapReady:
-            LD   HL,AdapterCapturedMap
-            LD   B,TargetMapSize
-TargetSinkMapCopy:
-            LD   A,(IX+0)
-            LD   (HL),A
-            INC  IX
-            INC  HL
-            DJNZ TargetSinkMapCopy
             OR   A
             RET
 
@@ -1368,7 +1320,6 @@ AdapterMapFailure:       .db 0
 AdapterCommitFailure:    .db 0
 AdapterSavedDiagnostic:  .db 0
 AdapterCapturedBegin:   .ds TargetDescriptorSize
-AdapterCapturedContext: .ds TargetContextSize
 AdapterCapturedBankCursors: .ds TargetBankCapacity*2
 AdapterCapturedBank0Cursor .equ AdapterCapturedBankCursors
 AdapterCapturedBank1Cursor .equ AdapterCapturedBankCursors+2
@@ -1379,27 +1330,16 @@ AdapterCapturedBankRoLengths: .ds TargetBankCapacity*2
 AdapterCapturedBank0RoLength .equ AdapterCapturedBankRoLengths
 AdapterCapturedBank1RoLength .equ AdapterCapturedBankRoLengths+2
 AdapterMapRoPointer: .dw 0
-AdapterCapturedMap:     .ds TargetMapSize
 AdapterCapturedBankedMapLength: .dw 0
 AdapterCapturedBankedMap: .ds 1
-AdapterSuccessMap:      .ds TargetMapSize
-AdapterTrapMap:         .ds TargetMapSize
-AdapterUnhandledMap:    .ds TargetMapSize
-AdapterTrapUsedLength       .equ AdapterTrapMap+$03
-AdapterTrapCodeLength       .equ AdapterTrapMap+$0B
-AdapterUnhandledUsedLength  .equ AdapterUnhandledMap+$03
-AdapterUnhandledCodeLength  .equ AdapterUnhandledMap+$0B
-AdapterCapturedRuntimeBase .equ AdapterCapturedContext+$00
-AdapterCapturedStateBase   .equ AdapterCapturedContext+$06
-AdapterCapturedUsedLength  .equ AdapterCapturedMap+$03
-AdapterCapturedCodeLength  .equ AdapterCapturedMap+$0B
+AdapterCapturedRuntimeBase .equ TargetContextRuntimeBase
+AdapterCapturedStateBase   .equ TargetContextStateBase
 AdapterRuntimeBank:     .db 0
 AdapterRuntimeKind:     .db 0
 AdapterRuntimeLength:   .dw 0
 AdapterRuntimeIdentity: .dw 0
 AdapterRuntimeAddress:  .dw 0
-AdapterRuntimeContext:  .dw 0
-AdapterRuntimeLog:      .dw 0
+AdapterRuntimeContext:  .dw TargetRuntimeContext
 AdapterRuntimeContextPointer .equ AdapterRuntimeContext
 ProofEnd:
 

@@ -333,7 +333,6 @@ TargetEmitRuntimeImage:
 TargetEmitRuntimeProvider:
             PUSH BC
             LD   DE,NucleusRuntimeIdentity
-            LD   IX,TargetRuntimeContext
             JR   C,TargetEmitRuntimeProviderCode
             CALL TargetSinkRuntimeInitialImage
             JR   TargetEmitRuntimeProviderReady
@@ -784,59 +783,6 @@ FinishTargetFlatProgram:
             JP   C,AbortTargetProgram
 .endif
 TargetLoadedDataReady:
-            ; Lowering may leave the current output-bank selector nonzero.
-            ; Flat MAP publication always names bank zero, and no further
-            ; lowering uses the selector after this point.
-            XOR  A
-            LD   (TargetMapEntryBank),A
-            LD   (TargetMapDataLoadBank),A
-            ; The runtime context's read-only pair is already the final
-            ; aggregate pair. MAP requires a canonical zero base at zero
-            ; length; the provider no longer needs the original base.
-            LD   HL,(TargetMapAggregateLength)
-            LD   A,H
-            OR   L
-            JR   NZ,TargetMapAggregateReady
-            LD   (TargetMapAggregateBase),HL
-TargetMapAggregateReady:
-            LD   HL,(EmitCursor)
-            LD   DE,(TargetImageBase)
-            OR   A
-            SBC  HL,DE
-            LD   (TargetMapUsedLength),HL
-            ; Entry, code, writable, and capacity fields were written once
-            ; during planning. Only zero-length read-only publication needs
-            ; final canonicalization.
-            LD   HL,(TargetMapReadOnlyLength)
-            LD   A,H
-            OR   L
-            JR   NZ,TargetMapReadOnlyReady
-            LD   (TargetMapReadOnlyBase),HL
-TargetMapReadOnlyReady:
-            LD   HL,(TargetWritableBase)
-            LD   (TargetMapInitializedBase),HL
-            LD   (TargetMapVectorBase),HL
-            ; Select the load source before later MAP fields overwrite the
-            ; retained layout mode and provider context.
-            LD   A,(TargetLayoutMode)
-            OR   A
-            JR   Z,TargetMapDataLoadReady
-            LD   HL,(TargetReadOnlyBase)
-TargetMapDataLoadReady:
-            LD   (TargetMapDataLoadAddress),HL
-            ; Writable capacity is already in its final MAP cell.
-            LD   HL,NucleusRuntimeVectorLength
-            LD   (TargetMapVectorLength),HL
-            CALL TargetInitializedLength
-            LD   (TargetMapInitializedLength),HL
-            LD   (TargetMapDataLoadLength),HL
-            LD   HL,(TargetBssBase)
-            LD   (TargetMapBssBase),HL
-            LD   HL,(ProgramBssLength)
-            LD   (TargetMapBssLength),HL
-            LD   HL,TargetStackRequirement
-            LD   (TargetMapStackRequirement),HL
-            LD   IX,TargetFlatMapBase
             CALL TargetSinkMapFlat
 TargetFinishMapReady:
             JR   C,TargetFinishOutputFailure

@@ -13,7 +13,7 @@
     { "at": "ProofStatus", "width": "u8", "equals": 165 },
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
-    { "at": "AdapterEntry1LogLength", "width": "u16", "equals": 879 }
+    { "at": "AdapterEntry1LogLength", "width": "u16", "equals": 825 }
   ],
   "extents": [
     {

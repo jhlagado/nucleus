@@ -12,7 +12,7 @@
   "observations": [
     { "at": "ProofStatus", "width": "u8", "equals": 165 },
     { "at": "ProofCase", "width": "u8", "equals": 0 },
-    { "at": "AdapterChapter21LogLength", "width": "u16", "equals": 7446 }
+    { "at": "AdapterChapter21LogLength", "width": "u16", "equals": 7410 }
   ],
   "extents": [
     {

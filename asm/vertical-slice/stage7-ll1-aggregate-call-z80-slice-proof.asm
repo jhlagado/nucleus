@@ -2,6 +2,7 @@
 
             .include "memory-map.asmi"
 SegmentedOutput .equ 1
+TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "aggregate-call-state.asmi"
             .include "loop-z80-state.asmi"
@@ -11,7 +12,6 @@ CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
 Stage7LL1            .equ 1
-TargetStreamingOutput .equ 0
 SourceAdapterCodeStart:
             .include "source-adapter.asm"
 SourceAdapterCodeEnd:

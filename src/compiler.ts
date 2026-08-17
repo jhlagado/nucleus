@@ -377,53 +377,72 @@ const prepareTarget = (
 
 const capturedMap = (
   memory: Uint8Array,
-  base: number,
-  romMode: boolean,
-  establishStack: boolean,
+  symbols: Readonly<Record<string, number>>,
+  begin: NobjBegin,
+  target: NucleusFlatTarget,
   partBanks: readonly number[],
-): NobjMap => ({
-  romMode,
-  establishedStack: establishStack,
-  entryBank: memory[base] ?? 0,
-  entryAddress: readWord(memory, base + 1),
-  writableBase: readWord(memory, base + 13),
-  writableCapacity: readWord(memory, base + 15),
-  vectorBase: readWord(memory, base + 17),
-  vectorLength: readWord(memory, base + 19),
-  initializedRunBase: readWord(memory, base + 21),
-  initializedRunLength: readWord(memory, base + 23),
-  bssBase: readWord(memory, base + 25),
-  bssLength: readWord(memory, base + 27),
-  stackRequirement: readWord(memory, base + 29),
-  dataLoadBank: memory[base + 31] ?? 0,
-  dataLoadAddress: readWord(memory, base + 32),
-  dataLoadLength: readWord(memory, base + 34),
-  partBanks,
-  banks: [
-    {
-      usedLength: readWord(memory, base + 3),
-      readOnlyBase: readWord(memory, base + 5),
-      readOnlyLength: readWord(memory, base + 7),
-      aggregateConstantBase: readWord(memory, base + 36),
-      aggregateConstantLength: readWord(memory, base + 38),
-    },
-  ],
-});
+): NobjMap => {
+  const address = (name: string): number => symbol(symbols, name);
+  const value = (name: string): number => readWord(memory, address(name));
+  const romMode = flatTargetUsesRomMode(target);
+  const vectorLength = address("NucleusRuntimeVectorLength");
+  const stateLength = address("NucleusRuntimeStateLength");
+  const staticLength = value("StaticImageLength");
+  const initializedLength = vectorLength + stateLength + staticLength;
+  const readOnlyLength = value("TargetReadOnlyLength");
+  const aggregateLength = value("TargetContextRoDataCapacity");
+  return {
+    romMode,
+    establishedStack: target.establishStack !== false,
+    entryBank: 0,
+    entryAddress: begin.imageBase,
+    writableBase: value("TargetWritableBase"),
+    writableCapacity: value("TargetWritableCapacity"),
+    vectorBase: value("TargetWritableBase"),
+    vectorLength,
+    initializedRunBase: value("TargetWritableBase"),
+    initializedRunLength: initializedLength,
+    bssBase: value("TargetBssBase"),
+    bssLength: value("ProgramBssLength"),
+    stackRequirement: address("TargetStackRequirement"),
+    dataLoadBank: 0,
+    dataLoadAddress: romMode
+      ? value("TargetReadOnlyBase")
+      : value("TargetWritableBase"),
+    dataLoadLength: initializedLength,
+    partBanks,
+    banks: [
+      {
+        usedLength: (value("EmitCursor") - begin.imageBase) & 0xffff,
+        readOnlyBase: readOnlyLength === 0 ? 0 : value("TargetReadOnlyBase"),
+        readOnlyLength,
+        aggregateConstantBase:
+          aggregateLength === 0 ? 0 : value("TargetContextRoDataBase"),
+        aggregateConstantLength: aggregateLength,
+      },
+    ],
+  };
+};
 
 const capturedContext = (
-  memory: Uint8Array,
-  base: number,
+  map: NobjMap,
+  begin: NobjBegin,
+  staticLength: number,
   services: RuntimeServiceAddresses,
 ): RuntimeLinkContext => ({
-  runtimeBase: readWord(memory, base),
-  writableBase: readWord(memory, base + 2),
-  writableCapacity: readWord(memory, base + 4),
-  writableStateBase: readWord(memory, base + 6),
-  vectorBase: readWord(memory, base + 8),
-  programDataBase: readWord(memory, base + 10),
-  programDataCapacity: readWord(memory, base + 12),
-  readOnlyBase: readWord(memory, base + 14),
-  readOnlyCapacity: readWord(memory, base + 16),
+  runtimeBase: begin.imageBase + 3,
+  writableBase: map.writableBase,
+  writableCapacity: map.writableCapacity,
+  writableStateBase: map.vectorBase + map.vectorLength,
+  vectorBase: map.vectorBase,
+  programDataBase: map.bssBase - staticLength,
+  programDataCapacity: staticLength + map.bssLength,
+  readOnlyBase: map.banks.length === 1
+    ? map.banks[0]?.aggregateConstantBase ?? 0
+    : 0,
+  readOnlyCapacity: map.banks.length === 1
+    ? map.banks[0]?.aggregateConstantLength ?? 0
+    : 0,
   services,
 });
 
@@ -618,14 +637,15 @@ export const compileNucleus = async (
     ? capturedBankedMap(memory, image.symbols, begin, target, partBanks)
     : capturedMap(
         memory,
-        symbol(image.symbols, "AdapterCapturedMap"),
-        flatTargetUsesRomMode(target),
-        target.establishStack !== false,
+        image.symbols,
+        begin,
+        target,
         partBanks,
       );
   const runtimeLinkContext = capturedContext(
-    memory,
-    symbol(image.symbols, "AdapterCapturedContext"),
+    map,
+    begin,
+    readWord(memory, symbol(image.symbols, "StaticImageLength")),
     target.services ?? defaultNucleusServices,
   );
   const adapterImages: NobjAdapterImageByte[] | undefined =

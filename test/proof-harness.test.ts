@@ -20,15 +20,15 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(998_629);
-    expect(outcome.cycles).toBe(10_601_849);
+    expect(outcome.instructions).toBe(996_194);
+    expect(outcome.cycles).toBe(10_544_562);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_697 },
+      { name: "compiler-code", bytes: 15_595 },
       { name: "compiler-immutable", bytes: 428 },
-      { name: "compiler-core", bytes: 16_125 },
+      { name: "compiler-core", bytes: 16_023 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
-      { name: "proof-code-and-data", bytes: 2_487 },
+      { name: "proof-code-and-data", bytes: 2_192 },
     ]);
     expect(outcome.nobj?.parsed.begin.runtimeIdentity).toBe(8);
     expect(outcome.nobj?.parsed.map.entryAddress).toBe(0x8000);
@@ -103,16 +103,16 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(1_002_420);
-    expect(outcome.cycles).toBe(10_643_640);
+    expect(outcome.instructions).toBe(999_985);
+    expect(outcome.cycles).toBe(10_586_353);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_753 },
+      { name: "compiler-code", bytes: 15_651 },
       { name: "compiler-immutable", bytes: 428 },
-      { name: "compiler-core", bytes: 16_181 },
-      { name: "instrumented-core-gap", bytes: 8_395 },
+      { name: "compiler-core", bytes: 16_079 },
+      { name: "instrumented-core-gap", bytes: 8_497 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
-      { name: "proof-code-and-data", bytes: 2_489 },
+      { name: "proof-code-and-data", bytes: 2_194 },
     ]);
   }, 30_000);
 
