@@ -1038,13 +1038,30 @@ The representative proof changes from 876,569 to 876,576 instructions and from
 code, semantic transcripts, diagnostics, artifacts, historical layouts, and
 relocation remain unchanged.
 
+### Seventh audit control, typed-tail, and scanner-state checkpoint
+
+Three Stage 8 handler emissions now enter the existing control operation-plus-
+label helper. Unary-plus validation tail-jumps to its integer predicate, and
+the typed end-routine entry shares the existing structured-fixup success tail.
+The tokenizer removes two redundant zero/flag repairs and reads the adjacent
+line-token and delimiter-depth bytes as one full-width word. A permanent proof
+asserts that adjacency.
+
+The control helper recovers seven production code bytes. The typed tails and
+scanner-state paths each recover three under the revised threshold. Together
+they reduce the production core from 15,548 to 15,535 bytes, with immutable
+data and workspace unchanged. The representative proof changes from 876,576
+to 876,715 instructions while improving from 9,566,852 to 9,566,154 T-states.
+Exact tokenizer flags, handler transcripts, generated code, diagnostics,
+artifacts, historical layouts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the sixth audit checkpoint added to the retained work above, the measured
-shipping core is 15,548 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,132 bytes. The earlier 15,360-byte target is 188 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 941 bytes,
-exceeding that phase target by 641 bytes.
+With the seventh audit checkpoint added to the retained work above, the
+measured shipping core is 15,535 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,145 bytes. The earlier 15,360-byte target is 175 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 954 bytes,
+exceeding that phase target by 654 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates of three bytes or more. The search continues in the selected

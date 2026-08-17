@@ -58,6 +58,8 @@ StructuredRecordFixup:
             LD   (HL),D
             LD   HL,EmitControlFixupCount
             INC  (HL)
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TypedEndRoutine:
             XOR  A
             RET
 StructuredFixupFailure:

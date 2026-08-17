@@ -341,8 +341,9 @@ TokenizerAtEof:
             JR   NZ,TokenizerAdvancePart
 .if TargetStreamingOutput
             AND  SourcePartsRemainingMask
-.endif
+.else
             OR   A
+.endif
             JR   Z,TokenizerAtCompilationEof
             LD   A,(SourceLineHasToken)
             OR   A
@@ -375,7 +376,7 @@ TokenizerClearLineAndReturnNewline:
             INC  A                       ; TokenNewline
             RET
 TokenizerEmitEof:
-            XOR  A                       ; TokenEof
+            ; The line-token test reaches this label with A already zero.
             RET
 
 TokenizerLineLexicalFailure:
@@ -400,10 +401,11 @@ TokenizerFinishLine:
 .else
             CALL SourceFinishLine
 .endif
-            LD   A,(SourceDelimiterDepth)
+            LD   HL,(SourceLineHasToken)
+            LD   A,H                     ; SourceDelimiterDepth
             OR   A
             JR   NZ,TokenizerNextLoop
-            LD   A,(SourceLineHasToken)
+            LD   A,L
             OR   A
             JR   Z,TokenizerNextLoop
             JR   TokenizerClearLineAndReturnNewline

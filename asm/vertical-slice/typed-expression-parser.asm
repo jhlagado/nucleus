@@ -1220,11 +1220,7 @@ TypedUnaryPlus:
             RET  C
 .endif
 .endif
-            CALL TypedRequireIntegerMeta
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            RET
+            JP   TypedRequireIntegerMeta
 TypedUnaryMinus:
             CALL TypedUnaryPlus
 .if CompilerDiagnosticReturns

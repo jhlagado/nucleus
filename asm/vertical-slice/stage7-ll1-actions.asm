@@ -1259,15 +1259,15 @@ Stage8HandlerCounterReady:
             JP   NZ,TypedTypeFailure
             LD   B,ControlFrameExit
             CALL HybridLL1TopFrameFieldToC
-            LD   A,SemanticSkipHandler
-            CALL Stage8EmitOperationLabel
+            LD   D,SemanticSkipHandler
+            CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   B,ControlFrameLabelA
             CALL HybridLL1TopFrameFieldToC
-            LD   A,SemanticBeginHandler
-            CALL Stage8EmitOperationLabel
+            LD   D,SemanticBeginHandler
+            CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1291,15 +1291,6 @@ HybridLL1BeginHandlePayloadReady:
 .endif
             JP   HybridLL1SetFallsThrough
 
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-Stage8EmitOperationLabel:
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,C
-            JP   SemanticSinkPut
-
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndHandle:
 .if TargetStreamingOutput
@@ -1309,8 +1300,8 @@ HybridLL1EndHandle:
 .endif
             LD   B,ControlFrameExit
             CALL HybridLL1TopFrameFieldToC
-            LD   A,SemanticEndHandler
-            CALL Stage8EmitOperationLabel
+            LD   D,SemanticEndHandler
+            CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
 .endif

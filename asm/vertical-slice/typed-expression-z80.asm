@@ -1076,11 +1076,6 @@ TypedReturnScalar:
             CALL EmitByteInline
             .db  $C9
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-TypedEndRoutine:
-            XOR  A
-            RET
-
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedPushBooleanFixup:
             LD   HL,EmitBooleanFixupDepth
