@@ -167,15 +167,27 @@ TypedExpressionStackFull:
             .db  DiagnosticExpressionCapacity
 
 ; Store A/HL as the pending left result before pushing it.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedSaveLeft:
+.if AggregateCallSlices
+            CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.endif
             LD   (ExpressionLeftMeta),A
             LD   (ExpressionLeftValue),HL
             JR   TypedExpressionPush
 
 ; Save the right result, then restore the most recent left result.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedRestoreOperands:
+.if AggregateCallSlices
+            CALL TypedRequireComposable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.endif
             LD   (ExpressionRightMeta),A
             LD   (ExpressionRightValue),HL
             ; Every reduction follows TypedSaveLeft. Keep the defensive test so
@@ -383,10 +395,9 @@ TypedBothConstant:
             AND  ScalarMetaConstant
             RET
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+.routine in C,HL out BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedMaskResultWidth:
-            LD   A,C
-            BIT  1,A
+            BIT  1,C
             RET  NZ
             LD   H,0
             RET
@@ -394,8 +405,7 @@ TypedMaskResultWidth:
 ; Emit a width-selected binary operation. D=u8 ordinal, E=u16 ordinal.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitWidthOperation:
-            LD   A,C
-            BIT  1,A
+            BIT  1,C
             LD   A,D
             JR   Z,TypedEmitWidthSelected
             LD   A,E
@@ -548,8 +558,7 @@ TypedReduceDivisionSelect:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,C
-            BIT  1,A
+            BIT  1,C
             LD   A,$40
             JR   NZ,TypedReduceDivisionSignedMode
             LD   A,$C0
@@ -598,8 +607,7 @@ TypedReduceDivideFold:
             LD   A,C
             AND  ScalarTypeSignedFlag
             JR   Z,TypedReduceDivideUnsignedReady
-            LD   A,C
-            BIT  1,A
+            BIT  1,C
             JR   NZ,TypedReduceDivideSignedReady
             BIT  7,L
             JR   Z,TypedReduceDivideSignedRight8
@@ -800,15 +808,13 @@ TypedPrimaryNameResolved:
             JR   Z,TypedPrimaryProgramName
             CP   SymbolClassParameter
             JR   Z,TypedPrimaryParameterName
-            LD   A,E
-            BIT  1,A
+            BIT  1,E
             LD   A,SemanticLoadLocalU8
             JR   Z,TypedPrimaryEmitLoad
             LD   A,SemanticLoadLocal16
             JR   TypedPrimaryEmitLoad
 TypedPrimaryProgramName:
-            LD   A,E
-            BIT  1,A
+            BIT  1,E
             LD   A,SemanticLoadProgramU8
             JR   Z,TypedPrimaryProgramSelected
             LD   A,SemanticLoadProgram16
@@ -828,8 +834,7 @@ TypedPrimaryProgramSelected:
             JR   TypedPrimaryEmitLoad
 .endif
 TypedPrimaryParameterName:
-            LD   A,E
-            BIT  1,A
+            BIT  1,E
             LD   A,SemanticLoadParameter8
             JR   Z,TypedPrimaryEmitLoad
             LD   A,SemanticLoadParameter16
@@ -961,21 +966,6 @@ TypedRequireComposable:
             LD   A,C
             RET
 
-.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedComposableSaveLeft:
-            CALL TypedRequireComposable
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JP   TypedSaveLeft
-
-.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedComposableRestoreOperands:
-            CALL TypedRequireComposable
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JP   TypedRestoreOperands
 .endif
 TypedPrimaryParen:
             CALL TypedParseOr
@@ -1381,11 +1371,7 @@ TypedMultiplicativeOperator:
             LD   (ExpressionOperatorOffset),HL
             POP  HL
             POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
             CALL TypedSaveLeft
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1393,11 +1379,7 @@ TypedMultiplicativeOperator:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
             CALL TypedRestoreOperands
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1441,11 +1423,7 @@ TypedAdditiveOperator:
             JR   C,TypedAdditivePeekFailure
 .endif
             POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
             CALL TypedSaveLeft
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1453,11 +1431,7 @@ TypedAdditiveOperator:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
             CALL TypedRestoreOperands
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1522,11 +1496,7 @@ TypedParseComparison:
 .endif
             POP  HL
             POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
             CALL TypedSaveLeft
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1534,11 +1504,7 @@ TypedParseComparison:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
             CALL TypedRestoreOperands
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1610,8 +1576,7 @@ TypedComparisonInteger:
             LD   A,SemanticCompare16
             JR   TypedComparisonEmit
 TypedComparisonSigned:
-            LD   A,D
-            BIT  1,A
+            BIT  1,D
             LD   D,$80                    ; signed word selector flag
             JR   NZ,TypedComparisonSignedReady
             LD   D,$C0                    ; signed byte selector flag
@@ -1638,8 +1603,7 @@ TypedComparisonEmit:
             LD   A,C
             AND  ScalarTypeSignedFlag
             JR   Z,TypedComparisonConstantSubtract
-            LD   A,C
-            BIT  1,A
+            BIT  1,C
             JR   Z,TypedComparisonConstantSigned8
             LD   A,H
             XOR  $80
@@ -1794,11 +1758,7 @@ TypedAndLoop:
             JP   C,TypedBooleanPeekFailure
 .endif
             POP  AF
-.if AggregateCallSlices
-            CALL TypedComposableSaveLeft
-.else
             CALL TypedSaveLeft
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1816,11 +1776,7 @@ TypedAndParseRight:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
             CALL TypedRestoreOperands
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1892,11 +1848,7 @@ TypedOrParseRight:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if AggregateCallSlices
-            CALL TypedComposableRestoreOperands
-.else
             CALL TypedRestoreOperands
-.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1932,8 +1884,7 @@ TypedBeginSuppression:
             LD   A,(ExpressionLeftMeta)
             AND  ScalarMetaConstant
             RET  Z
-            LD   HL,(ExpressionLeftValue)
-            LD   A,L
+            LD   A,(ExpressionLeftValue)
             XOR  C
             RET  NZ
             LD   HL,ExpressionSuppressFault
@@ -1953,29 +1904,18 @@ TypedReduceBoolean:
             CALL TypedBothConstant
             LD   A,ScalarTypeBoolean
             RET  Z
-            LD   HL,(ExpressionLeftValue)
-            LD   A,L
-            OR   H
-            LD   C,A
+            LD   HL,ExpressionRightValue
             LD   A,(ExpressionOperator)
             CP   TokenAnd
-            JR   Z,TypedBooleanAndSelect
-            LD   A,C
-            OR   A
-            JR   NZ,TypedBooleanTrue
-            JR   TypedBooleanRight
-TypedBooleanAndSelect:
-            LD   A,C
-            OR   A
-            JR   Z,TypedBooleanFalse
-TypedBooleanRight:
-            LD   HL,(ExpressionRightValue)
-            JR   TypedBooleanConstant
-TypedBooleanFalse:
-            LD   HL,0
-            JR   TypedBooleanConstant
-TypedBooleanTrue:
-            LD   HL,1
+            LD   A,(ExpressionLeftValue)
+            JR   Z,TypedBooleanConstantAnd
+            OR   (HL)
+            JR   TypedBooleanConstantReady
+TypedBooleanConstantAnd:
+            AND  (HL)
+TypedBooleanConstantReady:
+            LD   L,A
+            LD   H,0
 TypedBooleanConstant:
             LD   A,ScalarMetaConstant+ScalarTypeBoolean
             OR   A
@@ -2043,18 +1983,19 @@ TypedExpressionBeginRuntime:
             XOR  A
             LD   (Stage8DirectFailable),A
             LD   (Stage8RetainedCarriers),A
-.endif
+            INC  A
+.else
             LD   A,1
-            LD   (ExpressionEmitEnabled),A
-            XOR  A
-            LD   (ExpressionSuppressFault),A
-            LD   (ExpressionStackDepth),A
-            JP   TypedParseOr
+.endif
+            JR   TypedExpressionBeginReset
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedExpressionBeginConstant:
             LD   (ExpressionExpectedType),A
             XOR  A
+.routine in A out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedExpressionBeginReset:
             LD   (ExpressionEmitEnabled),A
+            XOR  A
             LD   (ExpressionSuppressFault),A
             LD   (ExpressionStackDepth),A
             JP   TypedParseOr
@@ -2099,9 +2040,8 @@ TypedTypeBoolean:  LD A,ScalarTypeBoolean
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedTypeWidth:
-            BIT  1,A
-            LD   A,1
-            RET  Z
+            AND  2
+            RRCA
             INC  A
             RET
 

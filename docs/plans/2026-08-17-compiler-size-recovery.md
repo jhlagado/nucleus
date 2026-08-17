@@ -536,15 +536,31 @@ Relocation passes at `$0100`, `$8000`, and the highest-fitting origin; the Host
 derivation reads complete 16-bit values through the generated symbol map rather
 than assuming a compiler origin or fixed workspace address.
 
+### Typed-expression native cleanup
+
+Runtime and constant expression entry points now share one state-reset tail.
+Width selection tests the existing type bit directly, constant Boolean `and`
+and `or` operate on their canonical byte values, and suppression reads the
+same retained byte without a redundant word load. The composability check now
+runs in the common save and restore entries used by every binary layer, which
+removes the two forwarding wrappers without moving the check past a state write
+or semantic emission.
+
+The checkpoint recovers 45 code bytes with immutable data and workspace
+unchanged. The production core is 15,978 bytes. The worst measured proof
+increases by 0.019 percent in T-states, while the production flat proof executes
+261 fewer T-states. Exact constant/runtime semantics, signed arithmetic, open
+views, nested arrays, diagnostics, NOBJ, D8, and generated artifacts pass.
+Relocation passes at `$0100`, `$8000`, and the highest-fitting origin; no type,
+value, source position, or code address is shortened.
+
 ### Current recovery outlook
 
-After the scanner, comparison, expression-frame, action cleanup, reset, backend,
-symbol, descriptor, provider, relative-branch, aggregate-metadata, Stage 7 tail,
-semantic/fixup, diagnostic/parser, target-output, and compiler/adapter
-checkpoints, the measured shipping core is 16,023 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 657 bytes. The earlier
-15,360-byte target is 663 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 466 bytes, exceeding that phase target by 166 bytes.
+With the typed-expression cleanup applied after the retained checkpoints above,
+the measured shipping core is 15,978 bytes. Total measured recovery from the
+frozen 16,680-byte compiler is 702 bytes. The earlier 15,360-byte target is 618
+bytes away. The 300-byte phase began at 16,489 bytes and has recovered 511
+bytes, exceeding that phase target by 211 bytes.
 
 The plateau count is zero of three because the first two fresh subsystem
 searches after the preceding checkpoint each found a candidate above five
