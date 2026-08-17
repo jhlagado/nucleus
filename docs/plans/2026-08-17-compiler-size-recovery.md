@@ -662,13 +662,30 @@ diagnostic, NOBJ, and D8 behavior passes. Relocation passes at `$0100`, `$8000`,
 and the highest-fitting origin; every source position and code address remains
 a full 16-bit value.
 
+### Lookahead and source-take dataflow
+
+`ParserPeek` now tests the `$FF` empty sentinel by incrementing it and restores
+every buffered token ordinal with the matching decrement. The buffered path
+loads its word payload once, while the refill path returns the tokenizer's
+published token and flags directly after saving the new lookahead. `SourceTake`
+likewise returns the flags already established by `SourcePeek`; its intervening
+word address and position updates do not alter them.
+
+The checkpoint recovers seven code bytes with immutable data and workspace
+unchanged. The production core is 15,824 bytes. The representative proof
+executes 4,407 fewer instructions and 57,731 fewer T-states, improvements of
+0.45 and 0.55 percent. Exact buffered and refill tokens, payloads, diagnostics,
+multipart input, historical layouts, semantic transcripts, NOBJ, and D8
+behavior passes. Relocation passes at `$0100`, `$8000`, and the highest-fitting
+origin; token payloads, source positions, and code addresses remain full-width.
+
 ### Current recovery outlook
 
-With scanner return-tail consolidation added to the retained
-checkpoints above, the measured shipping core is 15,831 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 849 bytes. The earlier
-15,360-byte target is 471 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 658 bytes, exceeding that phase target by 358 bytes.
+With lookahead and source-take dataflow cleanup added to the retained
+checkpoints above, the measured shipping core is 15,824 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 856 bytes. The earlier
+15,360-byte target is 464 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 665 bytes, exceeding that phase target by 365 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

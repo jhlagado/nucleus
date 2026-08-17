@@ -87,7 +87,6 @@ SourceTake:
             LD   HL,(SourceColumn)
             INC  HL
             LD   (SourceColumn),HL
-            OR   A
             RET
 
 .if AggregateCallSlices

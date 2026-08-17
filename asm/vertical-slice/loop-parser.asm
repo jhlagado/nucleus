@@ -93,8 +93,13 @@ ParserExpect:
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
             LD   A,(ParserLookaheadKind)
-            CP   $FF
-            JR   NZ,ParserPeekBuffered
+            INC  A
+            JR   Z,ParserPeekEmpty
+            DEC  A
+            LD   BC,(ParserLookaheadValue)
+            OR   A
+            RET
+ParserPeekEmpty:
             PUSH HL
             CALL TokenizerNext
             POP  HL
@@ -103,12 +108,6 @@ ParserPeek:
 .endif
             LD   (ParserLookaheadKind),A
             LD   (ParserLookaheadValue),BC
-            LD   A,(ParserLookaheadKind)
-            RET
-ParserPeekBuffered:
-            LD   BC,(ParserLookaheadValue)
-            LD   A,(ParserLookaheadKind)
-            OR   A
             RET
 
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
