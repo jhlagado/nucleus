@@ -192,6 +192,17 @@ but it is not yet selected for production. The broader expression bakeoff
 continues toward its measured 3,500-byte gate. The next experiment targets
 repeated operator/type resolution without changing the semantic transcript.
 
+Three follow-up expression experiments are rejected. Removing the second
+integer-pair resolution from runtime emission recovered only a projected five
+bytes after Boolean paths and carrier-promotion state were included. Dense
+operator classification could not beat the existing 24-byte finder plus
+28-byte table once the four disjoint token ranges and precedence derivation
+were counted. A 16-entry integer compatibility matrix passed strict assembly
+and exhaustive ordered-pair proofs, but the measured result reduced code by 20
+bytes while adding 16 immutable bytes. The four-byte net saving did not justify
+the extra representation, so the experiment was reverted. None of these
+figures is included in production headroom.
+
 ### Declaration, statement, and control decision
 
 The complete rewrite family measures 7,324 bytes against 5,861 bytes for the
