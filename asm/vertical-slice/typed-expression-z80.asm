@@ -235,13 +235,11 @@ TypedDefine8:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDefine16:
-            CALL NextSemanticByte
-            CALL EmitByte
+            CALL TypedDefine8
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL NextSemanticByte
-            JP   EmitByte
+            JR   TypedDefine8
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBeginMain:
@@ -266,12 +264,8 @@ TypedDeclare8:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TypedDeclare16:
-            CALL TypedDeclare8
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL EmitByteInline
-            .db  $3B
+            XOR  A                       ; EmitPairDecSp2
+            JP   EmitPairIndexed
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedLiteral16:

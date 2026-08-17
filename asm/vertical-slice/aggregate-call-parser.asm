@@ -1419,7 +1419,7 @@ Stage7ParseScalarArgument:
 .if CompilerDiagnosticBranches
             JR   C,Stage7ScalarArgumentFailure
 .endif
-            LD   (Stage7PathType),A
+            LD   (ExpressionRightMeta),A
             LD   (ExpressionRightValue),HL
             POP  DE
             POP  BC
@@ -1428,13 +1428,7 @@ Stage7ParseScalarArgument:
             LD   A,B
             LD   (ExpressionExpectedType),A
             LD   E,D
-            LD   A,(Stage7PathType)
-            LD   HL,(ExpressionRightValue)
-            CALL TypedCheckAssignable
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JP   Stage8RequireNoPendingFailure
+            JP   HybridLL1CheckFailureResult
 .if CompilerDiagnosticBranches
 Stage7ScalarArgumentFailure:
             LD   L,A

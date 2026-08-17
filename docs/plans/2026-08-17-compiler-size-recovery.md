@@ -101,9 +101,10 @@ correctness, timing, artifact, and relocation gates pass.
 
 Recovery ends when every named candidate has been measured or rejected and
 three consecutive independent, non-overlapping fresh searches on the latest
-committed core each find a best net saving of no more than five bytes. Failed
-and sub-six-byte searches remain in this ledger so a later pass repeats them
-only after a premise changes.
+committed core each find a best net saving of no more than two bytes. Any
+verified saving of three bytes or more resets the count to zero. Failed and
+sub-three-byte searches remain in this ledger so a later pass repeats them only
+after a premise changes.
 
 ## Recovery order
 
@@ -1019,15 +1020,33 @@ representative proof improves from 877,609 to 876,569 instructions and from
 9,572,809 to 9,566,782 T-states. Public Host, NOBJ, MAP, D8, diagnostics,
 artifacts, historical layouts, and relocation remain exact.
 
+### Sixth audit scalar-result and typed-definition checkpoint
+
+Stage 7 scalar arguments now publish their result through the canonical
+expression right-result cells and tail into the existing failure-result
+compatibility check. The typed backend emits a 16-bit definition by entering
+the existing byte definition twice, while a 16-bit declaration selects the
+existing two-byte stack-decrement recipe. The scanner audit's strongest fresh
+result was only two bytes and was not retained under the revised three-byte
+reset rule.
+
+The scalar-result tail recovers nine production code bytes and the typed
+definition/declaration paths recover ten. Together they reduce the production
+core from 15,567 to 15,548 bytes, with immutable data and workspace unchanged.
+The representative proof changes from 876,569 to 876,576 instructions and from
+9,566,782 to 9,566,852 T-states. Exact scalar-call failure behavior, generated
+code, semantic transcripts, diagnostics, artifacts, historical layouts, and
+relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the fifth three-audit checkpoint added to the retained work above, the
-measured shipping core is 15,567 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,113 bytes. The earlier 15,360-byte target is 207 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 922 bytes,
-exceeding that phase target by 622 bytes.
+With the sixth audit checkpoint added to the retained work above, the measured
+shipping core is 15,548 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,132 bytes. The earlier 15,360-byte target is 188 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 941 bytes,
+exceeding that phase target by 641 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
-find candidates above five bytes. The search continues in the selected
+find candidates of three bytes or more. The search continues in the selected
 original frontend and backend. No local saving is counted until all adapters
 and displaced production code are included in the assembled account.

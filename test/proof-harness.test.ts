@@ -20,12 +20,12 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(876_569);
-    expect(outcome.cycles).toBe(9_566_782);
+    expect(outcome.instructions).toBe(876_576);
+    expect(outcome.cycles).toBe(9_566_852);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_169 },
+      { name: "compiler-code", bytes: 15_150 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_567 },
+      { name: "compiler-core", bytes: 15_548 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_346 },
@@ -103,13 +103,13 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(880_360);
-    expect(outcome.cycles).toBe(9_608_573);
+    expect(outcome.instructions).toBe(880_367);
+    expect(outcome.cycles).toBe(9_608_643);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_225 },
+      { name: "compiler-code", bytes: 15_206 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_623 },
-      { name: "instrumented-core-gap", bytes: 8_953 },
+      { name: "compiler-core", bytes: 15_604 },
+      { name: "instrumented-core-gap", bytes: 8_972 },
       { name: "compiler-workspace", bytes: 3_613 },
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_348 },
@@ -216,12 +216,12 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(
       outcome.extents.find(({ name }) => name === "compiler-core")?.bytes,
     ).toBeLessThanOrEqual(16_384);
-    expect(outcome.instructions).toBe(1_412_791);
-    expect(outcome.cycles).toBe(13_962_519);
+    expect(outcome.instructions).toBe(1_412_928);
+    expect(outcome.cycles).toBe(13_963_659);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 14_717 },
+      { name: "compiler-code", bytes: 14_696 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_115 },
+      { name: "compiler-core", bytes: 15_094 },
       { name: "compiler-workspace", bytes: 3_623 },
       { name: "generated-z80-bound", bytes: 4_096 },
       { name: "z80-runtime", bytes: 921 },
@@ -338,12 +338,12 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(
       outcome.extents.find(({ name }) => name === "compiler-core")?.bytes,
     ).toBeLessThanOrEqual(16_384);
-    expect(outcome.instructions).toBe(1_725_821);
-    expect(outcome.cycles).toBe(16_767_382);
+    expect(outcome.instructions).toBe(1_725_951);
+    expect(outcome.cycles).toBe(16_768_590);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 14_717 },
+      { name: "compiler-code", bytes: 14_696 },
       { name: "compiler-immutable", bytes: 398 },
-      { name: "compiler-core", bytes: 15_115 },
+      { name: "compiler-core", bytes: 15_094 },
       { name: "compiler-workspace", bytes: 3_623 },
       { name: "generated-z80-bound", bytes: 4_096 },
       { name: "z80-runtime", bytes: 921 },
@@ -648,11 +648,11 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "semantic-sink", bytes: 88 },
       { name: "symbol-table", bytes: 110 },
       { name: "parser", bytes: 7_637 },
-      { name: "z80-output-sink", bytes: 3_419 },
+      { name: "z80-output-sink", bytes: 3_408 },
       { name: "z80-expression-backend", bytes: 351 },
-      { name: "compiler-code", bytes: 12_062 },
+      { name: "compiler-code", bytes: 12_051 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 12_329 },
+      { name: "compiler-core", bytes: 12_318 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80", bytes: 116 },
       { name: "z80-runtime", bytes: 796 },
@@ -676,8 +676,8 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     const generatedSize =
       (outcome.memory[sizeAddress] ?? 0) |
       ((outcome.memory[sizeAddress + 1] ?? 0) << 8);
-    expect(outcome.instructions).toBe(632_576);
-    expect(outcome.cycles).toBe(6_495_335);
+    expect(outcome.instructions).toBe(632_656);
+    expect(outcome.cycles).toBe(6_496_017);
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 8_643 },
       { name: "source-adapter", bytes: 87 },
@@ -685,10 +685,10 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "semantic-sink", bytes: 88 },
       { name: "symbol-table", bytes: 110 },
       { name: "parser", bytes: 7_637 },
-      { name: "typed-z80-sink", bytes: 1_910 },
-      { name: "compiler-code", bytes: 10_962 },
+      { name: "typed-z80-sink", bytes: 1_899 },
+      { name: "compiler-code", bytes: 10_951 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 11_229 },
+      { name: "compiler-core", bytes: 11_218 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80-bound", bytes: 857 },
       { name: "z80-runtime", bytes: 796 },
@@ -753,15 +753,15 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(
       outcome.extents.find(({ name }) => name === "compiler-core")?.bytes,
     ).toBeLessThanOrEqual(16_384);
-    expect(outcome.instructions).toBe(254_819);
-    expect(outcome.cycles).toBe(2_699_044);
+    expect(outcome.instructions).toBe(254_841);
+    expect(outcome.cycles).toBe(2_699_220);
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 8_643 },
       { name: "parser", bytes: 7_637 },
-      { name: "structured-z80-sink", bytes: 1_910 },
-      { name: "compiler-code", bytes: 10_962 },
+      { name: "structured-z80-sink", bytes: 1_899 },
+      { name: "compiler-code", bytes: 10_951 },
       { name: "compiler-immutable", bytes: 267 },
-      { name: "compiler-core", bytes: 11_229 },
+      { name: "compiler-core", bytes: 11_218 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "generated-z80-bound", bytes: 715 },
       { name: "z80-runtime", bytes: 796 },
@@ -781,10 +781,10 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.extents).toEqual([
       { name: "common-front-end", bytes: 7_324 },
       { name: "parser", bytes: 6_321 },
-      { name: "typed-z80-sink", bytes: 1_956 },
-      { name: "compiler-code", bytes: 9_689 },
+      { name: "typed-z80-sink", bytes: 1_945 },
+      { name: "compiler-code", bytes: 9_678 },
       { name: "compiler-immutable", bytes: 251 },
-      { name: "compiler-core", bytes: 9_940 },
+      { name: "compiler-core", bytes: 9_929 },
       { name: "compiler-workspace", bytes: 1_566 },
       { name: "static-image", bytes: 255 },
       { name: "z80-runtime", bytes: 796 },
