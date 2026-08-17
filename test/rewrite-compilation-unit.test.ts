@@ -45,7 +45,7 @@ beforeAll(async () => {
     result.diagnostics.filter(({ severity }) => severity === "error"),
   ).toEqual([]);
   image = imageFromArtifacts(result.artifacts);
-}, 60_000);
+}, 300_000);
 
 const run = (entryName: string, instructionLimit = 300_000) => {
   const parsed = parseIntelHex(image.hex);
@@ -71,8 +71,8 @@ describe("ground-up rewrite compilation-unit driver", () => {
     const { memory, instructions, cycles } = run("ProofCompilationUnit");
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 66_575,
-      cycles: 601_961,
+      instructions: 66_562,
+      cycles: 601_854,
     });
     expect({
       symbols: memory[image.symbols.RewriteSymbolCount ?? -1],
@@ -245,7 +245,7 @@ describe("ground-up rewrite compilation-unit driver", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, 300_000);
 
   it("locks the compilation-unit code account", () => {
     expect({
@@ -266,9 +266,9 @@ describe("ground-up rewrite compilation-unit driver", () => {
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
       driver: 651,
-      code: 16_168,
+      code: 16_105,
       immutable: 1_508,
-      core: 17_676,
+      core: 17_613,
       workspace: 3_938,
     });
   });

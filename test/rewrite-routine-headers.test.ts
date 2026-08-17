@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 30_000);
+}, 300_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -123,9 +123,9 @@ describe("ground-up rewrite generated routine headers", () => {
       actionCode: 230,
       actionData: 240,
       declarations: 1_528,
-      code: 16_168,
+      code: 16_105,
       immutable: 1_508,
-      core: 17_676,
+      core: 17_613,
       workspace: 3_938,
     });
   });

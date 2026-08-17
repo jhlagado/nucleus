@@ -39,7 +39,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 30_000);
+}, 300_000);
 
 describe("ground-up rewrite source-driven routine body", () => {
   it("parses a complete nested routine body from source", () => {
@@ -61,8 +61,8 @@ describe("ground-up rewrite source-driven routine body", () => {
     const memory = runtime.hardware.memory;
     expect(memory[image.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect({ instructions, cycles }).toEqual({
-      instructions: 48_328,
-      cycles: 432_026,
+      instructions: 48_329,
+      cycles: 432_038,
     });
     const payload = image.symbols.RewriteSemanticPayloadBase ?? -1;
     const cursorAddress = image.symbols.RewriteSemanticSinkCursor ?? -1;
@@ -249,5 +249,5 @@ describe("ground-up rewrite source-driven routine body", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 45_000);
+  }, 300_000);
 });

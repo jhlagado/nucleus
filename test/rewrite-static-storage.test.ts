@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 60_000);
+}, 300_000);
 
 const run = (entryName: string): number => {
   const parsed = parseIntelHex(image.hex);

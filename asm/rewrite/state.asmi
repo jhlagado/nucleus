@@ -293,10 +293,12 @@ RewriteSuffixTableLimit      .equ RewriteSuffixTableBase+RewriteSuffixEntrySize*
 RewriteSuffixResumeOffset    .equ RewriteSuffixTableLimit ; word
 RewriteSuffixOpenOffset      .equ RewriteSuffixResumeOffset+2 ; word
 
-; Four recursive source/service calls are sufficient for the published
-; expression-capacity boundary. Each frame is compiler metadata, not a target
-; activation: parameter cursor/count, target carrier count, result, selector,
-; flags, and complete call-site source offset.
+; Four recursive source calls are the published expression-capacity boundary.
+; Fixed-signature services keep their temporary descriptor and call-site offset
+; on the compiler hardware stack, so an outer service does not consume one of
+; these source frames. Each frame is compiler metadata, not a target activation:
+; parameter cursor/count, target carrier count, result, selector, flags, and
+; complete call-site source offset.
 RewriteCallFrameParameterCursor .equ 0
 RewriteCallFrameParameterRemaining .equ 1
 RewriteCallFrameArgumentWords .equ 2

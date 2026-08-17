@@ -440,9 +440,11 @@ RewritePathIndexDynamicSigned:
 RewritePathIndexReady:
             LD   A,RewriteScalarTypeU16
             RET
-; R4 call parsing uses four compact compiler-side frames. They retain only
-; signature progress and transcript operands; target activations remain a
-; backend concern. No frame field contains or tags a compiler address.
+; R4 source-call parsing uses four compact compiler-side frames. They retain
+; only signature progress and transcript operands; target activations remain a
+; backend concern. Fixed-signature services retain their temporary descriptor
+; and source offset on the compiler hardware stack instead. No frame field
+; contains or tags a compiler address.
 .routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
 RewriteCallFrameAddress:
             ADD  A,A
@@ -552,13 +554,7 @@ RewriteCallParseArgumentValue:
 RewriteCallParseScalarArgument:
             CALL RewriteCallParseArgumentValue
             LD   C,B
-            CALL RewriteExpressionCheckRuntimeAssignable
-            CALL RewriteCallCurrentFrame
-            INC  HL
-            INC  HL
-            INC  (HL)
-            XOR  A
-            RET
+            JP   RewriteExpressionCheckRuntimeAssignable
 
 ; Parse one aggregate actual under the formal type in A. Concrete parameters
 ; require exact identity. The sole polymorphic cases retain a concrete
@@ -647,10 +643,6 @@ _RewriteCallPrepareOpenAppend:
             INC  HL
             INC  (HL)
 _RewriteCallAggregateArgumentReady:
-            CALL RewriteCallCurrentFrame
-            INC  HL
-            INC  HL
-            INC  (HL)
             XOR  A
             RET
 _RewriteCallLiteralAggregateFailure:
@@ -713,8 +705,7 @@ RewriteCallPublishReady:
             ADD  HL,DE
             LD   (RewritePendingCallModePointer),HL
             LD   A,B
-            CALL RewriteExpressionAppendSemantic
-            JP   RewriteCallFinish
+            JP   RewriteExpressionAppendSemantic
 
 ; Publish the completed source call from the current frame. The call-mode
 ; pointer addresses the generated operand by its declared record-relative
@@ -729,30 +720,31 @@ RewriteCallPublishSource:
             LDIR
             LD   DE,RewriteSemanticCallSourceRecordOperandCallModeOffset
             LD   A,RewriteSemanticCallSource
-            JP   RewriteCallPublishReady
+            CALL RewriteCallPublishReady
+            JP   RewriteCallFinishFrame
 
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-RewriteCallPublishService:
-            CALL RewriteCallCurrentFrame
-            LD   DE,RewriteCallFrameSelector
-            ADD  HL,DE
-            LD   A,(HL)
+; A is the service selector, C its result type, and DE the retained outer call
+; source offset. Preserve the selected finish inputs across atomic publication.
+.routine in A,C,DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallPublishServiceSelected:
             LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSelectorOffset),A
-            INC  HL
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
             LD   (RewriteSemanticOperandArea+RewriteSemanticCallServiceOperandSourceOffsetOffset),DE
+            PUSH BC
+            PUSH DE
             LD   DE,RewriteSemanticCallServiceRecordOperandCallModeOffset
             LD   A,RewriteSemanticCallService
-            JP   RewriteCallPublishReady
+            CALL RewriteCallPublishReady
+            POP  DE
+            POP  BC
+            LD   B,C
+            LD   C,RewriteRoutineFlagFails
+            JP   RewriteCallFinishSelected
 
 ; Complete either call kind. A failable nested call is invalid before its
 ; enclosing argument can observe a carrier; a direct failable call retains the
 ; exact mode operand for the immediate statement-level consumer.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-RewriteCallFinish:
+RewriteCallFinishFrame:
             CALL RewriteCallCurrentFrame
             LD   DE,RewriteCallFrameResultType
             ADD  HL,DE
@@ -768,6 +760,9 @@ RewriteCallFinish:
             LD   D,(HL)
             LD   HL,RewriteCallDepth
             DEC  (HL)
+            JR   RewriteCallFinishSelected
+.routine in B,C,DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+RewriteCallFinishSelected:
             LD   A,C
             AND  RewriteRoutineFlagFails
             JR   Z,_RewriteCallFinishInfallible
@@ -830,6 +825,9 @@ _RewriteCallSourceArgumentDone:
             CALL RewriteCallCurrentFrame
             INC  (HL)
             INC  HL
+            INC  HL
+            INC  (HL)
+            DEC  HL
             DEC  (HL)
             JR   Z,_RewriteCallSourceClose
             LD   A,TokenComma
@@ -854,80 +852,45 @@ RewriteCallParseServiceDiscard:
             LD   C,0
 .routine in A,C out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 RewriteCallParseServiceMode:
-            LD   B,A
-            PUSH BC
-            LD   A,(RewriteCallDepth)
-            CP   RewriteCallFrameCapacity
-            JP   NC,RewriteCallCapacityFailure
-            LD   A,B
+            LD   B,C
             LD   E,A
             LD   D,0
             LD   HL,RewriteServiceSignatureTable
             ADD  HL,DE
             LD   A,(HL)
             LD   C,A
-            LD   A,(RewriteCallDepth)
-            CALL RewriteCallFrameAddress
+            AND  7
+            OR   B
+            LD   B,A
+            LD   HL,(RewriteExpressionAtomOffset)
             PUSH HL
+            PUSH BC
+            LD   A,TokenLeftParen
+            LD   C,DiagnosticExpectedLeft
+            CALL RewriteCallTakeExpected
+            POP  BC
             LD   A,C
             AND  RewriteServiceArgumentMask
             RRCA
             RRCA
             RRCA
-            POP  HL
-            LD   (HL),A
-            OR   A
-            LD   A,0
-            JR   Z,_RewriteCallServiceCountReady
-            INC  A
-_RewriteCallServiceCountReady:
-            INC  HL
-            LD   (HL),A
-            INC  HL
-            XOR  A
-            LD   (HL),A
-            INC  HL
-            LD   A,C
-            AND  RewriteServiceResultU8
-            LD   A,0
-            JR   Z,_RewriteCallServiceResultReady
-            LD   A,RewriteScalarTypeU8
-_RewriteCallServiceResultReady:
-            LD   (HL),A
-            INC  HL
-            POP  DE
-            LD   A,B
-            OR   E
-            LD   (HL),A
-            INC  HL
-            LD   A,RewriteRoutineFlagFails
-            LD   (HL),A
-            INC  HL
-            LD   D,H
-            LD   E,L
-            LD   HL,(RewriteExpressionAtomOffset)
-            LD   A,L
-            LD   (DE),A
-            INC  DE
-            LD   A,H
-            LD   (DE),A
-            LD   HL,RewriteCallDepth
-            INC  (HL)
-            LD   A,TokenLeftParen
-            LD   C,DiagnosticExpectedLeft
-            CALL RewriteCallTakeExpected
-            CALL RewriteCallCurrentFrame
-            LD   A,(HL)
-            OR   A
+            PUSH BC
             JR   Z,_RewriteCallServiceClose
-            INC  HL
-            LD   A,(HL)
             CALL RewriteCallParseScalarArgument
 _RewriteCallServiceClose:
             LD   A,TokenRightParen
             LD   C,DiagnosticExpectedRight
             CALL RewriteCallTakeExpected
-            JP   RewriteCallPublishService
+            POP  BC
+            POP  DE
+            LD   A,C
+            AND  RewriteServiceResultU8
+            RLCA
+            RLCA
+            RLCA
+            LD   C,A
+            LD   A,B
+            JP   RewriteCallPublishServiceSelected
 
 ; Local initializers admit exactly the propagation consumer. Infallible calls
 ; reject a stray consumer, and failable calls require a failable enclosing

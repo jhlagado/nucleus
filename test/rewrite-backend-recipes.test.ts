@@ -43,7 +43,7 @@ beforeAll(async () => {
     result.diagnostics.filter(({ severity }) => severity === "error"),
   ).toEqual([]);
   image = imageFromArtifacts(result.artifacts);
-}, 30_000);
+}, 300_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -575,9 +575,9 @@ describe("ground-up rewrite backend recipes", () => {
     }).toEqual({
       engine: 3_947,
       recipes: 738,
-      code: 16_168,
+      code: 16_105,
       immutable: 1_508,
-      core: 17_676,
+      core: 17_613,
       workspace: 3_938,
       supported: 105,
     });

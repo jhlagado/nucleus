@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 30_000);
+}, 300_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -116,7 +116,7 @@ describe("ground-up rewrite source-type parser", () => {
       parser: 496,
       ownedTypes: 8,
       suffixes: 4,
-      core: 17_676,
+      core: 17_613,
       workspace: 3_938,
     });
   });

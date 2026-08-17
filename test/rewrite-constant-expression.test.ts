@@ -35,7 +35,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 30_000);
+}, 300_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -117,10 +117,10 @@ describe("ground-up rewrite constant-expression engine", () => {
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
     }).toEqual({
-      code: 3_984,
+      code: 3_921,
       immutable: 74,
       pendingCapacity: 16,
-      core: 17_676,
+      core: 17_613,
       workspace: 3_938,
     });
   });

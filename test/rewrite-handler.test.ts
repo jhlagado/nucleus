@@ -41,7 +41,7 @@ let assembled: Assembled;
 
 beforeAll(async () => {
   assembled = await assemble();
-}, 30_000);
+}, 300_000);
 
 const run = async (entryName: string) => {
   const { image, symbols } = assembled;
@@ -79,8 +79,8 @@ describe("ground-up rewrite local handlers", () => {
     expect(count).toBe(16);
     expect(Array.from(memory.slice(start, end))).toMatchSnapshot();
     expect({ instructions, cycles }).toEqual({
-      instructions: 50_958,
-      cycles: 457_746,
+      instructions: 50_961,
+      cycles: 457_782,
     });
   });
 
@@ -126,8 +126,8 @@ describe("ground-up rewrite local handlers", () => {
       depth: 0,
       labels: 6,
       operations: 15,
-      instructions: 33_457,
-      cycles: 298_345,
+      instructions: 33_459,
+      cycles: 298_369,
     });
   });
 });

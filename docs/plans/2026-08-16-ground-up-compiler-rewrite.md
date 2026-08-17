@@ -1876,19 +1876,29 @@ test-selected until the complete cutover gate passes.
 
 ## Expression recovery bakeoff
 
-The first competitive recovery checkpoint retains the rewrite as a laboratory,
-not as the selected production compiler. It combines the recovered
-constant-expression and call-publication pass with shared failure/dataflow and
-postfix publication cleanup. The expression family now measures 3,984
-executable bytes plus 74 immutable bytes, or 4,058 bytes in total. This is 228
-code bytes below the preserved rewrite branch and 39 bytes below the
-4,097-byte frozen production family. Workspace is unchanged at 3,938 bytes;
-the complete prototype core is 17,676 bytes.
+The competitive recovery checkpoints retain the rewrite as a laboratory, not
+as the selected production compiler. The current result combines the recovered
+constant-expression and call-publication pass, shared failure/dataflow and
+postfix publication cleanup, and a corrected source/service call boundary.
+Predefined services now retain their temporary state on the compiler hardware
+stack, as the frozen compiler does, so an outer service no longer consumes one
+of the four bounded source-call frames. Source and service calls share atomic
+publication and completion tails without changing their semantic records.
 
-All 522 serial tests, strict register contracts, generated semantic/action/
-backend authorities, compiler-image synchronization, TypeScript checking, and
-the distribution build pass at this checkpoint. The result is retained as a
-compression base, not yet accepted into production. The next experiment moves
-predefined services out of the four-frame source-call pool and shares
-source/service finalization while retaining the rewrite's semantic authority.
-The broader expression bakeoff continues toward its measured 3,500-byte gate.
+The expression family now measures 3,921 executable bytes plus 74 immutable
+bytes, or 3,995 bytes in total. This is 291 code bytes below the preserved
+rewrite branch and 102 bytes below the 4,097-byte frozen production family.
+Workspace is unchanged at 3,938 bytes; the complete prototype core is 17,613
+bytes.
+
+The strict focused gate passes 102 expression, runtime, semantic, and backend
+tests. The full serial gate executed 522 of 523 tests successfully; its sole
+45-second relocation timeout then passed all 24 cases in isolation. The proof
+image and relocation timeouts now reflect their measured assembly cost.
+Independent adversarial review, strict register contracts, generated semantic/
+action/backend authorities, compiler-image synchronization, TypeScript
+checking, and the distribution build also pass. The result remains a
+compression base rather than a production selection. The broader expression
+bakeoff continues toward its measured 3,500-byte gate; the next experiment
+targets repeated operator/type resolution without changing the semantic
+transcript.

@@ -375,6 +375,57 @@ ProofRuntimeCallDepth:
             LD   (ProofStatus),A
             HALT
 
+; A service call nested outside four source calls must not consume the fifth
+; compiler call-frame slot. Besides accepting the frozen-valid expression,
+; this proof compares every source offset and verifies that the service's
+; temporary hardware-stack state is completely released.
+ProofRuntimeServiceFrameBoundary:
+            LD   SP,$FF00
+            CALL RewriteReset
+            LD   HL,ProofUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   A,1
+            LD   HL,ProofPartsServiceFrameBoundary
+            CALL RewriteSourceInitializeParts
+            CALL ProofRunForwardHeader
+            CALL ProofRunForwardHeader
+            CALL ProofRunForwardHeader
+            CALL ProofRunForwardHeader
+            CALL ProofRunDirectHeader
+            LD   (ProofExpectedStackPointer),SP
+            CALL ProofRunCallStatement
+            LD   HL,0
+            ADD  HL,SP
+            LD   DE,(ProofExpectedStackPointer)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            CALL RewriteSemanticValidate
+            LD   A,(RewriteSemanticBufferBase)
+            CP   5
+            JP   NZ,ProofFailure
+            LD   HL,RewriteSemanticPayloadBase
+            LD   DE,ProofExpectedServiceFrameBoundarySemantics
+            LD   B,ProofExpectedServiceFrameBoundarySemanticsEnd-ProofExpectedServiceFrameBoundarySemantics
+_ProofRuntimeServiceFrameBoundaryLoop:
+            LD   A,(DE)
+            CP   (HL)
+            JP   NZ,ProofFailure
+            INC  DE
+            INC  HL
+            DJNZ _ProofRuntimeServiceFrameBoundaryLoop
+            LD   DE,(RewriteSemanticSinkCursor)
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailure
+            LD   A,(RewriteCallDepth)
+            OR   A
+            JP   NZ,ProofFailure
+            LD   A,$ED
+            LD   (ProofStatus),A
+            HALT
+
 ; Concrete aggregate routine results can bind directly to open string/array
 ; formals. Both dynamic calls and both preparation records are compared byte
 ; for byte so the concrete capacities/counts cannot be replaced by wildcards.
@@ -1262,6 +1313,7 @@ ProofExpectedDiagnostic: .db 0
 ProofExpectedStatus:     .db 0
 ProofExpectedOffset:     .dw 0
 ProofExpectedForwardCount: .db 0
+ProofExpectedStackPointer: .dw 0
 
 ProofExpectedSemantics:
             .db RewriteSemanticDeclareLocalU8,1
@@ -1619,6 +1671,24 @@ ProofExpectedCallTransientSemantics:
             .db RewriteSemanticStoreLocal16,0
 ProofExpectedCallTransientSemanticsEnd:
 
+ProofExpectedServiceFrameBoundarySemantics:
+            .db RewriteSemanticCallSource,0,RewriteScalarTypeU8,0,RewriteCallFlagKeepResult
+            .dw ProofServiceBoundaryOne-ProofSourceServiceFrameBoundary
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticCallSource,1,RewriteScalarTypeU8,1,RewriteCallFlagKeepResult
+            .dw ProofServiceBoundaryTwo-ProofSourceServiceFrameBoundary
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticCallSource,1,RewriteScalarTypeU8,2,RewriteCallFlagKeepResult
+            .dw ProofServiceBoundaryThree-ProofSourceServiceFrameBoundary
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticCallSource,1,RewriteScalarTypeU8,3,RewriteCallFlagKeepResult
+            .dw ProofServiceBoundaryFour-ProofSourceServiceFrameBoundary
+            .db RewriteCallModeInfallible,0,0
+            .db RewriteSemanticCallService,1
+            .dw ProofServiceBoundaryWrite-ProofSourceServiceFrameBoundary
+            .db RewriteCallModePropagateMain,0,0
+ProofExpectedServiceFrameBoundarySemanticsEnd:
+
 ProofExpectedRecursiveCallSemantics:
             .db RewriteSemanticDeclareLocalU8,1
             .db RewriteSemanticLoadParameter8,0
@@ -1887,6 +1957,24 @@ ProofSourceCallDepth:
             .db "sub work()",10
             .db "var x as u8 = id(id(id(id(1))))",10
 ProofSourceCallDepthEnd:
+
+ProofSourceServiceFrameBoundary:
+            .db "forward sub one() as u8",10
+            .db "forward sub two(value as u8) as u8",10
+            .db "forward sub three(value as u8) as u8",10
+            .db "forward sub four(value as u8) as u8",10
+            .db "sub main() fails",10
+ProofServiceBoundaryWrite:
+            .db "writeOutputByte("
+ProofServiceBoundaryFour:
+            .db "four("
+ProofServiceBoundaryThree:
+            .db "three("
+ProofServiceBoundaryTwo:
+            .db "two("
+ProofServiceBoundaryOne:
+            .db "one())))) else fail",10
+ProofSourceServiceFrameBoundaryEnd:
 
 ProofSourceCallTransientViews:
             .db "forward sub getText() as string[5]",10
@@ -2178,6 +2266,8 @@ ProofPartsMainCall:       .db 1
                          .dw ProofSourceMainCall,ProofSourceMainCallEnd
 ProofPartsCallDepth:      .db 1
                          .dw ProofSourceCallDepth,ProofSourceCallDepthEnd
+ProofPartsServiceFrameBoundary: .db 1
+                         .dw ProofSourceServiceFrameBoundary,ProofSourceServiceFrameBoundaryEnd
 ProofPartsCallTransientViews: .db 1
                          .dw ProofSourceCallTransientViews,ProofSourceCallTransientViewsEnd
 ProofPartsRecursiveCall: .db 1

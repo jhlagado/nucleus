@@ -43,14 +43,15 @@ RewritePathNameCapacity:
             .db "capacity"
 
 ; Six predefined service signatures use bits 3..4 for an optional scalar
-; parameter and bit 5 for a successful u8 result. The low selector bits live
-; in the call record itself. These are signature data, not instructions.
+; parameter, bit 5 for a successful u8 result, and bits 0..2 for the dense
+; service ordinal. The parser copies only the ordinal plus keep/discard into
+; the call record. These are signature data, not instructions.
 RewriteServiceResultU8       .equ $20
 RewriteServiceArgumentMask   .equ $18
 RewriteServiceSignatureTable:
-            .db RewriteServiceResultU8
-            .db RewriteScalarTypeU8*8
-            .db RewriteServiceResultU8
-            .db 0
-            .db RewriteScalarTypeU8*8
-            .db RewriteScalarTypeU16*8
+            .db RewriteServiceResultU8+0
+            .db RewriteScalarTypeU8*8+1
+            .db RewriteServiceResultU8+2
+            .db 3
+            .db RewriteScalarTypeU8*8+4
+            .db RewriteScalarTypeU16*8+5

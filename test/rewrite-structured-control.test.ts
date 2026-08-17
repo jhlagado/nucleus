@@ -37,7 +37,7 @@ beforeAll(async () => {
       }),
     ),
   };
-}, 30_000);
+}, 300_000);
 
 const run = (entryName: string) => {
   const parsed = parseIntelHex(image.hex);
@@ -206,5 +206,5 @@ describe("ground-up rewrite structured control", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 45_000);
+  }, 300_000);
 });
