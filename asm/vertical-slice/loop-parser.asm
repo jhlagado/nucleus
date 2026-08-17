@@ -1536,6 +1536,23 @@ CompileSliceInitialize:
             CALL SourceInitialize
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileSliceResetState:
+.if CompilerNonlocalDiagnostics
+            ; The production entry resets state before SourceInitializeParts.
+            ; Clear the complete live-state prefix, but retain the initializer
+            ; and static-image buffers plus the later target descriptor and
+            ; diagnostic-abort words.
+            XOR  A
+            LD   HL,CompilerStateBase
+            LD   (HL),A
+            LD   DE,CompilerStateBase+1
+            LD   BC,AggregateInitializerBase-CompilerStateBase-1
+            LDIR
+            LD   HL,SemanticPayloadBase
+            LD   (SinkCursor),HL
+            LD   A,$FF
+            LD   (ParserLookaheadKind),A
+            RET
+.else
             XOR  A
             LD   (DiagnosticCode),A
             LD   (DiagnosticPartId),A
@@ -1577,6 +1594,7 @@ CompileSliceResetAggregateLoop:
             LD   (ForwardCompleted),A
             LD   (ForwardOrdinal),A
             RET
+.endif
 
 ; The typed scalar increment is kept in a separate source unit while it is
 ; correctness-first and under review. The compression pass may fold shared

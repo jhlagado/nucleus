@@ -138,6 +138,8 @@ TargetValidatePartBankLoop:
             JR   NC,TargetValidateCompileFailure
             INC  HL
             DJNZ TargetValidatePartBankLoop
+.if CompilerNonlocalDiagnostics
+.else
             LD   HL,TargetBankRoLengthBase
             LD   B,TargetBankRoLengthLimit-TargetBankRoLengthBase
             XOR  A
@@ -145,6 +147,7 @@ TargetResetBankRoLengthLoop:
             LD   (HL),A
             INC  HL
             DJNZ TargetResetBankRoLengthLoop
+.endif
             CALL CompileAggregateCallReady
 .if CompilerDiagnosticReturns
             RET  C

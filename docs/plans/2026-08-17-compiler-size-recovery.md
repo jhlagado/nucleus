@@ -311,18 +311,31 @@ published bank fields are explicitly zeroed. The checkpoint recovers a measured
 instructions and 1,747 fewer T-states with byte-identical MAP, NOBJ, D8, loaded,
 ROM, banked, and failure artifacts.
 
+### Bounded production reset
+
+The production single-unwind layout now clears its contiguous live-state prefix
+with one bounded `LDIR` instead of maintaining scattered reset stores. The
+semantic write pointer and empty-lookahead sentinel are then restored to their
+two required nonzero values. The initializer and static-image buffers, target
+descriptor, and diagnostic-abort word lie outside the cleared span. Historical
+layouts retain the explicit reset sequence, while production no longer needs a
+second bank read-only-length loop. The complete checkpoint recovers a measured
+54 code bytes. It adds about 27,900 T-states per compilation, roughly 7 ms at
+4 MHz; failed-then-success, multipart, banked, abort, diagnostic, and exact
+artifact proofs all execute successfully.
+
 ### Current recovery outlook
 
-After the scanner, comparison, expression-frame, action cleanup, and two
-backend checkpoints, the measured shipping core is 16,446 bytes and the
-remaining recovery to 15,360 is 1,086 bytes. One-bank prefix sharing and
-provider tails project a further 45–80 backend bytes. Together with the
-measured 234-byte recovery, the currently evidenced range is 279–314 bytes,
-which would place the compiler between 16,366 and 16,401 bytes. The current
-300-byte phase starts at 16,489 bytes and has recovered 43 of its required 300
-bytes; its phase target is 16,189.
+After the scanner, comparison, expression-frame, action cleanup, reset, and two
+backend checkpoints, the measured shipping core is 16,392 bytes and the
+remaining recovery to 15,360 is 1,032 bytes. Symbol-type co-location and a
+unified aggregate descriptor project 103 bytes; provider tails project another
+10–20. Together with the measured 288-byte recovery, the currently evidenced
+range is 401–411 bytes, which would place the compiler between 16,269 and
+16,279 bytes. The current 300-byte phase starts at 16,489 bytes and has
+recovered 97 of its required 300 bytes; its phase target is 16,189.
 
-That range does not yet reach the target. A further 1,006–1,041 bytes therefore
+That range does not yet reach the target. A further 909–919 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
 selected original frontend and backend, and no local rewrite saving is counted
 until all adapters and displaced production code are included in the assembled
