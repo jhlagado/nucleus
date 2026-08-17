@@ -1160,8 +1160,6 @@ Stage7PathRecordFieldLoop:
             DEC  D
             JR   Stage7PathRecordFieldLoop
 Stage7PathRecordFieldFound:
-            LD   A,B
-            CALL AggregateFieldAddress
             LD   DE,AggregateFieldTypeId
             ADD  HL,DE
             LD   A,(HL)

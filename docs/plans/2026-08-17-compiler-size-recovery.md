@@ -172,6 +172,14 @@ frozen boundary, and adds 255 workspace bytes for delimiter kinds. A more
 invasive source-part representation projects only a 15-byte saving and does
 not justify its second representation or proof burden.
 
+A later production-native high-bit-row experiment retained every explicit
+token ordinal and removed only the 35 keyword length bytes. It reduced the
+complete core by 25 bytes after ten bytes of scanner code, but the
+representative flat compile rose by 154,250 instructions and 1,452,416
+T-states: 15.4 and 13.7 percent respectively. Length rejection had become a
+byte-by-byte spelling scan, so this version is also rejected under the
+two-percent timing gate.
+
 A production-native scanner checkpoint is retained instead. `SourceTake` no
 longer saves and shuffles a byte that remains live in A, `TokenFinish` stores
 its guaranteed-nonzero token directly as the line-has-token marker, and the
@@ -396,14 +404,32 @@ proof adds 96 T-states from the selected branch timings. Strict assembly proves
 every displacement, and relocation passes at `$0100`, `$8000`, and the
 highest-fitting origin.
 
+### Aggregate metadata addressing
+
+Type and field tables now share one strict-contract multiplication-by-six
+address tail while retaining their separate full-width bases. Record-field
+lookup reuses the entry address it has already matched. Record field-start and
+count bytes move together as one word, and initialized-data and BSS allocation
+reuse the object extent retained during declaration analysis instead of looking
+it up again.
+
+The checkpoint recovers a measured 25 code bytes with immutable data and
+workspace unchanged. The production core is 16,242 bytes. The representative
+production proof executes 794 fewer instructions and 6,714 fewer T-states.
+Strict normal, instrumented, historical, aggregate, NOBJ, D8, and language
+proofs pass, as does relocation at `$0100`, `$8000`, and the highest-fitting
+origin. Table bases, field offsets, object offsets, and extents remain complete
+16-bit values.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, backend,
-symbol, descriptor, provider, and relative-branch checkpoints, the measured
-shipping core is 16,267 bytes and the remaining recovery to 15,360 is 907
-bytes. Total measured recovery from the frozen 16,680-byte compiler is 413
-bytes. The current 300-byte phase starts at 16,489 bytes and has recovered 222
-of its required 300 bytes; its phase target is 16,189.
+symbol, descriptor, provider, relative-branch, and aggregate-metadata
+checkpoints, the measured shipping core is 16,242 bytes and the remaining
+recovery to 15,360 is 882 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 438 bytes. The current 300-byte phase starts at 16,489
+bytes and has recovered 247 of its required 300 bytes; its phase target is
+16,189.
 
 The search continues in the selected original frontend and backend, and no
 local rewrite saving is counted until all adapters and displaced production

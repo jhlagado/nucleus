@@ -9,15 +9,22 @@
 ; after the complete source has succeeded.
 
 .routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+AggregateFieldAddress:
+            LD   DE,AggregateFieldTableBase
+            JR   AggregateAddress6
+
+.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
 AggregateTypeAddress:
             SUB  AggregateFirstDynamicTypeId
+            LD   DE,AggregateTypeTableBase
+.routine in A,DE out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+AggregateAddress6:
             LD   L,A
             ADD  A,A
             ADD  A,L
             ADD  A,A
             LD   L,A
             LD   H,0
-            LD   DE,AggregateTypeTableBase
             ADD  HL,DE
             RET
 
@@ -494,19 +501,6 @@ AggregateStringCapacityFailure:
             CALL SetDiagInline
             .db  DiagnosticStringCapacity
 .endif
-
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
-AggregateFieldAddress:
-            LD   E,A
-            LD   D,0
-            LD   H,D
-            LD   L,E
-            ADD  HL,HL
-            ADD  HL,DE
-            ADD  HL,HL
-            LD   DE,AggregateFieldTableBase
-            ADD  HL,DE
-            RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 AggregateCheckFieldDuplicate:

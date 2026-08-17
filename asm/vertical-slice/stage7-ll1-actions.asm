@@ -386,10 +386,7 @@ HybridLL1AllocateDataObject:
             POP  HL
             LDDR
 HybridLL1DataShiftReady:
-            LD   A,(DeclarationInfo)
-            CALL AggregateGetExtent
-            LD   B,H
-            LD   C,L
+            LD   BC,(AggregateCurrentObjectExtent)
             LD   HL,AggregateInitializerBase
             LD   DE,(AggregateCurrentObjectOffset)
             PUSH HL
@@ -441,8 +438,7 @@ HybridLL1AllocateBssObject:
 .routine in DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1AllocateObjectEnd:
             LD   (AggregateCurrentObjectOffset),DE
-            LD   A,(DeclarationInfo)
-            CALL AggregateGetExtent
+            LD   HL,(AggregateCurrentObjectExtent)
             LD   DE,(AggregateCurrentObjectOffset)
             ADD  HL,DE
 HybridLL1CheckProgramSegmentEnd:
@@ -536,10 +532,8 @@ HybridLL1CommitRecord:
             JP   Z,AggregateRecordEmptyFailure
             LD   A,AggregateTypeKindRecord
             LD   (AggregateCandidateKind),A
-            LD   A,(AggregateCurrentFieldStart)
-            LD   (AggregateCandidateAux),A
-            LD   A,(AggregateCurrentFieldCount)
-            LD   (AggregateCandidateLength),A
+            LD   HL,(AggregateCurrentFieldStart)
+            LD   (AggregateCandidateAux),HL
             XOR  A
             LD   (AggregateCandidateLength+1),A
             LD   HL,(AggregateCurrentRecordExtent)
