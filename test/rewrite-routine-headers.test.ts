@@ -123,10 +123,10 @@ describe("ground-up rewrite generated routine headers", () => {
       actionCode: 239,
       actionData: 445,
       declarations: 1_528,
-      code: 16_238,
+      code: 16_483,
       immutable: 2_202,
-      core: 18_440,
-      workspace: 3_935,
+      core: 18_685,
+      workspace: 3_938,
     });
   });
 });

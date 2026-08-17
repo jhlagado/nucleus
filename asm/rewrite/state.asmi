@@ -376,6 +376,37 @@ RewriteBackendFixupSameBank    .equ 0
 RewriteBackendFixupAnyBank     .equ 1
 RewriteBackendFarCallVectorOffset .equ 27 ; vector ordinal 9 * 3
 
+; Target layout begins after every live backend fixup. It occupies otherwise
+; dead initializer scratch and remains independent of all compiler addresses.
+RewriteTargetLayoutBase       .equ RewriteBackendFixupLimit
+RewriteTargetLayoutMode       .equ RewriteTargetLayoutBase
+RewriteTargetFlags            .equ RewriteTargetLayoutBase+1
+RewriteTargetBankCount        .equ RewriteTargetLayoutBase+2
+RewriteTargetEntryBank        .equ RewriteTargetLayoutBase+3
+RewriteTargetImageBase        .equ RewriteTargetLayoutBase+4 ; word
+RewriteTargetImageCapacity    .equ RewriteTargetLayoutBase+6 ; word
+RewriteTargetWritableBase     .equ RewriteTargetLayoutBase+8 ; word
+RewriteTargetWritableCapacity .equ RewriteTargetLayoutBase+10 ; word
+RewriteTargetLayoutLimit      .equ RewriteTargetLayoutBase+12
+
+RewriteTargetLayoutLoaded     .equ 0
+RewriteTargetLayoutRom        .equ 1
+RewriteTargetEstablishStack   .equ 1
+RewriteTargetBankCapacity     .equ 4
+
+; Stable Host API 1 target descriptor. All addresses and capacities are full
+; words; no compiler or target address bit is repurposed as metadata.
+RewriteTargetDescriptorRuntimeIdentity  .equ 0 ; word
+RewriteTargetDescriptorImageBase        .equ 2 ; word
+RewriteTargetDescriptorImageCapacity    .equ 4 ; word
+RewriteTargetDescriptorWritableBase     .equ 6 ; word
+RewriteTargetDescriptorWritableCapacity .equ 8 ; word
+RewriteTargetDescriptorFlags            .equ 10
+RewriteTargetDescriptorBankCount        .equ 11
+RewriteTargetDescriptorEntryBank        .equ 12
+RewriteTargetDescriptorPartBanksPointer .equ 13 ; word
+RewriteTargetDescriptorSize             .equ 15
+
 ; Deployment supplies this full-width record to RewriteBackendInitialize.
 RewriteBackendContextRuntimeBase .equ 0 ; word
 RewriteBackendContextVectorBase  .equ 2 ; word
@@ -399,6 +430,8 @@ RewriteStaticImageLimit      .equ RewriteStaticImageBase+RewriteStaticImageCapac
 RewriteSemanticSourceOffsetCapacity .equ 255
 RewriteSemanticSourceOffsetBase .equ RewriteStaticImageLimit
 RewriteSemanticSourceOffsetLimit .equ RewriteSemanticSourceOffsetBase+2*RewriteSemanticSourceOffsetCapacity
+RewriteTargetDescriptorPointer .equ RewriteSemanticSourceOffsetLimit ; word
+RewriteTargetPartCount         .equ RewriteTargetDescriptorPointer+2
 
 ; Structured-control frames are live only while compiling routine statements.
 ; Static initializer scratch is live only while compiling top-level static
@@ -426,7 +459,7 @@ RewriteControlKindHandler    .equ 4
 RewriteControlNoCounter      .equ $FF
 RewriteControlLabelLimit     .equ 27
 
-RewriteWorkspaceEnd          .equ RewriteSemanticSourceOffsetLimit
+RewriteWorkspaceEnd          .equ RewriteTargetPartCount+1
 CompilerWorkspaceEnd         .equ RewriteWorkspaceEnd
 
 ; The test host requires an append-only sink interval even though R1 never
@@ -541,7 +574,9 @@ DiagnosticStringCapacity     .equ 90
 DiagnosticReadOnlyCapacity   .equ 93
 DiagnosticReadOnlyAssignment .equ 94
 DiagnosticAssertionFailed    .equ 91
+DiagnosticTargetConfiguration .equ 95
 DiagnosticTargetCapacity     .equ 96
+DiagnosticTargetOutput       .equ 97
 DiagnosticFixupRange         .equ 41
 
 ; Expected-token diagnostics retain the published production-token ordinals,

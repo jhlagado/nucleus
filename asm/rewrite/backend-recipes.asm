@@ -2,8 +2,6 @@
 ; compiler-executed Z80 remains ordinary mnemonics. All directories retain
 ; complete addresses and impose no origin policy.
 
-            .include "../vertical-slice/nucleus-runtime-identity.asmi"
-
 ; HL is the first writable target byte, DE its exclusive limit, and IX a
 ; complete RewriteBackendContextSize-byte deployment link context.
 .routine in HL,DE,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL

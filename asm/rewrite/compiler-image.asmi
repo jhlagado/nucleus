@@ -3,6 +3,7 @@
 ; intervals before including this file.
 
             .include "state.asmi"
+            .include "../vertical-slice/nucleus-runtime-identity.asmi"
 
 CompilerCodeStart:
 RewriteCompilerCodeStart:
@@ -22,6 +23,9 @@ RewriteSemanticCodeEnd:
 RewriteBackendCodeStart:
             .include "backend-recipes.asm"
 RewriteBackendCodeEnd:
+RewriteTargetCodeStart:
+            .include "target-output.asm"
+RewriteTargetCodeEnd:
 RewriteMetadataCodeStart:
             .include "types-symbols.asm"
 RewriteExpressionCodeStart:

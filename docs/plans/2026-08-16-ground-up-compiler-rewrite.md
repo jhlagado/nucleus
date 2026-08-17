@@ -1635,6 +1635,25 @@ R7 source-attributed dispatch checkpoint (Measured, in progress):
   measured workspace is 3,935 bytes. The workspace ledger has 161 bytes of
   margin below its independent 4,096-byte ceiling.
 
+R7 target-layout checkpoint (Measured, in progress):
+
+- a 245-byte origin-independent planner validates the complete 15-byte Host
+  API 1 target descriptor, runtime identity, one-to-four-bank topology,
+  per-source-part bank ordinals, nonempty nonwrapping image and writable
+  regions, loaded/ROM classification, and the banked-ROM restriction before
+  any target-output adapter operation;
+- the planner admits a mathematical region end of `$10000`, rejects partial
+  region overlap and every invalid ordinal, and accepts a valid descriptor
+  immediately after a rejected one. Its strict executable proof covers
+  compiler origins `$0000` and `$8000`; the four accepted layout cases execute
+  in 425 instructions and 7,000 T-states; and
+- the measured shipping replacement is 16,483 code + 2,202 immutable = 18,685
+  core bytes, the measured instrumented replacement is 18,689 core bytes, and
+  measured workspace is 3,938 bytes. The workspace ledger has 158 bytes of
+  margin below its independent 4,096-byte ceiling. This intermediate overrun
+  is accepted while the complete architecture is built; compression remains
+  an R8 cutover obligation rather than an R7 feature blocker.
+
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the
 complete oracle corpus; PATCH attribution, bank identity, abort atomicity, and
