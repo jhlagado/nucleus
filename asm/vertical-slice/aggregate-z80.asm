@@ -33,11 +33,7 @@ TargetEmitBankedConstantSymbolLoop:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   H,0
-            LD   L,C
-            LD   DE,AggregateSymbolTypeBase
-            ADD  HL,DE
-            LD   A,(HL)
+            LD   A,(IX+SymbolTypeId)
             CALL AggregateGetExtent
             EX   DE,HL
 TargetEmitBankedConstantByteLoop:

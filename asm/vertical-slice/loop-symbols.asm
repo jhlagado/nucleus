@@ -58,6 +58,7 @@ SymbolPrepareCurrentWord:
             ADD  HL,HL
             ADD  HL,BC
             ADD  HL,BC
+            ADD  HL,BC
             LD   BC,SymbolTableBase
             ADD  HL,BC
             CALL TokenRetainNameAtHL
@@ -74,17 +75,11 @@ SymbolPrepareFull:
             LD   A,DiagnosticSymbolCapacity
             JR   CompilerSetDiagnostic
 
-; Retain A as the aggregate-type ordinal for the symbol about to be committed.
-; BC remains the caller's prepared symbol payload.
-.routine in A,BC out A,BC,carry,zero clobbers sign,parity,halfCarry,DE,HL
+; Retain A as the exact type ordinal in the prepared symbol entry. HL points
+; at the high byte of its payload until the symbol is committed.
+.routine in A,BC,HL out A,BC,carry,zero clobbers sign,parity,halfCarry,HL
 SymbolCommitTyped:
-            PUSH AF
-            LD   A,(SymbolCount)
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateSymbolTypeBase
-            ADD  HL,DE
-            POP  AF
+            INC  HL
             LD   (HL),A
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 SymbolCommit:

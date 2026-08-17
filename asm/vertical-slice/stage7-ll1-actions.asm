@@ -237,6 +237,9 @@ HybridLL1CommitAggregateConstant:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   A,(AggregateCurrentTypeId)
+            INC  HL
+            LD   (HL),A
             LD   BC,(ReadOnlyImageLength)
             LD   HL,(AggregateCurrentObjectExtent)
             ADD  HL,BC
@@ -256,8 +259,7 @@ HybridLL1CommitAggregateConstant:
             LD   HL,AggregateInitializerBase
             LD   BC,(AggregateCurrentObjectExtent)
             LDIR
-            LD   A,(AggregateCurrentTypeId)
-            JP   SymbolCommitTyped
+            JP   SymbolCommit
 
 HybridLL1BeginAssert .equ TypedRetainDeclarationNameReady
 

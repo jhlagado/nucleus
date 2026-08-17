@@ -864,47 +864,22 @@ _parameterSourceOffsetDone:
             OR   A
             RET
 
-; Return aggregate symbol info in D, byte payload in BC, and exact type ID in
-; A. The ordinary symbol-table address determines the parallel type entry.
-.routine out A,BC,D,carry,zero clobbers sign,parity,halfCarry,E,HL
+; Return aggregate symbol info in D, word payload in BC, and exact type ID in
+; A. All fields are contiguous in the ordinary symbol-table entry.
+.routine out A,BC,D,carry,zero clobbers sign,parity,halfCarry,HL
 Stage7LookupAggregateCurrent:
             CALL SymbolFindCurrent
             JP   NC,SymbolLookupMissing
-            PUSH HL
             INC  HL
             INC  HL
             INC  HL
             LD   D,(HL)
-            LD   A,D
-            LD   (Stage7ArgumentCount),A
             INC  HL
             LD   C,(HL)
             INC  HL
             LD   B,(HL)
-            POP  HL
-            LD   DE,SymbolTableBase
-            OR   A
-            SBC  HL,DE
-            LD   A,L
-            LD   E,0
-Stage7SymbolIndexLoop:
-            CP   SymbolEntrySize
-            JR   C,Stage7SymbolIndexReady
-            SUB  SymbolEntrySize
-            INC  E
-            JR   Stage7SymbolIndexLoop
-Stage7SymbolIndexReady:
-            LD   A,E
-            LD   E,A
-            LD   H,0
-            LD   L,E
-            LD   DE,AggregateSymbolTypeBase
-            ADD  HL,DE
+            INC  HL
             LD   A,(HL)
-            LD   E,A
-            LD   A,(Stage7ArgumentCount)
-            LD   D,A
-            LD   A,E
             OR   A
             RET
 

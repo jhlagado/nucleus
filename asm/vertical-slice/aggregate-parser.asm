@@ -1172,12 +1172,8 @@ AggregateProgramPrepareSymbol:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(SymbolCount)
-            LD   E,A
-            LD   D,0
-            LD   HL,AggregateSymbolTypeBase
-            ADD  HL,DE
             LD   A,(AggregateCurrentTypeId)
+            INC  HL
             LD   (HL),A
             CALL SymbolCommit
 .if CompilerDiagnosticReturns

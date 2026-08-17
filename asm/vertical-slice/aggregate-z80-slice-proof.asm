@@ -280,13 +280,13 @@ ProofStart:
             LD   A,(AggregateFieldCount)
             CP   7
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateSymbolTypeBase+2)
+            LD   A,(SymbolTableBase+SymbolEntrySize*2+SymbolTypeId)
             CP   AggregateFirstDynamicTypeId+3
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateSymbolTypeBase+3)
+            LD   A,(SymbolTableBase+SymbolEntrySize*3+SymbolTypeId)
             CP   AggregateFirstDynamicTypeId+3
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateSymbolTypeBase+4)
+            LD   A,(SymbolTableBase+SymbolEntrySize*4+SymbolTypeId)
             CP   AggregateFirstDynamicTypeId+4
             JP   NZ,ProofFailLayout
             LD   A,(SymbolTableBase+SymbolEntrySize*2+3)
@@ -378,10 +378,10 @@ AggregateAtomicFailedAsExpected:
             LD   A,(SymbolTableBase+SymbolEntrySize+4)
             CP   AggregateFirstDynamicTypeId+1
             JP   NZ,ProofFailIdentity
-            LD   A,(AggregateSymbolTypeBase+2)
+            LD   A,(SymbolTableBase+SymbolEntrySize*2+SymbolTypeId)
             CP   AggregateFirstDynamicTypeId+2
             JP   NZ,ProofFailIdentity
-            LD   A,(AggregateSymbolTypeBase+3)
+            LD   A,(SymbolTableBase+SymbolEntrySize*3+SymbolTypeId)
             CP   AggregateFirstDynamicTypeId+2
             JP   NZ,ProofFailIdentity
             LD   A,(AggregateTypeCount)

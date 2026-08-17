@@ -93,7 +93,8 @@ SymbolCount             .equ SemanticBufferLimit+$0D
 NextLocalSlot           .equ SemanticBufferLimit+$0E
 NextProgramSlot         .equ SemanticBufferLimit+$0F
 SymbolTableBase         .equ SemanticBufferLimit+$10
-SymbolEntrySize         .equ 6
+SymbolEntrySize         .equ 7
+SymbolTypeId            .equ 6
 SymbolCapacity          .equ 16
 SymbolTableLimit        .equ SymbolTableBase+SymbolEntrySize*SymbolCapacity
 
@@ -267,12 +268,7 @@ AggregateFieldNameLength .equ 2
 AggregateFieldTypeId    .equ 3
 AggregateFieldOffset    .equ 4 ; word
 
-; One type ID per ordinary symbol is enough because the ordinary symbol table
-; owns name identity and the payload word owns the program-data offset.
-AggregateSymbolTypeBase .equ AggregateFieldTableLimit
-AggregateSymbolTypeLimit .equ AggregateSymbolTypeBase+SymbolCapacity
-
-StaticImageLength       .equ AggregateSymbolTypeLimit ; word
+StaticImageLength       .equ AggregateFieldTableLimit ; word
 .if SegmentedOutput
 ReadOnlyImageLength     .equ StaticImageLength+2 ; word
 ; One complete object is built in scratch. Published rodata keeps initialized

@@ -324,16 +324,36 @@ second bank read-only-length loop. The complete checkpoint recovers a measured
 4 MHz; failed-then-success, multipart, banked, abort, diagnostic, and exact
 artifact proofs all execute successfully.
 
+### Symbol type co-location
+
+Each ordinary symbol entry now carries its exact type byte after the existing
+full-width payload word. This replaces the parallel 16-byte aggregate-type
+table without changing the combined 112-byte workspace account: sixteen
+six-byte entries plus sixteen parallel type bytes become sixteen seven-byte
+entries. Aggregate lookup reads the contiguous entry directly, and delayed
+aggregate constants publish the type before their initializer copy reuses the
+prepared pointer.
+
+The checkpoint recovers a measured 51 code bytes with immutable data and
+workspace unchanged. The complete core is 16,341 bytes, leaving 43 bytes below
+the 16 KiB boundary. Compiler execution for the representative production
+proof falls by 1,035 instructions and 8,457 T-states. Normal and instrumented
+proofs, all aggregate symbol classes, the 16/17 symbol-capacity boundary, and
+byte-identical NOBJ and D8 artifacts pass. Relocation executes successfully at
+the `$0100` CP/M origin, the `$8000` TEC-1 origin, and the highest origin at
+which the complete compiler fits. Every symbol, table, and code address remains
+a full 16-bit value.
+
 ### Current recovery outlook
 
 After the scanner, comparison, expression-frame, action cleanup, reset, and two
-backend checkpoints, the measured shipping core is 16,392 bytes and the
-remaining recovery to 15,360 is 1,032 bytes. Symbol-type co-location and a
-unified aggregate descriptor project 103 bytes; provider tails project another
-10–20. Together with the measured 288-byte recovery, the currently evidenced
-range is 401–411 bytes, which would place the compiler between 16,269 and
-16,279 bytes. The current 300-byte phase starts at 16,489 bytes and has
-recovered 97 of its required 300 bytes; its phase target is 16,189.
+backend checkpoints, plus symbol type co-location, the measured shipping core
+is 16,341 bytes and the remaining recovery to 15,360 is 981 bytes. A unified
+aggregate descriptor projects another 52 bytes; provider tails project 10–20.
+Together with the measured 339-byte recovery, the currently evidenced range is
+401–411 bytes, which would place the compiler between 16,269 and 16,279 bytes.
+The current 300-byte phase starts at 16,489 bytes and has recovered 148 of its
+required 300 bytes; its phase target is 16,189.
 
 That range does not yet reach the target. A further 909–919 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the
