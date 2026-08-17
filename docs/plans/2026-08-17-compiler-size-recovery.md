@@ -644,13 +644,31 @@ NOBJ, D8, and generated artifacts pass. Relocation passes at `$0100`, `$8000`,
 and the highest-fitting origin. The selectors use only published type bits and
 semantic ordinals; no address or source position is shortened.
 
+### Scanner return-tail consolidation
+
+Aggregate-call newline handling now advances the full-width line and column
+state at its sole call site, while narrower non-aggregate historical layouts
+retain the shared adapter routine. Seven fixed token returns use an inline
+token-ordinal operand, and the three delimiter and punctuation paths that
+already carry an ordinal in C share one adjacent tail. The inline bytes are
+token data, not encoded instructions or addresses.
+
+The checkpoint recovers 10 code bytes with immutable data and workspace
+unchanged. The production core is 15,831 bytes. The representative proof
+executes 13 fewer instructions and 2,424 more T-states, a 0.023 percent cycle
+increase; the largest measured proof increase is 0.21 percent. Exact keyword,
+name, number, character, string, punctuation, delimiter, newline, multipart,
+diagnostic, NOBJ, and D8 behavior passes. Relocation passes at `$0100`, `$8000`,
+and the highest-fitting origin; every source position and code address remains
+a full 16-bit value.
+
 ### Current recovery outlook
 
-With algebraic expression-operation selection added to the retained
-checkpoints above, the measured shipping core is 15,841 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 839 bytes. The earlier
-15,360-byte target is 481 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 648 bytes, exceeding that phase target by 348 bytes.
+With scanner return-tail consolidation added to the retained
+checkpoints above, the measured shipping core is 15,831 bytes. Total measured
+recovery from the frozen 16,680-byte compiler is 849 bytes. The earlier
+15,360-byte target is 471 bytes away. The 300-byte phase began at 16,489 bytes
+and has recovered 658 bytes, exceeding that phase target by 358 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

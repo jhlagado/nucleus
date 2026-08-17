@@ -8,11 +8,21 @@ TokenRecordStart:
             LDIR
             RET
 
+.routine noreturn
+TokenFinishC:
+            LD   A,C
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry
 TokenFinish:
             LD   (SourceLineHasToken),A
             OR   A
             RET
+
+; The byte following the call is a token ordinal, not executable code.
+.routine noreturn
+TokenFinishInline:
+            POP  HL
+            LD   A,(HL)
+            JR   TokenFinish
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 TokenLexicalFailure:
@@ -130,8 +140,8 @@ TokenScanKeywordSkip:
             INC  HL
             DEC  C
             JR   NZ,TokenScanKeyword
-            LD   A,TokenName
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenName
 
 ; Scan one or more decimal digits and reject a value above 65535. BC carries
 ; the exact unsigned literal payload to the predictive parser.
@@ -183,8 +193,8 @@ TokenScanNumberDone:
 TokenScanNumberEof:
             LD   B,H
             LD   C,L
-            LD   A,TokenNumber
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenNumber
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TokenScanCharacter:
@@ -214,8 +224,8 @@ TokenScanCharacter:
 .endif
             CP   "'"
             JR   NZ,TokenScanCharacterFailure
-            LD   A,TokenCharacter
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenCharacter
 TokenScanCharacterFailure:
             JP   TokenLexicalFailure
 
@@ -323,8 +333,8 @@ TokenScanStringDone:
             LD   B,0
             LD   A,C
             LD   (TokenLength),A
-            LD   A,TokenStringLiteral
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenStringLiteral
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 TokenSkipComment:
@@ -402,8 +412,8 @@ TokenizerSlash:
             CALL TokenSkipComment
             JR   TokenizerNextLoop
 TokenizerSlashToken:
-            LD   A,TokenSlash
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenSlash
 
 TokenizerLess:
             CALL SourceTake
@@ -414,8 +424,8 @@ TokenizerLess:
             CP   ">"
             JR   Z,TokenizerNotEqual
 TokenizerLessToken:
-            LD   A,TokenLess
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenLess
 TokenizerLessEqual:
             LD   C,TokenLessEqual
             JR   TokenizerSimpleToken
@@ -430,8 +440,8 @@ TokenizerGreater:
             CP   "="
             JR   Z,TokenizerGreaterEqual
 TokenizerGreaterToken:
-            LD   A,TokenGreater
-            JP   TokenFinish
+            CALL TokenFinishInline
+            .db  TokenGreater
 TokenizerGreaterEqual:
             LD   C,TokenGreaterEqual
             JR   TokenizerSimpleToken
@@ -452,8 +462,7 @@ TokenizerLeftDelimiter:
             INC  A
             JR   Z,TokenizerLexicalFailure
             LD   (SourceDelimiterDepth),A
-            LD   A,C
-            JP   TokenFinish
+            JP   TokenFinishC
 
 TokenizerRightBracket:
             LD   C,TokenRightBracket
@@ -464,8 +473,7 @@ TokenizerRightDelimiter:
             DEC  A
             LD   (SourceDelimiterDepth),A
             CALL SourceTake
-            LD   A,C
-            JP   TokenFinish
+            JP   TokenFinishC
 
 TokenizerLexicalFailure:
             JP   TokenLexicalFailure
@@ -476,8 +484,7 @@ TokenizerPunctuation:
             JR   NZ,TokenizerBasedNumber
 TokenizerSimpleToken:
             CALL SourceTake
-            LD   A,C
-            JP   TokenFinish
+            JP   TokenFinishC
 TokenizerBasedNumber:
             RES  7,C
             LD   B,C
@@ -494,7 +501,15 @@ TokenizerCrLf:
             JR   NZ,TokenizerLexicalFailure
             CALL SourceTake
 TokenizerFinishLine:
+.if AggregateCallSlices
+            LD   HL,(SourceLine)
+            INC  HL
+            LD   (SourceLine),HL
+            LD   HL,1
+            LD   (SourceColumn),HL
+.else
             CALL SourceFinishLine
+.endif
             LD   A,(SourceDelimiterDepth)
             OR   A
             JP   NZ,TokenizerNextLoop

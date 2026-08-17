@@ -90,6 +90,8 @@ SourceTake:
             OR   A
             RET
 
+.if AggregateCallSlices
+.else
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 SourceFinishLine:
             LD   HL,(SourceLine)
@@ -99,3 +101,4 @@ SourceFinishLine:
             LD   (SourceColumn),HL
             OR   A
             RET
+.endif
