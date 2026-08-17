@@ -388,11 +388,15 @@ RewriteTargetImageCapacity    .equ RewriteTargetLayoutBase+6 ; word
 RewriteTargetWritableBase     .equ RewriteTargetLayoutBase+8 ; word
 RewriteTargetWritableCapacity .equ RewriteTargetLayoutBase+10 ; word
 RewriteTargetLayoutLimit      .equ RewriteTargetLayoutBase+12
+RewriteTargetOutputState      .equ RewriteTargetLayoutLimit
+RewriteTargetOutputLimit      .equ RewriteTargetOutputState+1
 
 RewriteTargetLayoutLoaded     .equ 0
 RewriteTargetLayoutRom        .equ 1
 RewriteTargetEstablishStack   .equ 1
 RewriteTargetBankCapacity     .equ 4
+RewriteTargetOutputClosed     .equ 0
+RewriteTargetOutputOpen       .equ 1
 
 ; Stable Host API 1 target descriptor. All addresses and capacities are full
 ; words; no compiler or target address bit is repurposed as metadata.

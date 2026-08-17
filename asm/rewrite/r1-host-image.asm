@@ -3,8 +3,8 @@
 CompilerWorkBase   .equ $6000
 SourceBase         .equ $5000
 SourceLimit        .equ $5800
-RewriteAdapterBase .equ $A000
-RewriteAdapterLimit .equ $A100
+RewriteAdapterBase .equ $D000
+RewriteAdapterLimit .equ $D100
 DebugHooks          .equ 0
 
             .org $8000

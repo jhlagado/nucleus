@@ -118,7 +118,7 @@ describe("ground-up rewrite semantic authority", () => {
     }).toEqual({
       semanticBytes: 288,
       operationBytes: 1368,
-      coreBytes: 18_689,
+      coreBytes: 18_756,
       workspaceBytes: 3_938,
     });
     expect(rewriteSemanticOperations).toHaveLength(105);

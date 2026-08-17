@@ -51,6 +51,161 @@ ProofTargetLayouts:
             LD   (ProofTargetStatus),A
             HALT
 
+ProofTargetOutputTransaction:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofTargetPrepareAdapter
+            LD   HL,ProofTargetUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   IX,ProofTargetRomDescriptor
+            LD   A,2
+            CALL RewriteTargetValidateDescriptor
+            CALL RewriteTargetBeginOutput
+            LD   A,$AA
+            LD   C,1
+            LD   HL,$8123
+            CALL RewriteTargetAppendImageByte
+            LD   C,0
+            LD   DE,$8010
+            LD   HL,$3456
+            CALL RewriteTargetAppendPatchWord
+            CALL RewriteTargetCommitOutput
+            LD   A,$B2
+            LD   (ProofTargetStatus),A
+            HALT
+
+ProofTargetOutputAppendFailure:
+            LD   A,1
+            LD   (AdapterFailureCountdown),A
+            XOR  A
+            LD   (AdapterCommitFailure),A
+            JR   ProofTargetOutputFailureBegin
+ProofTargetOutputCommitFailure:
+            XOR  A
+            LD   (AdapterFailureCountdown),A
+            INC  A
+            LD   (AdapterCommitFailure),A
+ProofTargetOutputFailureBegin:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofTargetPrepareAdapterKeepFailures
+            LD   HL,ProofTargetOutputDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   IX,ProofTargetRomDescriptor
+            LD   A,2
+            CALL RewriteTargetValidateDescriptor
+            CALL RewriteTargetBeginOutput
+            LD   A,(AdapterCommitFailure)
+            OR   A
+            JR   NZ,ProofTargetOutputCommitNow
+            LD   A,$AA
+            LD   C,1
+            LD   HL,$8123
+            CALL RewriteTargetAppendImageByte
+            JP   ProofTargetFailure
+ProofTargetOutputCommitNow:
+            CALL RewriteTargetCommitOutput
+            JP   ProofTargetFailure
+ProofTargetOutputDiagnostic:
+            HALT
+
+ProofTargetOutputRecovery:
+            LD   A,1
+            LD   (AdapterFailureCountdown),A
+            XOR  A
+            LD   (AdapterCommitFailure),A
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofTargetPrepareAdapterKeepFailures
+            LD   HL,ProofTargetOutputRecoveryDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   IX,ProofTargetRomDescriptor
+            LD   A,2
+            CALL RewriteTargetValidateDescriptor
+            CALL RewriteTargetBeginOutput
+            LD   A,$AA
+            LD   C,1
+            LD   HL,$8123
+            CALL RewriteTargetAppendImageByte
+            JP   ProofTargetFailure
+ProofTargetOutputRecoveryDiagnostic:
+            XOR  A
+            LD   (AdapterFailureCountdown),A
+            LD   (AdapterCommitFailure),A
+            LD   HL,AdapterLogBase
+            LD   (AdapterCursor),HL
+            LD   HL,ProofTargetOutputRecoveryReturn
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            CALL RewriteTargetBeginOutput
+            LD   A,$BB
+            LD   C,0
+            LD   HL,$8000
+            CALL RewriteTargetAppendImageByte
+            CALL RewriteTargetCommitOutput
+            LD   A,$B3
+            LD   (ProofTargetStatus),A
+ProofTargetOutputRecoveryReturn:
+            HALT
+
+ProofTargetOutputAbortIdempotent:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofTargetPrepareAdapter
+            LD   HL,ProofTargetUnexpectedDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   IX,ProofTargetRomDescriptor
+            LD   A,2
+            CALL RewriteTargetValidateDescriptor
+            CALL RewriteTargetBeginOutput
+            CALL RewriteTargetAbortOutput
+            CALL RewriteTargetAbortOutput
+            HALT
+
+ProofTargetOutputCapacity:
+            LD   SP,$FF00
+            CALL RewriteReset
+            CALL ProofTargetPrepareAdapter
+            LD   HL,ProofTargetOutputCapacityDiagnostic
+            PUSH HL
+            LD   (CompilerAbortSp),SP
+            LD   IX,ProofTargetRomDescriptor
+            LD   A,2
+            CALL RewriteTargetValidateDescriptor
+            CALL RewriteTargetBeginOutput
+            LD   HL,AdapterLogLimit-7
+            LD   (AdapterCursor),HL
+            LD   A,$CC
+            LD   C,1
+            LD   HL,$8FFF
+            CALL RewriteTargetAppendImageByte
+            LD   A,$DD
+            LD   C,0
+            LD   HL,$8000
+            CALL RewriteTargetAppendImageByte
+            JP   ProofTargetFailure
+ProofTargetOutputCapacityDiagnostic:
+            HALT
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
+ProofTargetPrepareAdapter:
+            XOR  A
+            LD   (AdapterFailureCountdown),A
+            LD   (AdapterCommitFailure),A
+.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
+ProofTargetPrepareAdapterKeepFailures:
+            XOR  A
+            LD   (AdapterOpen),A
+            LD   (AdapterCommitted),A
+            LD   (AdapterAborted),A
+            LD   HL,AdapterLogBase
+            LD   (AdapterCursor),HL
+            RET
+
 ProofTargetInvalidIdentity:
             LD   IX,ProofTargetIdentityDescriptor
             JR   ProofTargetArmOnePart

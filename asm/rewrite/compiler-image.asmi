@@ -74,3 +74,10 @@ CompilerImmutableEnd:
 RewriteCompilerImmutableEnd:
 CompilerCoreEnd:
 RewriteCompilerCoreEnd:
+
+; Host-selected adapter code is executable support, not compiler core. The
+; production operating layer may replace this proof/Host API implementation
+; without changing the compiler image or its origin policy.
+RewriteAdapterCodeStart:
+            .include "target-adapter.asm"
+RewriteAdapterCodeEnd:

@@ -712,6 +712,9 @@ describe("ground-up rewrite tokenizer", () => {
       const workspaceBytes =
         (zero.symbols.RewriteWorkspaceEnd ?? 0) -
         (zero.symbols.RewriteStateBase ?? 0);
+      const adapterBytes =
+        (zero.symbols.RewriteAdapterCodeEnd ?? 0) -
+        (zero.symbols.RewriteAdapterCodeStart ?? 0);
       expect({
         shellBytes,
         sourceBytes,
@@ -732,7 +735,7 @@ describe("ground-up rewrite tokenizer", () => {
         semanticBytes: 284,
         metadataBytes: 10_753,
         sourceTokenBytes: 1_099,
-        coreBytes: 18_685,
+        coreBytes: 18_752,
         workspaceBytes: 3_938,
       });
       const layouts: readonly {
@@ -745,7 +748,7 @@ describe("ground-up rewrite tokenizer", () => {
         { origin: 0x0100 },
         { origin: 0x6000, workBase: 0xb000, adapterBase: 0xc000 },
         { origin: 0x8000 },
-        { origin: 0x1_0000 - coreBytes },
+        { origin: 0x1_0000 - coreBytes - adapterBytes },
       ];
       const comprehensiveSource = new TextEncoder().encode(
         String.raw`var Name = ([65535, $fF, %1010, '\0', "\n"]) // comment` +

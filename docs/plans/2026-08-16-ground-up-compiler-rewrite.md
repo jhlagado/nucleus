@@ -1654,6 +1654,23 @@ R7 target-layout checkpoint (Measured, in progress):
   is accepted while the complete architecture is built; compression remains
   an R8 cutover obligation rather than an R7 feature blocker.
 
+R7 append-only transaction checkpoint (Measured, in progress):
+
+- a 67-byte compiler transaction layer begins output only after target
+  validation, appends canonical one-byte IMAGE and word PATCH adapter records,
+  commits exactly once, and aborts an opened generation exactly once on append
+  or commit failure. The abort entry is idempotent and a second generation can
+  commit immediately after an aborted generation;
+- the proof admits the exact final seven bytes of the 256-byte adapter log and
+  rejects the first extra record atomically. The separately measured Host API
+  proof adapter is 187 executable bytes outside compiler core; moving those
+  bytes into the compiler account is not claimed as a saving; and
+- the measured shipping replacement is 16,550 code + 2,202 immutable = 18,752
+  core bytes, the measured instrumented replacement is 18,756 core bytes, and
+  measured workspace remains 3,938 bytes. Runtime linking, startup placement,
+  MAP production, and the generation-wide diagnostic catch remain subsequent
+  R7 work.
+
 Exit gate: normal and instrumented replacement compilers produce identical
 target artifacts; replacement and oracle artifacts are byte-identical for the
 complete oracle corpus; PATCH attribution, bank identity, abort atomicity, and

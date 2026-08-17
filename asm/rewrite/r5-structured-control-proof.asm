@@ -1,7 +1,7 @@
 ; R5 structured-control proof. Semantic records and source text are data;
 ; every compiler-executed instruction uses an ordinary Z80 mnemonic.
 
-CompilerWorkBase    .equ $6000
+CompilerWorkBase    .equ $8000
 SourceBase          .equ $7000
 SourceLimit         .equ $7800
 RewriteAdapterBase  .equ $A000

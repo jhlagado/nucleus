@@ -69,6 +69,64 @@ RewriteTargetDescriptorReady:
             XOR  A
             RET
 
+; Begin one append-only target generation only after the complete descriptor
+; has been admitted. Adapter failure before open has nothing to abort.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+RewriteTargetBeginOutput:
+            XOR  A
+            LD   (RewriteTargetOutputState),A
+            LD   IX,(RewriteTargetDescriptorPointer)
+            CALL RewriteTargetSinkBegin
+            JP   C,RewriteTargetOutputFailure
+            LD   A,RewriteTargetOutputOpen
+            LD   (RewriteTargetOutputState),A
+            OR   A
+            RET
+
+; A is one image byte, C the bank, and HL its complete target address.
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE,IY
+RewriteTargetAppendImageByte:
+            CALL RewriteTargetSinkImageByte
+            JP   C,RewriteTargetAbortOutputFailure
+            RET
+
+; C is the bank, DE the complete target address, and HL the patch word.
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,IY
+RewriteTargetAppendPatchWord:
+            CALL RewriteTargetSinkPatchWord
+            JP   C,RewriteTargetAbortOutputFailure
+            RET
+
+; A successful commit closes the only open generation. A commit failure first
+; aborts the generation, so a stream can never observe both abort and commit.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,IY
+RewriteTargetCommitOutput:
+            CALL RewriteTargetSinkCommit
+            JP   C,RewriteTargetAbortOutputFailure
+            XOR  A
+            LD   (RewriteTargetOutputState),A
+            RET
+
+; Idempotent output-failure cleanup and the cleanup entry for the later target
+; generation catch. Parse diagnostics do not enter this target-only path;
+; Begin initializes the state to closed before asking the adapter to open.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,IY
+RewriteTargetAbortOutput:
+            LD   A,(RewriteTargetOutputState)
+            OR   A
+            RET  Z
+            CALL RewriteTargetSinkAbort
+            XOR  A
+            LD   (RewriteTargetOutputState),A
+            RET
+
+.routine noreturn
+RewriteTargetAbortOutputFailure:
+            CALL RewriteTargetAbortOutput
+RewriteTargetOutputFailure:
+            LD   A,DiagnosticTargetOutput
+            JP   RewriteRaiseDiagnostic
+
 ; HL is a base and DE a nonzero capacity. Carrying to exact zero represents
 ; the legal mathematical end $10000; every other wrap is rejected.
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,HL

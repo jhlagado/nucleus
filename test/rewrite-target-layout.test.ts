@@ -68,6 +68,91 @@ describe("ground-up rewrite target layout", () => {
     });
   });
 
+  it("publishes one append-only image/patch transaction and one commit", () => {
+    const { memory } = run("ProofTargetOutputTransaction");
+    const adapter = image.symbols.AdapterLogBase ?? -1;
+    const cursor = image.symbols.AdapterCursor ?? -1;
+    expect({
+      status: memory[image.symbols.ProofTargetStatus ?? -1],
+      open: memory[image.symbols.AdapterOpen ?? -1],
+      committed: memory[image.symbols.AdapterCommitted ?? -1],
+      aborted: memory[image.symbols.AdapterAborted ?? -1],
+      length: (memory[cursor] | (memory[cursor + 1] << 8)) - adapter,
+      records: Array.from(memory.slice(adapter, adapter + 15)),
+    }).toEqual({
+      status: 0xb2,
+      open: 0,
+      committed: 1,
+      aborted: 0,
+      length: 15,
+      records: [1, 1, 0x23, 0x81, 1, 0, 0xaa, 2, 0, 0x10, 0x80, 2, 0, 0x56, 0x34],
+    });
+  });
+
+  it.each([
+    "ProofTargetOutputAppendFailure",
+    "ProofTargetOutputCommitFailure",
+  ] as const)("aborts %s exactly once without commit", (entryName) => {
+    const { memory } = run(entryName);
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      open: memory[image.symbols.AdapterOpen ?? -1],
+      committed: memory[image.symbols.AdapterCommitted ?? -1],
+      aborted: memory[image.symbols.AdapterAborted ?? -1],
+    }).toEqual({ diagnostic: 97, open: 0, committed: 0, aborted: 1 });
+  });
+
+  it("recovers with a committed generation after an aborted generation", () => {
+    const { memory } = run("ProofTargetOutputRecovery");
+    const adapter = image.symbols.AdapterLogBase ?? -1;
+    const cursor = image.symbols.AdapterCursor ?? -1;
+    expect({
+      status: memory[image.symbols.ProofTargetStatus ?? -1],
+      open: memory[image.symbols.AdapterOpen ?? -1],
+      committed: memory[image.symbols.AdapterCommitted ?? -1],
+      aborted: memory[image.symbols.AdapterAborted ?? -1],
+      length: (memory[cursor] | (memory[cursor + 1] << 8)) - adapter,
+      record: Array.from(memory.slice(adapter, adapter + 7)),
+    }).toEqual({
+      status: 0xb3,
+      open: 0,
+      committed: 1,
+      aborted: 1,
+      length: 7,
+      record: [1, 0, 0, 0x80, 1, 0, 0xbb],
+    });
+  });
+
+  it("makes catch-side abort idempotent", () => {
+    const { memory } = run("ProofTargetOutputAbortIdempotent");
+    expect({
+      open: memory[image.symbols.AdapterOpen ?? -1],
+      committed: memory[image.symbols.AdapterCommitted ?? -1],
+      aborted: memory[image.symbols.AdapterAborted ?? -1],
+    }).toEqual({ open: 0, committed: 0, aborted: 1 });
+  });
+
+  it("admits the exact adapter boundary and rejects its first extra byte atomically", () => {
+    const { memory } = run("ProofTargetOutputCapacity");
+    const limit = image.symbols.AdapterLogLimit ?? -1;
+    const cursor = image.symbols.AdapterCursor ?? -1;
+    expect({
+      diagnostic: memory[image.symbols.DiagnosticCode ?? -1],
+      open: memory[image.symbols.AdapterOpen ?? -1],
+      committed: memory[image.symbols.AdapterCommitted ?? -1],
+      aborted: memory[image.symbols.AdapterAborted ?? -1],
+      cursor: memory[cursor] | (memory[cursor + 1] << 8),
+      finalRecord: Array.from(memory.slice(limit - 7, limit)),
+    }).toEqual({
+      diagnostic: 97,
+      open: 0,
+      committed: 0,
+      aborted: 1,
+      cursor: limit,
+      finalRecord: [1, 1, 0xff, 0x8f, 1, 0, 0xcc],
+    });
+  });
+
   it.each([
     ["ProofTargetInvalidIdentity", 95],
     ["ProofTargetInvalidPartBank", 95],
@@ -203,12 +288,16 @@ describe("ground-up rewrite target layout", () => {
       workspace:
         (image.symbols.RewriteWorkspaceEnd ?? 0) -
         (image.symbols.RewriteStateBase ?? 0),
+      adapter:
+        (image.symbols.RewriteAdapterCodeEnd ?? 0) -
+        (image.symbols.RewriteAdapterCodeStart ?? 0),
     }).toEqual({
-      planner: 245,
-      code: 16_483,
+      planner: 312,
+      code: 16_550,
       immutable: 2_202,
-      core: 18_685,
+      core: 18_752,
       workspace: 3_938,
+      adapter: 187,
     });
   });
 });
