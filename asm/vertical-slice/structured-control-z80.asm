@@ -152,6 +152,7 @@ StructuredBranchFalse:
             JR   StructuredEmitFixup
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage8SkipHandler:
 StructuredJump:
             LD   C,A
             LD   A,$C3                    ; JP nn
@@ -617,9 +618,7 @@ StructuredForNextStore:
             RET  C
 .endif
             LD   A,(EmitControlTestLabel)
-            LD   C,A
-            LD   A,$C3
-            JP   StructuredEmitFixup
+            JP   StructuredJump
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 StructuredForCleanup:

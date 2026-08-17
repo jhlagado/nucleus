@@ -1055,13 +1055,30 @@ to 876,715 instructions while improving from 9,566,852 to 9,566,154 T-states.
 Exact tokenizer flags, handler transcripts, generated code, diagnostics,
 artifacts, historical layouts, and relocation remain unchanged.
 
+### Eighth audit decimal, template, and jump-tail checkpoint
+
+Decimal accumulation now forms ten times the previous value with a checked
+nine-addition loop before adding the decoded digit; failure still precedes
+consumption of the offending byte. Two local-load target templates alias
+identical rows in the existing pair table. Structured `for` continuation and
+Stage 8 handler skipping also share the same complete absolute-jump fixup tail.
+
+The decimal loop recovers six code bytes, the template aliases recover four,
+and jump-tail sharing recovers twelve. Together they reduce the production
+core from 15,535 to 15,513 bytes, with immutable data and workspace unchanged.
+The representative proof changes from 876,715 to 878,125 instructions and from
+9,566,154 to 9,581,378 T-states. The largest measured regression is 1.298
+percent in the numeric array proof, below the two-percent gate. Decimal limits,
+target templates, jump fixups, diagnostics, artifacts, historical layouts, and
+relocation remain exact.
+
 ### Current recovery outlook
 
-With the seventh audit checkpoint added to the retained work above, the
-measured shipping core is 15,535 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,145 bytes. The earlier 15,360-byte target is 175 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 954 bytes,
-exceeding that phase target by 654 bytes.
+With the eighth audit checkpoint added to the retained work above, the measured
+shipping core is 15,513 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,167 bytes. The earlier 15,360-byte target is 153 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 976 bytes,
+exceeding that phase target by 676 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates of three bytes or more. The search continues in the selected

@@ -145,20 +145,16 @@ TokenScanNumberLoop:
             CP   "9"+1
             JR   NC,TokenScanNumberDone
             SUB  "0"
-            LD   C,A
 TokenScanNumberAccumulate:
+            LD   D,H
+            LD   E,L
+            LD   B,9
+TokenScanNumberMultiply:
+            ADD  HL,DE
+            JR   C,TokenScanCharacterFailure
+            DJNZ TokenScanNumberMultiply
             LD   D,0
-            LD   E,C
-            ADD  HL,HL
-            JR   C,TokenScanCharacterFailure
-            LD   B,H
-            LD   C,L
-            ADD  HL,HL
-            JR   C,TokenScanCharacterFailure
-            ADD  HL,HL
-            JR   C,TokenScanCharacterFailure
-            ADD  HL,BC
-            JR   C,TokenScanCharacterFailure
+            LD   E,A
             ADD  HL,DE
             JR   C,TokenScanCharacterFailure
             PUSH HL

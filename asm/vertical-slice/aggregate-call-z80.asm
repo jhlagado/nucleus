@@ -438,12 +438,6 @@ Stage8SuccessTail:
             LD   HL,Stage8SuccessReturnBytes
             JP   EmitPair
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage8SkipHandler:
-            LD   C,A
-            LD   A,$C3
-            JP   StructuredEmitFixup
-
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8BeginHandler:
             LD   C,A
@@ -507,9 +501,7 @@ Stage8FailureHandle:
             RET  C
 .endif
             LD   A,(Stage8EmitHandlerLabel)
-            LD   C,A
-            LD   A,$C3
-            JP   StructuredEmitFixup
+            JP   Stage8SkipHandler
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8InvokeService:

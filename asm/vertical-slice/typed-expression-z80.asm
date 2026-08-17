@@ -1264,8 +1264,8 @@ TypedLoadSPPrefix:      .db $ED,$7B
 TypedLoadIXPrefix:      .db $DD,$2A
 TypedParameter16Bytes:  .db $3B,$3B,$DD,$75,$FF,$DD,$74,$FE
 TypedParameter8Bytes    .equ TypedParameter16Bytes+1
-TypedLoadLocalLow:      .db $DD,$6E
-TypedLoadLocalHigh:     .db $DD,$66
+TypedLoadLocalLow       .equ EmitPairInlineTable+EmitPairLoadIXL*2
+TypedLoadLocalHigh      .equ EmitPairInlineTable+EmitPairLoadIXH*2
 TypedStoreLocalLow       .equ TypedParameter16Bytes+2
 TypedStoreLocalHigh      .equ TypedParameter16Bytes+5
 TypedZeroHighPush       .equ TypedAtoHL+1
