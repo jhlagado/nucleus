@@ -1426,9 +1426,107 @@ ProofStart:
             JP   C,ProofFailEncodeRollback
             CALL ProofCheckSegmentOverlap
             JP   C,ProofFailSegmentOverlap
+            CALL ProofCheckAggregateCapacityBoundaries
+            JP   C,ProofFailAggregateCapacityBoundaries
             LD   A,$A5
             LD   (ProofStatus),A
             HALT
+
+; Exercise both public segmented-capacity entries directly. The three accepted
+; mathematical ends and first/tall rejected words distinguish every branch of
+; the shared predicate. The returning-diagnostic layout must restore both the
+; caller's saved BC and the exact hardware stack before reporting failure.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckAggregateCapacityBoundaries:
+            LD   HL,0
+            ADD  HL,SP
+            LD   (ProofCapacityExpectedSP),HL
+            LD   HL,$0000
+            CALL ProofCheckProgramCapacityAccepted
+            RET  C
+            LD   HL,$0000
+            CALL ProofCheckReadOnlyCapacityAccepted
+            RET  C
+            LD   HL,$03FF
+            CALL ProofCheckProgramCapacityAccepted
+            RET  C
+            LD   HL,$03FF
+            CALL ProofCheckReadOnlyCapacityAccepted
+            RET  C
+            LD   HL,$0400
+            CALL ProofCheckProgramCapacityAccepted
+            RET  C
+            LD   HL,$0400
+            CALL ProofCheckReadOnlyCapacityAccepted
+            RET  C
+            LD   HL,$0401
+            CALL ProofCheckProgramCapacityRejected
+            RET  C
+            LD   HL,$0401
+            CALL ProofCheckReadOnlyCapacityRejected
+            RET  C
+            LD   HL,$FFFF
+            CALL ProofCheckProgramCapacityRejected
+            RET  C
+            LD   HL,$FFFF
+            CALL ProofCheckReadOnlyCapacityRejected
+            RET  C
+            XOR  A
+            RET
+
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckProgramCapacityAccepted:
+            LD   BC,$A55A
+            CALL AggregateCheckExtentCapacity
+            JR   C,ProofCapacityStateFailure
+            JR   ProofCheckCapacityState
+
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckReadOnlyCapacityAccepted:
+            LD   BC,$A55A
+            CALL AggregateCheckReadOnlyCapacity
+            JR   C,ProofCapacityStateFailure
+            JR   ProofCheckCapacityState
+
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckProgramCapacityRejected:
+            LD   BC,$A55A
+            CALL AggregateCheckExtentCapacity
+            JR   NC,ProofCapacityStateFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticProgramDataCapacity
+            JR   NZ,ProofCapacityStateFailure
+            JR   ProofCheckCapacityState
+
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckReadOnlyCapacityRejected:
+            LD   BC,$A55A
+            CALL AggregateCheckReadOnlyCapacity
+            JR   NC,ProofCapacityStateFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticReadOnlyCapacity
+            JR   NZ,ProofCapacityStateFailure
+
+; These entry routines tail-jump here with their own return word still present.
+.routine in BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckCapacityState:
+            PUSH BC
+            POP  DE
+            LD   HL,$A55A
+            OR   A
+            SBC  HL,DE
+            JR   NZ,ProofCapacityStateFailure
+            LD   HL,2
+            ADD  HL,SP
+            LD   DE,(ProofCapacityExpectedSP)
+            OR   A
+            SBC  HL,DE
+            JR   NZ,ProofCapacityStateFailure
+            OR   A
+            RET
+ProofCapacityStateFailure:
+            SCF
+            RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCallGenerated:
@@ -1983,6 +2081,8 @@ ProofFailAggregateConstantWrongType: LD A,69
 ProofFailAggregateConstantRuntime: LD A,70
                   JP ProofFailed
 ProofFailAggregateConstantScalarType: LD A,71
+                  JP ProofFailed
+ProofFailAggregateCapacityBoundaries: LD A,72
 ProofFailed:
             LD   (ProofCase),A
             HALT
@@ -1991,6 +2091,7 @@ ProofExpectedSP: .dw 0
 ProofExpectedOffset: .dw 0
 ProofExpectedRoDataSize: .dw 0
 ProofExpectedDiagnostic: .db 0
+ProofCapacityExpectedSP: .dw 0
 ProofCopyGeneratedSize: .dw 0
 ProofForwardGeneratedSize: .dw 0
 ProofStringGeneratedSize: .dw 0

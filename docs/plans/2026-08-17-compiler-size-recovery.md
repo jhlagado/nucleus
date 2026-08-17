@@ -902,13 +902,35 @@ restored stack. The ordinary typed path adds only 20 compiler instructions and
 225 T-states, below 0.004 percent. Strict production, debug, historical,
 artifact, and relocation proofs pass.
 
+### Shared segmented-capacity predicate
+
+Production program-data and read-only capacity checks now share their complete
+16-bit `0..$0400` predicate. Each public entry selects its exact diagnostic in
+`B`. The two callers that retain `BC` across the check save and restore it
+locally; other callers already treat `BC` as dead. Production diagnostics are
+nonlocal, while returning-diagnostic historical layouts keep their original
+independent routines and preservation contracts.
+
+The checkpoint recovers seven production compiler-code bytes with immutable
+data and workspace unchanged. The production core is 15,696 bytes. A direct
+historical proof checks both public entries at `$0000`, `$03FF`, `$0400`,
+`$0401`, and `$FFFF`, including exact diagnostics, preserved `BC`, and restored
+stack state. A production-mode proof separately checks `$0400`, `$0401`, and
+`$FFFF` through the shared predicate, including both exact diagnostics and the
+stack after each nonlocal return. The ordinary compiler paths add 192
+instructions and 1,849 T-states. Including the new proof-only discriminator,
+the complete representative proof adds 372 instructions and 3,685 T-states;
+both changes remain below 0.04 percent. Exact source diagnostics, semantic
+transcripts, generated output, NOBJ, D8, strict historical layouts, and
+relocation remain unchanged.
+
 ### Current recovery outlook
 
-With inline fixed unary templates added to the retained checkpoints above, the
-measured shipping core is 15,703 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 977 bytes. The earlier 15,360-byte target is 343 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 786 bytes,
-exceeding that phase target by 486 bytes.
+With the shared segmented-capacity predicate added to the retained checkpoints
+above, the measured shipping core is 15,696 bytes. Total measured recovery from
+the frozen 16,680-byte compiler is 984 bytes. The earlier 15,360-byte target is
+336 bytes away. The 300-byte phase began at 16,489 bytes and has recovered 793
+bytes, exceeding that phase target by 493 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

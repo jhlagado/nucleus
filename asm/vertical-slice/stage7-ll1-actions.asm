@@ -245,7 +245,13 @@ HybridLL1CommitAggregateConstant:
             ADD  HL,BC
             LD   DE,(StaticImageLength)
             ADD  HL,DE
+.if CompilerNonlocalDiagnostics
+            PUSH BC
+.endif
             CALL AggregateCheckReadOnlyCapacity
+.if CompilerNonlocalDiagnostics
+            POP  BC
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -435,7 +441,7 @@ HybridLL1AllocateBssObject:
 
 ; Add the current object extent to the selected segment length in DE. Return
 ; the old offset in DE and the checked mathematical end in HL.
-.routine in DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+.routine in DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 HybridLL1AllocateObjectEnd:
             LD   (AggregateCurrentObjectOffset),DE
             LD   HL,(AggregateCurrentObjectExtent)

@@ -354,6 +354,10 @@ ProofStart:
             LD   (AdapterCommitFailure),A
             LD   HL,AdapterLogBase
             LD   (AdapterCursor),HL
+            LD   A,73
+            LD   (ProofCase),A
+            CALL ProofCheckProductionCapacityBoundaries
+            JP   C,ProofRegionFailure
             LD   HL,$F000
             LD   DE,$1000
             LD   A,10
@@ -1300,8 +1304,84 @@ ProofCompilerStackExact:
             SBC  HL,DE
             RET
 
+; Exercise the production-only shared segmented-capacity predicate directly.
+; Each wrapper plants its caller continuation as CompilerAbortSp, so a
+; nonlocal diagnostic must restore the exact proof stack before returning.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCheckProductionCapacityBoundaries:
+            LD   HL,0
+            ADD  HL,SP
+            LD   (ProofCapacityExpectedSP),HL
+            LD   HL,$0400
+            CALL ProofCallProgramCapacity
+            JR   C,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            JR   NZ,ProofProductionCapacityFailure
+            LD   HL,$0400
+            CALL ProofCallReadOnlyCapacity
+            JR   C,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            JR   NZ,ProofProductionCapacityFailure
+            LD   HL,$0401
+            CALL ProofCallProgramCapacity
+            JR   NC,ProofProductionCapacityFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticProgramDataCapacity
+            JR   NZ,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            JR   NZ,ProofProductionCapacityFailure
+            LD   HL,$0401
+            CALL ProofCallReadOnlyCapacity
+            JR   NC,ProofProductionCapacityFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticReadOnlyCapacity
+            JR   NZ,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            JR   NZ,ProofProductionCapacityFailure
+            LD   HL,$FFFF
+            CALL ProofCallProgramCapacity
+            JR   NC,ProofProductionCapacityFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticProgramDataCapacity
+            JR   NZ,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            JR   NZ,ProofProductionCapacityFailure
+            LD   HL,$FFFF
+            CALL ProofCallReadOnlyCapacity
+            JR   NC,ProofProductionCapacityFailure
+            LD   A,(DiagnosticCode)
+            CP   DiagnosticReadOnlyCapacity
+            JR   NZ,ProofProductionCapacityFailure
+            CALL ProofCapacityStackExact
+            RET  NZ
+            XOR  A
+            RET
+ProofProductionCapacityFailure:
+            SCF
+            RET
+
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+ProofCallProgramCapacity:
+            LD   (CompilerAbortSp),SP
+            JP   AggregateCheckExtentCapacity
+
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+ProofCallReadOnlyCapacity:
+            LD   (CompilerAbortSp),SP
+            JP   AggregateCheckReadOnlyCapacity
+
+.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofCapacityStackExact:
+            LD   HL,2
+            ADD  HL,SP
+            LD   DE,(ProofCapacityExpectedSP)
+            OR   A
+            SBC  HL,DE
+            RET
+
 ProofStatus: .db 0
 ProofCase:   .db 0
+ProofCapacityExpectedSP: .dw 0
 AdapterOpen: .db 0
 AdapterCommitted: .db 0
 AdapterAborted:   .db 0

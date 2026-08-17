@@ -216,7 +216,13 @@ AggregateWrapArrayCurrent:
 AggregateWrapArrayExtentLoop:
             ADD  HL,DE
             JP   C,AggregateProgramDataCapacityFailure
+.if CompilerNonlocalDiagnostics
+            PUSH BC
+.endif
             CALL AggregateCheckExtentCapacity
+.if CompilerNonlocalDiagnostics
+            POP  BC
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -291,20 +297,45 @@ AggregateFinishArrayReady:
 
 ; The first compiler admits one aggregate object up to the selected complete
 ; program-data region. HL is a nonzero mathematical extent.
+.if SegmentedOutput
+.if CompilerNonlocalDiagnostics
+; Production diagnostics never return, so B can select the exact
+; capacity diagnostic without adding a second copy of the word predicate.
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+AggregateCheckExtentCapacity:
+            LD   B,DiagnosticProgramDataCapacity
+            JR   AggregateCheckSegmentedCapacity
+
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+AggregateCheckReadOnlyCapacity:
+            LD   B,DiagnosticReadOnlyCapacity
+.routine in B,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+AggregateCheckSegmentedCapacity:
+            LD   A,H
+            CP   4
+            JR   C,AggregateSegmentedCapacityReady
+            JR   NZ,AggregateSegmentedCapacityFailure
+            LD   A,L
+            OR   A
+            JR   NZ,AggregateSegmentedCapacityFailure
+AggregateSegmentedCapacityReady:
+            OR   A
+            RET
+AggregateSegmentedCapacityFailure:
+            LD   A,B
+            JP   CompilerSetDiagnostic
+.else
+; Returning-diagnostic historical layouts retain independently balanced
+; routines so their public preservation contracts remain unchanged.
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
 AggregateCheckExtentCapacity:
             LD   A,H
-.if SegmentedOutput
             CP   4
             JR   C,AggregateExtentCapacityReady
             JR   NZ,AggregateExtentCapacityFailure
             LD   A,L
             OR   A
             JR   NZ,AggregateExtentCapacityFailure
-.else
-            OR   A
-            JR   NZ,AggregateExtentCapacityFailure
-.endif
 AggregateExtentCapacityReady:
             OR   A
             RET
@@ -312,9 +343,6 @@ AggregateExtentCapacityFailure:
             CALL SetDiagInline
             .db  DiagnosticProgramDataCapacity
 
-.if SegmentedOutput
-; The read-only image shares the same 1 KiB proof region as generated rodata,
-; but exhaustion names the declaration class that consumed it.
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
 AggregateCheckReadOnlyCapacity:
             LD   A,H
@@ -330,6 +358,19 @@ AggregateReadOnlyCapacityReady:
 AggregateReadOnlyCapacityFailure:
             CALL SetDiagInline
             .db  DiagnosticReadOnlyCapacity
+.endif
+.else
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+AggregateCheckExtentCapacity:
+            LD   A,H
+            OR   A
+            JR   NZ,AggregateExtentCapacityFailure
+AggregateExtentCapacityReady:
+            OR   A
+            RET
+AggregateExtentCapacityFailure:
+            CALL SetDiagInline
+            .db  DiagnosticProgramDataCapacity
 .endif
 
 .if HybridLL1Full
