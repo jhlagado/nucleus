@@ -6,13 +6,12 @@ SourceInitialize:
             LD   (SourceCursor),HL
             EX   DE,HL
             LD   (SourceEnd),HL
-            LD   HL,0
-            LD   (SourceOffset),HL
-            INC  HL
+            LD   HL,1
             LD   (SourceLine),HL
             LD   (SourceColumn),HL
-            XOR  A
             DEC  HL
+            LD   (SourceOffset),HL
+            XOR  A
             LD   (SourceLineHasToken),HL
             RET
 

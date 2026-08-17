@@ -795,13 +795,39 @@ transcripts, diagnostics, generated Z80, NOBJ, and D8 remain exact. Historical
 returning-diagnostic layouts and relocation at `$0100`, `$8000`, and the
 highest-fitting origin pass; the helper changes no address representation.
 
+### Scanner control-flow layout
+
+The production tokenizer now places its EOF and line-ending paths before the
+main scan loop. Every resulting relative branch is assembled from symbolic
+full-width labels; the longest production displacements are +112 bytes from
+the public entry to the loop and -120 bytes from the loop to EOF. A separate
+zero-byte routine contract at the loop keeps AZM's register analysis aligned
+with the public-entry wrapper. Required literal reads fall through to their
+terminal diagnostic, and simple punctuation falls through to the common token
+finisher.
+
+Keyword lookup retains the zero high byte while loading its bounded table
+offset. The common token finisher removes the keyword-row marker, so all 35
+published token ordinals and the line-has-token state remain unchanged.
+Source initialization constructs the same full-width offset, line, and column
+values in a shorter order.
+
+The checkpoint recovers 12 compiler-code bytes with immutable data and
+workspace unchanged. The production core is 15,746 bytes. The representative
+proof executes 158 more instructions and 1,154 fewer T-states, changes of
+0.018 and 0.012 percent. The largest instruction increase among the exact proof
+locks is 0.055 percent. Exact tokens, multipart and CRLF positions, lexical
+diagnostics, semantic transcripts, generated Z80, NOBJ, and D8 remain
+unchanged; production and returning-diagnostic layouts pass strict register
+contracts.
+
 ### Current recovery outlook
 
-With cached operator consumption added to the retained checkpoints above, the
-measured shipping core is 15,758 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 922 bytes. The earlier 15,360-byte target is 398 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 731 bytes,
-exceeding that phase target by 431 bytes.
+With scanner control-flow layout added to the retained checkpoints above, the
+measured shipping core is 15,746 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 934 bytes. The earlier 15,360-byte target is 386 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 743 bytes,
+exceeding that phase target by 443 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

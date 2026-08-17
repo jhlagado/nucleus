@@ -8,22 +8,6 @@ TokenRecordStart:
             LDIR
             RET
 
-.routine noreturn
-TokenFinishC:
-            LD   A,C
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
-TokenFinish:
-            LD   (SourceLineHasToken),A
-            OR   A
-            RET
-
-; The byte following the call is a token ordinal, not executable code.
-.routine noreturn
-TokenFinishInline:
-            POP  HL
-            LD   A,(HL)
-            JR   TokenFinish
-
 .routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 TokenLexicalFailure:
             CALL SetDiagInline
@@ -124,7 +108,6 @@ TokenScanNameDone:
             LD   HL,KeywordLengthOffsets
             ADD  HL,DE
             LD   E,(HL)
-            LD   D,0
             LD   HL,KeywordTable
             ADD  HL,DE
 TokenScanKeyword:
@@ -138,7 +121,6 @@ TokenScanKeywordByte:
             INC  HL
             DJNZ TokenScanKeywordByte
             LD   A,(HL)
-            AND  $7F
             JP   TokenFinish
 TokenScanKeywordSkip:
             LD   E,B
@@ -235,20 +217,16 @@ TokenScanCharacter:
             CALL TokenFinishInline
             .db  TokenCharacter
 .if TargetStreamingOutput
-.routine noreturn
-.endif
-TokenScanCharacterFailure:
-            JP   TokenLexicalFailure
-
-.if TargetStreamingOutput
 ; Production diagnostics do not return, so required literal bytes share one
 ; checked source-take path without adding a carry-propagation site per caller.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 TokenTakeRequired:
             CALL SourceTake
             RET  NC
-            JR   TokenScanCharacterFailure
+.routine noreturn
 .endif
+TokenScanCharacterFailure:
+            JP   TokenLexicalFailure
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
 ; needs only the validity flag; the static-image decoder reuses the value.
@@ -360,19 +338,100 @@ TokenSkipCommentLoop:
 
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenizerNext:
+            JR   TokenizerNextLoop
+
+TokenizerAtEof:
+            LD   A,(SourceDelimiterDepth)
+            OR   A
+            JR   NZ,TokenizerLineLexicalFailure
+.if AggregateCallSlices
+            LD   A,(SourcePartsRemaining)
+            BIT  7,A
+            JR   NZ,TokenizerAdvancePart
+.if TargetStreamingOutput
+            AND  SourcePartsRemainingMask
+.endif
+            OR   A
+            JR   Z,TokenizerAtCompilationEof
+            LD   A,(SourceLineHasToken)
+            OR   A
+            JR   Z,TokenizerAdvancePart
+            LD   HL,SourcePartsRemaining
+            SET  7,(HL)
+            JR   TokenizerClearLineAndReturnNewline
+TokenizerAdvancePart:
+            LD   HL,SourcePartsRemaining
+.if TargetStreamingOutput
+            LD   A,(HL)
+            AND  $7F
+            ADD  A,SourcePartOrdinalStep-1
+            LD   (HL),A
+.else
+            RES  7,(HL)
+            DEC  (HL)
+.endif
+            LD   HL,(SourcePartDescriptorCursor)
+            CALL SourceLoadPart
+            JR   TokenizerNextLoop
+TokenizerAtCompilationEof:
+.endif
+            LD   A,(SourceLineHasToken)
+            OR   A
+            JR   Z,TokenizerEmitEof
+TokenizerClearLineAndReturnNewline:
+            XOR  A
+            LD   (SourceLineHasToken),A
+            INC  A                       ; TokenNewline
+            RET
+TokenizerEmitEof:
+            XOR  A                       ; TokenEof
+            RET
+
+TokenizerLineLexicalFailure:
+            JP   TokenLexicalFailure
+
+TokenizerLf:
+            CALL SourceTake
+            JR   TokenizerFinishLine
+TokenizerCrLf:
+            CALL SourceTake
+            CALL SourcePeek
+            JR   C,TokenizerLineLexicalFailure
+            CP   10
+            JR   NZ,TokenizerLineLexicalFailure
+            CALL SourceTake
+TokenizerFinishLine:
+.if AggregateCallSlices
+            LD   HL,(SourceLine)
+            INC  HL
+            LD   (SourceLine),HL
+            LD   HL,1
+            LD   (SourceColumn),HL
+.else
+            CALL SourceFinishLine
+.endif
+            LD   A,(SourceDelimiterDepth)
+            OR   A
+            JR   NZ,TokenizerNextLoop
+            LD   A,(SourceLineHasToken)
+            OR   A
+            JR   Z,TokenizerNextLoop
+            JR   TokenizerClearLineAndReturnNewline
+
+.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenizerNextLoop:
             CALL TokenRecordStart
             CALL SourcePeek
-            JP   C,TokenizerAtEof
+            JR   C,TokenizerAtEof
 
             CP   " "
             JR   Z,TokenizerSkipByte
             CP   9
             JR   Z,TokenizerSkipByte
             CP   10
-            JP   Z,TokenizerLf
+            JR   Z,TokenizerLf
             CP   13
-            JP   Z,TokenizerCrLf
+            JR   Z,TokenizerCrLf
             CP   "/"
             JR   Z,TokenizerSlash
             CP   "("
@@ -473,7 +532,7 @@ TokenizerLeftDelimiter:
             INC  A
             JR   Z,TokenizerLexicalFailure
             LD   (HL),A
-            JP   TokenFinishC
+            JR   TokenFinishC
 
 TokenizerRightBracket:
             LD   C,TokenRightBracket
@@ -484,7 +543,7 @@ TokenizerRightDelimiter:
             JR   Z,TokenizerLexicalFailure
             DEC  (HL)
             CALL SourceTake
-            JP   TokenFinishC
+            JR   TokenFinishC
 
 TokenizerLexicalFailure:
             JP   TokenLexicalFailure
@@ -492,89 +551,29 @@ TokenizerLexicalFailure:
 TokenizerPunctuation:
             LD   C,(HL)
             BIT  7,C
-            JR   NZ,TokenizerBasedNumber
-TokenizerSimpleToken:
-            CALL SourceTake
-            JP   TokenFinishC
-TokenizerBasedNumber:
+            JR   Z,TokenizerSimpleToken
             RES  7,C
             LD   B,C
             JR   TokenScanBasedNumber
+.routine in C out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+TokenizerSimpleToken:
+            CALL SourceTake
 
-TokenizerLf:
-            CALL SourceTake
-            JR   TokenizerFinishLine
-TokenizerCrLf:
-            CALL SourceTake
-            CALL SourcePeek
-            JR   C,TokenizerLexicalFailure
-            CP   10
-            JR   NZ,TokenizerLexicalFailure
-            CALL SourceTake
-TokenizerFinishLine:
-.if AggregateCallSlices
-            LD   HL,(SourceLine)
-            INC  HL
-            LD   (SourceLine),HL
-            LD   HL,1
-            LD   (SourceColumn),HL
-.else
-            CALL SourceFinishLine
-.endif
-            LD   A,(SourceDelimiterDepth)
-            OR   A
-            JP   NZ,TokenizerNextLoop
-            LD   A,(SourceLineHasToken)
-            OR   A
-            JP   Z,TokenizerNextLoop
-            JR   TokenizerClearLineAndReturnNewline
-
-TokenizerAtEof:
-            LD   A,(SourceDelimiterDepth)
-            OR   A
-            JR   NZ,TokenizerLexicalFailure
-.if AggregateCallSlices
-            LD   A,(SourcePartsRemaining)
-            BIT  7,A
-            JR   NZ,TokenizerAdvancePart
-.if TargetStreamingOutput
-            AND  SourcePartsRemainingMask
-.endif
-            OR   A
-            JR   Z,TokenizerAtCompilationEof
-            LD   A,(SourceLineHasToken)
-            OR   A
-            JR   Z,TokenizerAdvancePart
-            LD   HL,SourcePartsRemaining
-            SET  7,(HL)
-            JR   TokenizerClearLineAndReturnNewline
-TokenizerAdvancePart:
-            LD   HL,SourcePartsRemaining
-.if TargetStreamingOutput
-            LD   A,(HL)
+.routine noreturn
+TokenFinishC:
+            LD   A,C
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+TokenFinish:
             AND  $7F
-            ADD  A,SourcePartOrdinalStep-1
-            LD   (HL),A
-.else
-            RES  7,(HL)
-            DEC  (HL)
-.endif
-            LD   HL,(SourcePartDescriptorCursor)
-            CALL SourceLoadPart
-            JP   TokenizerNextLoop
-TokenizerAtCompilationEof:
-.endif
-            LD   A,(SourceLineHasToken)
-            OR   A
-            JR   Z,TokenizerEmitEof
-TokenizerClearLineAndReturnNewline:
-            XOR  A
             LD   (SourceLineHasToken),A
-            INC  A                       ; TokenNewline
             RET
-TokenizerEmitEof:
-            XOR  A                       ; TokenEof
-            RET
+
+; The byte following the call is a token ordinal, not executable code.
+.routine noreturn
+TokenFinishInline:
+            POP  HL
+            LD   A,(HL)
+            JR   TokenFinish
 
 .routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenScanBasedNumber:
