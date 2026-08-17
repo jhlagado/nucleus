@@ -1,42 +1,62 @@
-; Compact variable-length keyword table followed by parser-only names.
+; Keywords are grouped by spelling length. The scanner selects one group with
+; the bounded offsets below; bit 7 marks each group's final token descriptor.
+; The low seven bits remain the published token ordinal.
 
 KeywordTable:
-            .db  3,"var",TokenVar
-            .db  2,"as",TokenAs
-            .db  2,"u8",TokenU8
-            .db  3,"u16",TokenU16
-            .db  2,"i8",TokenI8
-            .db  3,"i16",TokenI16
-            .db  7,"boolean",TokenBoolean
-            .db  4,"true",TokenTrue
-            .db  5,"false",TokenFalse
-            .db  5,"const",TokenConst
-            .db  2,"or",TokenOr
-            .db  3,"xor",TokenXor
-            .db  3,"mod",TokenMod
-            .db  6,"assert",TokenAssert
-            .db  3,"and",TokenAnd
-            .db  3,"not",TokenNot
-            .db  4,"fail",TokenFail
-            .db  3,"end",TokenEnd
-            .db  3,"sub",TokenSub
-            .db  5,"fails",TokenFails
-            .db  3,"for",TokenFor
-            .db  5,"until",TokenUntil
-            .db  7,"forward",TokenForward
-            .db  6,"return",TokenReturn
-            .db  2,"if",TokenIf
-            .db  6,"elseif",TokenElseIf
-            .db  4,"else",TokenElse
-            .db  5,"while",TokenWhile
-            .db  2,"to",TokenTo
-            .db  4,"step",TokenStep
-            .db  4,"exit",TokenExit
-            .db  8,"continue",TokenContinue
-            .db  6,"record",TokenRecord
-            .db  6,"string",TokenString
-            .db  6,"handle",TokenHandle
+KeywordLength2:
+            .db  "as",TokenAs
+            .db  "u8",TokenU8
+            .db  "i8",TokenI8
+            .db  "or",TokenOr
+            .db  "if",TokenIf
+            .db  "to",TokenTo+$80
+KeywordLength3:
+            .db  "var",TokenVar
+            .db  "u16",TokenU16
+            .db  "i16",TokenI16
+            .db  "xor",TokenXor
+            .db  "mod",TokenMod
+            .db  "and",TokenAnd
+            .db  "not",TokenNot
+            .db  "end",TokenEnd
+            .db  "sub",TokenSub
+            .db  "for",TokenFor+$80
+KeywordLength4:
+            .db  "true",TokenTrue
+            .db  "fail",TokenFail
+            .db  "else",TokenElse
+            .db  "step",TokenStep
+            .db  "exit",TokenExit+$80
+KeywordLength5:
+            .db  "false",TokenFalse
+            .db  "const",TokenConst
+            .db  "fails",TokenFails
+            .db  "until",TokenUntil
+            .db  "while",TokenWhile+$80
+KeywordLength6:
+            .db  "assert",TokenAssert
+            .db  "return",TokenReturn
+            .db  "elseif",TokenElseIf
+            .db  "record",TokenRecord
+            .db  "string",TokenString
+            .db  "handle",TokenHandle+$80
+KeywordLength7:
+            .db  "boolean",TokenBoolean
+            .db  "forward",TokenForward+$80
+KeywordLength8:
+            .db  "continue",TokenContinue+$80
 KeywordCount            .equ 35
+
+; These are offsets within KeywordTable, not shortened compiler addresses.
+; Every value is below 256 and is added to the table's full-width base.
+KeywordLengthOffsets:
+            .db  KeywordLength2-KeywordTable
+            .db  KeywordLength3-KeywordTable
+            .db  KeywordLength4-KeywordTable
+            .db  KeywordLength5-KeywordTable
+            .db  KeywordLength6-KeywordTable
+            .db  KeywordLength7-KeywordTable
+            .db  KeywordLength8-KeywordTable
 
 PunctuationTable:
             .db  "=",TokenEquals

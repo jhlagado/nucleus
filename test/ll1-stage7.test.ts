@@ -17,7 +17,7 @@ const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
 
 describe("Stage 7 packed LL(1)", () => {
-  it("keeps the keyword scan bound equal to the physical table", () => {
+  it("keeps every published keyword in one bounded length group", () => {
     const source = readFileSync(
       path.resolve(
         import.meta.dirname,
@@ -32,9 +32,59 @@ describe("Stage 7 packed LL(1)", () => {
       /KeywordTable:\s*\n([\s\S]*?)KeywordCount\s+\.equ\s+(\d+)/,
     );
     expect(table).not.toBeNull();
-    const entries = table?.[1]?.match(/^\s*\.db\s+/gm)?.length ?? 0;
-    expect(entries).toBe(Number(table?.[2]));
-    expect(entries).toBe(35);
+    const entries = [
+      ...(table?.[1]?.matchAll(
+        /^\s*\.db\s+"([a-z0-9]+)",(Token[A-Za-z0-9]+)(\+\$80)?\s*$/gm,
+      ) ?? []),
+    ].map((entry) => [entry[1], entry[2], entry[3] !== undefined] as const);
+    expect(entries).toHaveLength(Number(table?.[2]));
+    expect(entries).toEqual([
+      ["as", "TokenAs", false],
+      ["u8", "TokenU8", false],
+      ["i8", "TokenI8", false],
+      ["or", "TokenOr", false],
+      ["if", "TokenIf", false],
+      ["to", "TokenTo", true],
+      ["var", "TokenVar", false],
+      ["u16", "TokenU16", false],
+      ["i16", "TokenI16", false],
+      ["xor", "TokenXor", false],
+      ["mod", "TokenMod", false],
+      ["and", "TokenAnd", false],
+      ["not", "TokenNot", false],
+      ["end", "TokenEnd", false],
+      ["sub", "TokenSub", false],
+      ["for", "TokenFor", true],
+      ["true", "TokenTrue", false],
+      ["fail", "TokenFail", false],
+      ["else", "TokenElse", false],
+      ["step", "TokenStep", false],
+      ["exit", "TokenExit", true],
+      ["false", "TokenFalse", false],
+      ["const", "TokenConst", false],
+      ["fails", "TokenFails", false],
+      ["until", "TokenUntil", false],
+      ["while", "TokenWhile", true],
+      ["assert", "TokenAssert", false],
+      ["return", "TokenReturn", false],
+      ["elseif", "TokenElseIf", false],
+      ["record", "TokenRecord", false],
+      ["string", "TokenString", false],
+      ["handle", "TokenHandle", true],
+      ["boolean", "TokenBoolean", false],
+      ["forward", "TokenForward", true],
+      ["continue", "TokenContinue", true],
+    ]);
+
+    const offsets = source.match(
+      /KeywordLengthOffsets:\s*\n([\s\S]*?)\n\s*PunctuationTable:/,
+    );
+    expect(offsets).not.toBeNull();
+    expect(
+      [...(offsets?.[1]?.matchAll(
+        /^\s*\.db\s+KeywordLength(\d)-KeywordTable\s*$/gm,
+      ) ?? [])].map((entry) => Number(entry[1])),
+    ).toEqual([2, 3, 4, 5, 6, 7, 8]);
   });
 
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
@@ -234,8 +284,8 @@ describe("Stage 7 packed LL(1)", () => {
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
-    expect(outcome.instructions).toBe(2_165_807);
-    expect(outcome.cycles).toBe(20_330_517);
+    expect(outcome.instructions).toBe(1_934_151);
+    expect(outcome.cycles).toBe(18_538_128);
     expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_566 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
@@ -251,15 +301,15 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 15_283,
+      bytes: 15_267,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_857,
+      bytes: 14_869,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
-      bytes: 426,
+      bytes: 398,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-workspace",

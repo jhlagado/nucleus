@@ -755,13 +755,36 @@ transcripts, generated Z80, NOBJ, D8, and returning-diagnostic layouts pass.
 All state addresses remain full-width symbolic values, and relocation passes
 at `$0100`, `$8000`, and the highest-fitting origin.
 
+### Length-grouped keyword rows
+
+The scanner finishes each name before keyword lookup, so its known length now
+selects one of seven groups. Rows store only the spelling and published token
+ordinal. Bit 7 on the final token in each group marks the end of that group and
+is removed before the token leaves the scanner. A permanent structural test
+locks all 35 spelling-to-token mappings, the seven terminal markers, and the
+seven length-group entries.
+
+The group entries are byte offsets within the 180-byte keyword object, not
+compiler addresses. Their assembled values are 0, 18, 58, 83, 113, 155, and
+171. The scanner bounds the length before indexing, then adds the selected
+offset to the table's full-width symbolic address. Compiler relocation and the
+address space remain unrestricted.
+
+The scanner grows by 12 code bytes while the keyword data falls by 28 bytes,
+for a measured 16-byte core recovery. Workspace, token ordinals, diagnostics,
+semantic output, generated code, and runtime support are unchanged. The
+production core is 15,764 bytes. The representative proof falls from 983,074
+to 881,556 instructions and from 10,399,640 to 9,615,786 T-states,
+improvements of 10.33 and 7.54 percent. Strict normal, instrumented,
+historical, packed-grammar, artifact, and relocation proofs pass.
+
 ### Current recovery outlook
 
-With constant-fold and expression-state tail cleanup added to the retained
-checkpoints above, the measured shipping core is 15,780 bytes. Total measured
-recovery from the frozen 16,680-byte compiler is 900 bytes. The earlier
-15,360-byte target is 420 bytes away. The 300-byte phase began at 16,489 bytes
-and has recovered 709 bytes, exceeding that phase target by 409 bytes.
+With length-grouped keyword lookup added to the retained checkpoints above,
+the measured shipping core is 15,764 bytes. Total measured recovery from the
+frozen 16,680-byte compiler is 916 bytes. The earlier 15,360-byte target is 404
+bytes away. The 300-byte phase began at 16,489 bytes and has recovered 725
+bytes, exceeding that phase target by 425 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

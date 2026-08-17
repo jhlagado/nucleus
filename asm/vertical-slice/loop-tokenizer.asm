@@ -114,15 +114,21 @@ TokenScanNameLoop:
             JR   TokenScanNameLoop
 TokenScanNameDone:
             LD   A,B
+            LD   C,B
             LD   (TokenLength),A
+            SUB  2
+            CP   7
+            JR   NC,TokenScanNameDefault
+            LD   E,A
+            LD   D,0
+            LD   HL,KeywordLengthOffsets
+            ADD  HL,DE
+            LD   E,(HL)
+            LD   D,0
             LD   HL,KeywordTable
-            LD   C,KeywordCount
+            ADD  HL,DE
 TokenScanKeyword:
-            LD   B,(HL)
-            INC  HL
-            LD   A,(TokenLength)
-            CP   B
-            JR   NZ,TokenScanKeywordSkip
+            LD   B,C
             LD   DE,(TokenLexemePointer)
 TokenScanKeywordByte:
             LD   A,(DE)
@@ -132,14 +138,16 @@ TokenScanKeywordByte:
             INC  HL
             DJNZ TokenScanKeywordByte
             LD   A,(HL)
+            AND  $7F
             JP   TokenFinish
 TokenScanKeywordSkip:
             LD   E,B
             LD   D,0
             ADD  HL,DE
+            BIT  7,(HL)
             INC  HL
-            DEC  C
-            JR   NZ,TokenScanKeyword
+            JR   Z,TokenScanKeyword
+TokenScanNameDefault:
             CALL TokenFinishInline
             .db  TokenName
 
