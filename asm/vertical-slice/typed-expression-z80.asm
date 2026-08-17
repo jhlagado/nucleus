@@ -95,7 +95,7 @@ TypedBooleanFixupCapacity:
             .db  DiagnosticBooleanFixupCapacity
 
 TypedPrefetchBits:
-            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$04
+            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$07
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
@@ -526,8 +526,8 @@ TypedModulo8:
 TypedModulo16:
             LD   C,1
             JR   TypedDivide
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDivideSigned:
-            CALL NextSemanticByte
             LD   C,A
 TypedDivide:
             CALL TypedReadTrapPosition
@@ -743,9 +743,8 @@ TypedNarrow8:
 
 ; Convert one canonical integer carrier. The semantic operands are source
 ; type, destination type, and the conversion's trap position.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedConvertInteger:
-            CALL NextSemanticByte
             LD   (EmitTypedWidth),A
             CALL NextSemanticByte
             LD   (EmitTypedDestination),A

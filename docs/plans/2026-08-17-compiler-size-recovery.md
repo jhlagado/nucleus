@@ -983,13 +983,31 @@ about 0.134 percent, and the largest T-state regression is about 0.076 percent.
 Decimal boundaries, Boolean-fixup capacity and underflow, flat and banked
 output, diagnostics, artifacts, and relocation remain exact.
 
+### Fourth three-audit token, prefetch, and scaler checkpoint
+
+Right delimiters and consumed two-character comparisons now enter the existing
+simple-token tail after their state checks. Two typed semantic handlers obtain
+their first operand through the existing prefetch bitmap rather than private
+fetch calls. The identical full-width four-byte address calculation for
+retained parameters and output-bank state is also shared; the target wrapper
+sits beside the Stage 7 scaler so both entries remain smaller than their former
+independent routines.
+
+The tokenizer tail recovers eight code bytes, semantic prefetch recovers six,
+and the shared record scaler recovers six. Together they reduce the production
+core from 15,607 to 15,587 bytes, with immutable data and workspace unchanged.
+The representative proof changes from 877,586 to 877,609 instructions and from
+9,572,533 to 9,572,809 T-states, a cycle increase of about 0.0029 percent.
+Historical layouts, semantic transcripts, generated output, diagnostics,
+artifacts, and relocation remain exact.
+
 ### Current recovery outlook
 
-With the third three-audit checkpoint added to the retained work above, the
-measured shipping core is 15,607 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,073 bytes. The earlier 15,360-byte target is 247 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 882 bytes,
-exceeding that phase target by 582 bytes.
+With the fourth three-audit checkpoint added to the retained work above, the
+measured shipping core is 15,587 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,093 bytes. The earlier 15,360-byte target is 227 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 902 bytes,
+exceeding that phase target by 602 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected

@@ -491,8 +491,7 @@ TokenizerRightDelimiter:
             OR   A
             JR   Z,TokenizerLexicalFailure
             DEC  (HL)
-            CALL SourceTake
-            JR   TokenFinishC
+            JR   TokenizerSimpleToken
 TokenizerLeftDelimiter:
             CALL SourceTake
             LD   HL,SourceDelimiterDepth
@@ -523,11 +522,6 @@ TokenizerComparison:
 TokenizerComparisonEqual:
             INC  C
 TokenizerComparisonConsume:
-            CALL SourceTake
-            JR   TokenFinishC
-
-TokenizerLexicalFailure:
-            JP   TokenLexicalFailure
 
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 TokenizerSimpleToken:
@@ -541,6 +535,9 @@ TokenFinish:
             AND  $7F
             LD   (SourceLineHasToken),A
             RET
+
+TokenizerLexicalFailure:
+            JP   TokenLexicalFailure
 
 ; The byte following the call is a token ordinal, not executable code.
 .routine noreturn

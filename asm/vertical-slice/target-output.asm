@@ -220,18 +220,6 @@ TargetInitializeOutputBank:
             LD   (EmitLimit),HL
             RET
 
-; Address one retained output-bank cursor and exact remaining-capacity word.
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
-TargetBankStateAddress:
-            LD   L,A
-            LD   H,0
-            ADD  HL,HL
-            ADD  HL,HL
-            LD   DE,TargetBankStateBase
-            ADD  HL,DE
-            OR   A
-            RET
-
 .routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TargetSaveOutputBank:
             LD   A,(TargetOutputBank)

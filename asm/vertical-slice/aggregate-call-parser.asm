@@ -14,13 +14,23 @@ Stage7RoutineAddress:
             OR   A
             RET
 
+.if TargetStreamingOutput
+; The target bank state and retained parameters are both four-byte records.
+.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
+TargetBankStateAddress:
+            LD   DE,TargetBankStateBase
+            JR   Stage7Address4
+.endif
+
 .routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 Stage7ParameterAddress:
+            LD   DE,Stage7ParameterTableBase
+.routine in A,DE out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+Stage7Address4:
             LD   L,A
             LD   H,0
             ADD  HL,HL
             ADD  HL,HL
-            LD   DE,Stage7ParameterTableBase
             ADD  HL,DE
             OR   A
             RET
