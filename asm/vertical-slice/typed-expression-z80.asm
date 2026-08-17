@@ -379,25 +379,26 @@ TypedEmitSequence:
 .endif
             JR   TypedPushHL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedAdd8:
-            LD   C,EmitPairAdd8
-            JR   TypedBinary8
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedSubtract8:
-            LD   C,EmitPairSubtract8
-            JR   TypedBinary8
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedXor8:
-            LD   C,EmitPairXor8
-            JR   TypedBinary8
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedAnd8:
-            LD   C,EmitPairAnd8
-            JR   TypedBinary8
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedOr8:
-            LD   C,EmitPairOr8
+TypedAdd8      .equ TypedBinary8Select
+TypedSubtract8 .equ TypedBinary8Select
+TypedAnd8      .equ TypedBinary8Select
+TypedOr8       .equ TypedBinary8Select
+TypedXor8      .equ TypedBinary8Select
+; C is the zero-based semantic-operation index retained by the dispatcher.
+; The two step-two ordinal runs scale directly onto the adjacent emit-pair
+; rows after their symbolic group bias is applied.
+.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedBinary8Select:
+            LD   A,C
+            CP   SemanticAnd8-SemanticDefineProgramU8
+            JR   NC,TypedBinary8Bitwise
+            ADD  A,EmitPairAdd8*2-(SemanticAdd8-SemanticDefineProgramU8)
+            JR   TypedBinary8Scale
+TypedBinary8Bitwise:
+            ADD  A,EmitPairAnd8*2-(SemanticAnd8-SemanticDefineProgramU8)
+TypedBinary8Scale:
+            RRCA                         ; all adjusted selectors are even
+            LD   C,A
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBinary8:
             CALL TypedPopOperands

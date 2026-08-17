@@ -310,18 +310,6 @@ TokenScanStringDone:
             CALL TokenFinishInline
             .db  TokenStringLiteral
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-TokenSkipComment:
-TokenSkipCommentLoop:
-            CALL SourcePeek
-            RET  C
-            CP   10
-            RET  Z
-            CP   13
-            RET  Z
-            CALL SourceTake
-            JR   TokenSkipCommentLoop
-
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenizerNext:
             JR   TokenizerNextLoop
@@ -467,9 +455,15 @@ TokenizerSlash:
             JR   C,TokenFinishC
             CP   "/"
             JR   NZ,TokenFinishC
-            CALL SourceTake
-            CALL TokenSkipComment
-            JR   TokenizerNextLoop
+            CALL SourceTakePeek
+TokenizerSkipCommentLoop:
+            JR   C,TokenizerNextLoop
+            CP   10
+            JR   Z,TokenizerNextLoop
+            CP   13
+            JR   Z,TokenizerNextLoop
+            CALL SourceTakePeek
+            JR   TokenizerSkipCommentLoop
 
 TokenizerPunctuation:
             LD   C,(HL)

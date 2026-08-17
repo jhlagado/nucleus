@@ -13,7 +13,7 @@ HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+ControlFrameCapacity
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1ConstantExpression:
-            LD   A,ScalarTypeExact
+            XOR  A                       ; ScalarTypeExact
             CALL TypedExpressionBeginConstant
             JR   HybridLL1SaveExpressionResult
 

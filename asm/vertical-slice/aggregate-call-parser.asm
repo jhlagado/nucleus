@@ -1280,13 +1280,10 @@ Stage7PathOpenArrayIndex:
             LD   (Stage7PathType),A
             CALL AggregateGetExtent
             LD   (Stage7PathExtent),HL
-            LD   A,SemanticOpenArrayIndex
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticBranches
-            JR   C,Stage7PathSuffixFailure
-.endif
             LD   A,(Stage7OpenViewCountOffset)
-            CALL SemanticSinkPut
+            LD   C,A
+            LD   A,SemanticOpenArrayIndex
+            CALL ParserEmitOperationC
 .if CompilerDiagnosticBranches
             JR   C,Stage7PathSuffixFailure
 .endif
