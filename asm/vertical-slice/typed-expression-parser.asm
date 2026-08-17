@@ -151,31 +151,16 @@ TypedExpressionPush:
             CP   ExpressionStackCapacity
             JR   NC,TypedExpressionStackFull
             CALL TypedExpressionAddress
-            LD   A,(ExpressionLeftMeta)
-            LD   (HL),A
-            INC  HL
-            LD   DE,(ExpressionLeftValue)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
-            INC  HL
-            LD   A,(ExpressionSuppressFault)
-            LD   (HL),A
-            INC  HL
-            LD   A,(ExpressionOperator)
-            LD   (HL),A
-            INC  HL
-            LD   DE,(ExpressionOperatorOffset)
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
-            INC  HL
             EX   DE,HL
+            LD   HL,ExpressionSavedState
+            LD   BC,ExpressionSavedStateSize
+            LDIR
             LD   HL,ExpressionValuePosition
-            CALL CompilerCopyPosition
-            LD   A,(ExpressionStackDepth)
-            INC  A
-            LD   (ExpressionStackDepth),A
+            LD   BC,6
+            LDIR
+            LD   HL,ExpressionStackDepth
+            INC  (HL)
+            LD   A,(HL)
             OR   A
             RET
 
@@ -204,25 +189,9 @@ TypedRestoreOperands:
             DEC  A
             LD   (ExpressionStackDepth),A
             CALL TypedExpressionAddress
-            LD   A,(HL)
-            LD   (ExpressionLeftMeta),A
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   (ExpressionLeftValue),DE
-            INC  HL
-            LD   A,(HL)
-            LD   (ExpressionSuppressFault),A
-            INC  HL
-            LD   A,(HL)
-            LD   (ExpressionOperator),A
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   (ExpressionOperatorOffset),DE
-            INC  HL
+            LD   DE,ExpressionSavedState
+            LD   BC,ExpressionSavedStateSize
+            LDIR
             LD   (ExpressionLeftPositionPointer),HL
             OR   A
             RET

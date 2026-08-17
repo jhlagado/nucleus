@@ -239,6 +239,16 @@ tests cover all 72 signed/unsigned, constant/runtime cells. Compiler code falls
 by 61 bytes, immutable data grows by 18, and the complete production core falls
 by a measured 43 bytes with no workspace or generated-program change.
 
+A production-native expression-frame checkpoint is also retained. The seven
+bytes of pending left-expression state are made contiguous, so frame push and
+restore copy that state directly while the existing six-byte source position
+remains a second full-width block. Frame size stays 13 bytes, capacity stays 16,
+and the workspace boundary does not move. A diagnostic-return check that is
+unreachable in the production single-unwind layout is retained in historical
+layouts and gated only in production. The combined checkpoint recovers a
+measured 47 code bytes and reduces the representative flat proof by 1,201
+compiler instructions and 2,755 T-states.
+
 ### Declaration, statement, and control decision
 
 The complete rewrite family measures 7,324 bytes against 5,861 bytes for the
@@ -292,13 +302,13 @@ runtime context, MAP, and artifact remain byte-identical.
 
 ### Current recovery outlook
 
-After the scanner, comparison, first backend, and action-cleanup checkpoints,
-the measured shipping core is 16,536 bytes and the remaining recovery to
-15,360 is 1,176 bytes. A direct flat-MAP redesign, one-bank prefix sharing, and
-provider tails project a further 94–129 backend bytes. Contiguous expression
-frame copying projects another 47 bytes. Together with the measured 144-byte
-recovery, the currently evidenced range is 285–320 bytes, which would place the
-compiler between 16,360 and 16,395 bytes.
+After the scanner, comparison, expression-frame, first backend, and
+action-cleanup checkpoints, the measured shipping core is 16,489 bytes and the
+remaining recovery to 15,360 is 1,129 bytes. A direct flat-MAP redesign,
+one-bank prefix sharing, and provider tails project a further 94–129 backend
+bytes. Together with the measured 191-byte recovery, the currently evidenced
+range is 285–320 bytes, which would place the compiler between 16,360 and
+16,395 bytes.
 
 That range does not yet reach the target. A further 1,000–1,035 bytes therefore
 remain an architectural gap, not booked recovery. The search continues in the

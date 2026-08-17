@@ -104,13 +104,18 @@ SymbolTableLimit        .equ SymbolTableBase+SymbolEntrySize*SymbolCapacity
 ExpressionExpectedType  .equ SymbolTableLimit+$00
 ExpressionEmitEnabled   .equ SymbolTableLimit+$01
 ExpressionSuppressFault .equ SymbolTableLimit+$02
-ExpressionStackDepth    .equ SymbolTableLimit+$03
-ExpressionRightMeta     .equ SymbolTableLimit+$04
-ExpressionRightValue    .equ SymbolTableLimit+$05
-ExpressionLeftMeta      .equ SymbolTableLimit+$07
-ExpressionLeftValue     .equ SymbolTableLimit+$08
-ExpressionOperator      .equ SymbolTableLimit+$0A
-ExpressionOperatorOffset .equ SymbolTableLimit+$0B
+; These seven bytes are copied into every pending-expression frame as one
+; full-width block. The following right-result cells remain outside it because
+; they must stay live while the saved left state is restored.
+ExpressionSavedState    .equ ExpressionSuppressFault
+ExpressionLeftMeta      .equ SymbolTableLimit+$03
+ExpressionLeftValue     .equ SymbolTableLimit+$04
+ExpressionOperator      .equ SymbolTableLimit+$06
+ExpressionOperatorOffset .equ SymbolTableLimit+$07
+ExpressionSavedStateSize .equ 7
+ExpressionStackDepth    .equ SymbolTableLimit+$09
+ExpressionRightMeta     .equ SymbolTableLimit+$0A
+ExpressionRightValue    .equ SymbolTableLimit+$0B
 DeclarationInfo         .equ SymbolTableLimit+$0D
 DeclarationPayload      .equ SymbolTableLimit+$0E
 DeclarationNamePointer  .equ SymbolTableLimit+$10

@@ -49,7 +49,14 @@ SemanticSinkOperation:
             JR   Z,SemanticSinkPutFull
             LD   A,B
             CALL SemanticSinkPut
+.if AggregateCallSlices
+.if TargetStreamingOutput
+.else
             RET  C
+.endif
+.else
+            RET  C
+.endif
             LD   HL,SinkOperationCount
             INC  (HL)
             XOR  A
