@@ -804,22 +804,19 @@ TypedPrimaryNameResolved:
             LD   E,A
             LD   A,D
             AND  SymbolClassMask
-            CP   SymbolClassProgram
-            JR   Z,TypedPrimaryProgramName
-            CP   SymbolClassParameter
+            RRCA
+            RRCA
+            JP   Z,TypedTypeFailure
+            CP   SymbolClassParameter/4
             JR   Z,TypedPrimaryParameterName
+            ADD  A,SemanticLoadProgramU8-1
             BIT  1,E
-            LD   A,SemanticLoadLocalU8
-            JR   Z,TypedPrimaryEmitLoad
-            LD   A,SemanticLoadLocal16
-            JR   TypedPrimaryEmitLoad
-TypedPrimaryProgramName:
-            BIT  1,E
-            LD   A,SemanticLoadProgramU8
             JR   Z,TypedPrimaryProgramSelected
-            LD   A,SemanticLoadProgram16
-.if AggregateCallSlices
+            ADD  A,SemanticLoadProgram16-SemanticLoadProgramU8
 TypedPrimaryProgramSelected:
+            BIT  3,D
+            JR   NZ,TypedPrimaryEmitLoad
+.if AggregateCallSlices
             PUSH DE
             CALL TypedEmitOperationBC
             POP  DE
@@ -830,14 +827,13 @@ TypedPrimaryProgramSelected:
             OR   A
             RET
 .else
-TypedPrimaryProgramSelected:
             JR   TypedPrimaryEmitLoad
 .endif
 TypedPrimaryParameterName:
-            BIT  1,E
             LD   A,SemanticLoadParameter8
+            BIT  1,E
             JR   Z,TypedPrimaryEmitLoad
-            LD   A,SemanticLoadParameter16
+            INC  A
 TypedPrimaryEmitLoad:
             PUSH DE
             PUSH BC
@@ -2605,39 +2601,26 @@ TypedEmitLocalDeclareSelected:
 TypedEmitStoreByInfo:
             LD   A,D
             AND  SymbolClassMask
-            CP   SymbolClassProgram
-            JR   Z,TypedStoreProgram
-            CP   SymbolClassLocal
-            JR   Z,TypedStoreLocal
-            CP   SymbolClassParameter
-            JP   NZ,TypedTypeFailure
-            LD   A,D
-            AND  ScalarMetaTypeMask
-            BIT  1,A
+            RRCA
+            RRCA
+            JP   Z,TypedTypeFailure
+            CP   SymbolClassParameter/4
+            JR   Z,TypedStoreParameter
+            ADD  A,SemanticStoreProgramU8-1
+            BIT  1,D
+            JR   Z,TypedStoreSelected
+            ADD  A,SemanticStoreProgram16-SemanticStoreProgramU8
+            JR   TypedStoreSelected
+TypedStoreParameter:
             LD   A,SemanticStoreParameter8
+            BIT  1,D
             JR   Z,TypedStoreSelected
-            LD   A,SemanticStoreParameter16
-            JR   TypedStoreSelected
-TypedStoreLocal:
-            LD   A,D
-            AND  ScalarMetaTypeMask
-            BIT  1,A
-            LD   A,SemanticStoreLocalU8
-            JR   Z,TypedStoreSelected
-            LD   A,SemanticStoreLocal16
-            JR   TypedStoreSelected
-TypedStoreProgram:
-            LD   A,D
-            AND  ScalarMetaTypeMask
-            BIT  1,A
-            LD   A,SemanticStoreProgramU8
-            JR   Z,TypedStoreProgramSelected
-            LD   A,SemanticStoreProgram16
-TypedStoreProgramSelected:
-.if AggregateCallSlices
-            JP   TypedEmitOperationBC
-.endif
+            INC  A
 TypedStoreSelected:
+.if AggregateCallSlices
+            BIT  3,D
+            JP   Z,TypedEmitOperationBC
+.endif
             JP   ParserEmitOperationC
 
 .if HybridLL1Full

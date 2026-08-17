@@ -592,14 +592,30 @@ diagnostics, and historical layouts pass. Relocation passes at `$0100`,
 `$8000`, and the highest-fitting origin; bank state, image bounds, source
 positions, and code addresses remain full 16-bit values.
 
+### Algebraic scalar load and store selection
+
+Scalar program, local, and parameter symbol classes now map directly to their
+existing semantic-operation ordinals. Two rotates turn the class values into
+the dense program/local/parameter sequence; the retained width bit selects the
+word operation, and the class bit still selects the program word operand from
+the local or parameter byte operand. Invalid and constant classes retain their
+existing diagnostic and constant paths.
+
+The checkpoint recovers 28 code bytes with immutable data and workspace
+unchanged. The production core is 15,894 bytes. The representative proof adds
+162 instructions and 960 T-states, less than 0.01 percent. All byte and word,
+signed and unsigned, program, local, and parameter forms retain their exact
+semantic records and generated artifacts. Relocation passes at `$0100`,
+`$8000`, and the highest-fitting origin; the selector uses only public class
+and operation ordinals and introduces no address representation.
+
 ### Current recovery outlook
 
-With the typed-expression, scanner, and repeated-operation cleanups added to
-the retained checkpoints above, the measured shipping core is 15,922 bytes.
-Total measured recovery from the frozen 16,680-byte compiler is 758 bytes. The
-earlier 15,360-byte target is 562 bytes away. The 300-byte phase began at
-16,489 bytes and has recovered 567 bytes, exceeding that phase target by 267
-bytes.
+With the algebraic scalar selector added to the retained checkpoints above,
+the measured shipping core is 15,894 bytes. Total measured recovery from the
+frozen 16,680-byte compiler is 786 bytes. The earlier 15,360-byte target is 534
+bytes away. The 300-byte phase began at 16,489 bytes and has recovered 595
+bytes, exceeding that phase target by 295 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates above five bytes. The search continues in the selected
