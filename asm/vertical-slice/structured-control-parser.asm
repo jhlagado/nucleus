@@ -38,11 +38,10 @@ ControlPushFrame:
             LD   A,(ControlDepth)
             CP   ControlFrameCapacity
             JR   NC,ControlCapacityFailure
-            PUSH AF
-            CALL ControlFrameAddress
-            POP  AF
             INC  A
             LD   (ControlDepth),A
+            DEC  A
+            CALL ControlFrameAddress
             LD   (HL),B
             INC  HL
             LD   B,ControlFrameSize-1

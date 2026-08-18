@@ -661,19 +661,24 @@ TypedParsePrimary:
             JR   Z,TypedPrimaryNumber
             CP   TokenCharacter
             JR   Z,TypedPrimaryCharacter
-            CP   TokenTrue
-            JR   Z,TypedPrimaryTrue
-            CP   TokenFalse
-            JR   Z,TypedPrimaryFalse
             CP   TokenName
             JR   Z,TypedPrimaryName
             CP   TokenLeftParen
             JP   Z,TypedPrimaryParen
-            CP   TokenU8
-            JP   Z,TypedPrimaryNarrow
-            CP   TokenU16
-            JP   Z,TypedPrimaryWiden
-            SUB  TokenI8
+            SUB  TokenTrue
+            CP   2
+            JR   C,TypedPrimaryBooleanToken
+            LD   B,ScalarTypeU8
+            CP   TokenU8-TokenTrue+$100
+            JR   Z,TypedPrimaryConvertB
+            INC  B
+            CP   TokenU16-TokenTrue+$100
+            JR   NZ,TypedPrimarySignedConvert
+TypedPrimaryConvertB:
+            LD   A,B
+            JP   TypedPrimaryConvertInteger
+TypedPrimarySignedConvert:
+            SUB  TokenI8-TokenTrue
             CP   2
             JP   NC,ParserExpectedScalar
             ADD  A,ScalarTypeI8
@@ -687,11 +692,10 @@ TypedPrimaryCharacter:
             LD   H,0
             LD   L,C
             JR   TypedPrimaryU8Constant
-TypedPrimaryTrue:
-            LD   HL,1
-            JR   TypedPrimaryBooleanConstant
-TypedPrimaryFalse:
-            LD   HL,0
+TypedPrimaryBooleanToken:
+            XOR  1
+            LD   L,A
+            LD   H,0
 TypedPrimaryBooleanConstant:
             LD   B,ScalarMetaConstant+ScalarTypeBoolean
             JR   TypedPrimaryEmitTypedConstant
@@ -955,12 +959,6 @@ TypedPrimaryParenFailure:
             RET
 .endif
 
-TypedPrimaryNarrow:
-            LD   A,ScalarTypeU8
-            JR   TypedPrimaryConvertInteger
-TypedPrimaryWiden:
-            LD   A,ScalarTypeU16
-            JR   TypedPrimaryConvertInteger
 TypedPrimaryConvertInteger:
             LD   C,A
             LD   HL,(TokenStartOffset)

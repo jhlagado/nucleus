@@ -205,10 +205,10 @@ TargetBeginOutput:
             RET
 
 ; Compare the retained bank count with the flat-output count.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
+.routine out A,zero clobbers sign,parity,halfCarry
 TargetCompareSingleBank:
             LD   A,(TargetDescriptorBankCountValue)
-            CP   1
+            DEC  A
             RET
 
 .routine in A out A,HL

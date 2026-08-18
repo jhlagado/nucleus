@@ -1474,7 +1474,7 @@ Stage7PushCallFrameSpace:
             JR   Stage7PushCallFrameReady
 Stage7PushMainCallFrame:
             LD   DE,0                    ; parameter start/count
-            LD   B,0                     ; result-free
+            LD   B,D                     ; result-free
             LD   A,(Stage8ForwardMainFlags)
             LD   C,A
             LD   A,Stage7MainLabel
