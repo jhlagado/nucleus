@@ -272,12 +272,10 @@ StructuredLoadCounter:
             LD   A,C
             CPL
             LD   C,A
-            PUSH BC
             PUSH DE
             CALL EmitPairIndexedInline
             .db  EmitPairLoadIXL
             POP  DE
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -294,10 +292,8 @@ StructuredLoadCounter:
             JP   EmitPair
 StructuredLoadCounterHigh:
             DEC  C
-            PUSH BC
             CALL EmitPairIndexedInline
             .db  EmitPairLoadIXH
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -311,31 +307,25 @@ StructuredStoreCounter:
             LD   A,C
             CPL
             LD   C,A
-            PUSH BC
             PUSH DE
             CALL EmitPairIndexedInline
             .db  EmitPairStoreIXL
             POP  DE
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,C
-            PUSH BC
             PUSH DE
             CALL EmitByte
             POP  DE
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             BIT  2,D
             RET  Z
             DEC  C
-            PUSH BC
             CALL EmitPairIndexedInline
             .db  EmitPairStoreIXH
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif

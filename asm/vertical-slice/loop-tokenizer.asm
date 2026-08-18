@@ -31,20 +31,17 @@ TokenIsNameByte:
 .routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TokenNameEquals:
             LD   A,(TokenLength)
-            CP   B
-            JR   NZ,TokenNameEqualsNo
+            XOR  B
+            RET  NZ
             LD   DE,(TokenLexemePointer)
 TokenNameEqualsLoop:
             LD   A,(DE)
-            CP   (HL)
-            JR   NZ,TokenNameEqualsNo
+            XOR  (HL)
+            RET  NZ
             INC  DE
             INC  HL
             DJNZ TokenNameEqualsLoop
             SCF
-            RET
-TokenNameEqualsNo:
-            OR   A
             RET
 
 ; Compare the current NAME token with the retained name record at HL. The

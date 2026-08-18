@@ -1362,13 +1362,29 @@ the required no-digit check, so `$` and `%` at physical EOF were accepted as
 zero before a later parser diagnostic. A permanent Host test now locks the
 lexical diagnostic and source position for both empty prefixes at physical EOF.
 
+### Twenty-fifth audit name, counter, and comparison-exit checkpoint
+
+Name comparison now uses XOR mismatches to return carry clear directly, while
+the existing success tail still returns carry set. Structured counter load and
+store paths omit five BC saves around emitters that preserve C; their routines
+already declare B clobbered. The expression parser also shares one identical
+stack-restoring exit for the no-comparison and completed-comparison paths.
+
+The name comparator recovers four production code bytes, removing redundant
+counter saves recovers ten, and the shared comparison exit recovers three.
+Together they reduce the production core from 15,310 to 15,293 bytes, with
+immutable data and workspace unchanged. The representative proof improves from
+880,473 to 878,809 instructions and from 9,520,268 to 9,505,610 T-states. Exact
+name matching, counter emission, comparison parsing, generated code,
+diagnostics, artifacts, historical layouts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the twenty-fourth audit checkpoint added to the retained work above, the
-measured shipping core is 15,310 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,370 bytes. The 15,360-byte target is exceeded by 50
-bytes, giving 1,074 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,179 bytes, exceeding that phase target by 879
+With the twenty-fifth audit checkpoint added to the retained work above, the
+measured shipping core is 15,293 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,387 bytes. The 15,360-byte target is exceeded by 67
+bytes, giving 1,091 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,196 bytes, exceeding that phase target by 896
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

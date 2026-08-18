@@ -1447,9 +1447,6 @@ TypedParseComparison:
 .endif
             CALL TypedComparisonToken
             JR   C,TypedComparisonChained
-            POP  HL
-            POP  AF
-            RET
 TypedComparisonNone:
             POP  HL
             POP  AF
