@@ -1818,7 +1818,6 @@ HybridLL1FinishIfClauses:
             RET  C
 .endif
             LD   B,ControlFrameLabelA
-            JR   HybridLL1EmitFrameLabel
 
 ; B selects a field in the active control frame. All callers have already
 ; established that frame; the helper preserves their existing precondition.

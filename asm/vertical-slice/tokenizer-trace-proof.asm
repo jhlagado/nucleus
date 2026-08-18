@@ -43,12 +43,17 @@ TokenizerTracePart2:
             .db  "//crlf",13,10
             .db  "//eof"
 TokenizerTracePart2End:
+TokenizerTracePart3:
+            .db  "$f"
+TokenizerTracePart3End:
 
 TokenizerTraceParts:
             .db  1
             .dw  TokenizerTracePart1,TokenizerTracePart1End
             .db  2
             .dw  TokenizerTracePart2,TokenizerTracePart2End
+            .db  3
+            .dw  TokenizerTracePart3,TokenizerTracePart3End
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX
@@ -57,7 +62,7 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   A,2
+            LD   A,3
             LD   HL,TokenizerTraceParts
             CALL SourceInitializeParts
             JP   C,ProofFailure
@@ -135,8 +140,12 @@ TokenizerExpectedTrace:
             .dw  0,1,1
             .db  TokenNewline
             .dw  1,1,2
+            .db  TokenNumber
+            .dw  0,1,1
+            .db  TokenNewline
+            .dw  2,1,3
             .db  TokenEof
-            .dw  20,4,6
+            .dw  2,1,3
             .db  $FF
 
 ProofStatus: .db 0

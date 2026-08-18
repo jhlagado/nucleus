@@ -50,17 +50,14 @@ TypedDispatchNext:
             CP   TypedOperationCount
             JR   NC,TypedInvalidPopped
             CALL TypedPrefetchFirstOperand
-            LD   B,A
-            LD   A,C
-            ADD  A,A
-            LD   E,A
-            LD   D,0
-            LD   HL,TypedOperationTable
+            LD   L,C
+            LD   H,0
+            ADD  HL,HL
+            LD   DE,TypedOperationTable
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   A,B
             EX   DE,HL
             LD   DE,TypedDispatchReturn
             PUSH DE

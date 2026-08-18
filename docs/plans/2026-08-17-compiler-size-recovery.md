@@ -1236,13 +1236,32 @@ remain unchanged. The scanner audit in this round topped out at one eligible
 byte after rejecting a routine-boundary evasion, but the retained wins reset the
 plateau count to zero on the new committed baseline.
 
+### Eighteenth audit dispatch, fallthrough, and EOF-correction checkpoint
+
+The typed backend computes its operation-table entry directly in HL from the
+dispatcher index, retaining the prefetched operand in A. Three Stage 7 paths
+enter their immediately following shared tails by fallthrough. This audit also
+corrects based-number EOF detection: the radix marker is now copied only after
+`SourcePeek` reports EOF, because that routine uses DE internally. A permanent
+multipart trace ends `$f` exactly at a part boundary to lock the corrected
+origin-independent behavior.
+
+The dispatcher change recovers three production code bytes and the fallthrough
+paths recover six. Together they reduce the production core from 15,395 to
+15,386 bytes, with immutable data and workspace unchanged. The EOF correction
+is byte-neutral. The representative proof improves from 882,423 to 881,837
+instructions and from 9,539,899 to 9,538,860 T-states. Exact dispatcher
+operands, Stage 7 emissions, number tokens and
+positions, generated code, diagnostics, artifacts, historical layouts, and
+relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the seventeenth audit checkpoint added to the retained work above, the
-measured shipping core is 15,395 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,285 bytes. The earlier 15,360-byte target is 35 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,094 bytes,
-exceeding that phase target by 794 bytes. The compiler has 989 bytes of headroom
+With the eighteenth audit checkpoint added to the retained work above, the
+measured shipping core is 15,386 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,294 bytes. The earlier 15,360-byte target is 26 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,103 bytes,
+exceeding that phase target by 803 bytes. The compiler has 998 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to

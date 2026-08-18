@@ -58,7 +58,6 @@ Stage7BindOpenString:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JR   Stage7BindWord
 Stage7BindWord:
             CALL EmitPairIndexedInline
             .db  EmitPairDecSp2
@@ -1094,7 +1093,6 @@ Stage7EmitOpenRegionCheck:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitOpenCapacityC:
             LD   HL,Stage7LoadIXC
-            JR   Stage7EmitOpenDisplacedCapacity
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitOpenDisplacedCapacity:

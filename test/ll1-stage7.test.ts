@@ -310,9 +310,9 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_922_385);
-    expect(outcome.cycles).toBe(18_458_247);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_414 });
+    expect(outcome.instructions).toBe(1_920_997);
+    expect(outcome.cycles).toBe(18_455_758);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_412 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 227,
@@ -323,15 +323,15 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-actions",
-      bytes: 2_372,
+      bytes: 2_370,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_963,
+      bytes: 14_954,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_565,
+      bytes: 14_556,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",

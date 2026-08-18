@@ -530,11 +530,10 @@ TokenScanBasedNumber:
             CALL SourceTake
             LD   HL,0
 TokenScanBasedLoop:
-            LD   D,C
             PUSH HL
             CALL SourcePeek
             POP  HL
-            JR   C,TokenScanBasedDone
+            JR   C,TokenScanBasedEof
             LD   D,A
             BIT  4,C
             JR   NZ,TokenScanBinaryDigit
@@ -564,6 +563,8 @@ TokenScanBasedShift:
             CALL SourceTake
             POP  HL
             JR   TokenScanBasedLoop
+TokenScanBasedEof:
+            LD   D,C
 TokenScanBasedDone:
             LD   A,B
             CP   C
