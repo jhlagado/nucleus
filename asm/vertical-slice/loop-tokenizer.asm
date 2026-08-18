@@ -530,13 +530,10 @@ TokenScanBasedLoop:
             POP  HL
             JR   C,TokenScanBasedEof
             LD   D,A
-            BIT  4,C
-            JR   NZ,TokenScanBinaryDigit
             CALL TokenIsHexDigit
-            JR   C,TokenScanBasedDigit
-            JR   TokenScanBasedDone
-TokenScanBinaryDigit:
-            SUB  "0"
+            JR   NC,TokenScanBasedDone
+            BIT  4,C
+            JR   Z,TokenScanBasedDigit
             CP   2
             JR   NC,TokenScanBasedDone
 TokenScanBasedDigit:

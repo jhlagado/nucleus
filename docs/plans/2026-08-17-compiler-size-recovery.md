@@ -1326,13 +1326,30 @@ increase. Exact tokens, aggregate properties, target boundaries,
 generated code, diagnostics, artifacts, historical layouts, and relocation
 remain unchanged.
 
+### Twenty-third audit digit, fold-tail, and step-mode checkpoint
+
+Based-number scanning always uses the existing hexadecimal decoder and applies
+the binary limit only when required. Integer constant folding places its shared
+completion tail between multiplication and division, shortening five branches
+and making multiplication fall through. Two structured-control paths also share
+their step-load and mode-read prefix.
+
+The scanner changes recover four production code bytes, the fold-tail layout
+recovers five, and structured step/mode sharing recovers three. Together they
+reduce the production core from 15,334 to 15,322 bytes, with immutable data and
+workspace unchanged. The representative proof changes from 880,482 to 880,477
+instructions and from 9,520,854 to 9,520,876 T-states. Exact numeric tokens,
+folded values, structured loops,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the twenty-second audit checkpoint added to the retained work above, the
-measured shipping core is 15,334 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,346 bytes. The 15,360-byte target is exceeded by 26
-bytes, giving 1,050 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,155 bytes, exceeding that phase target by 855
+With the twenty-third audit checkpoint added to the retained work above, the
+measured shipping core is 15,322 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,358 bytes. The 15,360-byte target is exceeded by 38
+bytes, giving 1,062 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,167 bytes, exceeding that phase target by 867
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

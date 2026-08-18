@@ -455,14 +455,14 @@ TypedReduceAnd:
             AND  D
 TypedReduceBitwiseConstantDone:
             LD   H,A
-            JP   TypedReduceIntegerConstantDone
+            JR   TypedReduceIntegerConstantDone
 TypedReduceAdd:
             LD   D,SemanticAdd8
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JP   Z,TypedReduceIntegerMeta
+            JR   Z,TypedReduceIntegerMeta
             ADD  HL,DE
             JR   TypedReduceAddSubtractDone
 TypedReduceSubtract:
@@ -471,18 +471,18 @@ TypedReduceSubtract:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JP   Z,TypedReduceIntegerMeta
+            JR   Z,TypedReduceIntegerMeta
             OR   A
             SBC  HL,DE
 TypedReduceAddSubtractDone:
-            JP   TypedReduceIntegerConstantDone
+            JR   TypedReduceIntegerConstantDone
 TypedReduceMultiply:
             LD   D,SemanticMultiply8
             CALL TypedPrepareConstantBinary
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JP   Z,TypedReduceIntegerMeta
+            JR   Z,TypedReduceIntegerMeta
             ; Constant multiplication modulo 65536, using sixteen shift/add
             ; steps.
             PUSH BC
@@ -504,7 +504,20 @@ TypedReduceMultiplySkip:
             LD   H,B
             LD   L,C
             POP  BC
-            JP   TypedReduceIntegerConstantDone
+.routine in C,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedReduceIntegerConstantDone:
+TypedMaskResultWidth:
+            BIT  1,C
+            JR   NZ,TypedReduceIntegerConstantMeta
+            LD   H,0
+TypedReduceIntegerConstantMeta:
+            LD   A,C
+            OR   ScalarMetaConstant
+            RET
+TypedReduceIntegerMeta:
+            LD   A,C
+            OR   A
+            RET
 TypedReduceDivide:
             LD   D,SemanticDivide8
             JR   TypedReduceDivisionSelect
@@ -627,20 +640,7 @@ TypedReduceDivideApplySign:
 TypedReduceDivideResultReady:
             POP  BC
             OR   A
-.routine in C,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedReduceIntegerConstantDone:
-TypedMaskResultWidth:
-            BIT  1,C
-            JR   NZ,TypedReduceIntegerConstantMeta
-            LD   H,0
-TypedReduceIntegerConstantMeta:
-            LD   A,C
-            OR   ScalarMetaConstant
-            RET
-TypedReduceIntegerMeta:
-            LD   A,C
-            OR   A
-            RET
+            JP   TypedReduceIntegerConstantDone
 
 ; Primary expressions.
 TypedParsePrimary:

@@ -443,6 +443,16 @@ EmitLoadDeImmediate:
             LD   L,E
             JP   EmitWord
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+StructuredLoadStepMode:
+            LD   DE,(EmitControlStep)
+            CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(EmitControlMode)
+            RET
+
 ; Read and retain the fixed-width ForNext operands in emitter scratch.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredForNext:
@@ -504,12 +514,10 @@ StructuredNegativeDistance:
             RET  C
 .endif
 StructuredDistanceWidthReady:
-            LD   DE,(EmitControlStep)
-            CALL EmitLoadDeImmediate
+            CALL StructuredLoadStepMode
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(EmitControlMode)
             AND  1
             LD   A,ComparisonLess
             JR   NZ,StructuredDistanceCompare
@@ -537,12 +545,10 @@ StructuredDistanceCompare:
             RET  C
 .endif
 StructuredForNextLoadStep:
-            LD   DE,(EmitControlStep)
-            CALL EmitLoadDeImmediate
+            CALL StructuredLoadStepMode
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(EmitControlMode)
             BIT  3,A
             JR   NZ,StructuredSignedStep
             BIT  1,A
