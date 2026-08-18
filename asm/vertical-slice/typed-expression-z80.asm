@@ -499,6 +499,11 @@ TypedReadTrapPosition:
             LD   (EmitTypedTrapPosition),DE
             RET
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TypedReadTrapAndPop:
+            CALL TypedReadTrapPosition
+            JP   TypedEmitPopHL
+
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitTrapHead:
             LD   (EmitExitFixup),DE
@@ -714,8 +719,7 @@ TypedCompare:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedNarrow8:
-            CALL TypedReadTrapPosition
-            CALL TypedEmitPopHL
+            CALL TypedReadTrapAndPop
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -743,8 +747,7 @@ TypedConvertInteger:
             LD   (EmitTypedWidth),A
             CALL NextSemanticByte
             LD   (EmitTypedDestination),A
-            CALL TypedReadTrapPosition
-            CALL TypedEmitPopHL
+            CALL TypedReadTrapAndPop
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1025,8 +1028,7 @@ TypedBeginRoutineParameter:
 TypedCallScalar:
             CALL NextSemanticByte     ; result type
             LD   (EmitTypedWidth),A
-            CALL TypedReadTrapPosition
-            CALL TypedEmitPopHL           ; argument
+            CALL TypedReadTrapAndPop      ; trap position, argument
 .if CompilerDiagnosticReturns
             RET  C
 .endif

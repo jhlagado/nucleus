@@ -1291,13 +1291,30 @@ failures, token classification,
 expression results, generated code, diagnostics, artifacts, historical layouts,
 and relocation remain unchanged.
 
+### Twenty-first audit scanner and backend-helper checkpoint
+
+Hexadecimal classification returns directly on the existing upper-bound carry,
+and string scanning tests quote and escape before one normalized printable-byte
+range check. Three typed backend paths share the trap-position read and carrier
+pop prefix. Stage 8 also shares the complete current-exit-fixup patch tail across
+three callable paths.
+
+The scanner changes recover four production code bytes, the typed backend prefix
+recovers three, and the Stage 8 patch helper recovers five. Together they reduce
+the production core from 15,356 to 15,344 bytes, with immutable data and workspace
+unchanged. The representative proof changes from 880,444 to 880,455 instructions
+and from 9,520,593 to 9,520,700 T-states, a 0.002-percent increase. Exact string
+and hexadecimal tokens, trap positions, exit fixups,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the twentieth audit checkpoint added to the retained work above, the
-measured shipping core is 15,356 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,324 bytes. The 15,360-byte target is exceeded by four
-bytes, giving 1,028 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,133 bytes, exceeding that phase target by 833
+With the twenty-first audit checkpoint added to the retained work above, the
+measured shipping core is 15,344 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,336 bytes. The 15,360-byte target is exceeded by 16
+bytes, giving 1,040 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,145 bytes, exceeding that phase target by 845
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

@@ -200,6 +200,11 @@ Stage8ReadArgumentCount:
             LD   (Stage7ArgumentCount),A
             RET
 
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+Stage8PatchExitHere:
+            LD   DE,(EmitExitFixup)
+            JP   PatchHere
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7Call:
             LD   (Stage7CallLabel),A
@@ -241,8 +246,7 @@ Stage8ReadCallCommon:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitExitFixup)
-            CALL PatchHere
+            CALL Stage8PatchExitHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -339,8 +343,7 @@ Stage8CallableFailable:
             RET  C
 .endif
 Stage8CallableFailureReady:
-            LD   DE,(EmitExitFixup)
-            CALL PatchHere
+            CALL Stage8PatchExitHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -618,8 +621,7 @@ Stage8BeginCallableMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitExitFixup)
-            CALL PatchHere
+            CALL Stage8PatchExitHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif

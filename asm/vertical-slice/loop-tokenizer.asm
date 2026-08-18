@@ -224,11 +224,9 @@ TokenIsHexDigit:
             OR   $20
             SUB  "a"-"0"
             CP   6
-            JR   NC,TokenHexNo
+            RET  NC
             ADD  A,10
             SCF
-            RET
-TokenHexNo:
             RET
 
 ; Scan and validate a bounded-string literal. BC returns the decoded byte
@@ -252,12 +250,11 @@ TokenScanStringNext:
 .endif
             CP   '"'
             JR   Z,TokenScanStringDone
-            CP   $20
-            JR   C,TokenScanCharacterFailure
-            CP   $7F
-            JR   NC,TokenScanCharacterFailure
             CP   "\\"
             JR   Z,TokenScanStringEscape
+            SUB  $20
+            CP   $5F
+            JR   NC,TokenScanCharacterFailure
 TokenScanStringCount:
             INC  C
             JR   Z,TokenScanCharacterFailure
