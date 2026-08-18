@@ -145,9 +145,8 @@ TokenScanNumberMultiply:
             ADD  HL,DE
             JR   C,TokenScanCharacterFailure
             DJNZ TokenScanNumberMultiply
-            LD   D,0
-            LD   E,A
-            ADD  HL,DE
+            LD   C,A                     ; B=0 after the completed DJNZ loop
+            ADD  HL,BC
             JR   C,TokenScanCharacterFailure
             PUSH HL
             CALL SourceTake
@@ -177,14 +176,13 @@ TokenScanCharacter:
             JR   C,TokenScanCharacterFailure
 .endif
             LD   C,A
-            SUB  $20
-            CP   $5F
-            JR   NC,TokenScanCharacterFailure
-            LD   A,C
             CP   "'"
             JR   Z,TokenScanCharacterFailure
             CP   "\\"
             JR   Z,TokenScanCharacterFailure
+            SUB  $20
+            CP   $5F
+            JR   NC,TokenScanCharacterFailure
 .if TargetStreamingOutput
             CALL TokenTakeRequired
 .else

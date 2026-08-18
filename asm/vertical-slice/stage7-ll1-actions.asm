@@ -1998,17 +1998,15 @@ HybridLL1BeginForBody:
             CALL TypedDeclarationScalarType
             LD   D,A
             AND  ScalarTypeSignedFlag
-            LD   A,(HybridLL1ForMode)
-            JR   Z,HybridLL1ForUnsignedMode
-            SET  3,A
-HybridLL1ForUnsignedMode:
+            RRCA
             LD   E,A
             LD   A,D
-            BIT  1,A
-            LD   A,E
-            JR   Z,HybridLL1ForModeReady
-            SET  2,A
-HybridLL1ForModeReady:
+            AND  ScalarTypeU16
+            RLCA
+            OR   E
+            LD   E,A
+            LD   A,(HybridLL1ForMode)
+            OR   E
             LD   (HL),A
             INC  HL
             LD   DE,(HybridLL1ForStep)

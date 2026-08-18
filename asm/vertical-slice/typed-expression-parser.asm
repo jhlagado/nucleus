@@ -106,19 +106,6 @@ TypedTakeOperator:
             LD   (ParserLookaheadKind),A
             DEC  A
             RET
-.if TargetStreamingOutput
-; The three production left-associative loops have one saved AF above their
-; caller. Retain this helper's continuation in DE while consuming that AF,
-; then restore the continuation before the ordinary TypedSaveLeft tail.
-.routine noreturn
-TypedTakeOperatorSaveLeft:
-            POP  DE
-            CALL TypedTakeOperator
-            POP  AF
-            PUSH DE
-            JP   TypedSaveLeft
-.endif
-
 ; Push one pending binary-expression context into the bounded compiler stack.
 ; Retaining the operator source offset is necessary because a nested operation
 ; may replace the global offset before the outer operation is reduced.
@@ -156,6 +143,17 @@ TypedExpressionStackFull:
             .db  DiagnosticExpressionCapacity
 
 ; Store A/HL as the pending left result before pushing it.
+.if TargetStreamingOutput
+; The three production left-associative loops have one saved AF above their
+; caller. Retain this helper's continuation in DE while consuming that AF,
+; then restore the continuation before falling through to TypedSaveLeft.
+.routine noreturn
+TypedTakeOperatorSaveLeft:
+            POP  DE
+            CALL TypedTakeOperator
+            POP  AF
+            PUSH DE
+.endif
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedSaveLeft:
 .if AggregateCallSlices
