@@ -734,6 +734,7 @@ TypedNarrow8:
             RET  C
 .endif
             LD   A,2
+TypedTrapAndPush:
             CALL TypedEmitCurrentTrap
 .if CompilerDiagnosticReturns
             RET  C
@@ -786,11 +787,7 @@ TypedConvertInteger:
             JR   NC,TypedConvertTrapReady
             DEC  A                        ; signed index conversion uses bounds
 TypedConvertTrapReady:
-            CALL TypedEmitCurrentTrap
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JP   TypedPushHL
+            JR   TypedTrapAndPush
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 TypedStoreProgram8:

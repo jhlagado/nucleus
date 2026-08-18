@@ -17,14 +17,13 @@ TokenIsLetter:
             LD   A,C
             RET
 
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry,C
+.routine in A out carry clobbers zero,sign,parity,halfCarry,A,C
 TokenIsNameByte:
             CALL TokenIsLetter
             RET  C
-            CP   "_"
-            SCF
+            ADD  A,256-"_"
             RET  Z
-            SUB  "0"
+            ADD  A,"_"-"0"
             CP   10
             RET
 
@@ -222,8 +221,7 @@ TokenIsHexDigit:
             SUB  "a"-"0"
             CP   6
             RET  NC
-            ADD  A,10
-            SCF
+            SUB  -10
             RET
 
 ; Consume and validate one hexadecimal escape digit. Production diagnostics

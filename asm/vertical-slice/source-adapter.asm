@@ -6,13 +6,14 @@ SourceInitialize:
             LD   (SourceCursor),HL
             EX   DE,HL
             LD   (SourceEnd),HL
-            LD   HL,1
+            XOR  A
+            LD   H,A
+            LD   L,A
+            LD   (SourceOffset),HL
+            LD   (SourceLineHasToken),HL
+            INC  HL
             LD   (SourceLine),HL
             LD   (SourceColumn),HL
-            DEC  HL
-            LD   (SourceOffset),HL
-            XOR  A
-            LD   (SourceLineHasToken),HL
             RET
 
 .if AggregateCallSlices

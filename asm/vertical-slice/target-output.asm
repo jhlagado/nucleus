@@ -79,8 +79,7 @@ BeginTargetFlatProgram:
             ; Determine the exact startup extent and validate the optional
             ; established stack before the adapter opens a generation.
             LD   HL,26                   ; JP/CALL main plus terminal dispatch
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   Z,TargetStartupBss
             LD   DE,11                   ; LD HL/DE/BC plus LDIR
             ADD  HL,DE
@@ -118,8 +117,7 @@ TargetStartupReady:
             CALL TargetCompareSingleBank
             JP   NZ,TargetBeginBankedProgram
             LD   HL,(ReadOnlyImageLength)
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   Z,TargetFlatReadOnlyReady
             LD   DE,(StaticImageLength)
             ADD  HL,DE
@@ -150,8 +148,7 @@ TargetFlatReadOnlyReady:
             LD   (TargetCodeBase),HL
             LD   HL,(EmitLimit)
             LD   (TargetCodeCapacity),HL
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   NZ,TargetCodeCapacityReady
             LD   DE,(TargetCodeBase)
             LD   HL,(TargetWritableBase)
@@ -208,6 +205,13 @@ TargetBeginOutput:
 TargetCompareSingleBank:
             LD   A,(TargetDescriptorBankCountValue)
             DEC  A
+            RET
+
+; Load and test the selected target layout mode.
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetLoadLayoutMode:
+            LD   A,(TargetLayoutMode)
+            OR   A
             RET
 
 .routine in A out A,HL
@@ -349,8 +353,7 @@ TargetEmitInitialAndStatic:
 ; declaration-ordered aggregate constants before source code.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetBeginBankedProgram:
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JP   Z,TargetConfigurationFailure
             LD   HL,(TargetImageBase)
             LD   DE,3
@@ -538,8 +541,7 @@ TargetPrepareRuntimeContext:
             JR   TargetContextRoDataFinished
 TargetPrepareFlatRoData:
             LD   HL,(TargetReadOnlyBase)
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   Z,TargetContextRoDataReady
             ; This is a sub-walk of the already checked flat ROM prefix.
             PUSH HL
@@ -657,8 +659,7 @@ TargetEmitStartup:
             RET  C
 .endif
 TargetStartupCopy:
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   Z,TargetStartupClear
             LD   HL,(TargetReadOnlyBase)
             CALL EmitLoadHl
@@ -759,8 +760,7 @@ FinishTargetFlatProgram:
             LD   (TargetCodeLength),HL
             ; Loaded output appends the initialized run image after code. ROM
             ; output already emitted the same bytes before source code.
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   NZ,TargetLoadedDataReady
             LD   HL,(TargetWritableBase)
             LD   (EmitCursor),HL

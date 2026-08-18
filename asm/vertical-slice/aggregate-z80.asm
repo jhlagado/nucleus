@@ -82,8 +82,7 @@ EncodeAggregateProgramWithinLimit:
             CALL TargetCompareSingleBank
             JR   NZ,AggregateDispatch
             ; BeginTargetFlatProgram already selected the first read-only byte.
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   Z,AggregateTargetLoadedRoData
             CALL TargetEmitRuntimeInitialImage
 .if CompilerDiagnosticBranches
@@ -149,8 +148,7 @@ AggregateDispatch:
             JR   NZ,AggregateTargetBoundsReady
             LD   HL,(EmitCursor)
             LD   (TargetCodeBase),HL
-            LD   A,(TargetLayoutMode)
-            OR   A
+            CALL TargetLoadLayoutMode
             JR   NZ,AggregateTargetCodeReady
             LD   HL,(TargetCodeCapacity)
             LD   (EmitLimit),HL
