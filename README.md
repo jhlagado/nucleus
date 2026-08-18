@@ -137,6 +137,12 @@ text output as an ordinary failable Nucleus routine and implements hexadecimal
 formatting in ordinary Nucleus routines. The compiler and runtime measurements are
 recorded in the [implementation account](docs/implementation-plan.md#parameter-only-string-and-retirement-of-the-string-intrinsics).
 
+[`language-tour.nu`](examples/language-tour.nu) and its
+[guided explanation](docs/language-tour.md) provide a compact introduction to
+the current language. The example combines bounded-text construction, open
+array views, nested arrays, signed counters, failure propagation, and immediate
+recovery in one executable program.
+
 ## Development toolchain
 
 Compiler-image generation requires the current AZM checkout from the Debug80

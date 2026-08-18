@@ -173,10 +173,10 @@ undermines an otherwise consistent rule.
    parameter form or an explicit temporary-copy rule with defined lifetime and
    repeat-call behaviour. Keep the literal contextual rather than turning it
    into a general aggregate expression.
-3. **One current beginner path.** The language manual and examples need one
-   short route that uses the implemented forms together: signed counters,
-   `string[]`, `T[]`, nested arrays, `else fail`, and `handle`. This is a
-   documentation deliverable, not another syntax feature.
+
+The [language tour](language-tour.md) supplies the beginner path through signed
+counters, `string[]`, `T[]`, nested arrays, `else fail`, and `handle`. Its
+complete source is compiled and executed by the test suite.
 
 ### P1 — diagnostics and safety consistency
 

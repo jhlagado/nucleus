@@ -18,6 +18,9 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
 - [`oddities.md`](oddities.md) records deliberate first-time surprises and the
   language-finish backlog without overriding the specification.
+- [`language-tour.md`](language-tour.md) walks through one executable program
+  using bounded-text construction, open views, nested arrays, signed counters,
+  and recoverable failure.
 
 Implementation records, deferred proposals, and active plans live in
 [`plans/`](plans/); each file's status header says which it is. Machine-readable
