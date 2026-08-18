@@ -943,7 +943,16 @@ TypedEmitTrapTail:
             RET  C
 .endif
             LD   DE,(EmitExitFixup)
+TypedPatchHere:
             JP   PatchHere
+
+.routine in B out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedEndBoolean:
+            CALL TypedPopBooleanFixup
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JR   TypedPatchHere
 
 ; Save the outer machine frame before main allocates locals, and restore that
 ; exact frame on every terminal trap, including a trap inside recursive calls.
@@ -1095,7 +1104,7 @@ TypedBooleanFixupCapacity:
             CALL SetDiagInline
             .db  DiagnosticBooleanFixupCapacity
 
-.routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,C,HL
+.routine in B out A,carry,zero,DE clobbers sign,parity,halfCarry,B,C,HL
 TypedPopBooleanFixup:
             LD   HL,EmitBooleanFixupDepth
             LD   A,(HL)
@@ -1104,7 +1113,6 @@ TypedPopBooleanFixup:
             LD   (HL),A
             INC  HL
             LD   C,A
-            LD   B,0
             ADD  HL,BC
             ADD  HL,BC
             LD   E,(HL)
@@ -1131,14 +1139,6 @@ TypedBeginBoolean:
             RET  C
 .endif
             JR   TypedPushBooleanFixup
-
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-TypedEndBoolean:
-            CALL TypedPopBooleanFixup
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JP   PatchHere
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedEndMain:

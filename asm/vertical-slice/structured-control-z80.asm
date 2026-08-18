@@ -76,12 +76,12 @@ StructuredEmitFarFixup:
 StructuredEmitFixup:
             PUSH BC
             CALL EmitByte
-            POP  BC
 .if CompilerDiagnosticReturns
+            POP  BC
             RET  C
+            PUSH BC
 .endif
             LD   DE,(EmitCursor)
-            PUSH BC
             PUSH DE
             LD   HL,0
             CALL EmitWord
@@ -265,35 +265,28 @@ StructuredResolveFailure:
             JP   TypedInternalOperation
 
 ; Emit the selected low-byte IX operation and its displaced counter offset.
-; E selects the ordinary pair-table entry; D retains the counter mode.
-.routine in A,C,E out A,C,D,E,carry,zero clobbers sign,parity,halfCarry,B,HL
+; E selects the ordinary pair-table entry.
+.routine in A,C,E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 StructuredCounterPrefix:
-            LD   D,A
             LD   A,C
             CPL
             LD   C,A
-            PUSH DE
             LD   A,E
             CALL EmitPairIndexed
-            POP  DE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,C
-            PUSH DE
-            CALL EmitByte
-            POP  DE
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            RET
+            JP   EmitByte
 
 ; Emit a local load into HL without pushing a new expression carrier.
 ; C is the byte offset, A bit 2 selects u16.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredLoadCounter:
             LD   E,EmitPairLoadIXL
+            PUSH AF
             CALL StructuredCounterPrefix
+            POP  DE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -315,7 +308,9 @@ StructuredLoadCounterHigh:
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredStoreCounter:
             LD   E,EmitPairStoreIXL
+            PUSH AF
             CALL StructuredCounterPrefix
+            POP  DE
 .if CompilerDiagnosticReturns
             RET  C
 .endif

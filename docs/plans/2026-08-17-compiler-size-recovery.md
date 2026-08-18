@@ -1606,13 +1606,35 @@ remain unchanged. The independent scanner audit found no complete safe
 three-byte candidate, but the retained expression and structural changes reset
 the plateau count to zero on this baseline.
 
+### Thirty-eighth audit Boolean-fixup, structured-lifetime, and token-entry checkpoint
+
+Boolean fixup popping reuses the dispatcher's established zero register, and
+the Boolean-end path moves beside its existing patch tail so it can use a
+relative branch. Structured fixup emission keeps one saved register pair live
+across two consecutive writes in the nonreturning production layout, while
+counter-prefix emission transfers its mode through the caller's stack and
+tail-emits the displacement byte. Token-record setup now tail-jumps directly
+to source lookahead, replacing a return followed by an immediate call, and the
+production tokenizer entry aliases its contracted loop without a wrapper.
+
+The Boolean fixup changes recover three production code bytes, the structured
+register-lifetime changes recover four, and tokenizer entry flow recovers
+three. Together they reduce the production core from 15,151 to 15,141 bytes,
+with immutable data and workspace unchanged. The representative proof improves
+from 877,444 to 874,541 instructions and from 9,505,510 to 9,462,307 T-states.
+The tokenizer trace improves by more than one percent in both measures; no
+measured instruction or T-state regression approaches the two-percent gate.
+Exact Boolean underflow behavior, structured emission, token positions,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the thirty-seventh audit checkpoint added to the retained work above, the
-measured shipping core is 15,151 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,529 bytes. The 15,360-byte target is exceeded by 209
-bytes, giving 1,233 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,338 bytes, exceeding that phase target by 1,038
+With the thirty-eighth audit checkpoint added to the retained work above, the
+measured shipping core is 15,141 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,539 bytes. The 15,360-byte target is exceeded by 219
+bytes, giving 1,243 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,348 bytes, exceeding that phase target by 1,048
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

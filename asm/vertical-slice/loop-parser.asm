@@ -99,7 +99,11 @@ ParserPeek:
             RET  NZ
 ParserPeekEmpty:
             PUSH HL
+.if TargetStreamingOutput
+            CALL TokenizerNextLoop
+.else
             CALL TokenizerNext
+.endif
             POP  HL
 .if CompilerDiagnosticReturns
             RET  C

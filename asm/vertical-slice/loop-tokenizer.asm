@@ -1,12 +1,12 @@
 ; Tokenizer subset for the scalar-local, counted-loop, and array proofs.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,BC,DE
 TokenRecordStart:
             LD   HL,SourceOffset
             LD   DE,TokenStartOffset
             LD   BC,8
             LDIR
-            RET
+            JP   SourcePeek
 
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,C
 TokenIsLetter:
@@ -350,9 +350,13 @@ TokenScanStringDone:
             CALL TokenFinishInline
             .db  TokenStringLiteral
 
+.if TargetStreamingOutput
+TokenizerNext .equ TokenizerNextLoop
+.else
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenizerNext:
             JR   TokenizerNextLoop
+.endif
 
 TokenizerAtEof:
             LD   HL,(SourceLineHasToken)
@@ -431,7 +435,6 @@ TokenizerFinishLine:
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenizerNextLoop:
             CALL TokenRecordStart
-            CALL SourcePeek
             JR   C,TokenizerAtEof
 
             CP   " "

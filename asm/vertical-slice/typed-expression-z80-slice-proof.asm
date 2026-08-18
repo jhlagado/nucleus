@@ -660,6 +660,7 @@ ProofFillOperationCount:
 
             XOR  A
             LD   (EmitBooleanFixupDepth),A
+            LD   B,A
             CALL TypedPopBooleanFixup
             JP   NC,ProofFailBooleanUnderflow
             LD   A,(DiagnosticCode)
