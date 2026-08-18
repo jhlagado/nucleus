@@ -367,19 +367,15 @@ StructuredForTest:
 .endif
             LD   (EmitControlExitLabel),A
             PUSH BC
-            PUSH DE
             CALL EmitPairIndexedInline
             .db  EmitPairPopDEPushDE
-            POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             PUSH BC
-            PUSH DE
             LD   A,B
             CALL StructuredLoadCounter
-            POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C

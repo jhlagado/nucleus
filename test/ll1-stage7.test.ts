@@ -108,6 +108,13 @@ describe("Stage 7 packed LL(1)", () => {
         (groupOffsets.get(length) ?? 0) - cell,
       ),
     ).toEqual([7, 24, 63, 87, 116, 157, 172]);
+
+    const basedSuffixes = [
+      ...source.matchAll(
+        /^\s*\.db\s+"\$",5\s*\n\s*\.db\s+"%",17\s*\nPunctuationCount\s+\.equ\s+(\d+)$/gm,
+      ),
+    ].map((match) => Number(match[1]));
+    expect(basedSuffixes).toEqual([8, 7]);
   });
 
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
@@ -310,9 +317,9 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_915_145);
-    expect(outcome.cycles).toBe(18_388_578);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_371 });
+    expect(outcome.instructions).toBe(1_915_578);
+    expect(outcome.cycles).toBe(18_389_677);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_368 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 227,
@@ -327,11 +334,11 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_844,
+      bytes: 14_834,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_446,
+      bytes: 14_436,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
@@ -350,7 +357,7 @@ describe("Stage 7 packed LL(1)", () => {
         (extents.get("ll1-engine") ?? -1) -
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
-    ).toBe(5_967);
+    ).toBe(5_964);
   }, 30_000);
 
   it("executes every retained Stage 7 action family", async () => {

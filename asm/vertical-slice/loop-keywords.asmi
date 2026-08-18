@@ -64,16 +64,16 @@ PunctuationTable:
             .db  "-",TokenMinus
             .db  "+",TokenPlus
             .db  "*",TokenStar
-            ; High-bit descriptors route numeric prefixes to the based-number
-            ; scanner; the low seven bits retain its one-past digit count.
+            ; The final two rows are numeric prefixes. Their positions route
+            ; to the based-number scanner and their bytes are digit budgets.
 .if AggregateCallSlices
             .db  ".",TokenDot
-            .db  "$",$85
-            .db  "%",$91
+            .db  "$",5
+            .db  "%",17
 PunctuationCount        .equ 8
 .else
-            .db  "$",$85
-            .db  "%",$91
+            .db  "$",5
+            .db  "%",17
 PunctuationCount        .equ 7
 .endif
 

@@ -266,12 +266,11 @@ TokenScanStringEscape:
             CP   "x"
             JR   Z,TokenScanStringHex
             LD   HL,StringEscapeTable
-            LD   B,StringEscapeCount
-TokenScanStringEscapeLoop:
-            CP   (HL)
+            LD   E,C
+            LD   C,StringEscapeCount     ; B=0 after punctuation exhaustion
+            CPIR
+            LD   C,E
             JR   Z,TokenScanStringCount
-            INC  HL
-            DJNZ TokenScanStringEscapeLoop
             JR   TokenScanCharacterFailure
 TokenScanStringHex:
 .if TargetStreamingOutput
@@ -292,7 +291,6 @@ TokenScanStringHex:
             JR   NC,TokenScanCharacterFailure
             JR   TokenScanStringCount
 TokenScanStringDone:
-            LD   B,0
             LD   A,C
             LD   (TokenLength),A
             CALL TokenFinishInline
@@ -451,9 +449,9 @@ TokenizerSkipCommentLoop:
 
 TokenizerPunctuation:
             LD   C,(HL)
-            BIT  7,C
-            JR   Z,TokenizerSimpleToken
-            RES  7,C
+            LD   A,B
+            CP   3
+            JR   NC,TokenizerSimpleToken
             LD   B,C
             JR   TokenScanBasedNumber
 

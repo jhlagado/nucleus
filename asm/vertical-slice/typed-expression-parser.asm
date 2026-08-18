@@ -608,7 +608,8 @@ TypedReduceDivideSignsReady:
             PUSH BC
             JR   TypedReduceDivideCoreReady
 TypedReduceDivideUnsignedReady:
-            LD   BC,0
+            LD   B,A                     ; unsigned-class test leaves A=0
+            LD   C,A
             PUSH BC
 TypedReduceDivideCoreReady:
             LD   BC,0
@@ -1475,12 +1476,12 @@ TypedReduceComparison:
             CP   ScalarTypeBoolean
             JR   NZ,TypedComparisonInteger
             LD   A,E
-            CP   ScalarTypeBoolean
+            SUB  ScalarTypeBoolean
             JP   NZ,TypedTypeFailure
             LD   A,(ExpressionOperator)
             CP   ComparisonNotEqual+1
             JP   NC,TypedTypeFailure
-            LD   D,0
+            LD   D,A                     ; successful Boolean test leaves A=0
             LD   A,SemanticCompareBoolean
             JR   TypedComparisonEmit
 TypedComparisonInteger:
@@ -1492,8 +1493,8 @@ TypedComparisonInteger:
             LD   D,A
             AND  ScalarTypeSignedFlag
             JR   NZ,TypedComparisonSigned
-            LD   A,D
-            LD   D,0
+            LD   D,A                     ; unsigned-class test leaves A=0
+            LD   A,C
             AND  2
             RRCA
             ADD  A,SemanticCompare8
