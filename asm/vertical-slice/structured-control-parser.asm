@@ -51,14 +51,11 @@ ControlClearFrame:
             LD   (HL),A
             INC  HL
             DJNZ ControlClearFrame
-            LD   A,(ControlDepth)
-            DEC  A
-            CALL ControlFrameAddress
-            PUSH HL
-            LD   DE,ControlFrameCounter
+            LD   DE,ControlFrameCounter-ControlFrameSize
             ADD  HL,DE
-            LD   (HL),ControlNoCounter
-            POP  HL
+            DEC  (HL)                    ; cleared zero -> ControlNoCounter
+            LD   DE,-ControlFrameCounter
+            ADD  HL,DE
             OR   A
             RET
 ControlCapacityFailure:

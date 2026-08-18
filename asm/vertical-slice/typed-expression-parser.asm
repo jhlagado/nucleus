@@ -365,10 +365,9 @@ TypedRequireScalarSymbolClass:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedBothConstant:
             LD   A,(ExpressionLeftMeta)
-            AND  ScalarMetaConstant
-            RET  Z
             LD   HL,ExpressionRightMeta
             AND  (HL)
+            AND  ScalarMetaConstant
             RET
 
 ; Emit a width-selected binary operation. D=u8 ordinal; the u16 ordinal is next.
@@ -555,8 +554,8 @@ TypedReduceDivisionPosition:
             ; dynamic. The fault helper also implements constant short-circuit
             ; suppression, so the unevaluated Boolean arm remains admissible.
             LD   A,(ExpressionRightMeta)
-            AND  ScalarMetaConstant
-            JR   Z,TypedReduceDivideFold
+            RLCA
+            JR   NC,TypedReduceDivideFold
             LD   HL,(ExpressionRightValue)
             LD   A,H
             OR   L
@@ -1814,8 +1813,8 @@ TypedOrInteger:
 .routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedBeginSuppression:
             LD   A,(ExpressionLeftMeta)
-            AND  ScalarMetaConstant
-            RET  Z
+            RLCA
+            RET  NC
             LD   A,(ExpressionLeftValue)
             XOR  C
             RET  NZ

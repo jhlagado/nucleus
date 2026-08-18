@@ -87,10 +87,23 @@ SourcePeek:
             LD   DE,(SourceEnd)
             OR   A
             SBC  HL,DE
+.if AggregateCallSlices
+.if TargetStreamingOutput
+            CCF
+            RET  C
+            ADD  HL,DE
+.else
             ADD  HL,DE
             JR   NZ,SourcePeekByte
             SCF
             RET
+.endif
+.else
+            ADD  HL,DE
+            JR   NZ,SourcePeekByte
+            SCF
+            RET
+.endif
 SourcePeekByte:
             LD   A,(HL)
             OR   A

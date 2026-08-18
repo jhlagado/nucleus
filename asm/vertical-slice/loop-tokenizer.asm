@@ -530,7 +530,7 @@ TokenScanBasedNumber:
             CALL SourceTake
             LD   HL,0
 TokenScanBasedLoop:
-            LD   D,0
+            LD   D,C
             PUSH HL
             CALL SourcePeek
             POP  HL
@@ -569,7 +569,7 @@ TokenScanBasedDone:
             CP   C
             JR   Z,TokenizerLexicalFailure
             LD   A,D
-            OR   A
+            CP   C
             JP   Z,TokenScanNumberEof
             JP   TokenScanNumberDone
 StringEscapeTable:      .db "0nrt",$27,$22,"\\"
