@@ -522,10 +522,6 @@ StructuredDistanceWidthReady:
             LD   A,ComparisonLess
             JR   NZ,StructuredDistanceCompare
             ; until exits when distance <= step; to exits when distance < step.
-            LD   A,(EmitControlMode)
-            BIT  0,A
-            LD   A,ComparisonLess
-            JR   NZ,StructuredDistanceCompare
             LD   A,ComparisonLessEqual
 StructuredDistanceCompare:
             CALL TypedEmitCompare

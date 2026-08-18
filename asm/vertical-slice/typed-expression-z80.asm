@@ -51,7 +51,7 @@ TypedDispatchNext:
             JR   NC,TypedInvalidPopped
             CALL TypedPrefetchFirstOperand
             LD   L,C
-            LD   H,0
+            LD   H,D
             ADD  HL,HL
             LD   DE,TypedOperationTable
             ADD  HL,DE
@@ -203,7 +203,7 @@ TypedOperationCount .equ 62
 ; Operand-prefetch metadata is deliberately separate from the full-width
 ; handler addresses. C returns the zero-based operation index. For marked
 ; operations A returns the first operand; otherwise A is scratch.
-.routine in A out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,E,HL
+.routine in A out A,C,D,carry,zero clobbers sign,parity,halfCarry,B,E,HL
 TypedPrefetchFirstOperand:
             LD   C,A
             AND  7

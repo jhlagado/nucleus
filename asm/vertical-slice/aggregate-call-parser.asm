@@ -1997,11 +1997,11 @@ Stage8TypedPrimaryService:
             LD   C,1
             JR   Stage8ParseServiceCall
 
-.routine in A out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,D,DE,IX,IY
+.routine in A,B out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,D,DE,IX,IY
 Stage8TypedPrimaryConstant:
             SUB  Stage8PredefinedConstantBase-1
             LD   L,A
-            LD   H,0
+            LD   H,B
             LD   B,ScalarMetaConstant+ScalarTypeU8
             JP   TypedPrimaryEmitTypedConstant
 

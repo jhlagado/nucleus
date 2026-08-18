@@ -1567,7 +1567,7 @@ TypedComparisonRelationReady:
             LD   HL,TypedComparisonResults
             ADD  HL,DE
             LD   L,(HL)
-            LD   H,0
+            LD   H,D
 TypedComparisonConstantDone:
             LD   A,ScalarMetaConstant+ScalarTypeBoolean
             OR   A

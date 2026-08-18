@@ -1343,13 +1343,32 @@ folded values, structured loops,
 generated code, diagnostics, artifacts, historical layouts, and relocation
 remain unchanged.
 
+### Twenty-fourth audit zero-register and mode-predicate checkpoint
+
+Three typed dispatch paths construct a zero high byte from registers already
+proved zero. Structured distance comparison also reuses the result of its first
+mode-bit test instead of loading and testing the same bit again.
+
+The zero-register paths recover three production code bytes, while removing the
+duplicate mode test recovers nine. Together they reduce the production core
+from 15,322 to 15,310 bytes, with immutable data and workspace unchanged. The
+representative proof improves from 880,477 to 880,473 instructions and from
+9,520,876 to 9,520,268 T-states. Exact dispatch values, structured loops,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
+A separate three-byte based-number EOF-tail candidate was rejected. It skipped
+the required no-digit check, so `$` and `%` at physical EOF were accepted as
+zero before a later parser diagnostic. A permanent Host test now locks the
+lexical diagnostic and source position for both empty prefixes at physical EOF.
+
 ### Current recovery outlook
 
-With the twenty-third audit checkpoint added to the retained work above, the
-measured shipping core is 15,322 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,358 bytes. The 15,360-byte target is exceeded by 38
-bytes, giving 1,062 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,167 bytes, exceeding that phase target by 867
+With the twenty-fourth audit checkpoint added to the retained work above, the
+measured shipping core is 15,310 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,370 bytes. The 15,360-byte target is exceeded by 50
+bytes, giving 1,074 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,179 bytes, exceeding that phase target by 879
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

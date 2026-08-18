@@ -89,6 +89,25 @@ describe("emulator-backed compiler host", () => {
     }
   }, 30_000);
 
+  it("rejects an empty based literal at physical EOF", async () => {
+    for (const prefix of ["%", "$"] as const) {
+      const result = await compileNucleus([
+        { name: "main.nu", source: `const x = ${prefix}` },
+      ]);
+      expect(result).toMatchObject({
+        success: false,
+        diagnostic: {
+          code: 1,
+          sourcePart: 1,
+          sourceName: "main.nu",
+          offset: 10,
+          line: 1,
+          column: 11,
+        },
+      });
+    }
+  }, 30_000);
+
   it("reports the full trace port without changing Z80 machine state", () => {
     const memory = new Uint8Array(0x10000);
     memory.set([0xd3, 0xd8, 0x76], 0x100);
