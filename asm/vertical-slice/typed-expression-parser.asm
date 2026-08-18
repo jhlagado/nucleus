@@ -1698,13 +1698,11 @@ TypedAndLoop:
 .endif
             CALL TypedLeftTypeIsBoolean
             JR   NZ,TypedAndParseRight
-            LD   A,SemanticBeginBooleanAnd
-            CALL TypedEmitOperation
+            LD   C,0
+            CALL TypedBeginBooleanSuppression
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   C,0
-            CALL TypedBeginSuppression
 TypedAndParseRight:
             CALL TypedParseNot
 .if CompilerDiagnosticReturns
@@ -1773,13 +1771,11 @@ TypedOrOperator:
 TypedOrBooleanLeft:
             CALL TypedLeftTypeIsBoolean
             JR   NZ,TypedOrParseRight
-            LD   A,SemanticBeginBooleanOr
-            CALL TypedEmitOperation
+            LD   C,1
+            CALL TypedBeginBooleanSuppression
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   C,1
-            CALL TypedBeginSuppression
 TypedOrParseRight:
             CALL TypedParseAnd
 .if CompilerDiagnosticReturns
@@ -1816,6 +1812,14 @@ TypedOrInteger:
 .endif
             JR   TypedOrLoop
 
+.routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedBeginBooleanSuppression:
+            LD   A,C
+            ADD  A,SemanticBeginBooleanAnd
+            CALL TypedEmitOperation
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
 .routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedBeginSuppression:
             LD   A,(ExpressionLeftMeta)

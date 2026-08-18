@@ -299,8 +299,8 @@ StructuredLoadCounter:
 .endif
             BIT  2,D
             JR   NZ,StructuredLoadCounterHigh
-            LD   HL,TypedZeroHigh
-            JP   EmitPair
+            LD   A,EmitPairZeroH
+            JP   EmitPairIndexed
 StructuredLoadCounterHigh:
             DEC  C
             CALL EmitPairIndexedInline

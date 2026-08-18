@@ -244,8 +244,7 @@ TargetSaveOutputBank:
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TargetSelectOutputBank:
             LD   C,A
-            LD   A,(TargetDescriptorBankCountValue)
-            DEC  A
+            CALL TargetCompareSingleBank
             CP   C
             JP   C,TargetConfigurationFailure
             LD   A,(TargetOutputBank)

@@ -836,8 +836,8 @@ Stage7CopyAggregate:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,Stage7LDIR
-            JP   EmitPair
+            LD   A,EmitPairLDIR
+            JP   EmitPairIndexed
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 Stage7ReadExtentAndOffset:

@@ -1586,13 +1586,33 @@ or T-state count increases. Exact emitted bytes, comparison values, source
 positions, tokens, generated code, diagnostics, artifacts, historical layouts,
 and relocation remain unchanged.
 
+### Thirty-seventh audit Boolean-suppression and specialized-pair checkpoint
+
+Boolean `and` and `or` begin-emission share their semantic-operation selection
+and then fall into the existing suppression setup, with the selector retained
+in C across both production and returning-diagnostic layouts. Structured and
+Stage 7 emission use existing specialized zero-high and `LDIR` pair entries,
+and output-bank selection reuses the existing single-bank predicate.
+
+Boolean suppression sharing recovers four production code bytes, and the three
+specialized existing paths recover three. Together they reduce the production
+core from 15,158 to 15,151 bytes, with immutable data and workspace unchanged.
+The representative proof changes from 877,384 to 877,444 instructions and from
+9,504,808 to 9,505,510 T-states. The largest measured increases are below 0.010
+percent in instruction count and 0.008 percent in T-states, below the
+two-percent gate. Exact short-circuit behavior, emitted pairs, bank selection,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged. The independent scanner audit found no complete safe
+three-byte candidate, but the retained expression and structural changes reset
+the plateau count to zero on this baseline.
+
 ### Current recovery outlook
 
-With the thirty-sixth audit checkpoint added to the retained work above, the
-measured shipping core is 15,158 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,522 bytes. The 15,360-byte target is exceeded by 202
-bytes, giving 1,226 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,331 bytes, exceeding that phase target by 1,031
+With the thirty-seventh audit checkpoint added to the retained work above, the
+measured shipping core is 15,151 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,529 bytes. The 15,360-byte target is exceeded by 209
+bytes, giving 1,233 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,338 bytes, exceeding that phase target by 1,038
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
