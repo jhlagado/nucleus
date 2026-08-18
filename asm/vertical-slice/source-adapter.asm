@@ -1,21 +1,5 @@
 ; Memory-backed implementation of the ordered source-byte adapter.
 
-.routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourceInitialize:
-            LD   (SourcePartId),A
-            LD   (SourceCursor),HL
-            EX   DE,HL
-            LD   (SourceEnd),HL
-            XOR  A
-            LD   H,A
-            LD   L,A
-            LD   (SourceOffset),HL
-            LD   (SourceLineHasToken),HL
-            INC  HL
-            LD   (SourceLine),HL
-            LD   (SourceColumn),HL
-            RET
-
 .if AggregateCallSlices
 ; A is a bounded part count and HL points to five-byte descriptors containing
 ; stable identity, source start, and source end. The source and descriptors
@@ -26,17 +10,6 @@ SourceInitializeParts:
             CP   SourcePartCapacity
             JR   NC,SourcePartCapacityFailure
             LD   (SourcePartsRemaining),A
-            JR   SourceLoadPart
-SourcePartCapacityFailure:
-            XOR  A
-            LD   H,A
-            LD   L,A
-            LD   D,A
-            LD   E,A
-            CALL SourceInitialize
-            CALL TokenRecordStart
-            CALL SetDiagInline
-            .db  DiagnosticSourcePartCapacity
 
 ; Load the descriptor at HL and retain the address of the following one.
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
@@ -54,7 +27,37 @@ SourceLoadPart:
             INC  HL
             LD   (SourcePartDescriptorCursor),HL
             POP  HL
-            JR   SourceInitialize
+            ; Fall through with A=part, HL=start, and DE=end.
+.endif
+
+.routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SourceInitialize:
+            LD   (SourcePartId),A
+            LD   (SourceCursor),HL
+            EX   DE,HL
+            LD   (SourceEnd),HL
+            XOR  A
+            LD   H,A
+            LD   L,A
+            LD   (SourceOffset),HL
+            LD   (SourceLineHasToken),HL
+            INC  HL
+            LD   (SourceLine),HL
+            LD   (SourceColumn),HL
+            RET
+
+.if AggregateCallSlices
+.routine noreturn
+SourcePartCapacityFailure:
+            XOR  A
+            LD   H,A
+            LD   L,A
+            LD   D,A
+            LD   E,A
+            CALL SourceInitialize
+            CALL TokenRecordStart
+            CALL SetDiagInline
+            .db  DiagnosticSourcePartCapacity
 .endif
 
 ; Consume one byte and advance byte offset and byte column. Newline handling

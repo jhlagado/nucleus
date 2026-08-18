@@ -87,9 +87,6 @@ TypedInvalidPopped:
             POP  BC
 TypedInternalOperation:
             JP   TypedExpressionStackUnderflow
-TypedBooleanFixupCapacity:
-            CALL SetDiagInline
-            .db  DiagnosticBooleanFixupCapacity
 
 TypedPrefetchBits:
             .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$07
@@ -1081,7 +1078,7 @@ TypedPushBooleanFixup:
             LD   HL,EmitBooleanFixupDepth
             LD   A,(HL)
             CP   EmitBooleanFixupCapacity
-            JP   NC,TypedBooleanFixupCapacity
+            JR   NC,TypedBooleanFixupCapacity
             INC  (HL)
             INC  HL
             LD   C,A
@@ -1094,15 +1091,17 @@ TypedPushBooleanFixup:
             INC  A
             OR   A
             RET
+TypedBooleanFixupCapacity:
+            CALL SetDiagInline
+            .db  DiagnosticBooleanFixupCapacity
 
 .routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,C,HL
 TypedPopBooleanFixup:
             LD   HL,EmitBooleanFixupDepth
             LD   A,(HL)
-            OR   A
-            JP   Z,TypedInternalOperation
-            DEC  (HL)
             DEC  A
+            JP   M,TypedInternalOperation
+            LD   (HL),A
             INC  HL
             LD   C,A
             LD   B,0
@@ -1117,13 +1116,12 @@ TypedPopBooleanFixup:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedBeginAnd:
             LD   HL,TypedBeginAndBytes
-            LD   B,6
             JR   TypedBeginBoolean
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBeginOr:
             LD   HL,TypedBeginOrBytes
-            LD   B,6
 TypedBeginBoolean:
+            LD   B,6
             CALL EmitBytes
 .if CompilerDiagnosticReturns
             RET  C

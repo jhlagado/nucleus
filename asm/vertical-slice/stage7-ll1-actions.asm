@@ -1009,13 +1009,18 @@ HybridLL1EndRoutineEmit:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1EmitRoutineEnd:
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            CALL HybridLL1TestRoutineFails
             LD   A,SemanticEndGeneralRoutine
             JR   Z,HybridLL1EmitRoutineEndSelected
             LD   A,SemanticEndFailableRoutine
 HybridLL1EmitRoutineEndSelected:
             JP   SemanticSinkOperation
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+HybridLL1TestRoutineFails:
+            LD   A,(Stage7CurrentFlags)
+            AND  Stage7RoutineFails
+            RET
 HybridLL1EndMainBody:
 .if TargetStreamingOutput
 .if DebugHooks
@@ -1038,8 +1043,7 @@ HybridLL1BeginFail:
             OUT  (DebugTraceSourcePort),A
 .endif
 .endif
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            CALL HybridLL1TestRoutineFails
             JR   Z,HybridLL1FailureContext
             LD   HL,(TokenStartOffset)
             LD   (Stage8FailureOffset),HL
@@ -1111,8 +1115,7 @@ Stage8ConsumePropagation:
             CP   TokenElse
             JR   NZ,HybridLL1FailureContext
 Stage8ConsumePropagationSelected:
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            CALL HybridLL1TestRoutineFails
             JR   Z,HybridLL1FailureContext
             CALL ParserTake
 .if CompilerDiagnosticReturns
@@ -1557,8 +1560,7 @@ HybridLL1CommitReturn:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            CALL HybridLL1TestRoutineFails
             LD   A,SemanticReturnScalar
             JR   Z,HybridLL1ReturnScalarSelected
             LD   A,SemanticReturnFailableScalar
@@ -1577,8 +1579,7 @@ HybridLL1CommitAggregateReturn:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            CALL HybridLL1TestRoutineFails
             LD   A,SemanticReturnAggregate
             JR   Z,HybridLL1ReturnAggregateSelected
             LD   A,SemanticReturnFailableAggregate
