@@ -408,9 +408,9 @@ TypedReduceIntegerBinary:
             CP   TokenStar
             JR   Z,TypedReduceMultiply
             CP   TokenSlash
-            JP   Z,TypedReduceDivide
+            JR   Z,TypedReduceDivide
             CP   TokenMod
-            JP   Z,TypedReduceModulo
+            JR   Z,TypedReduceModulo
             CP   TokenAnd
             JR   Z,TypedReduceAnd
             CP   TokenXor
@@ -1204,7 +1204,7 @@ TypedUnaryPlus:
             RET  C
 .endif
 .endif
-            JP   TypedRequireIntegerMeta
+            JR   TypedRequireIntegerMeta
 TypedUnaryMinus:
             CALL TypedUnaryPlus
 .if CompilerDiagnosticReturns
@@ -1673,7 +1673,11 @@ TypedAndLoop:
             JP   C,TypedBooleanPeekFailure
 .endif
             CP   TokenAnd
+.if TargetStreamingOutput
+            JR   NZ,TypedBooleanDone
+.else
             JP   NZ,TypedBooleanDone
+.endif
             CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure

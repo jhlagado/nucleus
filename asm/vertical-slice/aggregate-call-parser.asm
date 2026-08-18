@@ -66,7 +66,7 @@ Stage7CurrentNameMatchesAtHL .equ TokenNameRecordEquals
 
 ; Carry identifies a predefined service or error constant and A returns its
 ; dense ordinal. No match returns carry clear.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.routine out A,B,carry,zero clobbers sign,parity,halfCarry,C,D,DE,HL
 Stage8MatchPredefinedCurrent:
             LD   HL,Stage8PredefinedTable
             LD   C,Stage8PredefinedCount

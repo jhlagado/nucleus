@@ -75,15 +75,14 @@ CompilerRestoreTokenPosition:
 ; ordinal with DiagnosticExpectedTokenBase set.
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpect:
-            PUSH DE
+            LD   L,E
             CALL ParserTake
-            POP  DE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   E
+            CP   L
             RET  Z
-            LD   A,E
+            LD   A,L
             OR   DiagnosticExpectedTokenBase
             JR   CompilerSetDiagnostic
 

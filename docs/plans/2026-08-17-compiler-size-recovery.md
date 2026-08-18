@@ -1255,13 +1255,32 @@ operands, Stage 7 emissions, number tokens and
 positions, generated code, diagnostics, artifacts, historical layouts, and
 relocation remain unchanged.
 
+### Nineteenth audit branch, classifier, and Stage 7 checkpoint
+
+Four typed expression jumps use verified in-range relative branches, with the
+one historically distant Boolean branch retained as an absolute jump. Parser
+expectation preserves its token through the existing HL-preserving take path;
+hexadecimal validation and comparison scanning reuse already-established carry
+and ordinal bits. Stage 7 data allocation falls into its selected BSS path, and
+predefined service calls reuse the match loop’s proven zero counter.
+
+The typed branches recover four production code bytes, while the scanner/parser
+and Stage 7 changes each recover three. Together they reduce the production core
+from 15,386 to 15,376 bytes, with immutable data and workspace unchanged. The
+representative proof improves from 881,837 to 880,928 instructions and from
+9,538,860 to 9,523,782 T-states. Exact
+tokens, flags, allocation selection, service calls, generated code, diagnostics,
+artifacts, historical layouts, and relocation remain unchanged. A nominal
+scanner label move was rejected because it bypassed explicit AZM routine
+boundaries.
+
 ### Current recovery outlook
 
-With the eighteenth audit checkpoint added to the retained work above, the
-measured shipping core is 15,386 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,294 bytes. The earlier 15,360-byte target is 26 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,103 bytes,
-exceeding that phase target by 803 bytes. The compiler has 998 bytes of headroom
+With the nineteenth audit checkpoint added to the retained work above, the
+measured shipping core is 15,376 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,304 bytes. The earlier 15,360-byte target is 16 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,113 bytes,
+exceeding that phase target by 813 bytes. The compiler has 1,008 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to

@@ -331,9 +331,7 @@ HybridLL1FinishProgramInitializer:
 HybridLL1CommitProgramVariable:
             LD   A,(AggregateHasInitializer)
             OR   A
-            JR   Z,HybridLL1CommitBssObject
-            JR   HybridLL1AllocateDataObject
-HybridLL1CommitBssObject:
+            JR   NZ,HybridLL1AllocateDataObject
             JR   HybridLL1AllocateBssObject
 HybridLL1CommitObjectReady:
             PUSH BC
@@ -1456,7 +1454,7 @@ HybridLL1NameStatement:
             JR   NC,HybridLL1OrdinaryNameStatement
             CP   Stage8PredefinedConstantBase
             JP   NC,TypedTypeFailure
-            LD   C,0
+            LD   C,B
             CALL Stage8ParseServiceCall
 .if CompilerDiagnosticReturns
             RET  C

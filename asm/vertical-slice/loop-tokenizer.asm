@@ -220,13 +220,12 @@ TokenLexicalFailure:
 TokenIsHexDigit:
             SUB  "0"
             CP   10
-            JR   C,TokenHexDecimal
+            RET  C
             OR   $20
             SUB  "a"-"0"
             CP   6
             JR   NC,TokenHexNo
             ADD  A,10
-TokenHexDecimal:
             SCF
             RET
 TokenHexNo:
@@ -496,8 +495,7 @@ TokenizerComparison:
             JR   Z,TokenizerComparisonEqual
             CP   ">"
             JR   NZ,TokenFinishC
-            LD   A,C
-            CP   TokenLess
+            BIT  1,C
             JR   NZ,TokenFinishC
             LD   C,TokenNotEqual
             JR   TokenizerComparisonConsume
