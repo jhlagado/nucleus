@@ -536,7 +536,6 @@ TokenScanBasedLoop:
 TokenScanBasedDigit:
             DEC  B
             JR   Z,TokenizerLexicalFailure
-            LD   E,A
             BIT  4,C
             JR   NZ,TokenScanBasedShift
             ADD  HL,HL
@@ -544,7 +543,6 @@ TokenScanBasedDigit:
             ADD  HL,HL
 TokenScanBasedShift:
             ADD  HL,HL
-            LD   A,E
             OR   L
             LD   L,A
             PUSH HL

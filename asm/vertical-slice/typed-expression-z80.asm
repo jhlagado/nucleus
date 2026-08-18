@@ -514,9 +514,9 @@ TypedEmitTrapHead:
 TypedDivide8:
             LD   C,$80
             JR   TypedDivide
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+.routine in B out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDivide16:
-            LD   C,0
+            LD   C,B                     ; operand-prefetch loop leaves B=0
             JR   TypedDivide
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedModulo8:

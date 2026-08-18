@@ -384,18 +384,9 @@ StructuredForTest:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            BIT  1,B
-            JR   NZ,StructuredForTestNegative
-            BIT  0,B
-            LD   A,ComparisonLess
-            JR   Z,StructuredForTestCompare
-            LD   A,ComparisonLessEqual
-            JR   StructuredForTestCompare
-StructuredForTestNegative:
-            BIT  0,B
-            LD   A,ComparisonGreater
-            JR   Z,StructuredForTestCompare
-            LD   A,ComparisonGreaterEqual
+            LD   A,B
+            AND  $03
+            ADD  A,ComparisonLess
 StructuredForTestCompare:
             LD   C,A
             BIT  3,B

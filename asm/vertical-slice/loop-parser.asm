@@ -1529,6 +1529,8 @@ CompileSlice:
 .endif
             JP   SemanticSinkFinish
 .endif
+.if TargetStreamingOutput
+.else
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileSliceInitialize:
 .if AggregateCallSlices
@@ -1538,6 +1540,7 @@ CompileSliceInitialize:
             POP  AF
 .endif
             CALL SourceInitialize
+.endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileSliceResetState:
 .if CompilerNonlocalDiagnostics

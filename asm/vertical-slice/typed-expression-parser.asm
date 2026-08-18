@@ -665,7 +665,7 @@ TypedParsePrimary:
             SUB  TokenTrue
             CP   2
             JR   C,TypedPrimaryBooleanToken
-            LD   B,ScalarTypeU8
+            INC  B                       ; successful keyword match leaves B=0
             CP   TokenU8-TokenTrue+$100
             JR   Z,TypedPrimaryConvertB
             INC  B
@@ -692,7 +692,7 @@ TypedPrimaryCharacter:
 TypedPrimaryBooleanToken:
             XOR  1
             LD   L,A
-            LD   H,0
+            LD   H,B                     ; successful keyword match leaves B=0
 TypedPrimaryBooleanConstant:
             LD   B,ScalarMetaConstant+ScalarTypeBoolean
             JR   TypedPrimaryEmitTypedConstant

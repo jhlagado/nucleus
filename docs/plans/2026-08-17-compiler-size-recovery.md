@@ -1378,13 +1378,31 @@ immutable data and workspace unchanged. The representative proof improves from
 name matching, counter emission, comparison parsing, generated code,
 diagnostics, artifacts, historical layouts, and relocation remain unchanged.
 
+### Twenty-sixth audit initialization, mode-selector, and zero-B checkpoint
+
+The streaming production entry omits the unreachable legacy slice initializer,
+while historical layouts retain it. Based-digit accumulation keeps the decoded
+digit in A across shifts instead of moving it through E. Structured `for` tests
+derive their four contiguous comparison ordinals from the two mode bits. Three
+typed paths also reuse B after the preceding keyword or operand-prefetch loop
+has exhausted it to zero.
+
+The production initialization and based-digit changes recover eleven code
+bytes, the loop-mode selector recovers seventeen, and the typed zero-B paths
+recover three. Together they reduce the production core from 15,293 to 15,262
+bytes, with immutable data and workspace unchanged. The representative proof
+improves from 878,809 to 878,795 instructions and from 9,505,610 to 9,505,538
+T-states. Exact initialization policy, numeric values, loop comparisons,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the twenty-fifth audit checkpoint added to the retained work above, the
-measured shipping core is 15,293 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,387 bytes. The 15,360-byte target is exceeded by 67
-bytes, giving 1,091 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,196 bytes, exceeding that phase target by 896
+With the twenty-sixth audit checkpoint added to the retained work above, the
+measured shipping core is 15,262 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,418 bytes. The 15,360-byte target is exceeded by 98
+bytes, giving 1,122 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,227 bytes, exceeding that phase target by 927
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
