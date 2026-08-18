@@ -622,7 +622,7 @@ TypedReduceDivideUnsignedReady:
             LD   C,A
             PUSH BC
 TypedReduceDivideCoreReady:
-            LD   BC,0
+            LD   C,B                     ; both selector paths establish B=0
 TypedReduceDivideLoop:
             OR   A
             SBC  HL,DE
@@ -1655,7 +1655,6 @@ TypedNotEmit:
             LD   A,L
             XOR  1
             LD   L,A
-            LD   H,0
             JP   TypedReduceIntegerConstantMeta
 TypedNotIntegerConstant:
             LD   A,L

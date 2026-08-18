@@ -384,9 +384,7 @@ StructuredForTest:
             AND  $03
             ADD  A,ComparisonLess
 StructuredForTestCompare:
-            LD   C,A
             BIT  3,B
-            LD   A,C
             JR   Z,StructuredForTestCompareReady
             OR   $80
             BIT  2,B

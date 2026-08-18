@@ -84,7 +84,7 @@ TokenScanNameLoop:
             JR   NC,TokenScanNameDone
             CALL SourceTake
             INC  B
-            JP   Z,TokenLexicalFailure
+            JR   Z,TokenLexicalFailure
             JR   TokenScanNameLoop
 TokenScanNameDone:
             LD   A,B
@@ -165,6 +165,22 @@ TokenScanNumberEof:
             CALL TokenFinishInline
             .db  TokenNumber
 
+.if TargetStreamingOutput
+; Production diagnostics do not return, so required literal bytes share one
+; checked source-take path without adding a carry-propagation site per caller.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+TokenTakeRequired:
+            CALL SourceTake
+            RET  NC
+.routine noreturn
+.else
+.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+.endif
+TokenScanCharacterFailure:
+TokenLexicalFailure:
+            CALL SetDiagInline
+            .db  DiagnosticLexical
+
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TokenScanCharacter:
 .if TargetStreamingOutput
@@ -194,21 +210,6 @@ TokenScanCharacter:
             JR   NZ,TokenScanCharacterFailure
             CALL TokenFinishInline
             .db  TokenCharacter
-.if TargetStreamingOutput
-; Production diagnostics do not return, so required literal bytes share one
-; checked source-take path without adding a carry-propagation site per caller.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-TokenTakeRequired:
-            CALL SourceTake
-            RET  NC
-.routine noreturn
-.else
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-.endif
-TokenScanCharacterFailure:
-TokenLexicalFailure:
-            CALL SetDiagInline
-            .db  DiagnosticLexical
 
 ; Return carry and the decoded nibble for one hexadecimal digit. Tokenization
 ; needs only the validity flag; the static-image decoder reuses the value.

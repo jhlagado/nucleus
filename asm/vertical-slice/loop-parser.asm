@@ -94,11 +94,10 @@ ParserExpect:
 ; is sufficient for names, positions, numbers, and characters.
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
+            LD   BC,(ParserLookaheadValue)
             LD   A,(ParserLookaheadKind)
             OR   A
-            JR   Z,ParserPeekEmpty
-            LD   BC,(ParserLookaheadValue)
-            RET
+            RET  NZ
 ParserPeekEmpty:
             PUSH HL
             CALL TokenizerNext

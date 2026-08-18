@@ -1931,8 +1931,7 @@ HybridLL1BeginFor:
             CP   SymbolClassLocal
             JP   NZ,StructuredCounterFailure
             LD   A,D
-            AND  ScalarMetaTypeMask
-            CP   ScalarTypeBoolean
+            AND  ScalarTypeBaseMask
             JP   Z,StructuredCounterFailure
             CALL ControlCheckActiveCounter
             JP   HybridLL1SetLocalExpectedType
