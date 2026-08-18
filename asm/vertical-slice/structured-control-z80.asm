@@ -522,8 +522,8 @@ StructuredForNextLoadStep:
             JR   NZ,StructuredSignedStep
             BIT  1,A
             JR   NZ,StructuredSubtractStep
-            LD   A,$19                    ; ADD HL,DE
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $19                    ; ADD HL,DE
             JR   StructuredForNextFit
 StructuredSubtractStep:
             LD   HL,StructuredSubtractDE

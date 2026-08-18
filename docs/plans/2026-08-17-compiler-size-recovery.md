@@ -1549,13 +1549,32 @@ Exact source-part failures, routine modes, Boolean capacity handling, generated
 code, diagnostics, artifacts, historical layouts, and relocation remain
 unchanged.
 
+### Thirty-fifth audit typed-zero, scanner-layout, and checked-emitter checkpoint
+
+Character literals, signed constant division, and comparison folding reuse
+zero values already held in live registers. The based-number scanner moves
+beside its shared completion tail, with complete relative-branch costs included,
+and parser operation emission drops a BC save around a sink that preserves C.
+The remaining three checked single-byte opcode sites use the established inline
+checked emitter.
+
+The typed zero-state changes recover three production code bytes, scanner and
+parser layout recover four, and the checked emitters recover three. Together
+they reduce the production core from 15,179 to 15,169 bytes, with immutable data
+and workspace unchanged. The representative proof improves from 877,678 to
+877,581 instructions and changes from 9,501,699 to 9,507,156 T-states. The
+largest measured T-state increase is 0.195 percent in the call proof, below the
+two-percent gate; no measured instruction count increases. Exact literal and
+folding values, numeric scanning, semantic emission, generated code,
+diagnostics, artifacts, historical layouts, and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the thirty-fourth audit checkpoint added to the retained work above, the
-measured shipping core is 15,179 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,501 bytes. The 15,360-byte target is exceeded by 181
-bytes, giving 1,205 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,310 bytes, exceeding that phase target by 1,010
+With the thirty-fifth audit checkpoint added to the retained work above, the
+measured shipping core is 15,169 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,511 bytes. The 15,360-byte target is exceeded by 191
+bytes, giving 1,215 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,320 bytes, exceeding that phase target by 1,020
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

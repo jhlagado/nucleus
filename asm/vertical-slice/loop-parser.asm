@@ -327,9 +327,7 @@ ParserExpectNumber:
 ; operand across the sink's internal cursor work.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserEmitOperationC:
-            PUSH BC
             CALL SemanticSinkOperation
-            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif

@@ -600,7 +600,8 @@ TypedReduceDivideSignedRight8:
             JR   Z,TypedReduceDivideSignedReady
             LD   D,$FF
 TypedReduceDivideSignedReady:
-            LD   C,0
+            LD   B,0
+            LD   C,B
             BIT  7,H
             JR   Z,TypedReduceDivideDividendReady
             SET  0,C
@@ -613,7 +614,6 @@ TypedReduceDivideDividendReady:
             CALL TypedNegateConstantHL
             EX   DE,HL
 TypedReduceDivideSignsReady:
-            LD   B,0
             PUSH BC
             JR   TypedReduceDivideCoreReady
 TypedReduceDivideUnsignedReady:
@@ -696,7 +696,7 @@ TypedPrimaryNumber:
             LD   B,ScalarMetaConstant+ScalarTypeExact
             JR   TypedPrimaryEmitTypedConstant
 TypedPrimaryCharacter:
-            LD   H,0
+            LD   H,B                     ; punctuation scan exhausts B
             LD   L,C
             JR   TypedPrimaryU8Constant
 TypedPrimaryBooleanToken:
@@ -1557,12 +1557,12 @@ TypedComparisonConstantSigned8:
             XOR  $80
             LD   E,A
 TypedComparisonConstantSubtract:
-            OR   A
+            XOR  A
             SBC  HL,DE
             ; Classify the relation as equal/less/greater (0/1/2), then use
             ; the dense comparison ordinal to select one Boolean table cell.
             ; The table contains language truth values, never code addresses.
-            LD   D,0
+            LD   D,A                     ; XOR established A=0
             JR   Z,TypedComparisonRelationReady
             INC  D
             JR   C,TypedComparisonRelationReady

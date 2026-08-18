@@ -599,8 +599,8 @@ Stage8BeginCallableMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$F1                    ; POP AF
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $F1                    ; POP AF
 .else
             LD   HL,Stage8ReloadFailureOffsetBytes
             CALL EmitFive
@@ -881,8 +881,8 @@ Stage7EmitRegionPrefix:
 .endif
             LD   HL,(TargetCurrentRoCapacity)
             PUSH HL
-            LD   A,$FD
-            CALL EmitByte
+            CALL EmitByteInlineChecked
+            .db  $FD
             POP  HL
 .if CompilerDiagnosticReturns
             RET  C

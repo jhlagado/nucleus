@@ -83,7 +83,7 @@ TokenScanNameLoop:
             JR   NC,TokenScanNameDone
             CALL SourceTake
             INC  B
-            JR   Z,TokenLexicalFailure
+            JP   Z,TokenLexicalFailure
             JR   TokenScanNameLoop
 TokenScanNameDone:
             LD   A,B
@@ -152,6 +152,48 @@ TokenScanNumberMultiply:
             CALL SourceTake
             POP  HL
             JR   TokenScanNumberLoop
+
+.routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+TokenScanBasedNumber:
+            CALL SourceTake
+            LD   HL,0
+TokenScanBasedLoop:
+            PUSH HL
+            CALL SourcePeek
+            POP  HL
+            JR   C,TokenScanBasedEof
+            LD   D,A
+            CALL TokenIsHexDigit
+            JR   NC,TokenScanBasedDone
+            BIT  4,C
+            JR   Z,TokenScanBasedDigit
+            CP   2
+            JR   NC,TokenScanBasedDone
+TokenScanBasedDigit:
+            DEC  B
+            JR   Z,TokenLexicalFailure
+            BIT  4,C
+            JR   NZ,TokenScanBasedShift
+            ADD  HL,HL
+            ADD  HL,HL
+            ADD  HL,HL
+TokenScanBasedShift:
+            ADD  HL,HL
+            OR   L
+            LD   L,A
+            PUSH HL
+            CALL SourceTake
+            POP  HL
+            JR   TokenScanBasedLoop
+TokenScanBasedEof:
+            LD   D,C
+TokenScanBasedDone:
+            LD   A,B
+            CP   C
+            JR   Z,TokenLexicalFailure
+            LD   A,D
+            CP   C
+            JR   Z,TokenScanNumberEof
 TokenScanNumberDone:
             ; An integer token cannot be followed immediately by a name byte.
             ; Reject forms such as 0x2a and 12u8 as one malformed number rather
@@ -465,7 +507,7 @@ TokenizerPunctuation:
             CP   3
             JR   NC,TokenizerSimpleToken
             LD   B,C
-            JR   TokenScanBasedNumber
+            JP   TokenScanBasedNumber
 
 TokenizerRightDelimiter:
             LD   HL,SourceDelimiterDepth
@@ -522,48 +564,5 @@ TokenFinishInline:
             POP  HL
             LD   A,(HL)
             JR   TokenFinish
-
-.routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-TokenScanBasedNumber:
-            CALL SourceTake
-            LD   HL,0
-TokenScanBasedLoop:
-            PUSH HL
-            CALL SourcePeek
-            POP  HL
-            JR   C,TokenScanBasedEof
-            LD   D,A
-            CALL TokenIsHexDigit
-            JR   NC,TokenScanBasedDone
-            BIT  4,C
-            JR   Z,TokenScanBasedDigit
-            CP   2
-            JR   NC,TokenScanBasedDone
-TokenScanBasedDigit:
-            DEC  B
-            JR   Z,TokenizerLexicalFailure
-            BIT  4,C
-            JR   NZ,TokenScanBasedShift
-            ADD  HL,HL
-            ADD  HL,HL
-            ADD  HL,HL
-TokenScanBasedShift:
-            ADD  HL,HL
-            OR   L
-            LD   L,A
-            PUSH HL
-            CALL SourceTake
-            POP  HL
-            JR   TokenScanBasedLoop
-TokenScanBasedEof:
-            LD   D,C
-TokenScanBasedDone:
-            LD   A,B
-            CP   C
-            JR   Z,TokenizerLexicalFailure
-            LD   A,D
-            CP   C
-            JP   Z,TokenScanNumberEof
-            JP   TokenScanNumberDone
 StringEscapeTable:      .db "0nrt",$27,$22,"\\"
 StringEscapeCount       .equ 7
