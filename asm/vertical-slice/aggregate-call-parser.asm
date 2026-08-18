@@ -979,6 +979,28 @@ Stage7PathCompareOpenString:
             CP   AggregateOpenStringTypeId
             RET
 
+; These retained expression actions live here so the path and call parsers can
+; reuse their result-saving tail under strict one-pass register contracts.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1ConstantExpression:
+            XOR  A                       ; ScalarTypeExact
+            CALL TypedExpressionBeginConstant
+            JR   HybridLL1SaveExpressionResult
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1RuntimeExpression:
+            LD   A,(ExpressionExpectedType)
+            CALL TypedExpressionBeginRuntime
+.routine in A,BC,DE,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+HybridLL1SaveExpressionResult:
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   (ExpressionRightMeta),A
+            LD   (ExpressionRightValue),HL
+            OR   A
+            RET
+
 .routine in A out A,D,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL,IX,IY
 Stage7ParsePathSuffix:
             LD   D,0
@@ -1206,8 +1228,7 @@ Stage7PathIndex:
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexExpressionFailure
 .endif
-            LD   (ExpressionRightMeta),A
-            LD   (ExpressionRightValue),HL
+            CALL HybridLL1SaveExpressionResult
             POP  AF
             LD   (ExpressionEmitEnabled),A
             POP  AF
@@ -1416,8 +1437,7 @@ Stage7ParseScalarArgument:
 .if CompilerDiagnosticBranches
             JR   C,Stage7ScalarArgumentFailure
 .endif
-            LD   (ExpressionRightMeta),A
-            LD   (ExpressionRightValue),HL
+            CALL HybridLL1SaveExpressionResult
             POP  DE
             POP  BC
             LD   A,C

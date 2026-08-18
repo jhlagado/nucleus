@@ -1274,14 +1274,31 @@ artifacts, historical layouts, and relocation remain unchanged. A nominal
 scanner label move was rejected because it bypassed explicit AZM routine
 boundaries.
 
+### Twentieth audit conversion-tail, scanner, and result-store checkpoint
+
+Integer pair resolution shares its duplicate exact-right conversion tail. Name
+scanning enters with the punctuation loop’s proven zero counter, character
+range validation uses one normalized subtraction, and comparison scanning
+tests the locked less/greater ordinal bit. Two Stage 7 paths also call the
+existing expression-result publisher instead of duplicating its stores.
+
+Sharing the conversion tail recovers eleven production code bytes, the scanner
+changes recover three, and the Stage 7 result publisher recovers six. Together
+they reduce the production core from 15,376 to 15,356 bytes, with immutable data
+and workspace unchanged. The representative proof improves from 880,928 to
+880,444 instructions and from 9,523,782 to 9,520,593 T-states. Exact conversion
+failures, token classification,
+expression results, generated code, diagnostics, artifacts, historical layouts,
+and relocation remain unchanged.
+
 ### Current recovery outlook
 
-With the nineteenth audit checkpoint added to the retained work above, the
-measured shipping core is 15,376 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,304 bytes. The earlier 15,360-byte target is 16 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,113 bytes,
-exceeding that phase target by 813 bytes. The compiler has 1,008 bytes of headroom
-below 16 KiB.
+With the twentieth audit checkpoint added to the retained work above, the
+measured shipping core is 15,356 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,324 bytes. The 15,360-byte target is exceeded by four
+bytes, giving 1,028 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,133 bytes, exceeding that phase target by 833
+bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to
 find candidates of three bytes or more. The search continues in the selected

@@ -44,7 +44,7 @@
     },
     {
       "name": "ll1-actions",
-      "from": "HybridLL1ConstantExpression",
+      "from": "HybridLL1StepConstant",
       "to": "HybridLL1ActionsEnd",
       "maxBytes": 4096
     },

@@ -9,27 +9,6 @@ HybridLL1ForStep       .equ HybridLL1ForMode+1
 HybridLL1FlowStackBase .equ HybridLL1ForStep+2
 HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+ControlFrameCapacity
 
-; --------------------------------------------------------- retained parsers
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1ConstantExpression:
-            XOR  A                       ; ScalarTypeExact
-            CALL TypedExpressionBeginConstant
-            JR   HybridLL1SaveExpressionResult
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1RuntimeExpression:
-            LD   A,(ExpressionExpectedType)
-            CALL TypedExpressionBeginRuntime
-HybridLL1SaveExpressionResult:
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   (ExpressionRightMeta),A
-            LD   (ExpressionRightValue),HL
-            OR   A
-            RET
-
 .routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
 HybridLL1StepConstant:
             CALL StructuredParseStep

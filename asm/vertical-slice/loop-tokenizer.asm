@@ -77,9 +77,9 @@ TokenRetainNameAtHL:
             LD   (HL),A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+.routine in B out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TokenScanName:
-            LD   B,0
+            ; The sole entry follows the exhausted punctuation DJNZ, so B=0.
 TokenScanNameLoop:
             CALL SourcePeek
             JR   C,TokenScanNameDone
@@ -179,15 +179,15 @@ TokenScanCharacter:
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
 .endif
-            CP   $20
-            JR   C,TokenScanCharacterFailure
-            CP   $7F
+            LD   C,A
+            SUB  $20
+            CP   $5F
             JR   NC,TokenScanCharacterFailure
+            LD   A,C
             CP   "'"
             JR   Z,TokenScanCharacterFailure
             CP   "\\"
             JR   Z,TokenScanCharacterFailure
-            LD   C,A
 .if TargetStreamingOutput
             CALL TokenTakeRequired
 .else

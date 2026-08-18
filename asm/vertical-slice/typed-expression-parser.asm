@@ -273,6 +273,7 @@ TypedResolveValidateBothExact:
             LD   A,(ExpressionLeftMeta)
             CALL TypedConvertConstant
             JR   C,TypedLeftRangeFailure
+TypedResolveConvertRight:
             LD   HL,(ExpressionRightValue)
             LD   A,(ExpressionRightMeta)
             CALL TypedConvertConstant
@@ -291,11 +292,7 @@ TypedResolveLeftTyped:
             OR   A
             JR   NZ,TypedResolveBothTyped
             LD   C,D
-            LD   HL,(ExpressionRightValue)
-            LD   A,(ExpressionRightMeta)
-            CALL TypedConvertConstant
-            JP   C,TypedValueRangeFailure
-            RET
+            JR   TypedResolveConvertRight
 TypedResolveBothTyped:
             LD   A,D
             CP   E
