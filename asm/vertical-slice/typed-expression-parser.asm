@@ -955,58 +955,6 @@ TypedPrimaryParenFailure:
             RET
 .endif
 
-; Parse the parenthesized operand of an explicit conversion under the
-; conversion's own expected type. The enclosing expected type is restored on
-; every exit; A/HL return the checked operand on success.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedParseConversionOperand:
-            LD   C,A
-            LD   A,(ExpressionExpectedType)
-            LD   B,A
-            PUSH BC
-            LD   A,C
-            LD   (ExpressionExpectedType),A
-            CALL ParserExpectLeft
-.if CompilerDiagnosticBranches
-            JR   C,TypedParseConversionFailure
-.endif
-            CALL TypedParseOr
-.if CompilerDiagnosticBranches
-            JR   C,TypedParseConversionFailure
-.endif
-            LD   D,A
-            PUSH DE
-            PUSH HL
-            CALL ParserExpectRight
-.if CompilerDiagnosticBranches
-            JR   C,TypedParseConversionRightFailure
-.endif
-            POP  HL
-            POP  DE
-            POP  BC
-            LD   A,B
-            LD   (ExpressionExpectedType),A
-            LD   A,D
-.if AggregateCallSlices
-            CALL TypedRequireComposable
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-.endif
-            OR   A
-            RET
-.if CompilerDiagnosticBranches
-TypedParseConversionRightFailure:
-            POP  HL
-            POP  DE
-TypedParseConversionFailure:
-            POP  BC
-            LD   A,B
-            LD   (ExpressionExpectedType),A
-            SCF
-            RET
-.endif
-
 TypedPrimaryNarrow:
             LD   A,ScalarTypeU8
             JR   TypedPrimaryConvertInteger
@@ -1020,9 +968,52 @@ TypedPrimaryConvertInteger:
             PUSH AF                       ; destination type
             PUSH HL                       ; conversion trap position
             LD   A,C
-            CALL TypedParseConversionOperand
+            ; Parse the parenthesized operand under the conversion's expected
+            ; type, then restore the enclosing expectation before continuing.
+            LD   C,A
+            LD   A,(ExpressionExpectedType)
+            LD   B,A
+            PUSH BC
+            LD   A,C
+            LD   (ExpressionExpectedType),A
+            CALL ParserExpectLeft
+.if CompilerDiagnosticBranches
+            JR   C,TypedPrimaryConversionFailure
+.endif
+            CALL TypedParseOr
+.if CompilerDiagnosticBranches
+            JR   C,TypedPrimaryConversionFailure
+.endif
+            LD   D,A
+            PUSH DE
+            PUSH HL
+            CALL ParserExpectRight
+.if CompilerDiagnosticBranches
+            JR   C,TypedPrimaryConversionRightFailure
+.endif
+            POP  HL
+            POP  DE
+            POP  BC
+            LD   A,B
+            LD   (ExpressionExpectedType),A
+            LD   A,D
+.if AggregateCallSlices
+            CALL TypedRequireComposable
 .if CompilerDiagnosticBranches
             JR   C,TypedPrimaryConvertContextFailure
+.endif
+.endif
+.if CompilerDiagnosticBranches
+            JR   TypedPrimaryConversionReady
+TypedPrimaryConversionRightFailure:
+            POP  HL
+            POP  DE
+TypedPrimaryConversionFailure:
+            POP  BC
+            LD   A,B
+            LD   (ExpressionExpectedType),A
+            JR   TypedPrimaryConvertContextFailure
+TypedPrimaryConversionReady:
 .endif
             LD   D,A
             LD   B,H

@@ -1372,6 +1372,9 @@ HybridLL1DefaultLocalInitializer:
             RET  C
 .endif
             LD   HL,0
+.if CompilerNonlocalDiagnostics
+            LD   (ExpressionRightValue),HL
+.endif
             CALL TypedEmitWord
 .if CompilerDiagnosticReturns
             RET  C
@@ -1379,8 +1382,11 @@ HybridLL1DefaultLocalInitializer:
             CALL TypedDeclarationScalarType
             OR   ScalarMetaConstant
             LD   (ExpressionRightMeta),A
+.if CompilerNonlocalDiagnostics
+.else
             LD   HL,0
             LD   (ExpressionRightValue),HL
+.endif
             OR   A
             RET
 

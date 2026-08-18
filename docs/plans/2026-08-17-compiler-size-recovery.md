@@ -1199,13 +1199,31 @@ gate. Exact EOF flags, number termination, constant folding, control-frame
 state, diagnostics, artifacts, historical layouts, and relocation remain
 unchanged.
 
+### Sixteenth audit conversion and default-local checkpoint
+
+The sole integer-conversion operand parser is folded into its caller, including
+the returning-diagnostic unwind paths. Default local initialization publishes
+its zero value before emission in the production nonlocal-diagnostic build,
+where an emission failure cannot return; historical layouts retain their
+original post-success publication order.
+
+Inlining the conversion parser recovers five production code bytes, and the
+default-local path recovers three. Together they reduce the production core
+from 15,414 to 15,406 bytes, with immutable data and workspace unchanged. The
+representative proof improves from 882,584 to 882,580 instructions and from
+9,541,362 to 9,541,322 T-states. Exact
+conversion diagnostics, default initialization, generated code, artifacts,
+historical layouts, and relocation remain unchanged. The scanner audit in this
+round topped out at two bytes, but the two retained wins reset the plateau count
+to zero on the new committed baseline.
+
 ### Current recovery outlook
 
-With the fifteenth audit checkpoint added to the retained work above, the
-measured shipping core is 15,414 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,266 bytes. The earlier 15,360-byte target is 54 bytes
-away. The 300-byte phase began at 16,489 bytes and has recovered 1,075 bytes,
-exceeding that phase target by 775 bytes. The compiler has 970 bytes of headroom
+With the sixteenth audit checkpoint added to the retained work above, the
+measured shipping core is 15,406 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,274 bytes. The earlier 15,360-byte target is 46 bytes
+away. The 300-byte phase began at 16,489 bytes and has recovered 1,083 bytes,
+exceeding that phase target by 783 bytes. The compiler has 978 bytes of headroom
 below 16 KiB.
 
 The plateau count is zero of three because fresh subsystem searches continue to
