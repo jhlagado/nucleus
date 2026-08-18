@@ -268,9 +268,8 @@ TypedResolveIntegerPair:
             JR   NZ,TypedResolveBothExactSelected
 TypedResolveBothExactDefault:
             LD   A,(ExpressionLeftMeta)
-            LD   C,A
-            LD   A,(ExpressionRightMeta)
-            OR   C
+            LD   HL,ExpressionRightMeta
+            OR   (HL)
             AND  ScalarMetaNegative
             RRCA
             OR   ScalarTypeU16
@@ -1844,18 +1843,17 @@ TypedReduceBoolean:
             CALL TypedBothConstant
             LD   A,ScalarTypeBoolean
             RET  Z
-            LD   HL,ExpressionRightValue
+            LD   HL,(ExpressionRightValue)
             LD   A,(ExpressionOperator)
             CP   TokenAnd
             LD   A,(ExpressionLeftValue)
             JR   Z,TypedBooleanConstantAnd
-            OR   (HL)
+            OR   L
             JR   TypedBooleanConstantReady
 TypedBooleanConstantAnd:
-            AND  (HL)
+            AND  L
 TypedBooleanConstantReady:
             LD   L,A
-            LD   H,0
 TypedBooleanConstant:
             JP   TypedComparisonConstantDone
 

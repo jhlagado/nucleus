@@ -264,17 +264,17 @@ StructuredResolveUnwind:
 StructuredResolveFailure:
             JP   TypedInternalOperation
 
-; Emit a local load into HL without pushing a new expression carrier.
-; C is the byte offset, A bit 2 selects u16.
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredLoadCounter:
+; Emit the selected low-byte IX operation and its displaced counter offset.
+; E selects the ordinary pair-table entry; D retains the counter mode.
+.routine in A,C,E out A,C,D,E,carry,zero clobbers sign,parity,halfCarry,B,HL
+StructuredCounterPrefix:
             LD   D,A
             LD   A,C
             CPL
             LD   C,A
             PUSH DE
-            CALL EmitPairIndexedInline
-            .db  EmitPairLoadIXL
+            LD   A,E
+            CALL EmitPairIndexed
             POP  DE
 .if CompilerDiagnosticReturns
             RET  C
@@ -283,6 +283,17 @@ StructuredLoadCounter:
             PUSH DE
             CALL EmitByte
             POP  DE
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            RET
+
+; Emit a local load into HL without pushing a new expression carrier.
+; C is the byte offset, A bit 2 selects u16.
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+StructuredLoadCounter:
+            LD   E,EmitPairLoadIXL
+            CALL StructuredCounterPrefix
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -303,21 +314,8 @@ StructuredLoadCounterHigh:
 ; Store HL to counter byte offset C; A bit 2 selects u16.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredStoreCounter:
-            LD   D,A
-            LD   A,C
-            CPL
-            LD   C,A
-            PUSH DE
-            CALL EmitPairIndexedInline
-            .db  EmitPairStoreIXL
-            POP  DE
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,C
-            PUSH DE
-            CALL EmitByte
-            POP  DE
+            LD   E,EmitPairStoreIXL
+            CALL StructuredCounterPrefix
 .if CompilerDiagnosticReturns
             RET  C
 .endif
