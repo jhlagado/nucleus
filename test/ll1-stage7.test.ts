@@ -117,6 +117,30 @@ describe("Stage 7 packed LL(1)", () => {
     expect(basedSuffixes).toEqual([8, 7]);
   });
 
+  it("keeps comparison token ordinals aligned with their source bytes", () => {
+    const source = readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        "..",
+        "asm",
+        "vertical-slice",
+        "loop-compiler-state.asmi",
+      ),
+      "utf8",
+    );
+    const tokenValue = (name: string): number => {
+      const match = source.match(
+        new RegExp(`^${name}\\s+\\.equ\\s+(\\d+)$`, "m"),
+      );
+      expect(match).not.toBeNull();
+      return Number(match?.[1]);
+    };
+
+    expect(tokenValue("TokenGreater") - tokenValue("TokenLess")).toBe(
+      ">".charCodeAt(0) - "<".charCodeAt(0),
+    );
+  });
+
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
     const analysis = analyzeStage7Grammar();
     const grammar = readStage7Grammar();
@@ -317,8 +341,8 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_915_578);
-    expect(outcome.cycles).toBe(18_389_677);
+    expect(outcome.instructions).toBe(1_915_579);
+    expect(outcome.cycles).toBe(18_389_681);
     expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_368 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
@@ -334,11 +358,11 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_834,
+      bytes: 14_831,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_436,
+      bytes: 14_433,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",

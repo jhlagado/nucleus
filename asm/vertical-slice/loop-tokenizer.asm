@@ -397,9 +397,9 @@ TokenizerNextLoop:
             CP   ")"
             JR   Z,TokenizerRightDelimiter
             CP   "<"
-            JR   Z,TokenizerLess
+            JR   Z,TokenizerComparison
             CP   ">"
-            JR   Z,TokenizerGreater
+            JR   Z,TokenizerComparison
             LD   HL,PunctuationTable
             LD   B,PunctuationCount
 TokenizerTryPunctuation:
@@ -474,13 +474,9 @@ TokenizerLeftDelimiter:
 TokenizerLexicalFailure:
             JP   TokenLexicalFailure
 
-TokenizerLess:
-            LD   C,TokenLess
-            JR   TokenizerComparison
-
-TokenizerGreater:
-            LD   C,TokenGreater
 TokenizerComparison:
+            SUB  "<"-TokenLess
+            LD   C,A
             CALL SourceTakePeek
             JR   C,TokenFinishC
             CP   "="

@@ -106,6 +106,18 @@ TypedTakeOperator:
             LD   (ParserLookaheadKind),A
             DEC  A
             RET
+.if TargetStreamingOutput
+; The three production left-associative loops have one saved AF above their
+; caller. Retain this helper's continuation in DE while consuming that AF,
+; then restore the continuation before the ordinary TypedSaveLeft tail.
+.routine noreturn
+TypedTakeOperatorSaveLeft:
+            POP  DE
+            CALL TypedTakeOperator
+            POP  AF
+            PUSH DE
+            JP   TypedSaveLeft
+.endif
 
 ; Push one pending binary-expression context into the bounded compiler stack.
 ; Retaining the operator source offset is necessary because a nested operation
@@ -1352,12 +1364,16 @@ TypedAdditiveLoop:
             CP   TokenMinus
             JR   NZ,TypedAdditiveDone
 TypedAdditiveOperator:
+.if TargetStreamingOutput
+            CALL TypedTakeOperatorSaveLeft
+.else
             CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
 .endif
             POP  AF
             CALL TypedSaveLeft
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1673,12 +1689,16 @@ TypedAndLoop:
 .else
             JP   NZ,TypedBooleanDone
 .endif
+.if TargetStreamingOutput
+            CALL TypedTakeOperatorSaveLeft
+.else
             CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
 .endif
             POP  AF
             CALL TypedSaveLeft
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1737,12 +1757,16 @@ TypedOrLoop:
             LD   A,TokenOr
 .endif
 TypedOrOperator:
+.if TargetStreamingOutput
+            CALL TypedTakeOperatorSaveLeft
+.else
             CALL TypedTakeOperator
 .if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
 .endif
             POP  AF
             CALL TypedSaveLeft
+.endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif

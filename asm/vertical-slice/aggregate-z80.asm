@@ -146,7 +146,7 @@ AggregateCopyLoop:
 AggregateDispatch:
 .if TargetStreamingOutput
             CALL TargetCompareSingleBank
-            JR   NZ,AggregateTargetCodeReady
+            JR   NZ,AggregateTargetBoundsReady
             LD   HL,(EmitCursor)
             LD   (TargetCodeBase),HL
             LD   A,(TargetLayoutMode)
@@ -155,8 +155,6 @@ AggregateDispatch:
             LD   HL,(TargetCodeCapacity)
             LD   (EmitLimit),HL
 AggregateTargetCodeReady:
-            CALL TargetCompareSingleBank
-            JR   NZ,AggregateTargetBoundsReady
             LD   HL,(TargetContextRoDataBase)
             LD   (TargetCurrentRoBase),HL
             LD   HL,(TargetContextRoDataCapacity)
