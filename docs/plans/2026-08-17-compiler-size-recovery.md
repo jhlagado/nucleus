@@ -1637,7 +1637,8 @@ bytes, giving 1,243 bytes of headroom below 16 KiB. The 300-byte phase began at
 16,489 bytes and has recovered 1,348 bytes, exceeding that phase target by 1,048
 bytes.
 
-The plateau count is zero of three because fresh subsystem searches continue to
-find candidates of three bytes or more. The search continues in the selected
-original frontend and backend. No local saving is counted until all adapters
-and displaced production code are included in the assembled account.
+The project selected this checkpoint as the Nucleus 0.2.0 implementation
+release. The language specification remains Nucleus 0.1. The optimization
+search ended by release decision rather than a three-audit plateau: later
+experiments were not retained, and the release keeps the measured 15,141-byte
+core and 1,243 bytes of headroom for feature work.
