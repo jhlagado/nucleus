@@ -733,10 +733,10 @@ TypedPrimaryName:
             JR   NC,TypedPrimaryOrdinaryName
             CP   Stage8PredefinedConstantBase
             JP   NC,Stage8TypedPrimaryConstant
-            LD   B,A
+            LD   C,A
             AND  $FD                     ; readInput/readStorage map to zero
             JP   NZ,TypedTypeFailure
-            LD   A,B
+            LD   A,C
             JP   Stage8TypedPrimaryService
 TypedPrimaryOrdinaryName:
             CALL Stage7FindRoutineCurrent

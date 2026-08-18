@@ -73,6 +73,9 @@ CompilerRestoreTokenPosition:
 
 ; E is the expected token ordinal. An ordinary mismatch reports the token
 ; ordinal with DiagnosticExpectedTokenBase set.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ParserExpectLine:
+            LD   E,TokenNewline
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpect:
             LD   L,E
@@ -122,10 +125,6 @@ ParserTake:
 
 ; Frequent token checks enter the common ParserExpect tail. These wrappers
 ; trade one shared seven-byte body for each repeated eight-byte inline check.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-ParserExpectLine:
-            LD   E,TokenNewline
-            JR   ParserExpect
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLeft:
             LD   E,TokenLeftParen

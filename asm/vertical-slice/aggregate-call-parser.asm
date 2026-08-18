@@ -1109,9 +1109,7 @@ Stage7PathStringLengthReady:
 Stage7PathStringScalarReady:
             POP  AF
             LD   A,ScalarTypeU8
-            LD   D,1
-            OR   A
-            RET
+            JR   Stage7PathScalarPropertyReady
 Stage7PathArrayField:
             LD   HL,NameLength
             LD   B,6
@@ -1147,6 +1145,7 @@ Stage7PathOpenArrayLength:
 Stage7PathArrayLengthReady:
             POP  AF
             LD   A,ScalarTypeU16
+Stage7PathScalarPropertyReady:
             LD   D,1
             OR   A
             RET
@@ -2006,11 +2005,12 @@ Stage8TypedPrimaryConstant:
             LD   B,ScalarMetaConstant+ScalarTypeU8
             JP   TypedPrimaryEmitTypedConstant
 
-; A is the dense service ID and C says whether a successful u8 result is kept.
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+; A is the dense service ID, B is the match loop's proven zero, and C says
+; whether a successful u8 result is kept.
+.routine in A,B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ParseServiceCall:
             LD   E,A
-            LD   D,0
+            LD   D,B
             LD   HL,Stage8ServiceSignatureTable
             ADD  HL,DE
             LD   A,(HL)

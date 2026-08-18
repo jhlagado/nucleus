@@ -1308,13 +1308,31 @@ and hexadecimal tokens, trap positions, exit fixups,
 generated code, diagnostics, artifacts, historical layouts, and relocation
 remain unchanged.
 
+### Twenty-second audit parser, aggregate, and capacity checkpoint
+
+Parser expectation enters its shared tail by fallthrough, and binary digit
+classification uses one exhaustive normalized comparison. Aggregate expression
+paths reuse a proven zero register and share their scalar-property success tail.
+Two nonzero target extents also use an inclusive writable-capacity subtraction
+entry, eliminating separate equality branches while strict-overlap callers keep
+the original entry.
+
+The parser/scanner changes recover four production code bytes, aggregate
+expression reuse recovers three, and the capacity entry recovers three. Together
+they reduce the production core from 15,344 to 15,334 bytes, with immutable data
+and workspace unchanged. The representative proof changes from 880,455 to
+880,482 instructions and from 9,520,700 to 9,520,854 T-states, a 0.002-percent
+increase. Exact tokens, aggregate properties, target boundaries,
+generated code, diagnostics, artifacts, historical layouts, and relocation
+remain unchanged.
+
 ### Current recovery outlook
 
-With the twenty-first audit checkpoint added to the retained work above, the
-measured shipping core is 15,344 bytes. Total measured recovery from the frozen
-16,680-byte compiler is 1,336 bytes. The 15,360-byte target is exceeded by 16
-bytes, giving 1,040 bytes of headroom below 16 KiB. The 300-byte phase began at
-16,489 bytes and has recovered 1,145 bytes, exceeding that phase target by 845
+With the twenty-second audit checkpoint added to the retained work above, the
+measured shipping core is 15,334 bytes. Total measured recovery from the frozen
+16,680-byte compiler is 1,346 bytes. The 15,360-byte target is exceeded by 26
+bytes, giving 1,050 bytes of headroom below 16 KiB. The 300-byte phase began at
+16,489 bytes and has recovered 1,155 bytes, exceeding that phase target by 855
 bytes.
 
 The plateau count is zero of three because fresh subsystem searches continue to

@@ -537,7 +537,6 @@ TokenScanBasedLoop:
             JR   TokenScanBasedDone
 TokenScanBinaryDigit:
             SUB  "0"
-            JR   C,TokenScanBasedDone
             CP   2
             JR   NC,TokenScanBasedDone
 TokenScanBasedDigit:

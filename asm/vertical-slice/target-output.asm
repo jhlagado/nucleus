@@ -106,9 +106,8 @@ TargetStartupStack:
             LD   DE,TargetStackRequirement+2
             ADD  HL,DE
             JR   C,TargetStartupStackFailure
-            CALL TargetSubtractWritableCapacity
+            CALL TargetSubtractWritableCapacityInclusive
             JR   C,TargetStartupStackFits
-            JR   Z,TargetStartupStackFits
 TargetStartupStackFailure:
             POP  HL
             JR   TargetCapacityFailure
@@ -450,9 +449,11 @@ TargetValidateRegion:
             JP   NZ,TargetCapacityFailure
             RET
 
-; Classify two checked nonempty regions without storing an exclusive $10000
-; end in a word. Loaded means writable is wholly inside image; ROM means the
-; half-open regions are disjoint. Every partial overlap is rejected.
+; The two allocation walks arrive with a nonzero required extent. Decrementing
+; it converts required <= capacity into one carry result, including equality.
+.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSubtractWritableCapacityInclusive:
+            DEC  HL
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 TargetSubtractWritableCapacity:
             LD   DE,(TargetWritableCapacity)
@@ -460,6 +461,9 @@ TargetSubtractWritableCapacity:
             SBC  HL,DE
             RET
 
+; Classify two checked nonempty regions without storing an exclusive $10000
+; end in a word. Loaded means writable is wholly inside image; ROM means the
+; half-open regions are disjoint. Every partial overlap is rejected.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TargetClassifyFlatLayout:
             LD   HL,(TargetWritableBase)
@@ -552,9 +556,8 @@ TargetContextRoDataFinished:
             LD   DE,(ProgramBssLength)
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
-            CALL TargetSubtractWritableCapacity
+            CALL TargetSubtractWritableCapacityInclusive
             JR   C,TargetWritableAllocationReady
-            JR   Z,TargetWritableAllocationReady
 TargetPrepareCapacityFailure:
             JP   TargetCapacityFailure
 TargetWritableAllocationReady:
