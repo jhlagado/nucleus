@@ -769,6 +769,20 @@ Chapter21OpenDelimiterDescriptors:
             .dw Chapter21OpenDelimiterPart1,Chapter21OpenDelimiterPart1End
             .db 72
             .dw Chapter21OpenDelimiterPart2,Chapter21OpenDelimiterPart2End
+
+HistoricalBadHexEscapeSource:
+            .db "const Text as string[1] = "
+HistoricalBadHexEscapePoint:
+            .db '"',"\\","xG0",'"',10
+            .db "sub main()",10
+            .db "end",10
+HistoricalBadHexEscapeSourceEnd:
+
+HistoricalShortHexEscapeSource:
+            .db "const Text as string[1] = "
+HistoricalShortHexEscapePoint:
+            .db '"',"\\","xF"
+HistoricalShortHexEscapeSourceEnd:
 CorpusSourceEnd:
 
             .org $D200
@@ -1373,6 +1387,46 @@ ProofStart:
             CALL ProofExpectDiagnosticSingle
             JP   C,ProofFailed
 
+            LD   A,76
+            LD   (ProofCase),A
+            LD   A,85
+            LD   B,DiagnosticLexical
+            LD   IX,HistoricalBadHexEscapePoint-HistoricalBadHexEscapeSource
+            LD   HL,HistoricalBadHexEscapeSource
+            LD   DE,HistoricalBadHexEscapeSourceEnd
+            CALL ProofExpectDiagnosticSingle
+            JP   C,ProofFailed
+            LD   HL,(DiagnosticLine)
+            LD   DE,1
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailed
+            LD   HL,(DiagnosticColumn)
+            LD   DE,27
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailed
+
+            LD   A,77
+            LD   (ProofCase),A
+            LD   A,86
+            LD   B,DiagnosticLexical
+            LD   IX,HistoricalShortHexEscapePoint-HistoricalShortHexEscapeSource
+            LD   HL,HistoricalShortHexEscapeSource
+            LD   DE,HistoricalShortHexEscapeSourceEnd
+            CALL ProofExpectDiagnosticSingle
+            JP   C,ProofFailed
+            LD   HL,(DiagnosticLine)
+            LD   DE,1
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailed
+            LD   HL,(DiagnosticColumn)
+            LD   DE,27
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFailed
+
             LD   A,$A5
             LD   (ProofStatus),A
             XOR  A
@@ -1488,8 +1542,15 @@ ProofExpectDiagnosticSingle:
             POP  BC
             LD   (ProofExpectedOffset),BC
             LD   A,(ProofExpectedPart)
+            LD   (ProofExpectedSP),SP
             CALL CompileAggregateCallSlice
             JR   NC,ProofDiagnosticFailure
+            LD   HL,0
+            ADD  HL,SP
+            LD   DE,(ProofExpectedSP)
+            OR   A
+            SBC  HL,DE
+            JR   NZ,ProofDiagnosticFailure
             JR   ProofCheckDiagnostic
 
 .routine in A,B,C,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY

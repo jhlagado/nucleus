@@ -117,7 +117,7 @@ describe("Stage 7 packed LL(1)", () => {
     expect(basedSuffixes).toEqual([8, 7]);
   });
 
-  it("keeps comparison token ordinals aligned with their source bytes", () => {
+  it("keeps arithmetic token ordinals aligned with their selectors", () => {
     const source = readFileSync(
       path.resolve(
         import.meta.dirname,
@@ -139,6 +139,9 @@ describe("Stage 7 packed LL(1)", () => {
     expect(tokenValue("TokenGreater") - tokenValue("TokenLess")).toBe(
       ">".charCodeAt(0) - "<".charCodeAt(0),
     );
+    expect(tokenValue("TokenPlus") - tokenValue("TokenMinus")).toBe(1);
+    expect(tokenValue("TokenStar") - tokenValue("TokenMinus")).toBe(2);
+    expect(tokenValue("TokenMod") - tokenValue("TokenXor")).toBe(1);
   });
 
   it("keeps generated grammar artifacts reproducible and conflict-free", () => {
@@ -341,9 +344,9 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_915_011);
-    expect(outcome.cycles).toBe(18_385_762);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_364 });
+    expect(outcome.instructions).toBe(1_915_414);
+    expect(outcome.cycles).toBe(18_384_114);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_361 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
       bytes: 227,
@@ -358,11 +361,11 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_824,
+      bytes: 14_815,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_426,
+      bytes: 14_417,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
@@ -381,7 +384,7 @@ describe("Stage 7 packed LL(1)", () => {
         (extents.get("ll1-engine") ?? -1) -
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
-    ).toBe(5_964);
+    ).toBe(5_961);
   }, 30_000);
 
   it("executes every retained Stage 7 action family", async () => {

@@ -165,17 +165,6 @@ Stage7ReadCallOffset:
             LD   (Stage7CallOffset),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-Stage8ReadCallState:
-            LD   DE,Stage8EmitCallMode
-            LD   B,3
-Stage8ReadCallStateLoop:
-            CALL NextSemanticByte          ; mode, handler, retained carriers
-            LD   (DE),A
-            INC  DE
-            DJNZ Stage8ReadCallStateLoop
-            RET
-
 ; Retain the source position of a propagated failure. The root wrapper uses
 ; the last propagation site when failure finally leaves callable main.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -225,7 +214,13 @@ Stage8ReadServiceCall:
             LD   (Stage7CallResultType),A
 Stage8ReadCallCommon:
             CALL Stage7ReadCallOffset
-            CALL Stage8ReadCallState
+            LD   DE,Stage8EmitCallMode
+            LD   B,3
+Stage8ReadCallStateLoop:
+            CALL NextSemanticByte          ; mode, handler, retained carriers
+            LD   (DE),A
+            INC  DE
+            DJNZ Stage8ReadCallStateLoop
             LD   A,(Stage7CallLabel)
             AND  Stage8CallableServiceFlag
             JP   NZ,Stage8InvokeService

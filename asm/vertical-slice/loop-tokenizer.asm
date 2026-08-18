@@ -126,7 +126,8 @@ TokenScanNameDefault:
 ; the exact unsigned literal payload to the predictive parser.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TokenScanNumber:
-            LD   HL,0
+            LD   H,B                     ; B=0 after punctuation exhaustion
+            LD   L,B
 TokenScanNumberLoop:
             PUSH HL
             CALL SourcePeek
@@ -224,6 +225,27 @@ TokenIsHexDigit:
             SCF
             RET
 
+; Consume and validate one hexadecimal escape digit. Production diagnostics
+; do not return. Returning historical slices clear carry after a valid digit,
+; distinguishing success from the diagnostic carry returned by the failure.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+TokenTakeHexRequired:
+.if TargetStreamingOutput
+            CALL TokenTakeRequired
+.else
+            CALL SourceTake
+            JR   C,TokenScanCharacterFailure
+.endif
+            CALL TokenIsHexDigit
+.if TargetStreamingOutput
+            RET  C
+            JR   TokenScanCharacterFailure
+.else
+            JR   NC,TokenScanCharacterFailure
+            OR   A
+            RET
+.endif
+
 ; Scan and validate a bounded-string literal. BC returns the decoded byte
 ; length. TokenLexemePointer continues to identify the opening quote so the
 ; declaration parser can decode the bytes directly into the static image.
@@ -235,7 +257,7 @@ TokenScanString:
             CALL SourceTake
             JR   C,TokenScanCharacterFailure
 .endif
-            LD   C,0
+            LD   C,B                     ; B=0 after punctuation exhaustion
 TokenScanStringNext:
 .if TargetStreamingOutput
             CALL TokenTakeRequired
@@ -272,21 +294,14 @@ TokenScanStringEscape:
             JR   TokenScanCharacterFailure
 TokenScanStringHex:
 .if TargetStreamingOutput
-            CALL TokenTakeRequired
+            CALL TokenTakeHexRequired
+            CALL TokenTakeHexRequired
 .else
-            CALL SourceTake
-            JR   C,TokenScanCharacterFailure
+            CALL TokenTakeHexRequired
+            RET  C
+            CALL TokenTakeHexRequired
+            RET  C
 .endif
-            CALL TokenIsHexDigit
-            JR   NC,TokenScanCharacterFailure
-.if TargetStreamingOutput
-            CALL TokenTakeRequired
-.else
-            CALL SourceTake
-            JR   C,TokenScanCharacterFailure
-.endif
-            CALL TokenIsHexDigit
-            JR   NC,TokenScanCharacterFailure
             JR   TokenScanStringCount
 TokenScanStringDone:
             LD   A,C

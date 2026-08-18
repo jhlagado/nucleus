@@ -408,20 +408,20 @@ TypedReduceIntegerBinary:
             RET  C
 .endif
             LD   A,(ExpressionOperator)
-            CP   TokenPlus
-            JR   Z,TypedReduceAdd
-            CP   TokenMinus
+            SUB  TokenMinus
             JR   Z,TypedReduceSubtract
-            CP   TokenStar
+            DEC  A
+            JR   Z,TypedReduceAdd
+            DEC  A
             JR   Z,TypedReduceMultiply
-            CP   TokenSlash
+            CP   TokenSlash-TokenStar
             JR   Z,TypedReduceDivide
-            CP   TokenMod
-            JR   Z,TypedReduceModulo
-            CP   TokenAnd
+            CP   TokenAnd-TokenStar
             JR   Z,TypedReduceAnd
-            CP   TokenXor
+            SUB  TokenXor-TokenStar
             JR   Z,TypedReduceXor
+            DEC  A
+            JR   Z,TypedReduceModulo
 TypedReduceOr:
             LD   D,SemanticOr8
             CALL TypedPrepareConstantBinary
