@@ -291,8 +291,8 @@ Stage7EmitFarSourceCall:
             PUSH BC
             PUSH DE
             LD   C,D
-            LD   A,$3E                    ; LD A,destination bank
-            CALL EmitOpcodeByte
+            LD   A,C                      ; destination bank
+            CALL EmitLoadAImmediate
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
@@ -750,8 +750,7 @@ Stage7SelectIndexBoundReady:
             RET  C
 .endif
             LD   HL,(Stage7PathExtent)
-            LD   A,$21                    ; LD HL,nn stride
-            CALL EmitOpcodeWord
+            CALL EmitLoadHl               ; LD HL,nn stride
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -887,8 +886,7 @@ Stage7EmitRegionPrefix:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,$21
-            JP   EmitOpcodeWord
+            JP   EmitLoadHl
 .else
             LD   DE,ProgramDataRegionLimit
             CALL EmitLoadDeImmediate

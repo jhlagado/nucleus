@@ -533,9 +533,9 @@ TokenizerComparison:
             LD   C,A
             CALL SourceTakePeek
             JR   C,TokenFinishC
-            CP   "="
+            SUB  "="
             JR   Z,TokenizerComparisonEqual
-            CP   ">"
+            DEC  A
             JR   NZ,TokenFinishC
             BIT  1,C
             JR   NZ,TokenFinishC

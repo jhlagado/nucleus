@@ -51,6 +51,12 @@ SetDiagInline:
             LD   A,(HL)
             JR   CompilerSetDiagnostic
 
+; Shared full-width source and destination setup for the three callers of each
+; direction. These helpers alter no position representation or address width.
+.routine in DE out BC,DE,HL clobbers parity,halfCarry
+CompilerCopyTokenPosition:
+            LD   HL,TokenStartOffset
+
 ; Copy one complete offset/line/column record from HL to DE. LDIR preserves
 ; carry, allowing diagnostic callers to establish failure after the copy.
 .routine in DE,HL out BC,DE,HL clobbers parity,halfCarry
@@ -58,13 +64,6 @@ CompilerCopyPosition:
             LD   BC,6
             LDIR
             RET
-
-; Shared full-width source and destination setup for the three callers of each
-; direction. These helpers alter no position representation or address width.
-.routine in DE out BC,DE,HL clobbers parity,halfCarry
-CompilerCopyTokenPosition:
-            LD   HL,TokenStartOffset
-            JR   CompilerCopyPosition
 
 .routine in HL out BC,DE,HL clobbers parity,halfCarry
 CompilerRestoreTokenPosition:

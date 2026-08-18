@@ -1278,13 +1278,13 @@ TypedEmitUnaryOperation:
             POP  DE
             POP  BC
             RET
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+.routine in HL out A,HL clobbers carry,zero,sign,parity,halfCarry
 TypedNegateConstantHL:
             XOR  A
             SUB  L
             LD   L,A
-            LD   A,0
-            SBC  A,H
+            SBC  A,A
+            SUB  H
             LD   H,A
             RET
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1479,13 +1479,11 @@ TypedComparisonChained:
             .db  DiagnosticComparisonChain
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedReduceComparison:
-            LD   A,(ExpressionLeftMeta)
-            AND  ScalarMetaTypeMask
-            LD   D,A
             LD   A,(ExpressionRightMeta)
             AND  ScalarMetaTypeMask
             LD   E,A
-            LD   A,D
+            LD   A,(ExpressionLeftMeta)
+            AND  ScalarMetaTypeMask
             CP   ScalarTypeBoolean
             JR   NZ,TypedComparisonInteger
             LD   A,E
