@@ -89,7 +89,7 @@ TypedInternalOperation:
             JP   TypedExpressionStackUnderflow
 
 TypedPrefetchBits:
-            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$47
+            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$C7
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
@@ -196,7 +196,8 @@ TypedOperationTable:
             .dw TypedReadPort        ; 120
             .dw TypedWritePort       ; 121
             .dw Stage8InvokePacketService ; 122
-TypedOperationCount .equ 103
+            .dw StructuredSelectCase ; 123
+TypedOperationCount .equ 104
 .else
 TypedOperationCount .equ 62
 .endif

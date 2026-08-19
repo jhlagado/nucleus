@@ -193,7 +193,7 @@ const executePrefetchSelectorsAt = (
   expect(entry).toBeDefined();
   expect(cursor).toBeDefined();
   expect(operationBase).toBeDefined();
-  expect(operationCount).toBe(103);
+  expect(operationCount).toBe(104);
   if (
     entry === undefined ||
     cursor === undefined ||
@@ -268,7 +268,7 @@ describe("compiler origin independence", () => {
     const prefetchAddress = baseline.addresses.get("TypedPrefetchBits");
     const prefetchedOperations = [
       20, 22, 32, 33, 34, 58, 59, 60, 67, 68, 69, 70, 71, 72, 74, 77, 82, 83,
-      84, 86, 102, 103, 104, 105, 106, 110, 116, 117, 118, 122,
+      84, 86, 102, 103, 104, 105, 106, 110, 116, 117, 118, 122, 123,
     ];
     const prefetchBytes = new Array<number>(13).fill(0);
     for (const operation of prefetchedOperations) {

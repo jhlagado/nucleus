@@ -72,4 +72,16 @@ HybridLL1MakeOpenStringType:
 HybridLL1SaveArrayDimension:
 HybridLL1SaveOpenArrayDimension:
 HybridLL1SetScalarTypeAction:
+HybridLL1BeginSelect:
+HybridLL1FinishSelectExpression:
+HybridLL1BeginSelectCase:
+HybridLL1SelectConstantExpression:
+HybridLL1FinishSelectCaseValue:
+HybridLL1BeginSelectCaseBody:
+HybridLL1EndSelectCase:
+HybridLL1BeginSelectElse:
+HybridLL1EndSelectWithElse:
+HybridLL1EndSelectWithoutElse:
+HybridLL1MissingSelectEnd:
+HybridLL1StraySelectClause:
             RET

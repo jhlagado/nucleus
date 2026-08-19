@@ -157,6 +157,7 @@ ControlKindIf           .equ 1
 ControlKindWhile        .equ 2
 ControlKindFor          .equ 3
 ControlKindHandler      .equ 4
+ControlKindSelect       .equ 5
 ControlRoutineNone      .equ 0
 ControlRoutineValue     .equ 1
 ControlRoutineLabel     .equ 31
@@ -388,6 +389,8 @@ TokenMod                .equ 54
 TokenAssert             .equ 55
 TokenI8                 .equ 56
 TokenI16                .equ 57
+TokenSelect             .equ 58
+TokenCase               .equ 59
 
 DiagnosticNone          .equ 0
 DiagnosticLexical       .equ 1
@@ -442,6 +445,8 @@ DiagnosticReadOnlyAssignment .equ 94
 ; Target diagnostics occupy 95..97 in target-output-state.asmi. Append the
 ; same-line handler diagnostic without changing any published ordinal.
 DiagnosticHandleLine .equ 98
+DiagnosticExpectedCase .equ 99
+DiagnosticSelectClause .equ 100
 DiagnosticRecordEmpty  .equ 82
 DiagnosticTypeBound    .equ 83
 
@@ -623,6 +628,7 @@ SemanticReadPortDiscard .equ 119
 SemanticReadPort        .equ 120
 SemanticWritePort       .equ 121
 SemanticPacketService   .equ 122
+SemanticSelectCase      .equ 123
 
 ComparisonEqual         .equ 0
 ComparisonNotEqual      .equ 1

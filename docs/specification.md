@@ -12,7 +12,7 @@
 8. [Constants and declarations](#8-constants-and-declarations)
 9. [Expressions](#9-expressions)
 10. [Statements](#10-statements)
-11. [Conditional control](#11-conditional-control)
+11. [Conditional and selection control](#11-conditional-and-selection-control)
 12. [Loop control](#12-loop-control)
 13. [Routines and calls](#13-routines-and-calls)
 14. [Recoverable errors](#14-recoverable-errors)
@@ -320,11 +320,11 @@ After scanning the longest identifier, the tokenizer compares its exact spelling
 The Nucleus 0.1 reserved words are:
 
 ```text
-and      as       assert   boolean   const     continue else
-elseif
+and      as       assert   boolean   case      const     continue
+else     elseif
 end      exit     fail      fails     false    for      forward
 handle   if       mod      not       or        record
-return
+return   select
 step     string   sub      to        true      i16      i8       u16      u8
 until    var      while    xor
 ```
@@ -2046,6 +2046,7 @@ statement-sequence      ::= { statement }
 statement               ::= name-statement name-statement-tail
                           | other-simple-statement NEWLINE
                           | if-statement
+                          | select-statement
                           | while-statement
                           | for-statement
 name-statement          ::= assignment-statement
@@ -2157,13 +2158,13 @@ cells = shorterCells      // invalid when the fixed-array types differ
 cells[index]              // storage read is not a statement
 ```
 
-## 11. Conditional control
+## 11. Conditional and selection control
 
 ### 11.1 Scope
 
-This chapter defines the Nucleus `if` statement, its repeated `elseif` clauses, its optional `else` clause, condition evaluation, and clause selection. Chapter 9 defines Boolean expressions. Chapter 10 defines statement sequences. Chapter 17 supplies the complete grammar.
+This chapter defines the Nucleus `if` and `select` statements. Chapter 9 defines Boolean and integer expressions. Chapter 10 defines statement sequences. Chapter 17 supplies the complete grammar.
 
-Nucleus uses one multiline conditional form. It has no conditional expression, pattern matching, or general multi-way selection statement.
+`if` selects by Boolean conditions. `select` compares one integer value with an ordered sequence of constant values. Nucleus has no conditional expression or pattern matching.
 
 ### 11.2 Syntax
 
@@ -2243,12 +2244,11 @@ Nucleus 0.1 has no:
 - one-line `if` form;
 - postfix or statement-modifier condition;
 - conditional expression;
-- `select` or `case` statement;
 - pattern matching;
 - fall-through selection; or
 - implicit integer truth test.
 
-A restricted dense nonnegative selection form remains a possible later candidate under Chapter 2. It is not standard syntax unless a later specification revision admits it after measurement.
+The current `select` form has no ranges, duplicate-value diagnostics, jump-table semantics, or fallthrough.
 
 ### 11.9 Invalid conditionals and capacity limits
 
@@ -2286,6 +2286,47 @@ if count              // u16 is not a condition
 if ready then         // then is an identifier, not a header marker
 else if waiting       // not the flat elseif token
 ```
+
+### 11.11 Integer selection
+
+The selection grammar is:
+
+```text
+select-statement ::= "select" expression NEWLINE
+                     case-clause { case-clause }
+                     [ "else" NEWLINE statement-sequence ]
+                     "end" NEWLINE
+case-clause     ::= "case" constant-expression
+                     { "," constant-expression } NEWLINE
+                     statement-sequence
+```
+
+The selector must have type `u8`, `u16`, `i8`, or `i16`. The compiler evaluates it exactly once, including any observable call or storage access in the expression. Boolean and aggregate selectors are invalid.
+
+Each case item is a compile-time integer constant expression. The compiler applies the ordinary constant conversion and range rules to the selector's exact type. Signed selectors admit negative cases. Boolean, dynamic, and out-of-range case items are invalid.
+
+Case items are tested from top to bottom. The first equal item selects its body. Several comma-separated items share one body, and duplicate values are permitted; a later duplicate is unreachable when an earlier one matches. A selected body never falls through into the next case. Normal completion continues after the complete `select`.
+
+At least one `case` is required. The optional `else` is final. When no case matches, the `else` body executes if present; otherwise the statement performs no body operation. An empty case body matches and performs no operation. It does not share the next body.
+
+`select` is not a loop. `exit` and `continue` still target the innermost enclosing `while` or `for`. Nested selection, conditionals, loops, and immediate handlers use the ordinary structured-control nesting limit.
+
+Without `else`, a `select` remains capable of falling through because no case may match. With `else`, it is non-fallthrough only when every case body and the `else` body are independently non-fallthrough.
+
+This example evaluates `direction` once. Values 1 and 2 share a body:
+
+```nucleus
+select direction
+case 0
+    stop()
+case 1, 2
+    move()
+else
+    wait()
+end
+```
+
+This version admits equality cases only. It has no case ranges, overlap analysis, jump tables, binary-search lowering, pattern cases, Boolean selection, or source-visible `break`.
 
 ## 12. Loop control
 
@@ -3167,6 +3208,7 @@ statement
     ::= name-statement name-statement-tail
       | other-simple-statement NEWLINE
       | if-statement
+      | select-statement
       | while-statement
       | for-statement
 
@@ -3210,6 +3252,16 @@ if-statement
         { "elseif" expression NEWLINE statement-sequence }
         [ "else" NEWLINE statement-sequence ]
         "end" NEWLINE
+
+select-statement
+    ::= "select" expression NEWLINE
+        case-clause { case-clause }
+        [ "else" NEWLINE statement-sequence ]
+        "end" NEWLINE
+case-clause
+    ::= "case" constant-expression
+        { "," constant-expression } NEWLINE
+        statement-sequence
 
 while-statement
     ::= "while" expression NEWLINE
@@ -3282,7 +3334,7 @@ Field lookup after `.` uses the selected record type. A concrete bounded-string 
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 180 BNF rules over 97 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 189 BNF rules over 102 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
 | Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Lookahead | Conflict                                           | Resolution                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
@@ -3341,6 +3393,8 @@ A result-bearing routine is invalid if its closing `end` is reachable without `r
 ### 18.7 Control contexts
 
 An `if` or `elseif` condition and a `while` condition must be Boolean. A counted-loop counter must be an integer scalar local; its declared type may be `u8`, `u16`, `i8`, or `i16`. It is read-only to source statements while that loop is active and cannot be reused as a nested counted-loop counter. Its step is a nonzero signed compile-time constant. After the step produces the mathematical next value, an overshoot ends without storing or trapping. A next value that remains within the loop bound but lies outside the counter type performs `loop-range` if execution reaches that increment. `exit` and `continue` require an enclosing loop and target the innermost one.
+
+A `select` selector must be an integer scalar. Every case item must be constant and representable in that selector's exact type. The first equal item selects its body. `select` creates no loop context, so `exit` and `continue` inside a case still target an enclosing loop.
 
 No label, goto, exception region, or hidden cleanup edge changes these contexts. The compiler may summarize active loops and fallthrough with bounded stacks, but capacity exhaustion must produce a diagnostic before it changes a target or validity result.
 
@@ -3418,7 +3472,7 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
 | Expressions  | Calls, checked concrete/open-array and bounded-string indexing, field selection, array and string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                           |
 | Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
-| Control      | Flat `if`/`elseif`/`else`, pre-test `while`, counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                                                                                                                              |
+| Control      | Flat `if`/`elseif`/`else`; ordered integer `select`/`case` with constant equality items, optional final `else`, and no fallthrough; pre-test `while`; counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                     |
 | Routines     | Formal arguments including capacity-polymorphic `string[]` and length-polymorphic `T[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                      |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
 | System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes; typed direct Z80 `readPort(u16)` and `writePort(u16, u8)`; normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                         |
@@ -3439,7 +3493,7 @@ The maintainer of this language specification owns source-language admission. Th
 
 | Candidate                                                        | Required decision evidence and owner                                                                                                                                     |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Dense nonnegative selection                                      | Compiler cost versus emitted jump-table savings on representative programs; language-specification maintainer in a future revision.                                      |
+| Selection ranges or dense jump-table lowering                    | Source range rules, overlap policy, compiler cost, and emitted-size savings on representative programs; language-specification maintainer in a future revision.           |
 | Routine-local aggregate objects or fixed local aggregate aliases | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.                      |
 | General slices, array ranges, and caller-selected view lengths   | Source typing, lifetime, bounds, overlap, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
 | Intrinsic bounded-string append, insertion, slicing, or splicing | Typed contract, overlap and failure semantics, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                      |
@@ -3451,7 +3505,7 @@ These candidates are not provisional 0.1 syntax. Extensions may prototype them o
 
 Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory access, port operations other than the two typed routines in Section 16.4, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
 
-It also excludes assignment expressions, chained comparisons, conditional expressions, general expression statements, `call` and `then` keywords, `select`/`case`, pattern matching, repeat/do loops, `for in`, omitted counted-loop operands, counted-loop counters drawn from program variables or parameters, source assignment to an active counter, nested reuse of an active counter, labels, goto, labelled exit, exceptions, throw/catch, unwinding, destructors, `finally`, `defer`, resumable traps, and runtime type tags.
+It also excludes assignment expressions, chained comparisons, conditional expressions, general expression statements, `call` and `then` keywords, selection ranges, selection fallthrough, dense jump-table syntax, pattern matching, repeat/do loops, `for in`, omitted counted-loop operands, counted-loop counters drawn from program variables or parameters, source assignment to an active counter, nested reuse of an active counter, labels, goto, labelled exit, exceptions, throw/catch, unwinding, destructors, `finally`, `defer`, resumable traps, and runtime type tags.
 
 Implementation alternatives such as register allocation, helper organization, hardware-stack use, fixup representation, and physical calling convention are not source features. The Z80 runtime and backend contract records the selected target obligations, and project decisions use measurements without creating Nucleus dialects.
 
@@ -3931,12 +3985,12 @@ end
 
 var samples as Sample[2] = [(3), (7)]
 
-sub select(items as Sample[2], index as u8) as Sample
+sub choose(items as Sample[2], index as u8) as Sample
     return items[index]
 end
 
 sub forwardSelection(items as Sample[2], index as u8) as Sample
-    return select(items, index)
+    return choose(items, index)
 end
 
 sub replace(item as Sample, value as u8)
@@ -4191,3 +4245,31 @@ end
 ```
 
 The expected standard-output bytes are 6, 1, and 9. Each `T[]` binding denotes the complete concrete array and retains its actual `u16` element count. `copy` checks the destination length before writing; no source form can pass a shortened prefix or substitute another count.
+
+### 21.22 Ordered integer selection
+
+This program evaluates one `u16` selector and writes 7. The values 1 and 2
+share their case body, while 300 selects the later body:
+
+```nucleus
+sub main() fails
+    select u16(300)
+    case 1, 2
+        writeOutputByte(1) else fail
+    case 300
+        writeOutputByte(7) else fail
+    else
+        writeOutputByte(9) else fail
+    end
+end
+```
+
+This program is rejected at `true` because a selector must be an integer:
+
+```nucleus
+sub main()
+    select true
+    case 1
+    end
+end
+```

@@ -606,7 +606,7 @@ describe("signed integers", () => {
 
   it("preserves signed values through failable success and handling", async () => {
     const source = [
-      "sub select(value as i8, reject as boolean) as i8 fails",
+      "sub choose(value as i8, reject as boolean) as i8 fails",
       "if reject",
       "fail 7",
       "end",
@@ -615,9 +615,9 @@ describe("signed integers", () => {
       "sub main() fails",
       "var result as i8 = 0",
       "var code as u8",
-      "result = select(-9, false) else fail",
+      "result = choose(-9, false) else fail",
       "writeOutputByte(u8(i16(result) + 9)) else fail",
-      "result = select(4, true) handle code",
+      "result = choose(4, true) handle code",
       "writeOutputByte(code) else fail",
       "return",
       "end",

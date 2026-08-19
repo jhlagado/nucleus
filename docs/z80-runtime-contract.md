@@ -545,6 +545,25 @@ For a Z80 target, `LDIR` is permitted after both complete-region checks. The
 choice is private and must be measured; it does not change copy order or trap
 timing.
 
+### 5.3 Generated integer selection
+
+The direct Z80 backend evaluates a `select` expression once and retains its
+canonical scalar word on the hardware expression stack. Each case item emits
+one comparison against that retained word and a conditional branch to the
+case body. A `u8` selector compares the low byte; `u16`, `i8`, and `i16`
+selectors use word equality after the compiler has normalized the constant to
+the selector's exact type.
+
+Every path discards the retained selector exactly once before it enters a case
+body, enters `else`, or continues after an unmatched selection. Case bodies
+therefore begin with the same generated stack shape as the statement that
+contains the `select`. Normal completion of a selected body branches to one
+common exit; it cannot enter the following case body.
+
+The comparison chain and its fixups are generated-program bytes. `select`
+adds no selected-runtime helper, vector entry, writable runtime state, or
+activation field.
+
 ## 6. Calls, activations, and results
 
 ### 6.1 Argument evaluation

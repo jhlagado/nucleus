@@ -66,6 +66,7 @@ describe("Stage 7 packed LL(1)", () => {
       ["sub", "TokenSub", false],
       ["for", "TokenFor", true],
       ["true", "TokenTrue", false],
+      ["case", "TokenCase", false],
       ["fail", "TokenFail", false],
       ["else", "TokenElse", false],
       ["step", "TokenStep", false],
@@ -76,6 +77,7 @@ describe("Stage 7 packed LL(1)", () => {
       ["until", "TokenUntil", false],
       ["while", "TokenWhile", true],
       ["assert", "TokenAssert", false],
+      ["select", "TokenSelect", false],
       ["return", "TokenReturn", false],
       ["elseif", "TokenElseIf", false],
       ["record", "TokenRecord", false],
@@ -117,7 +119,7 @@ describe("Stage 7 packed LL(1)", () => {
       relativeGroups.map(([length, cell]) =>
         (groupOffsets.get(length) ?? 0) - cell,
       ),
-    ).toEqual([7, 24, 63, 87, 116, 157, 172]);
+    ).toEqual([7, 24, 63, 92, 121, 169, 184]);
 
     const basedSuffixes = [
       ...source.matchAll(
@@ -178,9 +180,9 @@ describe("Stage 7 packed LL(1)", () => {
         "utf8",
       ),
     );
-    expect(grammar.productions).toHaveLength(83);
+    expect(grammar.productions).toHaveLength(93);
     expect(generateStage7Tables()).toContain(
-      "HybridLL1ProductionCount  .equ 73",
+      "HybridLL1ProductionCount  .equ 82",
     );
     expect(generateStage7ProofActions()).toBe(
       readFileSync(
@@ -335,7 +337,7 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
-      bytes: 248,
+      bytes: 271,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-workspace",
@@ -354,32 +356,32 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_930_029);
-    expect(outcome.cycles).toBe(18_486_787);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_738 });
+    expect(outcome.instructions).toBe(1_950_941);
+    expect(outcome.cycles).toBe(18_619_555);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 10_049 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
-      bytes: 248,
+      bytes: 271,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-tables",
-      bytes: 831,
+      bytes: 933,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-actions",
-      bytes: 2_349,
+      bytes: 2_535,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 15_225,
+      bytes: 15_593,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_800,
+      bytes: 15_156,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
-      bytes: 425,
+      bytes: 437,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-workspace",

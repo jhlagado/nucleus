@@ -43,6 +43,13 @@ HybridLL1StrayClause:
             CALL SetDiagInline
             .db  DiagnosticExpectedEnd
 
+HybridLL1StraySelectClause:
+HybridLL1SelectClauseFailure:
+            CALL SetDiagInline
+            .db  DiagnosticSelectClause
+
+HybridLL1MissingSelectEnd .equ HybridLL1StrayClause
+
 ; --------------------------------------------------------------- type actions
 
 ; A is the logical action ordinal for the contiguous u8/u16/Boolean family.
@@ -1796,6 +1803,187 @@ HybridLL1EndIf:
             XOR  1
             JP   HybridLL1CombineFlow
 
+; --------------------------------------------------------------- select/case
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1BeginSelect:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+            OUT  (DebugTraceContextPushPort),A
+.endif
+.endif
+            LD   B,ControlKindSelect
+            CALL HybridLL1PushFlowFrame
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL ControlAllocateExit
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            INC  HL
+            LD   (HL),1                   ; all bodies non-fallthrough so far
+            XOR  A                       ; exact selector context
+            JP   HybridLL1SaveExpectedType
+
+; Retain the selector's concrete integer type in the active frame. Untyped
+; exact values use the language's ordinary u16/i16 inference; typed selectors
+; retain their declared width and signedness.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1FinishSelectExpression:
+            CALL Stage8RequireNoPendingFailure
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(ExpressionRightMeta)
+            LD   D,A
+            AND  ScalarMetaTypeMask
+            JR   NZ,HybridLL1SelectTypeReady
+HybridLL1InferSelectType:
+            LD   A,D
+            AND  ScalarMetaNegative
+            RRCA
+            OR   ScalarTypeU16
+HybridLL1SelectTypeReady:
+            CP   ScalarTypeBoolean
+            JP   Z,TypedTypeFailure
+            LD   C,A
+            LD   B,ControlFrameMode
+            CALL ControlTopFrameField
+            LD   (HL),C
+            OR   A
+            RET
+
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+HybridLL1BeginSelectCase:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceSourcePort),A
+.endif
+.endif
+            CALL ControlAllocateLabelA
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            INC  B                       ; LabelA -> Continue
+            JP   ControlAllocateInto
+
+; Case expressions are folded under the selector's exact type and never emit
+; a runtime value of their own.
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1SelectConstantExpression:
+            LD   B,ControlFrameMode
+            CALL ControlTopFrameField
+            LD   A,(HL)
+            CALL TypedExpressionBeginConstant
+            JP   HybridLL1SaveExpressionResult
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1FinishSelectCaseValue:
+            LD   A,(ExpressionExpectedType)
+            LD   E,A
+            LD   A,(ExpressionRightMeta)
+            OR   A
+            JP   P,TypedTypeFailure
+            CALL HybridLL1CheckExpressionAssignable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            AND  ScalarMetaTypeMask
+            LD   C,A
+            PUSH HL
+            LD   A,SemanticSelectCase
+            CALL ParserEmitOperationC
+            POP  HL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   B,ControlFrameLabelA
+            CALL HybridLL1TopFrameFieldToC
+            LD   A,C
+            JP   SemanticSinkPut
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1BeginSelectCaseBody:
+            LD   B,ControlFrameContinue
+            CALL HybridLL1TopFrameFieldToC
+            CALL ControlEmitJump
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   B,ControlFrameLabelA
+            CALL HybridLL1EmitFrameLabel
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1BeginSelectElse:
+            CALL HybridLL1DiscardSelectCarrier
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JP   HybridLL1SetFallsThrough
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1EndSelectCase:
+            CALL StructuredRecordIfClause
+            LD   B,ControlFrameExit
+            CALL HybridLL1TopFrameFieldToC
+            CALL ControlEmitJump
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   B,ControlFrameContinue
+            CALL HybridLL1EmitFrameLabel
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JP   HybridLL1SetFallsThrough
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+HybridLL1DiscardSelectCarrier:
+            LD   A,SemanticForCleanup
+            JP   SemanticSinkOperation
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1EndSelectWithElse:
+            CALL StructuredRecordIfClause
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(HL)
+            XOR  1                       ; all non-fallthrough -> select result
+            LD   B,A
+            JR   HybridLL1EndSelect
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+HybridLL1EndSelectWithoutElse:
+            CALL HybridLL1DiscardSelectCarrier
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   B,1                     ; no else always permits fallthrough
+HybridLL1EndSelect:
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceContextPopPort),A
+.endif
+.endif
+            PUSH BC
+            LD   B,ControlFrameExit
+            CALL HybridLL1EmitFrameLabel
+            POP  BC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,B
+            JP   HybridLL1CombineFlow
+
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginWhile:
 .if TargetStreamingOutput
@@ -2053,8 +2241,7 @@ HybridLL1EndFor:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticForCleanup
-            CALL SemanticSinkOperation
+            CALL HybridLL1DiscardSelectCarrier
 .if CompilerDiagnosticReturns
             RET  C
 .endif

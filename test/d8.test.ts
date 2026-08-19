@@ -22,7 +22,7 @@ describe("Nucleus D8 semantic transcript validation", () => {
     ...[32, 71, 82, 83, 96, 97, 108, 109, 112].map(
       (operation) => [operation, 4] as const,
     ),
-    ...[77, 95].map((operation) => [operation, 5] as const),
+    ...[77, 95, 123].map((operation) => [operation, 5] as const),
     [115, 6],
     [90, 7],
     [72, 9],

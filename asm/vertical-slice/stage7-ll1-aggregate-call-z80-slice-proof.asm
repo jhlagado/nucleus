@@ -67,11 +67,11 @@ Stage7ForwardSource:
             .db "value as u8",10
             .db "end",10
             .db "var samples as Sample[2] = [(3), (7)]",10
-            .db "sub select(items as Sample[2], index as u8) as Sample",10
+            .db "sub choose(items as Sample[2], index as u8) as Sample",10
             .db "return items[index]",10
             .db "end",10
             .db "sub forwardSelection(items as Sample[2], index as u8) as Sample",10
-            .db "return select(items, index)",10
+            .db "return choose(items, index)",10
             .db "end",10
             .db "sub nine() as u8",10
             .db "return 9",10
@@ -105,11 +105,11 @@ Stage7BoundsSource:
             .db "value as u8",10
             .db "end",10
             .db "var samples as Sample[2] = [(3), (7)]",10
-            .db "sub select(items as Sample[2], index as u8) as Sample",10
+            .db "sub choose(items as Sample[2], index as u8) as Sample",10
             .db "return items[index]",10
             .db "end",10
             .db "sub main() fails",10
-            .db "select(samples, 2)",10
+            .db "choose(samples, 2)",10
             .db "writeOutputByte('N') else fail",10
             .db "end",10
 Stage7BoundsSourceEnd:
@@ -143,11 +143,11 @@ Stage7TransientMisuseSource:
             .db "value as u8",10
             .db "end",10
             .db "var samples as Sample[2] = [(3), (7)]",10
-            .db "sub select(items as Sample[2], index as u8) as Sample",10
+            .db "sub choose(items as Sample[2], index as u8) as Sample",10
             .db "return items[index]",10
             .db "end",10
             .db "sub main() fails",10
-            .db "writeOutputByte(u8(select(samples, 0))) else fail",10
+            .db "writeOutputByte(u8(choose(samples, 0))) else fail",10
             .db "end",10
 Stage7TransientMisuseSourceEnd:
 

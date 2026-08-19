@@ -70,7 +70,19 @@ HybridLL1ActionReturn:
             JR   HybridLL1Loop
 
 HybridLL1Terminal:
-            LD   E,A
+            LD   L,A
+            CP   TokenEnd
+            JR   NZ,HybridLL1TerminalReady
+            CALL ParserPeek
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CP   TokenElse
+            JP   Z,HybridLL1StraySelectClause
+            CP   TokenCase
+            JP   Z,HybridLL1StraySelectClause
+HybridLL1TerminalReady:
+            LD   E,L
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -100,6 +112,10 @@ HybridLL1StatementTokenReady:
             LD   A,L
             SUB  $40
             LD   L,A
+            CP   HybridLL1HighRowStart
+            SBC  A,A
+            INC  A
+            LD   B,A
             LD   H,0
             ADD  HL,HL
             LD   DE,HybridLL1RowDirectory
@@ -108,7 +124,7 @@ HybridLL1StatementTokenReady:
             INC  HL
             LD   A,(HL)
             PUSH AF
-            LD   D,0
+            LD   D,B
             LD   HL,HybridLL1Rows
             ADD  HL,DE
             CALL ParserPeek

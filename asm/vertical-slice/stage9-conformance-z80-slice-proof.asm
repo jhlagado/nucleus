@@ -309,12 +309,12 @@ Chapter21_14Source:
             .db 10
             .db "var samples as Sample[2] = [(3), (7)]",10
             .db 10
-            .db "sub select(items as Sample[2], index as u8) as Sample",10
+            .db "sub choose(items as Sample[2], index as u8) as Sample",10
             .db "    return items[index]",10
             .db "end",10
             .db 10
             .db "sub forwardSelection(items as Sample[2], index as u8) as Sample",10
-            .db "    return select(items, index)",10
+            .db "    return choose(items, index)",10
             .db "end",10
             .db 10
             .db "sub replace(item as Sample, value as u8)",10
@@ -523,6 +523,29 @@ Chapter21_21Source:
             .db "    writeOutputByte(large[4]) else fail",10
             .db "end",10
 Chapter21_21SourceEnd:
+
+Chapter21_22Source:
+            .db "sub main() fails",10
+            .db "    select u16(300)",10
+            .db "    case 1, 2",10
+            .db "        writeOutputByte(1) else fail",10
+            .db "    case 300",10
+            .db "        writeOutputByte(7) else fail",10
+            .db "    else",10
+            .db "        writeOutputByte(9) else fail",10
+            .db "    end",10
+            .db "end",10
+Chapter21_22SourceEnd:
+
+Chapter21_22BooleanSource:
+            .db "sub main()",10
+            .db "    select "
+Chapter21_22BooleanPoint:
+            .db "true",10
+            .db "    case 1",10
+            .db "    end",10
+            .db "end",10
+Chapter21_22BooleanSourceEnd:
 
 Chapter21_10UnconsumedSource:
             .db "sub readOne() as u8 fails",10
@@ -785,7 +808,7 @@ HistoricalShortHexEscapePoint:
 HistoricalShortHexEscapeSourceEnd:
 CorpusSourceEnd:
 
-            .org $D200
+            .org $D400
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
             LD   SP,StackTop
@@ -1426,6 +1449,27 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
+
+            LD   A,78
+            LD   (ProofCase),A
+            LD   A,87
+            LD   HL,Chapter21_22Source
+            LD   DE,Chapter21_22SourceEnd
+            CALL ProofRunSingle
+            JP   C,ProofFailed
+            LD   A,7
+            CALL ProofCheckOutput
+            JP   C,ProofFailed
+
+            LD   A,79
+            LD   (ProofCase),A
+            LD   A,88
+            LD   B,DiagnosticTypeMismatch
+            LD   IX,Chapter21_22BooleanPoint+4-Chapter21_22BooleanSource
+            LD   HL,Chapter21_22BooleanSource
+            LD   DE,Chapter21_22BooleanSourceEnd
+            CALL ProofExpectDiagnosticSingle
+            JP   C,ProofFailed
 
             LD   A,$A5
             LD   (ProofStatus),A

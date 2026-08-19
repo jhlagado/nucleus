@@ -351,6 +351,13 @@ Nucleus retains structured conditionals, `while`, counted `for`, constant
 direct and mutual recursion. Do not remove one of these forms merely to shrink
 the first compiler.
 
+Integer `select` evaluates its selector once and tests constant equality cases
+in source order. Comma-separated values share one body, the first match wins,
+duplicate values are permitted, and no body falls through to another. An
+optional `else` must be final. With no match and no `else`, execution continues
+after the construct. `select` introduces no loop context: `exit` and
+`continue` still target the innermost enclosing `while` or `for`.
+
 A counted-loop counter is a predeclared `u8`, `u16`, `i8`, or `i16` local. The
 programmer's declaration selects its width and signedness; the compiler does
 not impose a universal counter type. The counter is read-only to source

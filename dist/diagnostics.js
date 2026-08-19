@@ -54,6 +54,8 @@ const diagnosticMessages = {
     96: "target image capacity exceeded",
     97: "target output failed",
     98: "`handle NAME` must follow an eligible failable call on the same logical line",
+    99: "expected at least one `case` clause",
+    100: "`case` must belong to an active `select`; `else` must be its one final clause",
 };
 export const nucleusDiagnosticMessage = (code) => diagnosticMessages[code] ?? `Nucleus diagnostic ${code}`;
 export const formatNucleusDiagnostic = (diagnostic, options = {}) => {

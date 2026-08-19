@@ -123,7 +123,7 @@ HybridLL1PushFlowFrameAndLabelA:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+.routine out A,B,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ControlAllocateLabelA:
             LD   B,ControlFrameLabelA
 .if TargetStreamingOutput
@@ -400,11 +400,11 @@ StructuredEmitFrameExitAndLabel:
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 StructuredRecordIfClause:
+            LD   B,ControlFrameCounter
+            CALL ControlTopFrameField
             LD   A,(ControlSequenceFallsThrough)
             OR   A
             RET  Z
-            LD   B,ControlFrameCounter
-            CALL ControlTopFrameField
             LD   (HL),0
             XOR  A
             RET

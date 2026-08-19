@@ -34,6 +34,7 @@ KeywordLength3:
             .db  "for",TokenFor+$80
 KeywordLength4:
             .db  "true",TokenTrue
+            .db  "case",TokenCase
             .db  "fail",TokenFail
             .db  "else",TokenElse
             .db  "step",TokenStep
@@ -46,6 +47,7 @@ KeywordLength5:
             .db  "while",TokenWhile+$80
 KeywordLength6:
             .db  "assert",TokenAssert
+            .db  "select",TokenSelect
             .db  "return",TokenReturn
             .db  "elseif",TokenElseIf
             .db  "record",TokenRecord
@@ -56,7 +58,7 @@ KeywordLength7:
             .db  "forward",TokenForward+$80
 KeywordLength8:
             .db  "continue",TokenContinue+$80
-KeywordCount            .equ 35
+KeywordCount            .equ 37
 
 PunctuationTable:
             .db  "=",TokenEquals

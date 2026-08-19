@@ -38,6 +38,10 @@
     "for-statement": "DiagnosticExpectedFor",
     "for-bound": "DiagnosticExpectedScalar",
     "for-step-opt": "DiagnosticExpectedLine",
+    "select-statement": "DiagnosticExpectedCase",
+    "select-case-tail": "DiagnosticExpectedEnd",
+    "select-case": "DiagnosticExpectedCase",
+    "select-value-tail": "DiagnosticExpectedLine",
     "type": "DiagnosticExpectedType",
     "type-atom": "DiagnosticExpectedType",
     "string-capacity": "DiagnosticExpectedScalar",
@@ -47,6 +51,21 @@
   },
   "externals": {
     "ConstantExpression": [
+      "TokenNumber",
+      "TokenCharacter",
+      "TokenTrue",
+      "TokenFalse",
+      "TokenName",
+      "TokenLeftParen",
+      "TokenU8",
+      "TokenU16",
+      "TokenI8",
+      "TokenI16",
+      "TokenPlus",
+      "TokenMinus",
+      "TokenNot"
+    ],
+    "SelectConstantExpression": [
       "TokenNumber",
       "TokenCharacter",
       "TokenTrue",
@@ -95,6 +114,8 @@
     ],
     "StepConstant": ["TokenNumber", "TokenName", "TokenPlus", "TokenMinus"],
     "StrayClause": ["TokenElse", "TokenElseIf"],
+    "StraySelectClause": ["TokenCase"],
+    "MissingSelectEnd": ["TokenEof"],
     "NameStatement": ["TokenName"],
     "ReturnValue": [
       "TokenNumber",
@@ -341,6 +362,7 @@
     { "lhs": "statement", "rhs": ["if-statement"] },
     { "lhs": "statement", "rhs": ["while-statement"] },
     { "lhs": "statement", "rhs": ["for-statement"] },
+    { "lhs": "statement", "rhs": ["select-statement"] },
 
     {
       "lhs": "return-statement",
@@ -501,6 +523,69 @@
     { "lhs": "scalar-type", "rhs": ["TokenU16", "a:TypeU16"] },
     { "lhs": "scalar-type", "rhs": ["TokenBoolean", "a:TypeBoolean"] },
     { "lhs": "scalar-type", "rhs": ["TokenI8", "a:TypeI8"] },
-    { "lhs": "scalar-type", "rhs": ["TokenI16", "a:TypeI16"] }
+    { "lhs": "scalar-type", "rhs": ["TokenI16", "a:TypeI16"] },
+
+    {
+      "lhs": "select-statement",
+      "rhs": [
+        "TokenSelect",
+        "a:BeginSelect",
+        "x:RuntimeExpression",
+        "a:FinishSelectExpression",
+        "TokenNewline",
+        "select-case",
+        "select-case-tail"
+      ]
+    },
+    {
+      "lhs": "select-case-tail",
+      "rhs": ["select-case", "select-case-tail"]
+    },
+    {
+      "lhs": "select-case",
+      "rhs": [
+        "TokenCase",
+        "a:BeginSelectCase",
+        "x:SelectConstantExpression",
+        "a:FinishSelectCaseValue",
+        "select-value-tail",
+        "TokenNewline",
+        "a:BeginSelectCaseBody",
+        "statement-sequence",
+        "a:EndSelectCase"
+      ]
+    },
+    {
+      "lhs": "select-value-tail",
+      "rhs": [
+        "TokenComma",
+        "x:SelectConstantExpression",
+        "a:FinishSelectCaseValue",
+        "select-value-tail"
+      ]
+    },
+    { "lhs": "select-value-tail", "rhs": [] },
+    {
+      "lhs": "select-case-tail",
+      "rhs": [
+        "TokenElse",
+        "a:BeginSelectElse",
+        "TokenNewline",
+        "statement-sequence",
+        "TokenEnd",
+        "TokenNewline",
+        "a:EndSelectWithElse"
+      ]
+    },
+    {
+      "lhs": "select-case-tail",
+      "rhs": [
+        "TokenEnd",
+        "a:EndSelectWithoutElse",
+        "TokenNewline"
+      ]
+    },
+    { "lhs": "select-case-tail", "rhs": ["x:MissingSelectEnd"] },
+    { "lhs": "local-list", "rhs": ["x:StraySelectClause"] }
   ]
 }

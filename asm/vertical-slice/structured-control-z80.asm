@@ -166,6 +166,41 @@ StructuredJump:
             LD   A,$C3                    ; JP nn
             JR   StructuredEmitFixup
 
+; Compare one retained selector with an exact case word without consuming the
+; selector. The case body label follows the word in the semantic transcript.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+StructuredSelectCase:
+            LD   C,A                      ; selector type
+            CALL ReadSemanticWord
+            PUSH BC
+            PUSH DE
+            POP  HL
+            CALL EmitLoadHl               ; LD HL,case-value
+            POP  BC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopDEPushDE       ; retained selector -> DE
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            BIT  1,C
+            LD   HL,StructuredSelectByteCompare
+            JR   Z,StructuredSelectCompareReady
+            LD   HL,StructuredSubtractDE
+StructuredSelectCompareReady:
+            CALL EmitThree
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL NextSemanticByte
+            LD   C,A
+            LD   A,$CA                    ; JP Z,body
+            JP   StructuredEmitFixup
+StructuredSelectByteCompare:
+            .db  $7B,$BD,$00              ; LD A,E / CP L / NOP
+
 ; Resolve every retained absolute operand after all label locations are known.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 StructuredResolveFixups:

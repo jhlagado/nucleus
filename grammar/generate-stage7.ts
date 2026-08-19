@@ -317,9 +317,11 @@ export function generateStage7Tables(): string {
     throw new Error("production exceeds parser stack capacity");
   const productionSplit = Math.ceil(physicalProductions.length / 2);
   let rowOffset = 0;
+  const rowOffsets: number[] = [];
   for (const nonterminal of nonterminals) {
-    if (rowOffset > 255)
+    if (rowOffset > 511)
       throw new Error(`row directory offset overflow at ${nonterminal}`);
+    rowOffsets.push(rowOffset);
     for (let index = 0; index < grammar.productions.length; index += 1) {
       if (grammar.productions[index]?.lhs !== nonterminal) continue;
       rowOffset += 1 + analysis.predictions[index]!.length;
@@ -347,6 +349,7 @@ export function generateStage7Tables(): string {
   const lines = [
     "; Generated from stage7-grammar.json.",
     `HybridLL1NonterminalCount .equ ${nonterminals.length}`,
+    `HybridLL1HighRowStart    .equ ${rowOffsets.findIndex((offset) => offset >= 256) < 0 ? nonterminals.length : rowOffsets.findIndex((offset) => offset >= 256)}`,
     `HybridLL1ProductionCount  .equ ${physicalProductions.length}`,
     `HybridLL1ProductionSplit  .equ ${productionSplit}`,
     `HybridLL1ActionCount      .equ ${actions.length}`,
@@ -361,7 +364,10 @@ export function generateStage7Tables(): string {
     ...nonterminals.map((name, index) => {
       const diagnostic = grammar.diagnostics[name];
       if (!diagnostic) throw new Error(`missing diagnostic for ${name}`);
-      return `            .db HybridLL1Row${index}-HybridLL1Rows,${diagnostic} ; ${name}`;
+      const offset = `HybridLL1Row${index}-HybridLL1Rows`;
+      return rowOffsets[index]! < 256
+        ? `            .db ${offset},${diagnostic} ; ${name}`
+        : `            .db ${offset}-$100,${diagnostic} ; ${name}`;
     }),
     "HybridLL1RowDirectoryEnd:",
     "HybridLL1Rows:",

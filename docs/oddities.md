@@ -174,6 +174,12 @@ counts even after `return`, `fail`, or `continue`; an exit belonging to a nested
 loop does not. Parenthesized, computed, named, and dynamic conditions retain the
 conservative fallthrough rule.
 
+**`select` is ordered equality, not a switch table.** The selector is evaluated
+once, and constant case values are tested from top to bottom. The first match
+wins, duplicate values are permitted, and a selected body never falls through.
+Comma-separated values are the only way to share one body. This version has no
+case ranges or source-visible `break`; `exit` and `continue` remain loop-only.
+
 ## Language-finish backlog
 
 These items are rough edges rather than objections to the programming model.
