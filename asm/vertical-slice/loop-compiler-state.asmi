@@ -169,6 +169,7 @@ ControlFrameMode        .equ 5
 ControlFrameStep        .equ 6
 ControlFrameTrapOffset  .equ 8
 ControlNoCounter        .equ $FF
+ControlWhileLiteralTrue .equ 1
 
 EmitControlFixupCount   .equ ControlWorkspaceBase+$00
 .if TargetStreamingOutput

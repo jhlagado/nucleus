@@ -164,7 +164,9 @@ ControlEmitJump:
             LD   D,SemanticJump
             JR   ControlEmitOperationByte
 
-; Return the nearest enclosing while/for frame in HL.
+; Return the nearest enclosing while/for frame in HL. A syntactic exit marks
+; the particular while frame it targets; continues and counted loops retain
+; their existing state.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 ControlFindLoop:
             LD   A,(ControlDepth)
@@ -184,6 +186,20 @@ ControlFindLoopNext:
             JR   NZ,ControlFindLoopNext
             JR   ControlLoopFailure
 ControlFindLoopFound:
+            LD   E,A
+            LD   A,(DeclarationInfo)
+            ADD  A,E
+            CP   ControlKindWhile+TokenExit
+            JR   NZ,ControlFindLoopReady
+            PUSH HL
+            INC  HL
+            INC  HL
+            INC  HL
+            INC  HL
+            INC  HL
+            LD   (HL),0
+            POP  HL
+ControlFindLoopReady:
             POP  AF
             OR   A
             RET

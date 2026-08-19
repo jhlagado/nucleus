@@ -2320,7 +2320,7 @@ Each loop body is a statement sequence and may be empty. A loop opens no name sc
 
 A `while` condition must have type `boolean`. The condition is evaluated before every possible iteration. When it produces `true`, the body executes. Normal completion of the body returns control to the condition. When the condition produces `false`, execution continues after the loop.
 
-The loop may execute zero times. Calls, checks, mutations, and traps performed by each evaluated condition remain observable. A condition is evaluated once per test; a trap prevents entry to the body or any later iteration.
+Except for the literal `true` condition, the loop may execute zero times. Calls, checks, mutations, and traps performed by each evaluated condition remain observable. A condition is evaluated once per test; a trap prevents entry to the body or any later iteration.
 
 An indefinite loop uses `while true`. Nucleus has no separate unconditional-loop keyword.
 
@@ -2558,11 +2558,16 @@ The static rule uses a bounded structured fallthrough summary:
 - assignment and call statements fall through;
 - an `if` does not fall through only when it has an `else` and every clause body does not fall through;
 - an `if` without `else` may fall through; and
-- every `while` and `for` is treated as able to finish, regardless of a constant condition or its body.
+- a `while true` loop does not fall through when no syntactic `exit` targets that loop; every other `while` and every `for` is treated as able to finish.
 
 A statement sequence can reach its end when control can pass through every statement on a path. Once a statement on a path does not fall through, later statements on that path do not restore fallthrough. This rule permits one streaming summary per nested statement and requires no control-flow graph.
 
-The conservative loop rule is part of Nucleus 0.1 validity. A value routine whose only non-returning path is an apparently indefinite loop still requires a structurally reachable `return expression` after that loop or another arrangement that satisfies the rules above.
+The non-fallthrough loop rule recognizes only the exact source form `while true`.
+Parentheses, `not false`, `true and true`, a named Boolean constant, and another
+constant expression do not qualify. Any syntactic `exit` whose nearest loop is
+that `while` makes it conservatively fallthrough-capable, even when the `exit`
+follows a non-fallthrough statement and cannot execute. An `exit` whose nearest
+loop is a nested `while` or `for` does not count against the outer loop.
 
 ### 13.8 Forward definitions and recursion
 
@@ -3267,7 +3272,7 @@ A call must match the visible signature in arity and parameter order. Scalar arg
 
 Every failable invocation has exactly one failure consumer. `else fail` requires a failable enclosing routine and is admitted only after a complete direct failable call in a scalar-local initializer, assignment right side, or call statement. Same-line `handle NAME` is admitted only after an eligible assignment or call statement and requires an existing writable `u8` destination that is not an active counted-loop counter. Failable invocations are invalid in returns, larger expressions, and argument lists.
 
-A result-bearing routine is invalid if its closing `end` is reachable without `return expression` or, when it declares `fails`, `fail`. Structured fallthrough follows Section 13.7. Loops remain conservatively able to finish. `return` and `fail` do not fall through; a call with `else fail` may succeed and fall through.
+A result-bearing routine is invalid if its closing `end` is reachable without `return expression` or, when it declares `fails`, `fail`. Structured fallthrough follows Section 13.7. A literal `while true` with no syntactic `exit` targeting that loop does not fall through; all other loops remain conservatively able to finish. Exits belonging to nested loops do not count against an outer literal-true loop. `return` and `fail` do not fall through; a call with `else fail` may succeed and fall through.
 
 ### 18.7 Control contexts
 

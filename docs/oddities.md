@@ -153,10 +153,11 @@ concrete `string[N]` constant and pass that name.
 may write through the parameter. Whether that write changes memory depends on
 RAM versus ROM placement. Portable programs do not rely on it.
 
-**A value routine needs a structural `return`.** Loops are assumed able to
-finish, including `while true`. A function whose only live `return` sits
-inside an infinite loop still needs a `return` after the loop, or the source
-is invalid. That rule exists so fallthrough can be checked in one pass.
+**Only literal `while true` proves an indefinite loop.** It makes a value
+routine non-fallthrough when no syntactic `exit` targets that loop. An `exit`
+counts even after `return`, `fail`, or `continue`; an exit belonging to a nested
+loop does not. Parenthesized, computed, named, and dynamic conditions retain the
+conservative fallthrough rule.
 
 ## Language-finish backlog
 
@@ -188,13 +189,7 @@ undermines an otherwise consistent rule.
 
 ### P2 — analysis and system boundary
 
-4. **Fallthrough after `while true`.** A result routine whose only live
-   `return` is inside an unconditional loop still needs a trailing structural
-   `return`. A narrow analysis could treat literal `while true` as
-   non-returning only when no reachable `exit` targets that loop; an `exit`
-   from a nested loop does not make the outer loop fall through. Without that
-   proof, the conservative rule is correct.
-5. **Port access.** Nucleus has typed byte streams and no source-visible Z80
+4. **Port access.** Nucleus has typed byte streams and no source-visible Z80
    ports. A future system boundary could provide typed port input and output
    without exposing arbitrary memory or inline assembly. This needs a service
    and portability design before it becomes a language feature; it is not a

@@ -1849,16 +1849,32 @@ HybridLL1BeginWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            ; A literal-true candidate starts with TokenTrue and, after the
+            ; pending label is emitted, finishes with exactly one expression
+            ; operation. Store that expected operation count temporarily in
+            ; the while-only mode field.
+            CALL ParserPeek
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CP   TokenTrue
+            JR   NZ,HybridLL1WhileCandidateReady
+.if TargetStreamingOutput
+            LD   A,(SemanticBufferBase)
+.else
+            LD   A,(SinkOperationCount)
+.endif
+            ADD  A,2
+            INC  HL
+            INC  HL
+            LD   (HL),A
+HybridLL1WhileCandidateReady:
             LD   B,ControlFrameLabelA
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if CompilerNonlocalDiagnostics
-            JR   HybridLL1ExpectBoolean
-.else
             JP   HybridLL1ExpectBoolean
-.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginWhileBody:
@@ -1866,12 +1882,23 @@ HybridLL1BeginWhileBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameExit
-.if CompilerNonlocalDiagnostics
-            JR   HybridLL1BeginConditionBody
-.else
-            JP   HybridLL1BeginConditionBody
+            LD   B,ControlFrameMode
+            CALL ControlTopFrameField
+.if CompilerDiagnosticReturns
+            RET  C
 .endif
+.if TargetStreamingOutput
+            LD   A,(SemanticBufferBase)
+.else
+            LD   A,(SinkOperationCount)
+.endif
+            CP   (HL)
+            LD   (HL),0
+            JR   NZ,HybridLL1WhileModeReady
+            INC  (HL)
+HybridLL1WhileModeReady:
+            LD   B,ControlFrameExit
+            JP   HybridLL1BeginConditionBody
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndWhile:
@@ -1891,6 +1918,12 @@ HybridLL1EndWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   B,ControlFrameMode
+            CALL HybridLL1TopFrameFieldToC
+            LD   A,C
+            XOR  ControlWhileLiteralTrue
+            JP   HybridLL1CombineFlow
+
 HybridLL1PopAndRestoreFlow:
             CALL ControlPopFrame
 .if CompilerDiagnosticReturns

@@ -2841,6 +2841,40 @@ historical runtime remains 921 bytes, the generated-program maximum remains
 4,096 bytes, and the semantic transcript remains bounded at 511 payload bytes
 and 255 operations; the exact-fill transcript proofs remain unchanged.
 
+### Literal `while true` fallthrough
+
+This increment starts from the same-line `handle` diagnostic commit
+`3a28b85ad350b5ffa3d454192695e70527b0dd6d`. A value routine may now end after
+an exact `while true` loop when no syntactic `exit` targets that loop. An exit
+counts even when an earlier statement makes it unreachable. Exits targeting a
+nested loop do not count. Parenthesized, compound, named, and dynamic Boolean
+conditions retain the conservative fallthrough rule.
+
+The one-pass parser marks a candidate only when the condition starts with the
+`true` token and its completed semantic transcript contains exactly the one
+operation expected for that literal. The active while frame records the
+candidate in its existing mode byte. Finding an `exit` clears the mode byte of
+the particular while frame selected by the existing nearest-loop search. No
+AST, control-flow graph, delayed pass, workspace byte, semantic operation, or
+generated Z80 is added.
+
+After the feature-local size pass, the implementation adds 60 production code
+bytes and no immutable data or workspace. Production is 14,828 code bytes plus
+398 immutable bytes, or 15,226 compiler-core bytes, leaving 1,158 bytes below
+the 16 KiB limit. The instrumented compiler is 14,884 code bytes plus 398
+immutable bytes, or 15,282 core bytes. Historical returning-diagnostic layouts
+are 14,436 code bytes plus 398 immutable bytes, or 14,834 core bytes, with
+3,623 workspace bytes. Production workspace remains 3,613 bytes.
+
+The flat proof remains 881,892 instructions and 9,517,580 T-states, and the
+debug proof remains 885,683 instructions and 9,559,371 T-states. The historical
+Chapter 21 proof is 1,417,934 instructions and 14,018,627 T-states; Stage 8 is
+unchanged at 1,723,350 instructions and 16,752,593 T-states; the complete LL(1)
+proof is unchanged at 1,920,597 instructions and 18,411,051 T-states. The
+selected proof runtime remains 899 bytes, the historical runtime remains 921
+bytes, the generated-program maximum remains 4,096 bytes, and transcript
+capacities remain 511 payload bytes and 255 operations.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
