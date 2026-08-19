@@ -112,7 +112,21 @@
       "TokenMinus",
       "TokenNot"
     ],
-    "StepConstant": ["TokenNumber", "TokenName", "TokenPlus", "TokenMinus"],
+    "StepConstant": [
+      "TokenNumber",
+      "TokenCharacter",
+      "TokenTrue",
+      "TokenFalse",
+      "TokenName",
+      "TokenLeftParen",
+      "TokenU8",
+      "TokenU16",
+      "TokenI8",
+      "TokenI16",
+      "TokenPlus",
+      "TokenMinus",
+      "TokenNot"
+    ],
     "StrayClause": ["TokenElse", "TokenElseIf"],
     "StraySelectClause": ["TokenCase"],
     "MissingSelectEnd": ["TokenEof"],
@@ -579,11 +593,7 @@
     },
     {
       "lhs": "select-case-tail",
-      "rhs": [
-        "TokenEnd",
-        "a:EndSelectWithoutElse",
-        "TokenNewline"
-      ]
+      "rhs": ["TokenEnd", "a:EndSelectWithoutElse", "TokenNewline"]
     },
     { "lhs": "select-case-tail", "rhs": ["x:MissingSelectEnd"] },
     { "lhs": "local-list", "rhs": ["x:StraySelectClause"] }

@@ -2351,11 +2351,10 @@ for-statement         ::= "for" NAME "=" expression
                           statement-sequence
                           "end" NEWLINE
 for-bound             ::= "to" | "until"
-step-constant         ::= [ "+" | "-" ] step-magnitude
-step-magnitude        ::= NUMBER | NAME
+step-constant         ::= [ "+" | "-" ] constant-expression
 ```
 
-A `NAME` used as a step magnitude must denote an earlier nonnegative integer named constant. The optional sign belongs to the counted-loop header. A written numeric magnitude follows Chapter 3's admitted integer-literal forms.
+A written step has an optional direction sign followed by an ordinary compile-time constant expression. The expression supplies a nonnegative magnitude; the optional sign supplies the direction.
 
 Each loop body is a statement sequence and may be empty. A loop opens no name scope, and its `end` closes only that loop.
 
@@ -2377,7 +2376,7 @@ The start and bound expressions must be assignment-compatible with the counter u
 
 The compiler evaluates the start expression and then the bound expression exactly once when the loop begins. It performs both evaluations before storing the converted start in the counter. A bound expression that reads the counter therefore reads its pre-loop value. If either evaluation or the start conversion traps, the counter is not initialized by the loop and the body does not begin.
 
-`step` defaults to mathematical `+1`. A written step is a compile-time signed constant. The compiler resolves a named magnitude under Chapter 5, applies the optional sign, and requires a nonzero magnitude from 1 through 65,535. `step 0` and `step -0` are invalid. The step is loop-control metadata and need not have the counter's storage type.
+`step` defaults to mathematical `+1`. A written magnitude must fold to a non-Boolean integer constant from 1 through 65,535. The optional leading `-` selects a negative step; leading `+` or no sign selects a positive step. `step 0`, `step -0`, a negative folded magnitude, and any expression that folds to zero are invalid. The step is loop-control metadata and need not have the counter's storage type. A variable, call, or other runtime value is not a step constant.
 
 ### 12.5 Counted-loop tests
 
@@ -3277,7 +3276,7 @@ for-statement
 for-bound
     ::= "to" | "until"
 step-constant
-    ::= [ "+" | "-" ] (NUMBER | NAME)
+    ::= [ "+" | "-" ] constant-expression
 
 expression
     ::= or-expression
@@ -3325,14 +3324,13 @@ The grammar uses these declared semantic predicates:
 | `isRecordTypeName`             | Accept a `NAME` as a type atom only when it resolves to a visible record type.                                                                                                     |
 | `isInitializerForDeclaredType` | Select and check the scalar, string, positional record, recursive array, or zero-default rule from the declared variable, aggregate constant, or current component type.           |
 | `isConstantContext`            | In constants, type bounds, array lengths, string capacities, and program initializers, admit only the compile-time operands and operations from Chapter 8.                         |
-| `isIntegerConstantName`        | Admit a `NAME` as a counted-loop step magnitude only when it denotes an earlier nonnegative integer constant.                                                                      |
 | `isIncompleteForwardName`      | Admit `sub NAME NEWLINE` as a body header only when the exact name resolves to one incomplete forward; install that forward's stored parameter bindings for the body.              |
 
-Field lookup after `.` uses the selected record type. A concrete bounded-string base admits `.length`; an open `string[]` base admits `.length` and `.capacity`, with writable `.length` restricted to an assignment target. A concrete or open array base admits read-only `.length`. Index selection uses a concrete fixed bound, an open array's retained actual count, or a bounded string's current logical length according to the base type; these distinctions need no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. The `NAME` in `step-constant` must denote an earlier integer constant. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
+Field lookup after `.` uses the selected record type. A concrete bounded-string base admits `.length`; an open `string[]` base admits `.length` and `.capacity`, with writable `.length` restricted to an assignment target. A concrete or open array base admits read-only `.length`. Index selection uses a concrete fixed bound, an open array's retained actual count, or a bounded string's current logical length according to the base type; these distinctions need no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. A counted-loop step uses the ordinary constant-expression parser for its unsigned magnitude and then requires a nonzero integer result in the range specified by Chapter 12; the optional leading sign selects direction. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 188 BNF rules over 101 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 186 BNF rules over 100 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
 | Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Lookahead | Conflict                                           | Resolution                          |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |

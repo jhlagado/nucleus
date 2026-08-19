@@ -884,12 +884,27 @@ describe("signed integers", () => {
     });
   });
 
-  it("keeps a named step magnitude nonnegative and takes its sign from the header", async () => {
+  it("accepts folded step magnitudes and keeps direction explicit", async () => {
+    const source = [
+      "const magnitude = 1",
+      "sub main() fails",
+      "var counter as i16",
+      "for counter = 0 to 4 step 1 + 1",
+      "writeOutputByte(u8(counter)) else fail",
+      "end",
+      "for counter = 2 to 0 step -magnitude",
+      "writeOutputByte(u8(counter)) else fail",
+      "end",
+      "end",
+      "",
+    ].join("\n");
+    await expectOutput(source, [0, 2, 4, 2, 1, 0]);
+
     const invalid = [
-      "const backwards = -1",
       "sub main()",
       "var counter as i16",
-      "for counter = 1 to 0 step backwards",
+      "var amount as i16 = 1",
+      "for counter = 1 to 0 step amount",
       "end",
       "end",
       "",
@@ -901,23 +916,32 @@ describe("signed integers", () => {
         code: 74,
         sourcePart: 1,
         sourceName: "signed.nu",
-        offset: invalid.lastIndexOf("backwards"),
+        offset: invalid.lastIndexOf("amount"),
         line: 4,
         column: 27,
       },
     });
 
-    const valid = [
-      "const magnitude = 1",
-      "sub main() fails",
+    const negativeMagnitude = [
+      "const backwards = -1",
+      "sub main()",
       "var counter as i16",
-      "for counter = 1 to 0 step -magnitude",
-      "writeOutputByte(u8(counter)) else fail",
+      "for counter = 1 to 0 step backwards",
       "end",
       "end",
       "",
     ].join("\n");
-    await expectOutput(valid, [1, 0]);
+    expect(await compile(negativeMagnitude)).toMatchObject({
+      success: false,
+      diagnostic: {
+        code: 74,
+        sourcePart: 1,
+        sourceName: "signed.nu",
+        offset: negativeMagnitude.lastIndexOf("backwards"),
+        line: 4,
+        column: 27,
+      },
+    });
   });
 
   it("accepts complete-width signed steps that land exactly on the opposite endpoint", async () => {

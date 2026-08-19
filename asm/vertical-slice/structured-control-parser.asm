@@ -504,75 +504,55 @@ StructuredLoopTransferSelected:
             JP   ParserExpectLine
 .endif
 
-; Parse one compile-time step constant. B returns mode bit 1 and DE magnitude.
+; Parse one compile-time integer expression. B returns direction bit 1 and DE
+; returns the nonzero magnitude.
 .routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
 StructuredParseStep:
-            XOR  A
-            LD   (ExpressionLeftMeta),A
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            LD   B,0
             CP   TokenPlus
-            JR   Z,StructuredStepPositive
+            JR   Z,StructuredStepTakeSign
             CP   TokenMinus
-            JR   NZ,StructuredStepMagnitude
-            LD   A,2
-            LD   (ExpressionLeftMeta),A
-StructuredStepPositive:
+            JR   NZ,StructuredStepExpression
+            LD   B,2
+StructuredStepTakeSign:
+            PUSH BC
             CALL ParserTake
+            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-StructuredStepMagnitude:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CP   TokenNumber
-            JR   Z,StructuredStepNumber
-            CP   TokenName
-            JR   NZ,StructuredStepFailure
-.if AggregateCallSlices
-            CALL Stage8MatchPredefinedCurrent
-            JR   NC,StructuredStepSourceConstant
-            CP   Stage8PredefinedConstantBase
-            JR   C,StructuredStepFailure
-            SUB  Stage8PredefinedConstantBase-1
-            LD   D,0
-            LD   E,A
-            JR   StructuredStepHaveMagnitude
-StructuredStepSourceConstant:
-.endif
-            CALL SymbolLookupCurrent
+StructuredStepExpression:
+            PUSH BC
+            XOR  A
+            CALL TypedExpressionBeginConstant
+            POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   D,A
-            AND  SymbolRecordTypeFlag+SymbolAggregateFlag
-            JR   NZ,StructuredStepFailure
-            LD   A,D
-            AND  SymbolClassMask
-            JR   NZ,StructuredStepFailure
+            AND  ScalarMetaConstant
+            JR   Z,StructuredStepFailure
             LD   A,D
             AND  ScalarMetaTypeMask
             CP   ScalarTypeBoolean
             JR   Z,StructuredStepFailure
             LD   A,D
-            AND  ScalarMetaNegative
+            CALL TypedInferredConstantType
+            OR   A
             JR   NZ,StructuredStepFailure
-StructuredStepNumber:
-            LD   D,B
-            LD   E,C
-StructuredStepHaveMagnitude:
-            LD   A,D
-            OR   E
+            LD   A,H
+            OR   L
             JR   Z,StructuredStepFailure
-            LD   A,(ExpressionLeftMeta)
-            LD   B,A
+            EX   DE,HL
             OR   A
             RET
 StructuredStepFailure:
+            LD   HL,ExpressionValuePosition
+            CALL CompilerRestoreTokenPosition
             CALL SetDiagInline
             .db  DiagnosticLoopStep
 

@@ -15,7 +15,6 @@ const predicates: Readonly<Record<string, readonly string[]>> = {
   "type-atom": ["isRecordTypeName"],
   "program-initializer": ["isInitializerForDeclaredType"],
   expression: ["isCallableName"],
-  "step-constant": ["isIntegerConstantName"],
   "routine-definition-tail": ["isIncompleteForwardName"],
   "const-declaration": ["isConstantContext"],
 };

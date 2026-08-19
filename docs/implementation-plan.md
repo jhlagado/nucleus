@@ -3109,6 +3109,31 @@ executes 1,942,692 instructions in 18,546,159 T-states. The lower compilation
 cost comes from replacing repeated program-first searches with one newest-first
 symbol scan; symbol capacity is unchanged.
 
+### Constant-expression counted-loop steps
+
+The counted-loop step magnitude now uses the ordinary compile-time expression
+folder. Forms such as `step 1 + 1`, `step Rows * Columns`, and `step
+-(Rows + 1)` are accepted when the folded magnitude is a nonzero non-Boolean
+integer through 65,535; the optional leading sign still selects direction.
+Runtime values and negative folded magnitudes remain invalid. This reuses the
+established constant-expression diagnostics and removes the former bespoke
+number/name scanner.
+
+Measured production accounting falls to 15,600 code bytes plus 437 immutable
+bytes, or 16,037 compiler-core bytes, with 3,613 workspace bytes and 347 bytes
+of 16 KiB headroom. This is a 29-byte production-core saving. The instrumented
+layout is 15,666 code plus 437 immutable, or 16,103 core. The historical
+returning-diagnostic layout falls by 30 bytes to 15,168 code plus 437
+immutable, or 15,605 core, with 3,623 workspace bytes. The selected proof
+runtime remains 899 bytes; the flat proof remains 2,346 bytes; generated loop
+code, semantic capacity, target layout, and NOBJ encoding are unchanged.
+
+The flat proof remains 881,732 instructions in 9,463,334 T-states, and the
+instrumented proof remains 885,357 in 9,503,299. The complete LL(1) proof
+remains 1,942,692 instructions in 18,546,159 T-states. The explicit-step
+historical structured-control proof executes 251,612 instructions in 2,676,537
+T-states because step expressions now traverse the shared constant folder.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

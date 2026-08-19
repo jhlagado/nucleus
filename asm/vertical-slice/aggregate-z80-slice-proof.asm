@@ -469,7 +469,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,145
             LD   HL,AggregateRecordStepSource
             LD   DE,AggregateRecordStepSourceEnd
-            LD   B,DiagnosticLoopStep
+            LD   B,DiagnosticTypeMismatch
             CALL ProofExpectDiagnostic
             JP   C,ProofFailRecordStep
             LD   HL,(DiagnosticOffset)
