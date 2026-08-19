@@ -1512,6 +1512,7 @@ local-initializer     ::= expression [ "else" "fail" ]
 
 program-initializer   ::= static-initializer
 static-initializer    ::= scalar-constant-expression
+                        | earlier-aggregate-constant
                         | STRING
                         | record-initializer
                         | array-initializer
@@ -1519,6 +1520,7 @@ record-initializer    ::= "(" static-initializer
                           { "," static-initializer } ")"
 array-initializer     ::= "[" static-initializer
                           { "," static-initializer } "]"
+earlier-aggregate-constant ::= NAME
 ```
 
 `type` and `scalar-type` are defined by Chapter 6. The parser selects a program initializer from the declared type. A parenthesized scalar expression and a record initializer share `(` as their first token; the already checked program-variable or component type selects the form without backtracking. `routine-statement-sequence` and `expression` are placeholders for later chapters, not additional declaration syntax.
@@ -1557,7 +1559,7 @@ const Masks as u8[4] = [$01, $02, $04, $08]
 const Prompt as string[8] = "READY"
 ```
 
-The initializer is required and follows the same complete, type-directed static-initializer rules as a program variable. Every scalar leaf is a compatible scalar constant expression. The declaration cannot use a runtime expression, read storage, call a routine, omit a component, or name the constant being declared. A scalar type after `as` is invalid: scalar constants retain the inferred form from Section 8.4.
+The initializer is required and follows the same complete, type-directed static-initializer rules as a program variable. Every scalar leaf is a compatible scalar constant expression. At any aggregate position, an earlier aggregate constant with the exact required concrete type may supply the complete subobject. The compiler copies its already established static value; this is not a runtime storage read. The declaration cannot use a runtime expression, read a variable, call a routine, omit a component, or name the constant being declared. A scalar type after `as` is invalid: scalar constants retain the inferred form from Section 8.4.
 
 The named root is read-only. Source assignment cannot be rooted directly at the aggregate constant name, including assignment to the complete object, one record field, one array element, or one bounded-string byte. The constant remains an ordinary aggregate source: field and index selection, `.length`, exact-type aggregate assignment, aggregate argument passing, and aggregate return are admitted.
 
@@ -1626,20 +1628,20 @@ Every program variable has an initial value. With no initializer, the compiler e
 
 An explicit program initializer is permitted only in these forms:
 
-| Declared type   | Permitted initializer                                                              |
-| --------------- | ---------------------------------------------------------------------------------- |
-| Any scalar type | One compatible scalar constant expression                                          |
-| `string[N]`     | One fitting string literal                                                         |
-| Record          | One positional record initializer with exactly one initializer per field           |
-| Fixed array     | One array initializer with exactly one compatible initializer per declared element |
+| Declared type   | Permitted initializer                                                        |
+| --------------- | ---------------------------------------------------------------------------- |
+| Any scalar type | One compatible scalar constant expression                                    |
+| `string[N]`     | One fitting string literal or earlier exact-type aggregate constant          |
+| Record          | One earlier exact-type aggregate constant or positional complete initializer |
+| Fixed array     | One earlier exact-type aggregate constant or complete array initializer      |
 
 Program initialization does not evaluate an ordinary runtime expression or read another variable. A string literal establishes both the decoded bytes and their logical length; embedded zero bytes count toward that length. A literal shorter than its capacity is valid, while one that exceeds the capacity is invalid and is never truncated.
 
-A record initializer uses parentheses and supplies fields in declaration order. An array initializer uses square brackets and supplies elements in increasing index order. A nested record, fixed array, or bounded string uses its own initializer at the corresponding position, so the initializer delimiters mirror the finite aggregate type tree. Every scalar leaf is a compatible scalar constant expression. Every record and array level is complete: too few or too many components are invalid, and the compiler neither pads an explicit initializer nor discards components.
+A record initializer uses parentheses and supplies fields in declaration order. An array initializer uses square brackets and supplies elements in increasing index order. A nested record, fixed array, or bounded string uses its own initializer at the corresponding position, so the initializer delimiters mirror the finite aggregate type tree. An earlier aggregate constant may replace any such complete aggregate node only when its concrete type is identical to the required type. Every scalar leaf is a compatible scalar constant expression. Every record and array level is complete: too few or too many components are invalid, and the compiler neither pads an explicit initializer nor discards components.
 
-Nucleus has no named-field, partial, spread, or runtime aggregate initializer. A static initializer cannot name another aggregate object or call a routine. It is a declaration-only description of one static object image, not a general aggregate expression.
+Nucleus has no named-field, partial, spread, or runtime aggregate initializer. Except for an earlier exact-type aggregate constant used as a complete initializer node, a static initializer cannot name another aggregate object or call a routine. It is a declaration-only description of one static object image, not a general aggregate expression. Field and index paths are not initializer forms.
 
-The program variable becomes visible only after the compiler has checked its type and initializer. Its initializer may therefore use earlier scalar constants but cannot use the variable itself or a later declaration.
+The program variable becomes visible only after the compiler has checked its type and initializer. Its initializer may therefore use earlier scalar constants and exact-type aggregate constants but cannot use the variable itself or a later declaration.
 
 ### 8.10 Routine declarations and parameters
 
@@ -1665,7 +1667,7 @@ A local becomes visible only after its complete declaration and initializer have
 
 Scalar constant expressions are evaluated during compilation and perform no source-level runtime operation. The compiler also constructs every aggregate constant's complete static value before source execution begins.
 
-The compiler establishes every program variable's zero or explicit initial value exactly once before the entry routine begins. Aggregate constants and variables follow source declaration order. Static initializers have no source-level effects and cannot read storage, so this order is not otherwise observable. Every program-lifetime object has reached its initial value before source execution can read it. Chapter 7 defines lifetime, and Chapter 19 defines startup semantics and implementation requirements.
+The compiler establishes every program variable's zero or explicit initial value exactly once before the entry routine begins. Aggregate constants and variables follow source declaration order. Static initializers have no source-level effects and cannot read runtime storage. Copying the already established static value of an earlier aggregate constant is a compile-time image operation, so this order is not otherwise observable. Every program-lifetime object has reached its initial value before source execution can read it. Chapter 7 defines lifetime, and Chapter 19 defines startup semantics and implementation requirements.
 
 On each routine invocation, parameter binding precedes activation-local initialization. Scalar local declarations then take effect in source order, and each receives its zero or evaluated value at its declaration. After the last local declaration, execution continues with the first statement.
 
@@ -1702,18 +1704,19 @@ record Cell
 end
 
 const defaultCell as Cell = (0, false)
+const secondDefault as Cell = defaultCell
 const bitMasks as u8[4] = [1, 2, 4, 8]
 const banner as string[8] = "READY"
 var cells as Cell[cellCount]
-var origin as Cell = (0, false)
-var templates as Cell[2] = [(1, true), (2, false)]
+var origin as Cell = defaultCell
+var templates as Cell[2] = [defaultCell, (2, false)]
 var flags as u8[4] = [1, 2, 4, 8]
 var prompt as string[8] = "READY"
 var title as string[12] = "NUCLEUS"
 var attempts as u8
 ```
 
-`defaultCell`, `bitMasks`, and `banner` are aggregate constants whose direct named roots cannot be assignment targets. `cells` and `attempts` begin with their zero values, including every field of every `Cell`. `origin`, `templates`, `flags`, `prompt`, and `title` are mutable program-lifetime objects with the written initial contents. `title` begins with seven decoded bytes.
+`defaultCell`, `secondDefault`, `bitMasks`, and `banner` are aggregate constants whose direct named roots cannot be assignment targets. `secondDefault`, `origin`, and the first element of `templates` receive compile-time copies of `defaultCell`. `cells` and `attempts` begin with their zero values, including every field of every `Cell`. `origin`, `templates`, `flags`, `prompt`, and `title` are mutable program-lifetime objects with the written initial contents. `title` begins with seven decoded bytes.
 
 A routine manipulates selected aggregate storage directly through a parameter path:
 
@@ -1781,7 +1784,7 @@ var lateBound as u8[laterLength]    // later constant is unavailable
 const laterLength = 4
 
 var shortText as string[4] = "READY" // decoded literal is too long
-var copiedCell as Cell = cells[0]   // static initializers cannot read aggregate storage
+var copiedCell as Cell = cells[0]   // invalid: a variable path is not a static initializer
 defaultCell.value = 1               // invalid: direct constant-rooted write
 
 sub invalidLocal()
@@ -3374,11 +3377,11 @@ Field and checked-index selection preserve the root identity and exact selected 
 
 ### 18.5 Constants, bounds, and initialization
 
-Scalar named constants are top-level values with types inferred from restricted constant initializers. Boolean-valued constants retain type `boolean`; integer-valued constants remain exact at later uses. Aggregate constants have explicit record, fixed-array, or bounded-string types and complete static initializers. Constant evaluation may use literals, earlier scalar constants, admitted pure scalar operators, parentheses, and checked scalar conversions. It may not read storage or call a routine.
+Scalar named constants are top-level values with types inferred from restricted constant initializers. Boolean-valued constants retain type `boolean`; integer-valued constants remain exact at later uses. Aggregate constants have explicit record, fixed-array, or bounded-string types and complete static initializers. Scalar constant evaluation may use literals, earlier scalar constants, admitted pure scalar operators, parentheses, and checked scalar conversions. A complete static aggregate initializer node may instead name one earlier aggregate constant of the exact required concrete type. This copies its established static bytes and does not evaluate a storage path. No constant evaluation may read a variable or call a routine.
 
 Array lengths and string capacities are positive constant values in the ranges set by Chapter 6. Constant fixed-array indices outside their domains are invalid. A bounded-string byte index is checked at runtime against the current logical length, even when the index expression is constant, unless the compiler proves the current length makes it safe at that program point.
 
-Program variables use the zero or complete static initializer forms in Chapter 8. Aggregate constants require the same complete structured form. Scalar locals use zero, an ordinary compatible expression, or a direct compatible failable result followed by `else fail`. Structured aggregate initialization occurs only for top-level variables and aggregate constants. An aggregate assignment materializes a transient result when retention is required.
+Program variables use the zero or complete static initializer forms in Chapter 8. Aggregate constants require a complete static initializer. At any aggregate node, an earlier aggregate constant of the identical concrete type may replace the corresponding complete structured or string form. Scalar locals use zero, an ordinary compatible expression, or a direct compatible failable result followed by `else fail`. Structured aggregate initialization occurs only for top-level variables and aggregate constants. An aggregate assignment materializes a transient result when retention is required.
 
 ### 18.6 Routine and failure checking
 

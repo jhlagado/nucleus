@@ -463,7 +463,11 @@ compiler capacity.
 Aggregate aliases contain a 16-bit address and no bank identity. The following
 rules prevent an alias to bank-local bytes from crossing a bank boundary:
 
-1. An aggregate constant is bank-local. Source in another bank cannot name it.
+1. An aggregate constant storage path is bank-local. Source in another bank
+   cannot use it as a runtime value or alias. A static initializer may copy an
+   earlier exact-type aggregate constant across banks because the compiler
+   copies established bytes and emits no runtime reference; the new object
+   belongs to the destination declaration's bank.
 2. An anonymous string-literal argument is bank-local to its source occurrence
    and can bind only to a `string[]` formal in a routine in that same bank.
 3. Every aggregate argument to a cross-bank call must be rooted directly in a

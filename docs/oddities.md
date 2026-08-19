@@ -168,7 +168,10 @@ expressions, assignments, results, locals, and concrete aggregate arguments.
 **Aggregate constants are read-only by source path.** Direct assignment to
 `Origin.x` is invalid. Pass `Origin` as an aggregate argument and the callee
 may write through the parameter. Whether that write changes memory depends on
-RAM versus ROM placement. Portable programs do not rely on it.
+RAM versus ROM placement. Portable programs do not rely on it. An earlier
+aggregate constant may also supply any complete exact-type node in a static
+initializer; this copies its established bytes during compilation rather than
+reading it at runtime.
 
 **Only a condition folded to constant `true` proves an indefinite loop.** It
 makes a value routine non-fallthrough when no syntactic `exit` targets that

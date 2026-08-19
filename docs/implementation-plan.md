@@ -3151,6 +3151,37 @@ falls by 20 bytes to 15,148 code plus 437 immutable, or 15,585 core, with 3,623
 workspace bytes. Runtime, generated programs, semantic capacity, target
 layout, NOBJ encoding, instruction counts, and T-states are unchanged.
 
+### Aggregate constants in static initializers
+
+Any complete aggregate initializer node may now name an earlier aggregate
+constant of the exact required concrete type. The parser scans the committed
+symbol table in declaration order while advancing a read-only-image cursor
+over earlier aggregate constants. A match copies the established complete
+object into initializer scratch; scalar constants, types, variables, and
+routines consume no read-only bytes. This adds no retained index, cache, or
+workspace. Later and self references remain unknown names, while mutable
+aggregate objects and nominally different types remain type mismatches.
+
+Measured production accounting is 15,696 code bytes plus 437 immutable bytes,
+or 16,133 compiler-core bytes, with 3,613 workspace bytes and 251 bytes of 16
+KiB headroom. This is 115 added production-core bytes, within the feature's
+120-byte retention budget. The instrumented layout is 15,762 code plus 437
+immutable, or 16,199 core. The historical returning-diagnostic layout is
+15,264 code plus 437 immutable, or 15,701 core, with 3,623 workspace bytes.
+The selected runtime remains 899 bytes and the historical proof runtime
+remains 921 bytes. Immutable data, compiler workspace, semantic capacity,
+generated Z80, runtime, target layout, and NOBJ encoding are unchanged.
+
+The flat proof executes 881,953 instructions in 9,465,725 T-states; the
+instrumented proof executes 885,578 instructions in 9,505,690 T-states. The
+historical Stage 9 proof executes 1,478,810 instructions in 14,567,268
+T-states; Stage 8 executes 1,753,158 in 16,949,785; and the complete LL(1)
+proof executes 1,943,560 in 18,555,025. Focused execution discriminates whole
+record copies, aggregate constants nested as fixed-array elements, the sealed
+bounded-string representation including an embedded zero, intervening scalar
+and mutable declarations, exact-type rejection, declaration order, and an
+earlier source part assigned to another target bank.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

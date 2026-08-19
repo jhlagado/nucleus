@@ -879,6 +879,14 @@ AggregateExpectCommaPreserveBC:
 AggregateParseInitializer:
             CP   AggregateFirstDynamicTypeId
             JR   C,AggregateParseScalarInitializer
+            LD   C,A
+            CALL AggregatePeekPreserveBC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CP   TokenName
+            LD   A,C
+            JP   Z,AggregateParseConstantInitializer
             PUSH AF
             CALL AggregateTypeAddress
             LD   A,(HL)
@@ -959,7 +967,7 @@ AggregateBeginCompositeInitializer:
 .endif
             CP   D
 .if TargetStreamingOutput
-            JR   NZ,AggregateInitializerShapeFailure
+            JP   NZ,AggregateInitializerShapeFailure
 .else
             JP   NZ,AggregateInitializerShapeFailure
 .endif
@@ -1085,6 +1093,68 @@ AggregateInitializerTakeClose:
             RET  C
 .endif
             JP   AggregateInitializerLeave
+
+; Copy an earlier exact-type aggregate constant into the current initializer
+; position. The symbol scan derives its offset in the declaration-ordered
+; read-only staging suffix, avoiding another retained workspace field.
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+AggregateParseConstantInitializer:
+            LD   C,A
+            CALL AggregateTakePreserveBC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(SymbolCount)
+            OR   A
+            JR   Z,AggregateConstantInitializerMissing
+            LD   B,A
+            LD   IX,SymbolTableBase
+            LD   IY,(StaticImageLength)
+            LD   DE,StaticImageBase
+            ADD  IY,DE
+AggregateConstantInitializerScan:
+            PUSH IX
+            POP  HL
+            CALL TokenNameRecordEquals
+            JR   C,AggregateConstantInitializerCopy
+            LD   A,(IX+3)
+            AND  SymbolAggregateFlag+SymbolClassMask
+            CP   SymbolAggregateFlag+SymbolClassConstant
+            JR   NZ,AggregateConstantInitializerNext
+            LD   A,(IX+SymbolTypeId)
+            CALL AggregateGetExtent
+            EX   DE,HL
+            ADD  IY,DE
+AggregateConstantInitializerNext:
+            LD   DE,SymbolEntrySize
+            ADD  IX,DE
+            DJNZ AggregateConstantInitializerScan
+AggregateConstantInitializerMissing:
+            JP   SymbolLookupMissing
+AggregateConstantInitializerCopy:
+            LD   A,(IX+3)
+            AND  SymbolAggregateFlag+SymbolClassMask
+            CP   SymbolAggregateFlag+SymbolClassConstant
+            JP   NZ,TypedTypeFailure
+            LD   A,(IX+SymbolTypeId)
+            CP   C
+            JP   NZ,TypedTypeFailure
+            CALL AggregateGetExtent
+            LD   B,H
+            LD   C,L
+            LD   DE,(AggregateCurrentObjectOffset)
+            PUSH DE
+            ADD  HL,DE
+            LD   (AggregateCurrentObjectOffset),HL
+            POP  HL
+            LD   DE,AggregateInitializerBase
+            ADD  HL,DE
+            EX   DE,HL
+            PUSH IY
+            POP  HL
+            LDIR
+            OR   A
+            RET
 
 ; Zero exactly the candidate object's complete extent before applying an
 ; explicit initializer. This also defines every byte of a zero initializer.
