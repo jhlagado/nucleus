@@ -2011,26 +2011,6 @@ HybridLL1BeginWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            ; A literal-true candidate starts with TokenTrue and, after the
-            ; pending label is emitted, finishes with exactly one expression
-            ; operation. Store that expected operation count temporarily in
-            ; the while-only mode field.
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CP   TokenTrue
-            JR   NZ,HybridLL1WhileCandidateReady
-.if TargetStreamingOutput
-            LD   A,(SemanticBufferBase)
-.else
-            LD   A,(SinkOperationCount)
-.endif
-            ADD  A,2
-            INC  HL
-            INC  HL
-            LD   (HL),A
-HybridLL1WhileCandidateReady:
             LD   B,ControlFrameLabelA
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
@@ -2044,21 +2024,18 @@ HybridLL1BeginWhileBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            ; Folded Boolean values are canonical zero or one in L. Turn the
+            ; constant bit in A into a mask, then retain constant true only.
+            RLCA
+            SBC  A,A
+            AND  L
+            LD   C,A
             LD   B,ControlFrameMode
             CALL ControlTopFrameField
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if TargetStreamingOutput
-            LD   A,(SemanticBufferBase)
-.else
-            LD   A,(SinkOperationCount)
-.endif
-            CP   (HL)
-            LD   (HL),0
-            JR   NZ,HybridLL1WhileModeReady
-            INC  (HL)
-HybridLL1WhileModeReady:
+            LD   (HL),C
             LD   B,ControlFrameExit
             JP   HybridLL1BeginConditionBody
 

@@ -170,11 +170,11 @@ expressions, assignments, results, locals, and concrete aggregate arguments.
 may write through the parameter. Whether that write changes memory depends on
 RAM versus ROM placement. Portable programs do not rely on it.
 
-**Only literal `while true` proves an indefinite loop.** It makes a value
-routine non-fallthrough when no syntactic `exit` targets that loop. An `exit`
-counts even after `return`, `fail`, or `continue`; an exit belonging to a nested
-loop does not. Parenthesized, computed, named, and dynamic conditions retain the
-conservative fallthrough rule.
+**Only a condition folded to constant `true` proves an indefinite loop.** It
+makes a value routine non-fallthrough when no syntactic `exit` targets that
+loop. An `exit` counts even after `return`, `fail`, or `continue`; an exit
+belonging to a nested loop does not. Dynamic and constant-false conditions
+retain the conservative fallthrough rule.
 
 **`select` is ordered equality, not a switch table.** The selector is evaluated
 once, and constant case values are tested from top to bottom. The first match

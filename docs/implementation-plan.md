@@ -3134,6 +3134,23 @@ remains 1,942,692 instructions in 18,546,159 T-states. The explicit-step
 historical structured-control proof executes 251,612 instructions in 2,676,537
 T-states because step expressions now traverse the shared constant folder.
 
+### Folded constant-true loop completion
+
+The return-flow summary now treats every `while` condition folded to Boolean
+constant `true` like the original exact `while true` form. It reads the
+expression's existing constant metadata and canonical Boolean value. The old
+token peek and semantic-operation-count test are removed. Dynamic and
+constant-false conditions remain fallthrough-capable, and the existing
+nearest-loop `exit` summary is unchanged.
+
+Measured production accounting falls by 19 bytes to 15,581 code bytes plus
+437 immutable bytes, or 16,018 compiler-core bytes, with 3,613 workspace bytes
+and 366 bytes of 16 KiB headroom. The instrumented layout is 15,647 code plus
+437 immutable, or 16,084 core. The historical returning-diagnostic layout
+falls by 20 bytes to 15,148 code plus 437 immutable, or 15,585 core, with 3,623
+workspace bytes. Runtime, generated programs, semantic capacity, target
+layout, NOBJ encoding, instruction counts, and T-states are unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

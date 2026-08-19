@@ -74,7 +74,11 @@ const execute = (built: NucleusCompileSuccess) =>
 const expectRoutineFlow = async (
   name: string,
   source: string,
-  expected: { readonly offset: number; readonly line: number; readonly column: number },
+  expected: {
+    readonly offset: number;
+    readonly line: number;
+    readonly column: number;
+  },
 ): Promise<void> => {
   const result = await compileNucleus([{ name, source }]);
   expect(result).toMatchObject({
@@ -91,7 +95,7 @@ const expectRoutineFlow = async (
 const sha256 = (value: string | Uint8Array): string =>
   createHash("sha256").update(value).digest("hex");
 
-describe("literal while true fallthrough", () => {
+describe("constant-true while fallthrough", () => {
   it("executes a value routine whose literal-true loop returns", async () => {
     const source = [
       "sub run() as u8",
@@ -125,9 +129,9 @@ describe("literal while true fallthrough", () => {
       "end",
       "",
     ].join("\n");
-    expect((await compileNucleus([{ name: "continue.nu", source }])).success).toBe(
-      true,
-    );
+    expect(
+      (await compileNucleus([{ name: "continue.nu", source }])).success,
+    ).toBe(true);
   });
 
   it("counts exits that target the literal-true loop", async () => {
@@ -189,27 +193,40 @@ describe("literal while true fallthrough", () => {
     }
   });
 
-  it("keeps every nonliteral condition and every for loop conservative", async () => {
-    const cases = [
+  it("recognizes folded constant-true conditions", async () => {
+    const sources = [
       [
         "parenthesized.nu",
         "sub run() as u8\nwhile (true)\nreturn 1\nend\nend\nsub main()\nend\n",
-        { offset: 45, line: 5, column: 4 },
       ],
       [
         "not-false.nu",
         "sub run() as u8\nwhile not false\nreturn 1\nend\nend\nsub main()\nend\n",
-        { offset: 48, line: 5, column: 4 },
       ],
       [
         "boolean-expression.nu",
         "sub run() as u8\nwhile true and true\nreturn 1\nend\nend\nsub main()\nend\n",
-        { offset: 52, line: 5, column: 4 },
       ],
       [
         "named.nu",
         "const Always = true\nsub run() as u8\nwhile Always\nreturn 1\nend\nend\nsub main()\nend\n",
-        { offset: 65, line: 6, column: 4 },
+      ],
+      [
+        "comparison.nu",
+        "sub run() as u8\nwhile 1 + 1 = 2\nreturn 1\nend\nend\nsub main()\nend\n",
+      ],
+    ] as const;
+    for (const [name, source] of sources) {
+      expect((await compileNucleus([{ name, source }])).success).toBe(true);
+    }
+  });
+
+  it("keeps false, dynamic, and for conditions conservative", async () => {
+    const cases = [
+      [
+        "constant-false.nu",
+        "sub run() as u8\nwhile not true\nreturn 1\nend\nend\nsub main()\nend\n",
+        { offset: 47, line: 5, column: 4 },
       ],
       [
         "dynamic.nu",
@@ -274,9 +291,9 @@ describe("literal while true fallthrough", () => {
       "end",
       "",
     ].join("\n");
-    expect((await compileNucleus([{ name: "capacity.nu", source: nested }])).success).toBe(
-      true,
-    );
+    expect(
+      (await compileNucleus([{ name: "capacity.nu", source: nested }])).success,
+    ).toBe(true);
 
     await expectRoutineFlow(
       "after-capacity.nu",

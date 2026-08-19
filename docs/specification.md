@@ -2598,14 +2598,16 @@ The static rule uses a bounded structured fallthrough summary:
 - assignment and call statements fall through;
 - an `if` does not fall through only when it has an `else` and every clause body does not fall through;
 - an `if` without `else` may fall through; and
-- a `while true` loop does not fall through when no syntactic `exit` targets that loop; every other `while` and every `for` is treated as able to finish.
+- a `while` whose condition folds to the Boolean constant `true` does not fall through when no syntactic `exit` targets that loop; every other `while` and every `for` is treated as able to finish.
 
 A statement sequence can reach its end when control can pass through every statement on a path. Once a statement on a path does not fall through, later statements on that path do not restore fallthrough. This rule permits one streaming summary per nested statement and requires no control-flow graph.
 
-The non-fallthrough loop rule recognizes only the exact source form `while true`.
-Parentheses, `not false`, `true and true`, a named Boolean constant, and another
-constant expression do not qualify. Any syntactic `exit` whose nearest loop is
-that `while` makes it conservatively fallthrough-capable, even when the `exit`
+The non-fallthrough loop rule recognizes any condition that the ordinary
+expression folder proves to be the Boolean constant `true`. Parentheses,
+`not false`, `true and true`, a named Boolean constant, and another folded
+Boolean expression therefore qualify. A dynamic condition and a condition
+folding to `false` do not. Any syntactic `exit` whose nearest loop is that
+`while` makes it conservatively fallthrough-capable, even when the `exit`
 follows a non-fallthrough statement and cannot execute. An `exit` whose nearest
 loop is a nested `while` or `for` does not count against the outer loop.
 
@@ -3384,7 +3386,7 @@ A call must match the visible signature in arity and parameter order. Scalar arg
 
 Every failable invocation has exactly one failure consumer. `else fail` requires a failable enclosing routine and is admitted only after a complete direct failable call in a scalar-local initializer, assignment right side, or call statement. Same-line `handle NAME` is admitted only after an eligible assignment or call statement and requires an existing writable `u8` destination that is not an active counted-loop counter. Failable invocations are invalid in returns, larger expressions, and argument lists.
 
-A result-bearing routine is invalid if its closing `end` is reachable without `return expression` or, when it declares `fails`, `fail`. Structured fallthrough follows Section 13.7. A literal `while true` with no syntactic `exit` targeting that loop does not fall through; all other loops remain conservatively able to finish. Exits belonging to nested loops do not count against an outer literal-true loop. `return` and `fail` do not fall through; a call with `else fail` may succeed and fall through.
+A result-bearing routine is invalid if its closing `end` is reachable without `return expression` or, when it declares `fails`, `fail`. Structured fallthrough follows Section 13.7. A `while` condition that folds to constant `true`, with no syntactic `exit` targeting that loop, does not fall through; all other loops remain conservatively able to finish. Exits belonging to nested loops do not count against an outer constant-true loop. `return` and `fail` do not fall through; a call with `else fail` may succeed and fall through.
 
 ### 18.7 Control contexts
 
