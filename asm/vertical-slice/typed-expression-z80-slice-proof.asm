@@ -58,7 +58,7 @@ TypedAcceptedSource:
             .db "    word = word / 1",10
             .db "    flag = false and (u8(300) = 0)",10
             .db "    flag = true or (out / 0 = 0)",10
-            .db "    flag = not out > 1",10
+            .db "    flag = not (out > 1)",10
             .db "    flag = (out = 1) and (out <> 2) and (out <= 1) and (out >= 1) and not (out > 1)",10
             .db "    out = (not out) and 255",10
             .db "    out = -out + 255",10

@@ -1805,14 +1805,13 @@ The reusable expression fragment is:
 ```text
 expression             ::= or-expression
 or-expression          ::= and-expression { ( "or" | "xor" ) and-expression }
-and-expression         ::= not-expression { "and" not-expression }
-not-expression         ::= "not" not-expression | comparison
+and-expression         ::= comparison { "and" comparison }
 comparison             ::= additive [ comparison-operator additive ]
 comparison-operator    ::= "=" | "<>" | "<" | "<=" | ">" | ">="
 additive               ::= multiplicative
                            { ( "+" | "-" ) multiplicative }
 multiplicative         ::= unary { ( "*" | "/" | "mod" ) unary }
-unary                  ::= ( "+" | "-" ) unary | postfix-expression
+unary                  ::= ( "+" | "-" | "not" ) unary | postfix-expression
 postfix-expression     ::= primary { postfix-suffix }
 primary                ::= NUMBER | CHARACTER | "true" | "false"
                          | NAME | conversion | "(" expression ")"
@@ -1868,19 +1867,18 @@ The conversions are numeric. They do not reinterpret sign bits, extract a low by
 Precedence from highest to lowest is:
 
 1. routine invocation, indexing, field selection, and parenthesized grouping;
-2. unary `+` and unary `-`;
+2. unary `+`, unary `-`, and `not`;
 3. multiplication, division, and modulo;
 4. addition and subtraction;
 5. one comparison;
-6. `not`;
-7. `and`;
-8. `or` and `xor`.
+6. `and`;
+7. `or` and `xor`.
 
 Binary arithmetic, `and`, `or`, and `xor` associate from left to right. Unary `+`, unary `-`, and `not` associate from right to left. A comparison contains at most one comparison operator and therefore has no associativity.
 
-`not` binds less tightly than comparison. Thus `not left = right` means `not (left = right)`. An integer complement used as a comparison operand requires parentheses, as in `(not mask) = expected`.
+`not` is a unary operator with the same precedence as unary `+` and `-`. It therefore binds more tightly than multiplication, addition, and comparison. Thus `not mask = expected` means `(not mask) = expected`. Negating a complete comparison requires parentheses, as in `not (left = right)`.
 
-The repeated forms in Section 9.2 preserve left association without a left-recursive predictive grammar. The first handwritten compiler implements the binary levels with one precedence-driven loop and a compact operator table; comparison's single-use rule and Boolean short-circuit emission remain explicit cases in that loop. Separate parsing remains appropriate for primary, postfix, unary, and right-recursive `not`. Another conforming compiler may use a different parser family only if it accepts the same token sequences and produces the same association and evaluation order.
+The repeated forms in Section 9.2 preserve left association without a left-recursive predictive grammar. The first handwritten compiler implements the binary levels with one precedence-driven loop and a compact operator table; comparison's single-use rule and Boolean short-circuit emission remain explicit cases in that loop. Separate parsing remains appropriate for primary, postfix, and right-recursive unary operators. Another conforming compiler may use a different parser family only if it accepts the same token sequences and produces the same association and evaluation order.
 
 ### 9.7 Exact-integer resolution
 
@@ -2016,7 +2014,7 @@ u8(wordValue)
 (not (mask and readyMask)) = 0
 ```
 
-The first expression contains two non-chained comparisons. The third performs checked narrowing. In the last expression, parentheses make the integer complement the left comparison operand; without them, `not` would apply to the Boolean comparison result.
+The first expression contains two non-chained comparisons. The third performs checked narrowing. In the last expression, parentheses make `not` complement the complete `mask and readyMask` result; without them, only `mask` would be complemented before `and`.
 
 Each of these forms is invalid:
 
@@ -2942,7 +2940,7 @@ Nucleus 0.1 defines these trap reasons:
 | `loop-range`          | A counted-loop next value would continue but does not fit the counter type. The trap precedes the counter store.                                                          |
 | `activation-capacity` | A call would exceed a published activation-depth or activation-storage limit. The trap occurs after argument evaluation and before the new activation begins.             |
 | `unhandled-error`     | `main` returns failure. The report includes the returned `u8` code.                                                                                                       |
-| `packet-service`      | A target-specific `service` slot is unavailable or rejects the retained packet extent. The trap precedes native dispatch and packet mutation.                            |
+| `packet-service`      | A target-specific `service` slot is unavailable or rejects the retained packet extent. The trap precedes native dispatch and packet mutation.                             |
 
 A conforming implementation may use more detailed internal causes, but it must preserve these public reason identities. It must not report a required reason as another reason merely because two checks share a helper.
 
@@ -3284,9 +3282,7 @@ expression
 or-expression
     ::= and-expression { ("or" | "xor") and-expression }
 and-expression
-    ::= not-expression { "and" not-expression }
-not-expression
-    ::= "not" not-expression | comparison
+    ::= comparison { "and" comparison }
 comparison
     ::= additive [ comparison-operator additive ]
 comparison-operator
@@ -3296,7 +3292,7 @@ additive
 multiplicative
     ::= unary { ("*" | "/" | "mod") unary }
 unary
-    ::= ("+" | "-") unary | postfix-expression
+    ::= ("+" | "-" | "not") unary | postfix-expression
 postfix-expression
     ::= primary { postfix-suffix }
 primary
@@ -3334,13 +3330,13 @@ Field lookup after `.` uses the selected record type. A concrete bounded-string 
 
 ### 17.4 Predictive analysis
 
-The repository grammar analyzer mechanically expanded the grammar above to 189 BNF rules over 102 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
+The repository grammar analyzer mechanically expanded the grammar above to 188 BNF rules over 101 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
 
-| Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Lookahead | Conflict                                           | Resolution                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
-| `name-statement`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `NAME`    | assignment versus routine call                     | `isWritableName` / `isCallableName` |
-| `static-initializer`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `(`       | record initializer versus parenthesized expression | `isInitializerForDeclaredType`      |
-| No unexplained FIRST/FIRST or FIRST/FOLLOW conflict remains. The expression repetitions expand to right-recursive analysis rules while their semantic actions preserve the left association specified in Section 9.6. Unary and `not` recursion remains right-recursive by design. `or` is exclusively the Boolean operator. A same-line `else fail` is selected only after a complete name-led statement or local initializer, while `else` at the start of the following logical line remains an `if` clause. The newline makes those cases deterministic without backtracking. The completed source before `else fail` must be exactly one direct failable invocation. Other reported conflicts require their named predicate or an audited equivalent; a compiler must report a specification defect rather than change the language silently. |
+| Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Lookahead | Conflict                                           | Resolution                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
+| `name-statement`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `NAME`    | assignment versus routine call                     | `isWritableName` / `isCallableName` |
+| `static-initializer`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `(`       | record initializer versus parenthesized expression | `isInitializerForDeclaredType`      |
+| No unexplained FIRST/FIRST or FIRST/FOLLOW conflict remains. The expression repetitions expand to right-recursive analysis rules while their semantic actions preserve the left association specified in Section 9.6. Unary recursion remains right-recursive by design. `or` is exclusively the Boolean operator. A same-line `else fail` is selected only after a complete name-led statement or local initializer, while `else` at the start of the following logical line remains an `if` clause. The newline makes those cases deterministic without backtracking. The completed source before `else fail` must be exactly one direct failable invocation. Other reported conflicts require their named predicate or an audited equivalent; a compiler must report a specification defect rather than change the language silently. |
 
 The analyzer result checks the collected grammar's formal shape. It does not prove the static compatibility, lifetime, capacity, or flow rules consolidated in Chapter 18.
 
@@ -3468,14 +3464,14 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Source       | Ordered multipart compilation input with stable part identities and part-relative diagnostics; flat ordered build manifest; ASCII-compatible bytes, `//` comments, logical newlines, case-sensitive preserved names, lowercase keywords, decimal, hexadecimal, and binary integers, byte characters, bounded string literals, fixed punctuation. |
 | Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
-| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked nested fixed arrays with outermost-first suffixes, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element outermost `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                                         |
+| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked nested fixed arrays with outermost-first suffixes, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element outermost `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                          |
 | Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
 | Expressions  | Calls, checked concrete/open-array and bounded-string indexing, field selection, array and string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                           |
 | Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
 | Control      | Flat `if`/`elseif`/`else`; ordered integer `select`/`case` with constant equality items, optional final `else`, and no fallthrough; pre-test `while`; counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                     |
 | Routines     | Formal arguments including capacity-polymorphic `string[]` and length-polymorphic `T[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                      |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
-| System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes; typed direct Z80 `readPort(u16)` and `writePort(u16, u8)`; normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                         |
+| System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes; typed direct Z80 `readPort(u16)` and `writePort(u16, u8)`; normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                          |
 
 No conforming compiler may expose a standard profile that omits one of these mechanisms.
 
@@ -3493,7 +3489,7 @@ The maintainer of this language specification owns source-language admission. Th
 
 | Candidate                                                        | Required decision evidence and owner                                                                                                                                     |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Selection ranges or dense jump-table lowering                    | Source range rules, overlap policy, compiler cost, and emitted-size savings on representative programs; language-specification maintainer in a future revision.           |
+| Selection ranges or dense jump-table lowering                    | Source range rules, overlap policy, compiler cost, and emitted-size savings on representative programs; language-specification maintainer in a future revision.          |
 | Routine-local aggregate objects or fixed local aggregate aliases | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.                      |
 | General slices, array ranges, and caller-selected view lengths   | Source typing, lifetime, bounds, overlap, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
 | Intrinsic bounded-string append, insertion, slicing, or splicing | Typed contract, overlap and failure semantics, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                      |

@@ -1185,7 +1185,7 @@ TypedRequireIntegerMeta:
             OR   A
             RET
 
-; Unary + and - bind above multiplicative operators.
+; Unary +, -, and not bind above multiplicative operators.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseUnary:
             CALL ParserPeek
@@ -1196,6 +1196,8 @@ TypedParseUnary:
             JR   Z,TypedUnaryPlus
             CP   TokenMinus
             JR   Z,TypedUnaryMinus
+            CP   TokenNot
+            JP   Z,TypedUnaryNot
             JP   TypedParsePrimary
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedUnaryPlus:
@@ -1584,20 +1586,17 @@ TypedComparisonConstantDone:
             OR   A
             RET
 
-; `not` binds below comparisons and above `and`.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedParseNot:
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CP   TokenNot
-            JP   NZ,TypedParseComparison
+TypedParseComparisonEntry:
+            JP   TypedParseComparison
+
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TypedUnaryNot:
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL TypedParseNot
+            CALL TypedParseUnary
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1669,7 +1668,7 @@ TypedNotIntegerConstant:
 ; ordinary postfix reduction.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseAnd:
-            CALL TypedParseNot
+            CALL TypedParseComparisonEntry
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1706,7 +1705,7 @@ TypedAndLoop:
             RET  C
 .endif
 TypedAndParseRight:
-            CALL TypedParseNot
+            CALL TypedParseComparisonEntry
 .if CompilerDiagnosticReturns
             RET  C
 .endif

@@ -174,6 +174,21 @@ describe("signed integers", () => {
     );
   });
 
+  it("binds not as a unary operator", async () => {
+    const source = [
+      "sub main() fails",
+      "if not i8(0) <> -2",
+      "writeOutputByte(1) else fail",
+      "end",
+      "if not (i8(0) = -2)",
+      "writeOutputByte(2) else fail",
+      "end",
+      "end",
+      "",
+    ].join("\n");
+    await expectOutput(source, [1, 2]);
+  });
+
   it("selects every constant and runtime comparison truth-table cell", async () => {
     const operators = ["=", "<>", "<", "<=", ">", ">="] as const;
     const truthByOperator = [
