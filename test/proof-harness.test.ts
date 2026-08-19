@@ -216,8 +216,8 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(
       outcome.extents.find(({ name }) => name === "compiler-core")?.bytes,
     ).toBeLessThanOrEqual(16_384);
-    expect(outcome.instructions).toBe(1_478_810);
-    expect(outcome.cycles).toBe(14_567_268);
+    expect(outcome.instructions).toBe(1_490_424);
+    expect(outcome.cycles).toBe(14_683_285);
     expect(outcome.extents).toEqual([
       { name: "compiler-code", bytes: 15_264 },
       { name: "compiler-immutable", bytes: 437 },
@@ -225,7 +225,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "compiler-workspace", bytes: 3_623 },
       { name: "generated-z80-bound", bytes: 4_096 },
       { name: "z80-runtime", bytes: 921 },
-      { name: "corpus-source-and-descriptors", bytes: 8_789 },
+      { name: "corpus-source-and-descriptors", bytes: 8_878 },
       { name: "proof-code-and-data", bytes: 2_102 },
     ]);
 

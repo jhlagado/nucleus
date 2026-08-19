@@ -3174,7 +3174,7 @@ generated Z80, runtime, target layout, and NOBJ encoding are unchanged.
 
 The flat proof executes 881,953 instructions in 9,465,725 T-states; the
 instrumented proof executes 885,578 instructions in 9,505,690 T-states. The
-historical Stage 9 proof executes 1,478,810 instructions in 14,567,268
+historical Stage 9 proof executes 1,490,424 instructions in 14,683,285
 T-states; Stage 8 executes 1,753,158 in 16,949,785; and the complete LL(1)
 proof executes 1,943,560 in 18,555,025. Focused execution discriminates whole
 record copies, aggregate constants nested as fixed-array elements, the sealed

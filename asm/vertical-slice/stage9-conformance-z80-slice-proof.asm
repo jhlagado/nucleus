@@ -127,10 +127,12 @@ Chapter21_3Source:
             .db "end",10
             .db 10
             .db "sub odd",10
-            .db "    if value = 0",10
-            .db "        return false",10
+            .db "    while not false",10
+            .db "        if value = 0",10
+            .db "            return false",10
+            .db "        end",10
+            .db "        return even(value - 1)",10
             .db "    end",10
-            .db "    return even(value - 1)",10
             .db "end",10
             .db 10
             .db "sub main()",10
@@ -223,7 +225,7 @@ Chapter21_8Source:
             .db "sub main()",10
             .db "    var index as u8",10
             .db 10
-            .db "    for index = 250 to 255 step 10",10
+            .db "    for index = 250 to 255 step 5 + 5",10
             .db "        exit",10
             .db "    end",10
             .db "end",10
@@ -269,6 +271,7 @@ Chapter21_9ModuloSourceEnd:
 Chapter21_12Source:
             .db "forward sub render(Player as u8) as u8",10
             .db 10
+            .db "var Player as u8 = 9",10
             .db "var player as u8 = 1",10
             .db "var PLAYER as u8 = 2",10
             .db 10
@@ -363,7 +366,7 @@ Chapter21_17Source:
             .db "sub main() fails",10
             .db "    byteValue = byteValue xor $ff",10
             .db "    wordValue = wordValue xor $ffff",10
-            .db "    if folded = 3 and byteValue = $5a and wordValue = $0f0f",10
+            .db "    if folded = 3 and not byteValue = $a5 and wordValue = $0f0f",10
             .db "        writeOutputByte(byteValue) else fail",10
             .db "    end",10
             .db "end",10
@@ -446,16 +449,16 @@ Chapter21_20Source:
             .db "end",10
             .db 10
             .db "const Origin as Pair = (7, 300)",10
+            .db "const Clone as Pair = Origin",10
             .db "const Values as u8[3] = [1, 2, 3]",10
             .db "const Text as string[3] = \"A\\0B\"",10
-            .db "var target as Pair",10
+            .db "var target as Pair = Clone",10
             .db 10
             .db "sub mutate(item as Pair)",10
             .db "    item.left = 9",10
             .db "end",10
             .db 10
             .db "sub main() fails",10
-            .db "    target = Origin",10
             .db "    if target.left = 7 and Values[1] = 2 and Text.length = 3 and Text[2] = 'B'",10
             .db "        mutate(Origin)",10
             .db "        if Origin.left = 9 and target.left = 7",10

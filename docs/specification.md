@@ -3594,10 +3594,12 @@ sub even(value as u16) as boolean
 end
 
 sub odd
-    if value = 0
-        return false
+    while not false
+        if value = 0
+            return false
+        end
+        return even(value - 1)
     end
-    return even(value - 1)
 end
 
 sub main()
@@ -3618,7 +3620,12 @@ sub main()
 end
 ```
 
-The program is valid and writes byte value 4 when the output service succeeds. The Chapter 21 conformance floor requires enough activation capacity for this execution; an implementation may perform `activation-capacity` only beyond its published, conformant limit.
+The program is valid and writes byte value 4 when the output service succeeds.
+The condition of the loop in `odd` folds to `true`, and no `exit` targets that
+loop, so the value routine needs no return after the loop. The Chapter 21
+conformance floor requires enough activation capacity for this execution; an
+implementation may perform `activation-capacity` only beyond its published,
+conformant limit.
 
 ### 21.4 Bounded-string aliasing and byte mutation
 
@@ -3710,13 +3717,15 @@ The conformance output begins empty with its cursor at zero. The first two calls
 sub main()
     var index as u8
 
-    for index = 250 to 255 step 10
+    for index = 250 to 255 step 5 + 5
         exit
     end
 end
 ```
 
-This program is valid and terminates normally with `index` equal to 250. Without the `exit`, the mathematical next value is 260. It fails the `to 255` next-bound test, so the loop ends without storing it and without a `loop-range` trap.
+The step expression folds to 10. This program is valid and terminates normally
+with `index` equal to 250. Without the `exit`, the mathematical next value is 260. It fails the `to 255` next-bound test, so the loop ends without storing it
+and without a `loop-range` trap.
 
 ### 21.9 Specified trap cases
 
@@ -3932,6 +3941,7 @@ This complete program uses three distinct case variants and a forward parameter 
 ```nucleus
 forward sub render(Player as u8) as u8
 
+var Player as u8 = 9
 var player as u8 = 1
 var PLAYER as u8 = 2
 
@@ -3944,7 +3954,11 @@ sub main() fails
 end
 ```
 
-The expected standard output is byte value 6. The lowercase keywords are recognized as keywords; `Player`, `player`, and `PLAYER` are distinct identifiers. The abbreviated body obtains `Player` from the forward signature.
+The expected standard output is byte value 6. The lowercase keywords are
+recognized as keywords; `Player`, `player`, and `PLAYER` are distinct
+identifiers. Inside `render`, the forward parameter `Player` shadows the
+program variable with the same exact identity, so the argument value 3 is used.
+The abbreviated body obtains that parameter binding from the forward signature.
 
 Changing the body header to `sub Render` makes the program invalid because no incomplete forward named `Render` exists. Writing `SUB render` is also invalid: `SUB` is a `NAME`, not the keyword `sub`.
 
@@ -4058,13 +4072,14 @@ var wordValue as u16 = $f0f0
 sub main() fails
     byteValue = byteValue xor $ff
     wordValue = wordValue xor $ffff
-    if folded = 3 and byteValue = $5a and wordValue = $0f0f
+    if folded = 3 and not byteValue = $a5 and wordValue = $0f0f
         writeOutputByte(byteValue) else fail
     end
 end
 ```
 
-The expected standard output is byte value 90.
+`not byteValue = $a5` means `(not byteValue) = $a5`; unary `not` binds before
+comparison. The expected standard output is byte value 90.
 
 Boolean operands are invalid:
 
@@ -4150,7 +4165,9 @@ The third program is rejected at `assert` because an exact integer is not a Bool
 
 ### 21.20 Aggregate constants
 
-This program reads record, array, and bounded-string constants, copies a constant into mutable storage, and deliberately demonstrates the non-transitive alias rule:
+This program reads record, array, and bounded-string constants, uses earlier
+aggregate constants as complete static initializer nodes, and deliberately
+demonstrates the non-transitive alias rule:
 
 ```nucleus
 record Pair
@@ -4159,16 +4176,16 @@ record Pair
 end
 
 const Origin as Pair = (7, 300)
+const Clone as Pair = Origin
 const Values as u8[3] = [1, 2, 3]
 const Text as string[3] = "A\0B"
-var target as Pair
+var target as Pair = Clone
 
 sub mutate(item as Pair)
     item.left = 9
 end
 
 sub main() fails
-    target = Origin
     if target.left = 7 and Values[1] = 2 and Text.length = 3 and Text[2] = 'B'
         mutate(Origin)
         if Origin.left = 9 and target.left = 7
@@ -4178,7 +4195,14 @@ sub main() fails
 end
 ```
 
-The direct named roots are readable aggregate sources. `target = Origin` copies the complete value. Passing `Origin` to `mutate` loses the direct-root read-only marker, so the mutation is permitted; this conformance execution uses writable proof storage and therefore observes the change. Portable programs do not depend on that mutation when a target places constants in physical read-only memory. The expected standard output is `Y`.
+`Clone` is established by copying the complete value of the earlier `Origin`
+constant during static initialization. `target` is then initialized from
+`Clone` before `main`; neither copy performs a runtime storage read. Passing
+`Origin` to `mutate` loses the direct-root read-only marker, so the mutation is
+permitted; this conformance execution uses writable proof storage and therefore
+observes the change. Portable programs do not depend on that mutation when a
+target places constants in physical read-only memory. The expected standard
+output is `Y`.
 
 A direct constant-rooted assignment is invalid:
 
