@@ -362,7 +362,8 @@ The table contains:
 - the six standard services in the Z80 runtime contract;
 - the terminal success, unhandled-failure, and trap paths required by that
   contract; and
-- target far-call and far-jump entries.
+- target far-call and far-jump entries; and
+- the target-specific packet-service gateway.
 
 The table lies in the writable region and therefore remains visible from every
 bank. Every vector destination must also remain callable under every bank
@@ -380,6 +381,16 @@ Nucleus execution must expose the corresponding Z80 I/O behavior, and a host
 or proof adapter must observe the same 16-bit port address and byte value.
 Direct I/O uses no memory-bank address and is valid in both flat and banked
 images.
+
+The packet-service entry is different: it is runtime-vector ordinal 11 and is
+part of runtime identity `$0009`. A target may bind it to a MON-3 RST gateway,
+CP/M BDOS, MSX BIOS, firmware, or a host callback. The destination must remain
+callable under every bank selector, validate the slot and retained packet
+count before native dispatch, preserve the selected bank, and confine every
+write to the supplied packet extent. Adding the entry increases the initialized
+vector image by three bytes. The shared packet-validation and terminal-trap
+gateway adds 42 bytes to the canonical helper image, which is 731 bytes under
+runtime identity `$0009`.
 
 ## 7. Banked programs
 

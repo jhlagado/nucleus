@@ -1891,6 +1891,14 @@ Stage7CompleteOpenArgument:
 ; call form. The retained array count remains a complete u16 word.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage7PublishOpenArrayArgument:
+            CALL Stage7PrepareOpenArrayCarrier
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            JR   Stage7CompleteOpenArgument
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7PrepareOpenArrayCarrier:
             LD   A,(Stage7PathType)
             CP   AggregateOpenArrayTypeMask
             JR   NC,Stage7PublishForwardedOpenArray
@@ -1917,11 +1925,7 @@ Stage7PrepareOpenArrayReady:
             RET  C
 .endif
             LD   HL,(Stage7PathOffset)
-            CALL Stage7EmitWord
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            JR   Stage7CompleteOpenArgument
+            JP   Stage7EmitWord
 Stage7CallArgumentsDone:
             CALL ParserExpectRight
 .if TargetStreamingOutput
@@ -2191,8 +2195,10 @@ Stage8TypedPrimaryConstant:
 ; whether a successful u8 result is kept.
 .routine in A,B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ParseServiceCall:
+            CP   Stage8PredefinedPacketService
+            JR   Z,Stage8ParsePacketService
             CP   Stage8PredefinedPortBase
-            JR   NC,Stage8ParsePortCall
+            JP   NC,Stage8ParsePortCall
             LD   E,A
             LD   D,B
             LD   HL,Stage8ServiceSignatureTable
@@ -2240,6 +2246,102 @@ Stage8ServiceResultTypeReady:
             LD   A,Stage7RoutineFails
             LD   (Stage8CallFlags),A
             JP   Stage7PublishCallable
+
+; Parse the target-defined, infallible packet gateway. The slot is an exact
+; u8 constant; the packet is a writable complete u8 array or forwarded u8[]
+; carrier. The existing open-array preparation operation publishes address
+; and count, while the terminal operation retains only slot and source offset.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage8ParsePacketService:
+            CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,ScalarTypeU8
+            CALL TypedExpressionBeginConstant
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            PUSH HL
+            LD   HL,ExpressionValuePosition
+            CALL CompilerRestoreTokenPosition
+            POP  HL
+            LD   D,A
+            AND  ScalarMetaConstant
+            JP   Z,TypedTypeFailure
+            LD   A,D
+            LD   E,ScalarTypeU8
+            CALL TypedCheckAssignable
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,L
+            LD   (Stage8ServiceId),A
+            LD   E,TokenComma
+            CALL ParserExpect
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL ParserPeek
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7LookupAggregateCurrent
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            BIT  2,D                     ; program or parameter, never constant
+            JP   Z,TypedTypeFailure
+Stage8PacketRootReady:
+            LD   DE,ExpressionValuePosition
+            CALL CompilerCopyTokenPosition
+            CALL Stage7ParseAggregateValue
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,ExpressionValuePosition
+            CALL CompilerRestoreTokenPosition
+            LD   (Stage7PathType),A
+            CP   AggregateOpenArrayTypeMask
+            JR   NC,Stage8PacketOpenArray
+            CP   AggregateFirstDynamicTypeId
+            JP   C,TypedTypeFailure
+            CALL AggregateTypeAddress
+            LD   A,(HL)
+            CP   AggregateTypeKindArray
+            JP   NZ,TypedTypeFailure
+            INC  HL
+            LD   A,(HL)
+            CP   ScalarTypeU8
+            JP   NZ,TypedTypeFailure
+            JR   Stage8PacketTypeReady
+Stage8PacketOpenArray:
+            AND  AggregateOpenArrayElementMask
+            CP   ScalarTypeU8
+            JP   NZ,TypedTypeFailure
+Stage8PacketTypeReady:
+            CALL Stage7PrepareOpenArrayCarrier
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL ParserExpectRight
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage8ServiceId)
+            LD   C,A
+            LD   A,SemanticPacketService
+            CALL ParserEmitOperationC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   HL,(Stage7CallOffset)
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            XOR  A
+            RET
 
 ; Return the declared byte capacity of a bounded-string type ordinal.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL

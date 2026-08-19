@@ -27,6 +27,7 @@ const helperIdentitySymbols = {
     DivideSigned: "NucleusRuntimeDivideSignedOffset",
     SignedLoopStep: "NucleusRuntimeSignedLoopStepOffset",
     RuntimePromoteI8Pair: "NucleusRuntimePromoteI8PairOffset",
+    PacketServiceGateway: "NucleusRuntimePacketServiceGatewayOffset",
 };
 const serviceOrder = [
     "readInputByte",
@@ -40,16 +41,17 @@ const serviceOrder = [
     "trap",
     "farCall",
     "farJump",
+    "packetService",
 ];
 export const defaultRuntimeLinkContext = {
     runtimeBase: 0x6800,
     writableBase: 0x7800,
     writableCapacity: 0x1000,
-    writableStateBase: 0x7821,
+    writableStateBase: 0x7824,
     vectorBase: 0x7800,
-    programDataBase: 0x7846,
+    programDataBase: 0x7849,
     programDataCapacity: 0x0800,
-    readOnlyBase: 0x6ab1,
+    readOnlyBase: 0x6adb,
     readOnlyCapacity: 0x0800,
     services: {
         readInputByte: 0x9000,
@@ -63,6 +65,7 @@ export const defaultRuntimeLinkContext = {
         trap: 0x9018,
         farCall: 0x901b,
         farJump: 0x901e,
+        packetService: 0x9021,
     },
 };
 const checkedWord = (name, value) => {
@@ -107,6 +110,7 @@ RuntimeProgramDataBase      .equ ${hexWord(context.programDataBase)}
 RuntimeProgramDataCapacity  .equ ${hexWord(context.programDataCapacity)}
 RuntimeReadOnlyBase         .equ ${hexWord(context.readOnlyBase)}
 RuntimeReadOnlyCapacity     .equ ${hexWord(context.readOnlyCapacity)}
+RuntimePacketService        .equ ${hexWord(context.services.packetService)}
 StateBase          .equ RuntimeWritableStateBase
 RunState           .equ StateBase+$00
 TrapNumber         .equ StateBase+$01
@@ -142,10 +146,10 @@ ComparisonLessEqual    .equ 3
 ComparisonGreater      .equ 4
 ComparisonGreaterEqual .equ 5
 `;
-const vectorBytes = (services) => {
+const vectorBytes = (services, packetServiceGateway) => {
     const bytes = new Uint8Array(serviceOrder.length * 3);
     serviceOrder.forEach((name, index) => {
-        const address = services[name];
+        const address = name === "packetService" ? packetServiceGateway : services[name];
         bytes[index * 3] = 0xc3;
         bytes[index * 3 + 1] = address & 0xff;
         bytes[index * 3 + 2] = address >>> 8;
@@ -208,8 +212,18 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
     const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "nucleus-runtime-link-"));
     try {
         const contextPath = path.join(temporaryDirectory, "nucleus-runtime-link-context.asmi");
+        const interfacePath = path.join(temporaryDirectory, "nucleus-runtime-services.asmi");
         const entryPath = path.join(temporaryDirectory, "runtime-link.asm");
         await writeFile(contextPath, contextAssembly(context), "utf8");
+        await writeFile(interfacePath, [
+            "extern RuntimePacketService",
+            "in A,BC,HL",
+            "out A,carry,zero",
+            "clobbers B,C,D,E,H,L,sign,parity,halfCarry",
+            "preserves IX,IY",
+            "end",
+            "",
+        ].join("\n"), "utf8");
         await writeFile(entryPath, `.include "nucleus-runtime-link-context.asmi"\n` +
             `.org RuntimeLinkBase\nRuntimeCodeStart:\n` +
             `.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n`, "utf8");
@@ -219,6 +233,7 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
             emitHex: true,
             emitD8m: true,
             registerContracts: "strict",
+            registerContractsInterfaces: [interfacePath],
         });
         const errors = assembled.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
         if (errors.length > 0) {
@@ -285,7 +300,7 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
             }
             helperOffsets[helper] = offset;
         }
-        const linkedVectors = vectorBytes(context.services);
+        const linkedVectors = vectorBytes(context.services, symbol("PacketServiceGateway"));
         if (linkedVectors.length !== vectorLength) {
             throw new NobjError("canonical runtime vector-layout mismatch");
         }

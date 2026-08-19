@@ -164,7 +164,8 @@ Stage8ServiceRewindStorage   .equ 3
 Stage8ServiceWriteStorage    .equ 4
 Stage8ServiceSeekStorage     .equ 5
 Stage8PredefinedPortBase     .equ 6
-Stage8PredefinedConstantBase .equ 8
+Stage8PredefinedPacketService .equ 8
+Stage8PredefinedConstantBase .equ 9
 
 ; One completed call selector carries the target kind, successful-result
 ; retention choice, and dense target ID. Source labels occupy 27..31 and

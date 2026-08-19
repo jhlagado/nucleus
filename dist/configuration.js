@@ -33,6 +33,7 @@ export const nucleusTargetServiceNames = [
     "trap",
     "farCall",
     "farJump",
+    "packetService",
 ];
 const wordFields = [
     "imageBase",

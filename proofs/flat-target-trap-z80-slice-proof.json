@@ -21,7 +21,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 8,
+      "runtimeIdentity": 9,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -35,21 +35,21 @@
       "writableBase": 16384,
       "writableCapacity": 4096,
       "vectorBase": 16384,
-      "vectorLength": 33,
+      "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 70,
-      "bssBase": 16454,
+      "initializedRunLength": 73,
+      "bssBase": 16457,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33519,
-      "dataLoadLength": 70,
+      "dataLoadAddress": 33561,
+      "dataLoadLength": 73,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 924,
-          "readOnlyBase": 33519,
-          "readOnlyLength": 70,
+          "usedLength": 969,
+          "readOnlyBase": 33561,
+          "readOnlyLength": 73,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         }
@@ -59,11 +59,11 @@
       "runtimeBase": 32771,
       "writableBase": 16384,
       "writableCapacity": 4096,
-      "writableStateBase": 16417,
+      "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16454,
+      "programDataBase": 16457,
       "programDataCapacity": 1,
-      "readOnlyBase": 33589,
+      "readOnlyBase": 33634,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,
@@ -76,7 +76,8 @@
         "unhandledFailure": 28693,
         "trap": 28696,
         "farCall": 28699,
-        "farJump": 28702
+        "farJump": 28702,
+        "packetService": 28705
       }
     },
     "execution": {
@@ -92,15 +93,15 @@
         { "at": 28696, "bytes": [201] },
         { "at": 65280, "bytes": [0, 127] },
         { "at": 16384, "bytes": [165] },
-        { "at": 16417, "bytes": [165] },
-        { "at": 16454, "bytes": [165, 90] }
+        { "at": 16420, "bytes": [165] },
+        { "at": 16457, "bytes": [165, 90] }
       ]
     },
     "observations": [
-      { "at": 16417, "width": "u8", "equals": 3 },
-      { "at": 16418, "width": "u8", "equals": 3 },
-      { "at": 16454, "width": "u8", "equals": 0 },
-      { "at": 16455, "width": "u8", "equals": 90 }
+      { "at": 16420, "width": "u8", "equals": 3 },
+      { "at": 16421, "width": "u8", "equals": 3 },
+      { "at": 16457, "width": "u8", "equals": 0 },
+      { "at": 16458, "width": "u8", "equals": 90 }
     ]
   }
 }

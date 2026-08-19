@@ -100,6 +100,7 @@ EmitPairSubtract8       .equ 15
 EmitPairAnd8            .equ 16
 EmitPairOr8             .equ 17
 EmitPairXor8            .equ 18
+EmitPairPopHLBC         .equ 19
 EmitPairInlineTable:
             .db  $3B,$3B                 ; DEC SP / DEC SP
             .db  $DD,$6E                 ; LD L,(IX+n)
@@ -120,6 +121,7 @@ EmitPairInlineTable:
             .db  $7D,$A3                 ; LD A,L / AND E
             .db  $7D,$B3                 ; LD A,L / OR E
             .db  $7D,$AB                 ; LD A,L / XOR E
+            .db  $E1,$C1                 ; POP HL / POP BC
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitWord:

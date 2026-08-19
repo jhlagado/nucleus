@@ -3,4 +3,5 @@
 ; writable vector table.
 
 RuntimeProofServices .equ 0
+RuntimePacketGateway .equ 1
             .include "loop-z80-runtime.asm"

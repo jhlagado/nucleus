@@ -622,6 +622,7 @@ SemanticPromoteI8Pair   .equ 118
 SemanticReadPortDiscard .equ 119
 SemanticReadPort        .equ 120
 SemanticWritePort       .equ 121
+SemanticPacketService   .equ 122
 
 ComparisonEqual         .equ 0
 ComparisonNotEqual      .equ 1

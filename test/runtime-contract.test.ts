@@ -31,7 +31,7 @@ describe("the direct Nucleus Z80 runtime contract", () => {
         ([name, value]) => [spelling(name), value] as const,
       ),
     );
-    expect(new Set(Object.values(Trap)).size).toBe(6);
+    expect(new Set(Object.values(Trap)).size).toBe(7);
   });
 
   it("locks the service and service-error assignments", () => {

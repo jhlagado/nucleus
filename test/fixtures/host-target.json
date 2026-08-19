@@ -15,6 +15,7 @@
     "unhandledFailure": 28693,
     "trap": 28696,
     "farCall": 28699,
-    "farJump": 28702
+    "farJump": 28702,
+    "packetService": 28705
   }
 }

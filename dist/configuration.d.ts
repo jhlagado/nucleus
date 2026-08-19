@@ -9,7 +9,7 @@ export declare class NucleusConfigurationError extends Error {
     readonly code = "NUCLEUS_CONFIGURATION";
     constructor(message: string, issues: readonly NucleusConfigurationIssue[]);
 }
-export declare const nucleusTargetServiceNames: readonly ["readInputByte", "writeOutputByte", "readStorageByte", "rewindStorageInput", "writeStorageByte", "seekStorageOutput", "success", "unhandledFailure", "trap", "farCall", "farJump"];
+export declare const nucleusTargetServiceNames: readonly ["readInputByte", "writeOutputByte", "readStorageByte", "rewindStorageInput", "writeStorageByte", "seekStorageOutput", "success", "unhandledFailure", "trap", "farCall", "farJump", "packetService"];
 export interface ValidateNucleusTargetOptions {
     readonly requireServices?: boolean;
     readonly sourcePartCount?: number;

@@ -61,7 +61,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 8,
+      "runtimeIdentity": 9,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -75,19 +75,19 @@
       "writableBase": 36864,
       "writableCapacity": 4096,
       "vectorBase": 36864,
-      "vectorLength": 33,
+      "vectorLength": 36,
       "initializedRunBase": 36864,
-      "initializedRunLength": 72,
-      "bssBase": 36936,
+      "initializedRunLength": 75,
+      "bssBase": 36939,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
       "dataLoadAddress": 36864,
-      "dataLoadLength": 72,
+      "dataLoadLength": 75,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 4168,
+          "usedLength": 4171,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
@@ -99,11 +99,11 @@
       "runtimeBase": 32771,
       "writableBase": 36864,
       "writableCapacity": 4096,
-      "writableStateBase": 36897,
+      "writableStateBase": 36900,
       "vectorBase": 36864,
-      "programDataBase": 36934,
+      "programDataBase": 36937,
       "programDataCapacity": 3,
-      "readOnlyBase": 33495,
+      "readOnlyBase": 33537,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,
@@ -116,7 +116,8 @@
         "unhandledFailure": 28693,
         "trap": 28696,
         "farCall": 28699,
-        "farJump": 28702
+        "farJump": 28702,
+        "packetService": 28705
       }
     },
     "execution": {
@@ -131,17 +132,17 @@
         { "at": 28693, "bytes": [201] },
         { "at": 28696, "bytes": [201] },
         { "at": 65280, "bytes": [0, 127] },
-        { "at": 36936, "bytes": [165, 90] }
+        { "at": 36939, "bytes": [165, 90] }
       ]
     },
     "observations": [
       { "at": 36864, "width": "u8", "equals": 195 },
       { "at": 36866, "width": "u8", "equals": 112 },
-      { "at": 36897, "width": "u8", "equals": 2 },
-      { "at": 36904, "width": "u8", "equals": 8 },
-      { "at": 36934, "width": "u16", "equals": 6 },
-      { "at": 36936, "width": "u8", "equals": 0 },
-      { "at": 36937, "width": "u8", "equals": 90 }
+      { "at": 36900, "width": "u8", "equals": 2 },
+      { "at": 36907, "width": "u8", "equals": 8 },
+      { "at": 36937, "width": "u16", "equals": 6 },
+      { "at": 36939, "width": "u8", "equals": 0 },
+      { "at": 36940, "width": "u8", "equals": 90 }
     ]
   }
 }

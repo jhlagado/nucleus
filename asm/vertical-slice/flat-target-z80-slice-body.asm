@@ -212,14 +212,14 @@ FlatTargetBadFlagsDescriptor:
 FlatTargetStackExactDescriptor:
             .dw NucleusRuntimeIdentity
             .dw $8000,$1000
-            .dw $4000,$0F4B
+            .dw $4000,$0F4B+(NucleusRuntimeVectorLength-33)
             .db 1
             .db 1,0
             .dw FlatTargetPartBanks
 FlatTargetStackOverflowDescriptor:
             .dw NucleusRuntimeIdentity
             .dw $8000,$1000
-            .dw $4000,$0F4A
+            .dw $4000,$0F4A+(NucleusRuntimeVectorLength-33)
             .db 1
             .db 1,0
             .dw FlatTargetPartBanks
@@ -472,7 +472,7 @@ ProofStart:
             OR   A
             JP   NZ,ProofLoadedFailure
             LD   HL,(TargetContextRoDataBase)
-            LD   DE,$82D7
+            LD   DE,$82D4+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeExpectedLength-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -480,7 +480,7 @@ ProofStart:
             LD   DE,(TargetImageBase)
             OR   A
             SBC  HL,DE
-            LD   DE,$1048
+            LD   DE,$1048+(NucleusRuntimeVectorLength-33)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -489,7 +489,7 @@ ProofStart:
             OR   L
             JP   NZ,ProofLoadedFailure
             LD   HL,(TargetCodeBase)
-            LD   DE,$82D7
+            LD   DE,$82D4+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeExpectedLength-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -499,7 +499,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
             CALL TargetInitializedLength
-            LD   DE,72
+            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength+2
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
@@ -692,7 +692,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofContextFailure
             LD   HL,(TargetContextStateBase)
-            LD   DE,$4021
+            LD   DE,$4000+NucleusRuntimeVectorLength
             OR   A
             SBC  HL,DE
             JP   NZ,ProofContextFailure
@@ -702,7 +702,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(TargetReadOnlyBase)
-            LD   DE,$82EF
+            LD   DE,$82EC+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeExpectedLength-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
@@ -712,17 +712,17 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             CALL TargetInitializedLength
-            LD   DE,72
+            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength+2
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(TargetBssBase)
-            LD   DE,$4048
+            LD   DE,$4000+NucleusRuntimeVectorLength+NucleusRuntimeStateLength+2
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
             LD   HL,(TargetReadOnlyBase)
-            LD   DE,$82EF
+            LD   DE,$82EC+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeExpectedLength-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure

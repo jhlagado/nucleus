@@ -14,6 +14,7 @@ const services = {
   trap: 0x7018,
   farCall: 0x701b,
   farJump: 0x701e,
+  packetService: 0x7021,
 };
 
 describe("the stable in-process Nucleus host API", () => {
@@ -152,7 +153,7 @@ describe("the stable in-process Nucleus host API", () => {
     expect(info).toMatchObject({
       hostApiVersion: 1,
       languageVersion: "0.1",
-      runtimeIdentity: 8,
+      runtimeIdentity: 9,
       capacities: { sourceParts: 8, sourceWindowBytes: 2048, targetBanks: 4 },
       targets: { flat: true, banked: true, maxBanks: 4 },
     });

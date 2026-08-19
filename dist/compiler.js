@@ -10,7 +10,7 @@ const TARGET_DESCRIPTOR = 0x9e00;
 const PART_BANKS = TARGET_DESCRIPTOR + 0x10;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
-const RUNTIME_IDENTITY = 8;
+const RUNTIME_IDENTITY = 9;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
@@ -36,6 +36,7 @@ export const defaultNucleusServices = {
     trap: 0x7018,
     farCall: 0x701b,
     farJump: 0x701e,
+    packetService: 0x7021,
 };
 const hexByte = (value) => (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
 const intelHexRecord = (address, recordType, bytes) => {

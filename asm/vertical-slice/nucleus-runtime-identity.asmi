@@ -1,10 +1,10 @@
 ; Canonical operating-layer runtime source, private ABI, link-rule, vector and
 ; helper-layout identity. The same identity may link to different resolved
 ; bytes when the validated target addresses differ.
-NucleusRuntimeIdentity       .equ $0008
-NucleusRuntimeExpectedLength .equ 689
+NucleusRuntimeIdentity       .equ $0009
+NucleusRuntimeExpectedLength .equ 731
 
-NucleusRuntimeVectorCount  .equ 11
+NucleusRuntimeVectorCount  .equ 12
 NucleusRuntimeVectorLength .equ NucleusRuntimeVectorCount*3
 NucleusRuntimeStateLength  .equ 37
 NucleusRuntimeRunStateOffset        .equ 0
@@ -34,3 +34,4 @@ NucleusRuntimeCompareSignedOffset          .equ 467
 NucleusRuntimeDivideSignedOffset           .equ 500
 NucleusRuntimeSignedLoopStepOffset         .equ 590
 NucleusRuntimePromoteI8PairOffset           .equ 675
+NucleusRuntimePacketServiceGatewayOffset    .equ 689

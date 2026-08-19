@@ -2,4 +2,5 @@
 ; nucleus-target-runtime-link.asm entry and exclude the proof service adapter.
 
 RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "loop-z80-runtime.asm"

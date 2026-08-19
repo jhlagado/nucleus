@@ -82,6 +82,7 @@ interface NobjProofManifest {
     readonly initialSp?: number;
     readonly expectedSp?: number;
     readonly expectedIx?: number;
+    readonly expectedIy?: number;
     readonly writes?: readonly {
       readonly at: number;
       readonly bytes: readonly number[];
@@ -517,6 +518,7 @@ export const executeCommittedNobj = (
     readonly initialSp?: number;
     readonly expectedSp?: number;
     readonly expectedIx?: number;
+    readonly expectedIy?: number;
     readonly writes?: readonly {
       readonly at: number;
       readonly bytes: readonly number[];
@@ -640,6 +642,14 @@ export const executeCommittedNobj = (
   ) {
     failures.push(
       `IX=${hexWord(runtime.cpu.ix)}, expected ${hexWord(execution.expectedIx)}`,
+    );
+  }
+  if (
+    execution.expectedIy !== undefined &&
+    runtime.cpu.iy !== execution.expectedIy
+  ) {
+    failures.push(
+      `IY=${hexWord(runtime.cpu.iy)}, expected ${hexWord(execution.expectedIy)}`,
     );
   }
   for (const observation of options.observations ?? []) {

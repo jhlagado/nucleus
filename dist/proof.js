@@ -354,6 +354,10 @@ export const executeCommittedNobj = (serialized, execution, options = {}) => {
         runtime.cpu.ix !== execution.expectedIx) {
         failures.push(`IX=${hexWord(runtime.cpu.ix)}, expected ${hexWord(execution.expectedIx)}`);
     }
+    if (execution.expectedIy !== undefined &&
+        runtime.cpu.iy !== execution.expectedIy) {
+        failures.push(`IY=${hexWord(runtime.cpu.iy)}, expected ${hexWord(execution.expectedIy)}`);
+    }
     for (const observation of options.observations ?? []) {
         const observed = observation.bank === undefined
             ? runtime.hardware.memory

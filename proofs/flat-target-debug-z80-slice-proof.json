@@ -14,7 +14,7 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "AdapterCommitted", "width": "u8", "equals": 1 },
     { "at": "AdapterAborted", "width": "u8", "equals": 0 },
-    { "at": "DiagnosticCode", "width": "u8", "equals": 12 }
+    { "at": "DiagnosticCode", "width": "u8", "equals": 11 }
   ],
   "extents": [
     {

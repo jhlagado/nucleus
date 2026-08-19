@@ -864,3 +864,33 @@ StorageFailure:
             SCF
             RET
 .endif
+
+.if RuntimePacketGateway
+; DE is a private source offset retained only by the common wrapper. The native
+; provider sees the public A/HL/BC packet ABI and may clobber DE.
+.routine noreturn in A,BC,DE,HL out A,BC,DE,HL,IX,carry,zero clobbers sign,parity,halfCarry
+PacketServiceGateway:
+            PUSH DE
+            CALL RuntimePacketService
+            POP  DE
+            JR   C,PacketServiceFailure
+            POP  HL                      ; generated continuation
+            POP  BC                      ; discard terminal dispatcher
+            JP   (HL)
+.routine noreturn in A,DE out A,HL,IX clobbers B,C,D,E,sign,parity,halfCarry,carry,zero
+PacketServiceFailure:
+            POP  HL                      ; discard generated continuation
+            POP  BC                      ; terminal dispatcher
+            LD   (TrapNumber),A
+            LD   (TrapOffset),DE
+            LD   SP,(RootSP)
+            LD   IX,(RootIX)
+            XOR  A
+            LD   (TrapRoutine),A
+            LD   (ActivationDepth),A
+            LD   A,RunTrapped
+            LD   (RunState),A
+            LD   H,B
+            LD   L,C
+            JP   (HL)
+.endif

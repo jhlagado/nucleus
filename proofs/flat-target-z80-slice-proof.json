@@ -14,9 +14,9 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "AdapterCommitted", "width": "u8", "equals": 1 },
     { "at": "AdapterAborted", "width": "u8", "equals": 0 },
-    { "at": "DiagnosticCode", "width": "u8", "equals": 12 },
+    { "at": "DiagnosticCode", "width": "u8", "equals": 11 },
     { "at": "AdapterCapturedRuntimeBase", "width": "u16", "equals": 32771 },
-    { "at": "AdapterCapturedStateBase", "width": "u16", "equals": 16417 },
+    { "at": "AdapterCapturedStateBase", "width": "u16", "equals": 16420 },
     { "at": "AdapterRuntimeContextPointer", "width": "u16", "equals": 28158 },
     { "at": "AdapterLogLength", "width": "u16", "equals": 894 }
   ],
@@ -66,7 +66,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 8,
+      "runtimeIdentity": 9,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -80,21 +80,21 @@
       "writableBase": 16384,
       "writableCapacity": 4096,
       "vectorBase": 16384,
-      "vectorLength": 33,
+      "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 72,
-      "bssBase": 16456,
+      "initializedRunLength": 75,
+      "bssBase": 16459,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33519,
-      "dataLoadLength": 72,
+      "dataLoadAddress": 33561,
+      "dataLoadLength": 75,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 881,
-          "readOnlyBase": 33519,
-          "readOnlyLength": 72,
+          "usedLength": 926,
+          "readOnlyBase": 33561,
+          "readOnlyLength": 75,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         }
@@ -104,11 +104,11 @@
       "runtimeBase": 32771,
       "writableBase": 16384,
       "writableCapacity": 4096,
-      "writableStateBase": 16417,
+      "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16454,
+      "programDataBase": 16457,
       "programDataCapacity": 3,
-      "readOnlyBase": 33591,
+      "readOnlyBase": 33636,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,
@@ -121,7 +121,8 @@
         "unhandledFailure": 28693,
         "trap": 28696,
         "farCall": 28699,
-        "farJump": 28702
+        "farJump": 28702,
+        "packetService": 28705
       }
     },
     "execution": {
@@ -137,19 +138,19 @@
         { "at": 28696, "bytes": [201] },
         { "at": 65280, "bytes": [0, 127] },
         { "at": 16384, "bytes": [165] },
-        { "at": 16417, "bytes": [165] },
-        { "at": 16454, "bytes": [165, 165] },
-        { "at": 16456, "bytes": [165, 90] }
+        { "at": 16420, "bytes": [165] },
+        { "at": 16457, "bytes": [165, 165] },
+        { "at": 16459, "bytes": [165, 90] }
       ]
     },
     "observations": [
       { "at": 16384, "width": "u8", "equals": 195 },
       { "at": 16386, "width": "u8", "equals": 112 },
-      { "at": 16417, "width": "u8", "equals": 2 },
-      { "at": 16424, "width": "u8", "equals": 8 },
-      { "at": 16454, "width": "u16", "equals": 6 },
-      { "at": 16456, "width": "u8", "equals": 0 },
-      { "at": 16457, "width": "u8", "equals": 90 }
+      { "at": 16420, "width": "u8", "equals": 2 },
+      { "at": 16427, "width": "u8", "equals": 8 },
+      { "at": 16457, "width": "u16", "equals": 6 },
+      { "at": 16459, "width": "u8", "equals": 0 },
+      { "at": 16460, "width": "u8", "equals": 90 }
     ]
   }
 }

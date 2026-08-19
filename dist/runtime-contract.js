@@ -6,6 +6,7 @@ export const Trap = {
     loopRange: 0x04,
     activationCapacity: 0x05,
     unhandledError: 0x06,
+    packetService: 0x07,
 };
 export const Service = {
     readInputByte: 0x00,

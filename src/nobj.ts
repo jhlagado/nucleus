@@ -101,6 +101,7 @@ export interface RuntimeServiceAddresses {
   readonly trap: number;
   readonly farCall: number;
   readonly farJump: number;
+  readonly packetService: number;
 }
 
 export interface RuntimeLinkContext {

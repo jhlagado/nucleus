@@ -277,6 +277,7 @@ describe("emulator-backed compiler host", () => {
           trap: 0x70a2,
           farCall: 0x7000,
           farJump: 0x7080,
+          packetService: 0x70c6,
         },
       },
     );
@@ -311,6 +312,7 @@ describe("emulator-backed compiler host", () => {
         trap: 0x70a2,
         farCall: 0x7000,
         farJump: 0x7080,
+        packetService: 0x70c6,
       },
     } as const;
 

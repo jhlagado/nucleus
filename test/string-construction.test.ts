@@ -212,7 +212,9 @@ describe("bounded-string construction", () => {
       Array.from(executed.memory.slice(textAddress, textAddress + 5)),
     ).toEqual([3, "a".charCodeAt(0), "b".charCodeAt(0), "c".charCodeAt(0), 0]);
     expect(executed.memory[built.materialized.parsed.map.bssBase]).toBe(0);
-    const stateBase = built.materialized.parsed.map.vectorBase + 33;
+    const stateBase =
+      built.materialized.parsed.map.vectorBase +
+      built.materialized.parsed.map.vectorLength;
     expect(executed.memory[stateBase + 1]).toBe(1);
     expect(
       (executed.memory[stateBase + 3] ?? 0) |

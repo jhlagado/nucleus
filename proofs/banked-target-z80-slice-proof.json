@@ -14,10 +14,10 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
     { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4353 },
-    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33906 },
-    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33682 },
-    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2958 },
-    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3182 },
+    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33951 },
+    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33724 },
+    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2913 },
+    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3140 },
     { "at": "AdapterCapturedBank0RoLength", "width": "u16", "equals": 0 },
     { "at": "AdapterCapturedBank1RoLength", "width": "u16", "equals": 2 }
   ],
@@ -67,7 +67,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 8,
+      "runtimeIdentity": 9,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -81,29 +81,29 @@
       "writableBase": 16384,
       "writableCapacity": 4096,
       "vectorBase": 16384,
-      "vectorLength": 33,
+      "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 72,
-      "bssBase": 16456,
+      "initializedRunLength": 75,
+      "bssBase": 16459,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33519,
-      "dataLoadLength": 72,
+      "dataLoadAddress": 33561,
+      "dataLoadLength": 75,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 1138,
-          "readOnlyBase": 33519,
-          "readOnlyLength": 72,
+          "usedLength": 1183,
+          "readOnlyBase": 33561,
+          "readOnlyLength": 75,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 914,
-          "readOnlyBase": 33460,
+          "usedLength": 956,
+          "readOnlyBase": 33502,
           "readOnlyLength": 2,
-          "aggregateConstantBase": 33460,
+          "aggregateConstantBase": 33502,
           "aggregateConstantLength": 2
         }
       ]
@@ -112,9 +112,9 @@
       "runtimeBase": 32771,
       "writableBase": 16384,
       "writableCapacity": 4096,
-      "writableStateBase": 16417,
+      "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16454,
+      "programDataBase": 16457,
       "programDataCapacity": 3,
       "readOnlyBase": 0,
       "readOnlyCapacity": 0,
@@ -129,7 +129,8 @@
         "unhandledFailure": 28833,
         "trap": 28834,
         "farCall": 28672,
-        "farJump": 28800
+        "farJump": 28800,
+        "packetService": 28870
       }
     },
     "bankSwitch": {
@@ -148,17 +149,17 @@
         {
           "at": 28672,
           "bytes": [
-            8, 209, 229, 58, 39, 64, 61, 135, 79, 6, 0, 33, 54, 64, 9, 115, 35,
-            114, 58, 39, 64, 61, 79, 6, 0, 33, 42, 64, 9, 58, 41, 64, 119, 8,
-            50, 41, 64, 211, 127, 225, 17, 45, 112, 213, 233, 245, 229, 58, 39,
-            64, 61, 79, 6, 0, 33, 42, 64, 9, 126, 50, 41, 64, 211, 127, 58, 39,
-            64, 61, 135, 79, 6, 0, 33, 54, 64, 9, 94, 35, 86, 225, 241, 213, 201
+            8, 209, 229, 58, 42, 64, 61, 135, 79, 6, 0, 33, 57, 64, 9, 115, 35,
+            114, 58, 42, 64, 61, 79, 6, 0, 33, 45, 64, 9, 58, 44, 64, 119, 8,
+            50, 44, 64, 211, 127, 225, 17, 45, 112, 213, 233, 245, 229, 58, 42,
+            64, 61, 79, 6, 0, 33, 45, 64, 9, 126, 50, 44, 64, 211, 127, 58, 42,
+            64, 61, 135, 79, 6, 0, 33, 57, 64, 9, 94, 35, 86, 225, 241, 213, 201
           ]
         },
-        { "at": 28800, "bytes": [50, 41, 64, 211, 127, 233] },
+        { "at": 28800, "bytes": [50, 44, 64, 211, 127, 233] },
         {
           "at": 28832,
-          "bytes": [193, 62, 1, 33, 180, 130, 195, 128, 112]
+          "bytes": [193, 62, 1, 33, 222, 130, 195, 128, 112]
         },
         { "at": 28864, "bytes": [201, 201, 201, 201, 201, 201] },
         { "at": 16640, "bytes": [0] },
@@ -167,12 +168,12 @@
     },
     "observations": [
       { "at": 16384, "width": "u8", "equals": 195 },
-      { "at": 16417, "width": "u8", "equals": 2 },
-      { "at": 16423, "width": "u8", "equals": 0 },
-      { "at": 16425, "width": "u8", "equals": 1 },
-      { "at": 16454, "width": "u8", "equals": 4 },
-      { "at": 16455, "width": "u8", "equals": 0 },
-      { "at": 16456, "width": "u8", "equals": 12 },
+      { "at": 16420, "width": "u8", "equals": 2 },
+      { "at": 16426, "width": "u8", "equals": 0 },
+      { "at": 16428, "width": "u8", "equals": 1 },
+      { "at": 16457, "width": "u8", "equals": 4 },
+      { "at": 16458, "width": "u8", "equals": 0 },
+      { "at": 16459, "width": "u8", "equals": 12 },
       { "at": 16640, "width": "u8", "equals": 0 }
     ]
   }

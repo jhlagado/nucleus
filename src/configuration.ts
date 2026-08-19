@@ -46,6 +46,7 @@ export const nucleusTargetServiceNames = [
   "trap",
   "farCall",
   "farJump",
+  "packetService",
 ] as const satisfies readonly (keyof RuntimeServiceAddresses)[];
 
 const wordFields = [

@@ -48,6 +48,13 @@ one `u8`; `writePort(u16, u8)` writes one byte. The port is the complete `BC`
 I/O address, including its upper byte. These operations are infallible and do
 not use `else fail` or `handle`.
 
+`service(slot, packet)` is the deliberately narrow native escape hatch. The
+slot is an exact byte constant, while the packet is writable `u8[N]` or `u8[]`
+storage whose retained count bounds the provider. It is statement-only,
+infallible at the source level, and target-specific: unsupported slots or
+extents trap, while effects after valid native dispatch are not rolled back.
+It exposes neither the packet address nor any Z80 register to source.
+
 ## The programming model
 
 Routine locals are scalar only: `u8`, `u16`, `i8`, `i16`, and `boolean`.

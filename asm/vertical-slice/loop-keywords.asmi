@@ -102,11 +102,12 @@ NameWriteOutputByte:
             .db 17,"seekStorageOutput"
             .db 8,"readPort"
             .db 9,"writePort"
+            .db 7,"service"
             .db 10,"endOfInput"
             .db 12,"inputFailure"
             .db 13,"outputFailure"
             .db 14,"storageFailure"
-Stage8PredefinedCount .equ 12
+Stage8PredefinedCount .equ 13
 
 ; Complete service selectors: target ID in bits 0..2, argument type in bits
 ; 3..4, successful u8 result in bit 5, and service kind in bit 7.

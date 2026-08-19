@@ -60,7 +60,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 8,
+      "runtimeIdentity": 9,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -74,26 +74,26 @@
       "writableBase": 16384,
       "writableCapacity": 4096,
       "vectorBase": 16384,
-      "vectorLength": 33,
+      "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 70,
-      "bssBase": 16454,
+      "initializedRunLength": 73,
+      "bssBase": 16457,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33519,
-      "dataLoadLength": 70,
+      "dataLoadAddress": 33561,
+      "dataLoadLength": 73,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 919,
-          "readOnlyBase": 33519,
-          "readOnlyLength": 70,
+          "usedLength": 964,
+          "readOnlyBase": 33561,
+          "readOnlyLength": 73,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 779,
+          "usedLength": 821,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
@@ -105,9 +105,9 @@
       "runtimeBase": 32771,
       "writableBase": 16384,
       "writableCapacity": 4096,
-      "writableStateBase": 16417,
+      "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16454,
+      "programDataBase": 16457,
       "programDataCapacity": 1,
       "readOnlyBase": 0,
       "readOnlyCapacity": 0,
@@ -122,7 +122,8 @@
         "unhandledFailure": 28833,
         "trap": 28834,
         "farCall": 28672,
-        "farJump": 28800
+        "farJump": 28800,
+        "packetService": 28870
       }
     },
     "bankSwitch": {
@@ -141,14 +142,14 @@
         {
           "at": 28672,
           "bytes": [
-            8, 209, 229, 58, 39, 64, 61, 135, 79, 6, 0, 33, 54, 64, 9, 115, 35,
-            114, 58, 39, 64, 61, 79, 6, 0, 33, 42, 64, 9, 58, 41, 64, 119, 8,
-            50, 41, 64, 211, 127, 225, 17, 45, 112, 213, 233, 245, 229, 58, 39,
-            64, 61, 79, 6, 0, 33, 42, 64, 9, 126, 50, 41, 64, 211, 127, 58, 39,
-            64, 61, 135, 79, 6, 0, 33, 54, 64, 9, 94, 35, 86, 225, 241, 213, 201
+            8, 209, 229, 58, 42, 64, 61, 135, 79, 6, 0, 33, 57, 64, 9, 115, 35,
+            114, 58, 42, 64, 61, 79, 6, 0, 33, 45, 64, 9, 58, 44, 64, 119, 8,
+            50, 44, 64, 211, 127, 225, 17, 45, 112, 213, 233, 245, 229, 58, 42,
+            64, 61, 79, 6, 0, 33, 45, 64, 9, 126, 50, 44, 64, 211, 127, 58, 42,
+            64, 61, 135, 79, 6, 0, 33, 57, 64, 9, 94, 35, 86, 225, 241, 213, 201
           ]
         },
-        { "at": 28800, "bytes": [50, 41, 64, 211, 127, 233] },
+        { "at": 28800, "bytes": [50, 44, 64, 211, 127, 233] },
         { "at": 28832, "bytes": [201, 201, 193, 118] },
         { "at": 28864, "bytes": [201, 201, 201, 201, 201, 201] },
         { "at": 16640, "bytes": [0] },
@@ -156,10 +157,10 @@
       ]
     },
     "observations": [
-      { "at": 16418, "width": "u8", "equals": 3 },
-      { "at": 16423, "width": "u8", "equals": 0 },
-      { "at": 16425, "width": "u8", "equals": 0 },
-      { "at": 16454, "width": "u8", "equals": 0 }
+      { "at": 16421, "width": "u8", "equals": 3 },
+      { "at": 16426, "width": "u8", "equals": 0 },
+      { "at": 16428, "width": "u8", "equals": 0 },
+      { "at": 16457, "width": "u8", "equals": 0 }
     ]
   }
 }

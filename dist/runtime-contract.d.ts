@@ -6,6 +6,7 @@ export declare const Trap: {
     readonly loopRange: 4;
     readonly activationCapacity: 5;
     readonly unhandledError: 6;
+    readonly packetService: 7;
 };
 export declare const Service: {
     readonly readInputByte: 0;

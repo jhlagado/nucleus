@@ -89,7 +89,7 @@ TypedInternalOperation:
             JP   TypedExpressionStackUnderflow
 
 TypedPrefetchBits:
-            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$07
+            .db $05,$70,$00,$00,$C0,$81,$5F,$C2,$05,$00,$7C,$04,$47
 
 TypedOperationTable:
             .dw TypedDefine8          ; 20
@@ -195,7 +195,8 @@ TypedOperationTable:
             .dw TypedReadPortDiscard ; 119
             .dw TypedReadPort        ; 120
             .dw TypedWritePort       ; 121
-TypedOperationCount .equ 102
+            .dw Stage8InvokePacketService ; 122
+TypedOperationCount .equ 103
 .else
 TypedOperationCount .equ 62
 .endif
@@ -223,6 +224,45 @@ TypedWritePort:
             JP   EmitBytes
 TypedWritePortBytes:
             .db  $E1,$7D,$C1,$ED,$79     ; POP HL / LD A,L / POP BC / OUT (C),A
+
+; Invoke the target-defined packet gateway with A=slot, HL=packet address and
+; BC=packet extent. DE privately carries the statement offset to the shared
+; runtime wrapper, which turns provider validation failure into a trap.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage8InvokePacketService:
+.if TargetStreamingOutput
+            CALL EmitLoadAImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL EmitPairIndexedInline
+            .db  EmitPairPopHLBC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   DE,(TargetTerminalAddress)
+            CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL EmitByteInlineChecked
+            .db  $D5                    ; PUSH DE, terminal dispatcher
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL ReadSemanticWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL EmitLoadDeImmediate
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,11                     ; packet-service vector ordinal
+            JP   EmitTargetVectorCall
+.else
+            JP   TypedInternalOperation
+.endif
 
 ; Operand-prefetch metadata is deliberately separate from the full-width
 ; handler addresses. C returns the zero-based operation index. For marked

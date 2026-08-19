@@ -676,6 +676,7 @@ has acted.
 | `0x04` | `loop-range`          | A continuing counted-loop value does not fit its counter.               |
 | `0x05` | `activation-capacity` | A new activation cannot fit its published limit.                        |
 | `0x06` | `unhandled-error`     | `main` returns recoverable failure.                                     |
+| `0x07` | `packet-service`      | A target-specific slot or retained packet extent is unsupported.       |
 
 These numeric codes are the machine-readable Nucleus Z80 trap contract.
 
@@ -714,7 +715,9 @@ startup copies it; a loaded image places it directly at its run address. Its
 initialized bytes come from the selected adapter runtime rather than from
 source declarations. The table also contains the terminal success,
 unhandled-failure, and trap entries required by Chapter 7 and the far-call and
-far-jump entries in Section 8.6.
+far-jump entries in Section 8.6. Runtime identity `$0009` appends the packet
+gateway as ordinal 11; the preceding ordinals retain their identity `$0008`
+positions. The complete twelve-entry vector is 36 bytes.
 
 Every vector destination must remain callable under every bank selector. A
 banked target therefore binds these entries to fixed memory, always-visible
@@ -747,6 +750,30 @@ contract. Port I/O is independent of the selected memory bank because the Z80
 I/O address comes entirely from `BC`. A target that runs a Nucleus program must
 provide the hardware or emulated I/O behavior associated with those
 instructions.
+
+### 8.1.2 Target-specific packet gateway
+
+`service(slot, packet)` calls runtime-vector ordinal 11 with this provider ABI:
+
+| Register | Entry value |
+| -------- | ----------- |
+| `A`      | exact source slot, zero through 255 |
+| `HL`     | address of the first packet byte |
+| `BC`     | retained packet byte count |
+
+The provider may clobber `AF`, `BC`, `DE`, and `HL`. It preserves `IX`, `IY`,
+the hardware stack and return address, activation state, the selected bank,
+runtime vector and diagnostic state, and every byte outside the packet. It
+returns carry clear after valid dispatch. An unknown slot or invalid extent
+returns carry set with `A = 0x07`; the shared runtime gateway then enters the
+`packet-service` trap at the source statement before calling native code or
+changing the packet.
+
+The runtime identity covers the slot contract as well as the vector position.
+A provider may bind slots to MON-3 RST gateways, CP/M BDOS, MSX BIOS,
+firmware, host callbacks, or another target-native mechanism. This is a
+bounded native call, not a recoverable standard service. Provider effects and
+packet mutations after valid dispatch begins are not transactional.
 
 ### 8.2 Stable service errors
 
@@ -962,11 +989,14 @@ data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
-`test/nobj.test.ts` assembles runtime identity `$0008` under
-`defaultRuntimeLinkContext` and measures a 689-byte canonical linked helper
+`test/nobj.test.ts` assembles runtime identity `$0009` under
+`defaultRuntimeLinkContext` and measures a 731-byte canonical linked helper
 image. This identity includes checked four-way integer conversion, signed
 comparison, signed division and modulo, signed loop continuation, and mixed
 `u8`/`i8` promotion in addition to the existing unsigned and aggregate helpers.
+Its 36-byte vector appends the target-specific packet gateway, and its final
+42-byte helper validates the native result and enters the ordinary terminal
+trap dispatcher with the original root frame restored.
 `proofs/stage9-conformance-z80-slice-proof.json` includes the historical direct
 service adapters and measures 921 bytes;
 `proofs/chapter21-target-z80-slice-proof.json` selects an 899-byte proof form.
