@@ -47,6 +47,20 @@ TypedRejectCurrentOrdinaryName:
             OR   A
             RET
 
+.if AggregateCallSlices
+; Carry identifies a source routine or predefined binding with the current
+; spelling. Routine-scope declarations may shadow program symbols, but these
+; callable and system names stay protected.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+Stage7CurrentNameIsRoutineOrPredefined:
+            CALL Stage7FindRoutineCurrent
+            SCF
+            RET  Z
+            CALL TypedNameEqualsMain
+            RET  C
+            JP   Stage8MatchPredefinedCurrent
+.endif
+
 ; Restore the retained declaration spelling as the current name token.
 .routine out A,HL
 TypedRestoreDeclarationToken:
@@ -81,6 +95,21 @@ TypedPrepareCurrentRoutineClear:
             POP  DE
             POP  BC
             JP   SymbolPrepareCurrentWord
+.if AggregateCallSlices
+.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+TypedPrepareRoutineWord:
+            CALL TypedRestoreDeclarationToken
+            LD   HL,DeclarationNamePosition
+            CALL CompilerRestoreTokenPosition
+.if TargetStreamingOutput
+.if DebugHooks
+            OUT  (DebugTraceDeclarationPort),A
+.endif
+.endif
+            CALL Stage7CurrentNameIsRoutineOrPredefined
+            JP   C,TypedDuplicateNameFailure
+            JP   SymbolPrepareRoutineWord
+.endif
 
 ; Emit one expression operation followed by a complete program address.
 .if AggregateCallSlices

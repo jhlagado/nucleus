@@ -3085,6 +3085,30 @@ proof executes 888,577 in 9,531,098. The complete LL(1) proof executes
 1,948,519 instructions in 18,597,591 T-states. No compiler workspace, semantic
 transcript, generated-program, runtime, target-layout, or NOBJ capacity changes.
 
+### Routine bindings shadow program bindings
+
+Parameters and scalar locals may now repeat an earlier program variable,
+constant, aggregate constant, record type, or aggregate type name. The routine
+binding wins throughout that routine body. Same-scope duplicates remain
+diagnostics, and source-routine names, `main`, and predefined names remain
+protected. The symbol table is searched newest first, so the rule needs no new
+workspace, scope table, or binding field.
+
+Measured production accounting is 15,629 code bytes plus 437 immutable bytes,
+or 16,066 compiler-core bytes, with 3,613 workspace bytes and 318 bytes of 16
+KiB headroom. This is 63 added production-core bytes. The instrumented layout
+is 15,695 code plus 437 immutable, or 16,132 core. The historical
+returning-diagnostic layout is 15,198 code plus 437 immutable, or 15,635 core,
+with 3,623 workspace bytes. The selected proof runtime remains 899 bytes; the
+flat proof remains 2,346 bytes; generated programs, semantic capacity, target
+layout, and NOBJ encoding are unchanged.
+
+The flat proof executes 881,732 instructions in 9,463,334 T-states; the
+instrumented proof executes 885,357 in 9,503,299. The complete LL(1) proof
+executes 1,942,692 instructions in 18,546,159 T-states. The lower compilation
+cost comes from replacing repeated program-first searches with one newest-first
+symbol scan; symbol capacity is unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

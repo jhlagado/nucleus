@@ -189,6 +189,39 @@ describe("signed integers", () => {
     await expectOutput(source, [1, 2]);
   });
 
+  it("resolves routine bindings before shadowed program bindings", async () => {
+    const source = [
+      "var value as u8 = 9",
+      "var copy as u8 = 8",
+      "sub choose(value as u8) as u8",
+      "var copy as u8 = value",
+      "return copy",
+      "end",
+      "sub main() fails",
+      "var value as u8 = 3",
+      "writeOutputByte(choose(value)) else fail",
+      "writeOutputByte(copy) else fail",
+      "end",
+      "",
+    ].join("\n");
+    await expectOutput(source, [3, 8]);
+
+    const duplicate = await compile(
+      [
+        "sub work(value as u8)",
+        "var value as u8",
+        "end",
+        "sub main()",
+        "end",
+        "",
+      ].join("\n"),
+    );
+    expect(duplicate).toMatchObject({
+      success: false,
+      diagnostic: { code: 55, line: 2, column: 5 },
+    });
+  });
+
   it("selects every constant and runtime comparison truth-table cell", async () => {
     const operators = ["=", "<>", "<", "<=", ">", ">="] as const;
     const truthByOperator = [

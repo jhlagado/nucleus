@@ -11,19 +11,25 @@ SymbolReset:
             RET
 .endif
 
-; Compare the current NAME token with committed entries. Carry returns a
-; matching entry in HL. The provisional entry at SymbolCount is invisible.
+; Compare the current NAME token with committed entries, newest first so a
+; routine binding naturally precedes the program binding it shadows. Carry
+; returns a matching entry in HL. The provisional entry is invisible.
 .routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
 SymbolFindCurrent:
             LD   A,(SymbolCount)
             OR   A
             RET  Z
             LD   C,A
-            LD   HL,SymbolTableBase
+            LD   B,A
+            LD   HL,SymbolTableBase-SymbolEntrySize
+            LD   DE,SymbolEntrySize
+SymbolFindCurrentAdvance:
+            ADD  HL,DE
+            DJNZ SymbolFindCurrentAdvance
 SymbolFindCurrentLoop:
             CALL TokenNameRecordEquals
             RET  C
-            LD   DE,SymbolEntrySize
+            LD   DE,-SymbolEntrySize
             ADD  HL,DE
             DEC  C
             JR   NZ,SymbolFindCurrentLoop
@@ -46,6 +52,29 @@ SymbolPrepareCurrentWord:
             POP  DE
             POP  BC
             JP   C,TypedDuplicateNameFailure
+            JR   SymbolAppendCurrentWord
+
+; Routine bindings may repeat an older program symbol, but not a parameter or
+; local already installed in this routine. The newest match is the routine
+; binding when one exists; bit 3 identifies both local symbol classes.
+.if AggregateCallSlices
+.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SymbolPrepareRoutineWord:
+            CALL SymbolFindCurrent
+            JR   NC,SymbolPrepareRoutineReady
+            INC  HL
+            INC  HL
+            INC  HL
+            BIT  3,(HL)
+            JP   NZ,TypedDuplicateNameFailure
+SymbolPrepareRoutineReady:
+            LD   A,(DeclarationInfo)
+            LD   D,A
+            LD   BC,(DeclarationPayload)
+            JP   SymbolAppendCurrentWord
+.endif
+.routine in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SymbolAppendCurrentWord:
             LD   A,(SymbolCount)
             CP   SymbolCapacity
             JR   NC,SymbolPrepareFull

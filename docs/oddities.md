@@ -68,10 +68,10 @@ not a hidden stack allocation.
 
 Nucleus has two parameter-only complete-object views:
 
-| View        | Binds to                         | Retains              | Extra operations                          |
-| ----------- | -------------------------------- | -------------------- | ----------------------------------------- |
-| `string[]`  | any concrete `string[N]`         | actual capacity      | `.capacity`; checked `.length` assignment |
-| `T[]`       | any complete `T[N]` of exact `T`  | actual element count | `.length` as `u16`                        |
+| View       | Binds to                         | Retains              | Extra operations                          |
+| ---------- | -------------------------------- | -------------------- | ----------------------------------------- |
+| `string[]` | any concrete `string[N]`         | actual capacity      | `.capacity`; checked `.length` assignment |
+| `T[]`      | any complete `T[N]` of exact `T` | actual element count | `.length` as `u16`                        |
 
 Neither is a slice. Each view is one complete object. You cannot take a
 prefix, an offset, or a caller-chosen count. You cannot store the view, return
@@ -118,11 +118,13 @@ string length is `u8` (capacity 1 through 253).
 ## Remaining surprises
 
 **One namespace, declaration before use.** A record named `Point` and a
-variable named `Point` cannot coexist. A parameter cannot reuse a visible
-global name. Locals occupy a contiguous prefix at the top of the routine;
-`if` and `for` bodies declare nothing. The counted-loop counter must already
-be an integer scalar local. Mutual recursion uses `forward`; the later body is
-`sub name` with the signature omitted.
+variable named `Point` cannot coexist in program scope. A parameter or local
+may reuse a visible program data, constant, or type name; the routine binding
+wins inside that body. Routine names, `main`, and predefined names remain
+protected. Locals occupy a contiguous prefix at the top of the routine; `if`
+and `for` bodies declare nothing. The counted-loop counter must already be an
+integer scalar local. Mutual recursion uses `forward`; the later body is `sub
+name` with the signature omitted.
 
 **`elseif` is one token.** `else if` is two tokens and is not a flat clause.
 After `else`, the next token on that line cannot begin a nested `if`. `then`

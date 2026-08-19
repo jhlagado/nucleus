@@ -371,19 +371,13 @@ Stage7CheckParameterLoop:
             OR   A
             RET
 
-; Reject a parameter name that collides with an ordinary declaration, an
-; earlier routine, the routine whose signature is being parsed, or an earlier
-; parameter in that signature.
+; Reject a parameter name that collides with a routine, a predefined binding,
+; the routine whose signature is being parsed, or an earlier parameter in that
+; signature. An older program symbol may be shadowed by this routine binding.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7CheckParameterDeclarationName:
-            CALL TypedRejectCurrentOrdinaryName
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL Stage7RejectCurrentDeclarationName
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
+            CALL Stage7CurrentNameIsRoutineOrPredefined
+            JP   C,TypedDuplicateNameFailure
             LD   A,(Stage7CurrentRoutine)
             CALL Stage7RoutineAddress
             LD   E,(HL)
@@ -535,7 +529,7 @@ Stage7InstallScalarParameter:
             OR   SymbolClassParameter
             LD   D,A
 Stage7InstallParameterSymbol:
-            CALL SymbolPrepareCurrentWord
+            CALL SymbolAppendCurrentWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -858,7 +852,7 @@ _parameterSourceOffsetDone:
 
 ; Return aggregate symbol info in D, word payload in BC, and exact type ID in
 ; A. All fields are contiguous in the ordinary symbol-table entry.
-.routine out A,BC,D,carry,zero clobbers sign,parity,halfCarry,HL
+.routine out A,BC,D,carry,zero clobbers sign,parity,halfCarry,E,HL
 Stage7LookupAggregateCurrent:
             CALL SymbolFindCurrent
             JP   NC,SymbolLookupMissing

@@ -229,8 +229,10 @@ ordinary `$0000` execution proof alone is insufficient evidence.
 
 Identifiers are case-sensitive and preserve their spelling. Keywords use
 their lowercase reserved spellings. Nucleus rejects duplicate declarations
-and does not use Forth-style latest-definition lookup. Local declarations do
-not shadow visible ordinary names.
+within one scope and does not use Forth-style latest-definition lookup.
+Parameters and locals may shadow visible program data, constants, or type
+names; lookup selects the routine binding. They do not shadow source routines,
+`main`, or predefined bindings.
 
 A forward declaration supplies the complete routine signature once. Its later
 definition uses the abbreviated `sub NAME` body header. Do not restore a

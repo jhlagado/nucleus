@@ -704,7 +704,7 @@ Each record type has its own field scope. A field scope is separate from the ord
 
 ### 5.4 One ordinary namespace
 
-Program and routine scopes use one ordinary namespace. A record type, named constant, variable, routine, parameter, or local with a given exact identity prevents another visible ordinary binding from using that identity. Type and value names do not occupy separate namespaces.
+Each program or routine scope uses one ordinary namespace. A record type, named constant, variable, routine, parameter, or local with a given exact identity prevents another binding in the same scope from using that identity. Type and value names do not occupy separate namespaces. A routine-scope binding may shadow an admitted program-scope binding under Section 5.6.
 
 Name lookup first finds the one ordinary binding and then checks whether its declaration class is valid in context. A record type used as an expression, a variable used as a type, or a result-free routine used as a value is invalid. The compiler must not continue searching for another declaration of a more convenient class.
 
@@ -772,19 +772,21 @@ Declaration order applies across the whole logical compilation unit. A later dec
 
 Two declarations in the same scope conflict when their exact case-sensitive identities are equal. A difference in letter case creates a different name; repeating the same spelling is a duplicate.
 
-Lookup never selects a later declaration in preference to an earlier one. Nucleus has no temporal shadowing, source-level replacement, or latest-definition rule.
+Lookup never selects a later declaration in the same scope in preference to an earlier one. Nucleus has no temporal shadowing, source-level replacement, or latest-definition rule.
 
-A parameter or local must not shadow an ordinary program binding visible at its declaration point. A local must not reuse the identity of a parameter or an earlier local. Because routine bodies contain no nested declaration scopes, no inner-block shadowing case exists.
+A parameter or local may shadow a visible program record type, named constant, aggregate constant, or variable. Within the routine, the parameter or local governs unqualified uses after its declaration; the shadowed program binding remains unchanged and becomes visible again outside the routine. A local must not reuse the identity of a parameter or an earlier local, and parameters in one signature must remain distinct.
+
+A parameter or local must not shadow a source routine, `main`, or a predefined binding. Because routine bodies contain no nested declaration scopes, no inner-block shadowing case exists.
 
 ```nucleus
 const limit = 10
 
-sub clamp(limit as u16)       // invalid: parameter shadows visible constant
+sub clamp(limit as u16)       // valid: the parameter governs this body
     return
 end
 ```
 
-The no-shadowing rule is evaluated at the declaration point. A program declaration that appears after an earlier routine is not visible in that routine and does not retroactively invalidate one of its parameter or local names.
+Shadowing is evaluated at the declaration point. A program declaration that appears after an earlier routine is not visible in that routine and does not retroactively change one of its parameter or local names.
 
 Within one record, two fields with the same exact identity conflict. The same field identity may appear in different records, and a field may share an identity with an ordinary binding, because field selection supplies the record type before field lookup.
 
@@ -811,7 +813,7 @@ The compiler resolves a name at its source position in this order:
 | An ordinary name inside a routine      | Search visible parameters and locals in the current routine scope, then the visible program scope      |
 | An ordinary name at top level          | Search the visible program scope                                                                       |
 
-The no-shadowing rule ensures that the routine and program searches cannot both produce valid bindings for the same identity. Field names are never found by unqualified ordinary lookup.
+When both searches produce a binding, the routine-scope binding wins. Field names are never found by unqualified ordinary lookup.
 
 If lookup finds no binding, the compiler must issue an undeclared-name diagnostic. It must not create a variable, infer a declaration class, or grant visibility to a later declaration. If lookup finds a binding of the wrong class for the context, the compiler must diagnose that class mismatch.
 
@@ -869,7 +871,7 @@ Compiler-generated temporaries, labels, and helper names remain outside the sour
 
 ### 5.11 Diagnostics and capacity limits
 
-The compiler must diagnose an undeclared use, an exact duplicate, forbidden shadowing, a wrong declaration class, an abbreviated body without one incomplete forward, a second completion, and an uncompleted forward declaration. It may stop after the first diagnostic under Chapter 1.
+The compiler must diagnose an undeclared use, a same-scope duplicate, forbidden routine or predefined-name shadowing, a wrong declaration class, an abbreviated body without one incomplete forward, a second completion, and an uncompleted forward declaration. It may stop after the first diagnostic under Chapter 1.
 
 An implementation may bound identifier length, retained name bytes, ordinary bindings, routine-local bindings, record fields, or unresolved forward signatures. It must document each limit and issue a capacity diagnostic before truncation, wraparound, dropped declarations, or unchecked collision can occur. A capacity failure does not change identifier identity or make an otherwise conforming program invalid.
 
@@ -1674,7 +1676,7 @@ The compiler must diagnose:
 - a declaration in a location not permitted by Section 8.2;
 - a missing type;
 - a type, bound, initializer, or name that is not visible at its declaration point;
-- an exact duplicate name or forbidden shadowing under Chapter 5;
+- an exact same-scope duplicate name or forbidden routine/predefined shadowing under Chapter 5;
 - a nonconstant operand or invalid folded operation in a constant expression;
 - a scalar initializer incompatible with its declared type;
 - an invalid array length, string capacity, string length, record field count, array element count, or nested initializer shape;
@@ -3350,7 +3352,7 @@ Top-level declarations occur only in the compilation-unit sequence. Parameters o
 
 ### 18.2 Names and declaration classes
 
-Identifiers use their complete case-sensitive source spelling as identity. Program and routine scopes have one ordinary namespace; record fields have one field scope per record type. No ordinary declaration overloads, redefines, or shadows another visible ordinary declaration with the same exact identity. Definition order never changes which declaration governs a later use. A suffix name uses the statically selected record type's field scope or an array or bounded-string intrinsic selected by the base type.
+Identifiers use their complete case-sensitive source spelling as identity. Program and routine scopes each have one ordinary namespace; record fields have one field scope per record type. No declaration overloads or redefines another declaration in the same scope. A parameter or local may shadow a visible program data, constant, or type binding, and routine-scope lookup then wins; source routines, `main`, and predefined bindings remain protected. Definition order never changes which declaration governs a later use within one scope. A suffix name uses the statically selected record type's field scope or an array or bounded-string intrinsic selected by the base type.
 
 Name-led parsing first resolves the visible binding, then checks its declaration class. A routine name starts a call. A mutable scalar or aggregate storage path starts an assignment. An aggregate constant starts a readable aggregate path but is rejected as a direct-root assignment target. A record type is valid only in a type position. A failable call is parsed as an ordinary call and then checked for exactly one failure consumer under Chapter 14. Failure to find a binding, finding the wrong class, or finding a later declaration is invalid source.
 

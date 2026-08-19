@@ -1295,7 +1295,7 @@ HybridLL1SaveLocalType:
             PUSH BC
             LD   A,(DeclarationInfo)
             LD   D,A
-            CALL TypedPrepareCurrentWord
+            CALL TypedPrepareRoutineWord
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
