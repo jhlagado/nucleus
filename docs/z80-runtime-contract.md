@@ -357,6 +357,14 @@ contents then check the stored-length invariant. Source can obtain the retained
 capacity only through `.capacity`. The address carrier remains unavailable to
 source code.
 
+A contextual string-literal argument uses this carrier unchanged. The compiler
+places one distinct sealed bounded-string object in the target's generated
+read-only-data region for each source occurrence and passes its resolved
+address and inferred capacity. The object has program lifetime. No runtime
+helper, tag, read-only bit, or copy-on-call state is added. Mutation through the
+carrier therefore has the same placement-dependent physical effect as mutation
+through an alias to a named aggregate constant.
+
 A `T[]` parameter uses the same two-word call order: the concrete array's
 unsigned 16-bit element count is below its address, and the address is closest
 to the return address. The callee retains a four-byte binding: the ordinary

@@ -189,7 +189,9 @@ generated code
 
 The runtime begins immediately after the exact startup length. Read-only bytes
 follow the runtime, and generated code follows those bytes. Read-only data
-includes aggregate constants and, in ROM mode, the initialized-data load image.
+includes named aggregate constants, anonymous string-literal argument objects,
+and, in ROM mode, the initialized-data load image. Each literal object uses its
+ordinary sealed `N + 2` bytes and receives no target-side descriptor.
 
 Every bank reserves the same three-byte entry slot at `bankWindowBase`. The
 entry bank fills it with `JP startup`; the other banks leave the slot to the
@@ -442,11 +444,13 @@ Aggregate aliases contain a 16-bit address and no bank identity. The following
 rules prevent an alias to bank-local bytes from crossing a bank boundary:
 
 1. An aggregate constant is bank-local. Source in another bank cannot name it.
-2. Every aggregate argument to a cross-bank call must be rooted directly in a
+2. An anonymous string-literal argument is bank-local to its source occurrence
+   and can bind only to a `string[]` formal in a routine in that same bank.
+3. Every aggregate argument to a cross-bank call must be rooted directly in a
    top-level `var`, including a field or array element selected from that root.
    A constant-rooted, parameter-rooted, or transient-result-rooted alias cannot
    cross.
-3. A cross-bank call cannot return an aggregate result.
+4. A cross-bank call cannot return an aggregate result.
 
 Scalar arguments and results cross freely. A banked table can expose an
 accessor routine in its own bank that returns a scalar. A banked library can

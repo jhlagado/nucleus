@@ -181,22 +181,9 @@ HybridLL1CommitConstant:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CommitAggregateConstant:
 .if TargetStreamingOutput
-            CALL TargetCurrentSourceBank
+            CALL Stage7AllocateBankReadOnly
             LD   (DeclarationInfo),A
-            CALL TargetBankRoLengthAddress
-            PUSH HL
-            LD   C,(HL)
-            INC  HL
-            LD   B,(HL)
             LD   (DeclarationPayload),BC
-            LD   HL,(AggregateCurrentObjectExtent)
-            ADD  HL,BC
-            LD   E,L
-            LD   D,H
-            POP  HL
-            LD   (HL),E
-            INC  HL
-            LD   (HL),D
             LD   A,(DeclarationInfo)
             RLCA
             RLCA
@@ -219,31 +206,10 @@ HybridLL1CommitAggregateConstant:
             LD   A,(AggregateCurrentTypeId)
             INC  HL
             LD   (HL),A
-            LD   BC,(ReadOnlyImageLength)
-            LD   HL,(AggregateCurrentObjectExtent)
-            ADD  HL,BC
-            LD   DE,(StaticImageLength)
-            ADD  HL,DE
-.if CompilerNonlocalDiagnostics
-            PUSH BC
-.endif
-            CALL AggregateCheckReadOnlyCapacity
-.if CompilerNonlocalDiagnostics
-            POP  BC
-.endif
+            CALL Stage7AppendReadOnlyObject
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            OR   A
-            SBC  HL,DE
-            LD   (ReadOnlyImageLength),HL
-            LD   HL,StaticImageBase
-            ADD  HL,DE
-            ADD  HL,BC
-            EX   DE,HL
-            LD   HL,AggregateInitializerBase
-            LD   BC,(AggregateCurrentObjectExtent)
-            LDIR
             JP   SymbolCommit
 
 HybridLL1BeginAssert .equ TypedRetainDeclarationNameReady

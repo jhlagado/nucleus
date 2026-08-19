@@ -144,9 +144,12 @@ call statements admit either form. A failable call cannot sit inside an
 argument or a `return`. `return` is success only. The handler name is an
 existing writable `u8`, not a new binding. Traps are not recoverable.
 
-**String literals are initializers, not values.** Given `sub
-writeText(text as string[])`, `writeText("Hi")` is not admitted. You declare a
-concrete `string[N]` constant and pass that name.
+**String literals are contextual arguments, not general values.** Given `sub
+writeText(text as string[])`, `writeText("Hi")` creates a distinct anonymous
+program-lifetime string and passes the ordinary writable `string[]` carrier.
+Mutation may persist in RAM and may have no physical effect in ROM. Portable
+code treats literal arguments as immutable. Literals remain invalid as general
+expressions, assignments, results, locals, and concrete aggregate arguments.
 
 **Aggregate constants are read-only by source path.** Direct assignment to
 `Origin.x` is invalid. Pass `Origin` as an aggregate argument and the callee
@@ -173,23 +176,14 @@ undermines an otherwise consistent rule.
    provenance through aliases and reject the write, or define another
    target-independent rule with a discriminating proof. Portable source
    should not acquire different mutation semantics from placement policy.
-2. **Literal text as an argument.** Given `sub writeText(text as string[])`,
-   requiring a named `string[N]` constant instead of `writeText("Hi")` is the
-   first “is this unfinished?” moment. The eventual rule must account for the
-   fact that every current `string[]` parameter is writable. A compiler must
-   not simply alias literal
-   bytes as writable storage. Plausible designs include a read-only open-string
-   parameter form or an explicit temporary-copy rule with defined lifetime and
-   repeat-call behaviour. Keep the literal contextual rather than turning it
-   into a general aggregate expression.
-3. **One current beginner path.** The language manual and examples need one
+2. **One current beginner path.** The language manual and examples need one
    short route that uses the implemented forms together: signed counters,
    `string[]`, `T[]`, nested arrays, `else fail`, and `handle`. This is a
    documentation deliverable, not another syntax feature.
 
 ### P2 — analysis and system boundary
 
-4. **Port access.** Nucleus has typed byte streams and no source-visible Z80
+3. **Port access.** Nucleus has typed byte streams and no source-visible Z80
    ports. A future system boundary could provide typed port input and output
    without exposing arbitrary memory or inline assembly. This needs a service
    and portability design before it becomes a language feature; it is not a

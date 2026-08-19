@@ -1545,9 +1545,26 @@ Stage7CallArgumentLoop:
             XOR  A
             LD   (Stage8DirectFailable),A
             LD   A,D
+            CP   AggregateOpenStringTypeId
+            JR   NZ,Stage7CallClassifyStoredArgument
+            CALL ParserPeek
+.if CompilerDiagnosticBranches
+            JP   C,Stage7CallFailure
+.endif
+            CP   TokenStringLiteral
+            JR   Z,Stage7CallStringLiteralArgument
+            LD   D,(HL)
+            LD   A,D
+Stage7CallClassifyStoredArgument:
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7CallAggregateArgument
             CALL Stage7ParseScalarArgument
+.if CompilerDiagnosticBranches
+            JP   C,Stage7CallFailure
+.endif
+            JP   Stage7CallArgumentReady
+Stage7CallStringLiteralArgument:
+            CALL Stage7ParseStringLiteralArgument
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
 .endif
@@ -1654,7 +1671,7 @@ Stage7CallArgumentReady:
             INC  (HL)
             INC  HL
             DEC  (HL)
-            JR   Z,Stage7CallArgumentsDone
+            JP   Z,Stage7CallArgumentsDone
             LD   E,TokenComma
             CALL ParserExpect
 .if TargetStreamingOutput
@@ -1667,6 +1684,171 @@ Stage7CallArgumentReady:
 .endif
 .endif
             JP   Stage7CallArgumentLoop
+
+; Materialize one contextual string literal as a distinct bank-local constant.
+; The object remains anonymous: only its bank-local read-only offset enters the
+; semantic stream, and target publication walks it after the named constants.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7ParseStringLiteralArgument:
+            CALL ParserTake
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(TokenLength)
+            CP   254
+            JP   NC,AggregateStringCapacityFailure
+            OR   A
+            JR   NZ,Stage7StringLiteralCapacityReady
+            INC  A
+Stage7StringLiteralCapacityReady:
+            LD   (Stage7ArgumentCount),A
+            LD   L,A
+            LD   H,0
+            INC  HL
+            INC  HL
+            LD   (AggregateCurrentObjectExtent),HL
+.if TargetStreamingOutput
+            CALL Stage7CurrentCallFrame
+            LD   DE,Stage7CallFrameFlags
+            ADD  HL,DE
+            LD   D,(HL)
+            CALL TargetRequireCurrentBank
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+Stage7StringLiteralBankReady:
+.endif
+            LD   HL,0
+            LD   (AggregateCurrentObjectOffset),HL
+            CALL AggregateZeroCurrentObject
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage7ArgumentCount)
+            LD   B,A
+            CALL AggregateDecodeString
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7CommitStringLiteralObject
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            PUSH HL
+            LD   A,SemanticLoadReadOnlyAlias
+            CALL SemanticSinkOperation
+            POP  HL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            XOR  A
+            JP   Stage7PrepareOpenStringReady
+
+; Append the prepared sealed object to the declaration-ordered read-only
+; image and retain its bank-local offset. In banked output the compiler-only
+; terminator byte carries the source bank until target publication replaces
+; it with the required permanent zero.
+.routine out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,IX,IY
+Stage7CommitStringLiteralObject:
+.if TargetStreamingOutput
+            CALL Stage7AllocateBankReadOnly
+.if CompilerNonlocalDiagnostics
+            PUSH BC
+            OR   A
+            PUSH AF
+.else
+            LD   (AggregateCurrentTypeId),A
+            LD   (AggregateCurrentObjectOffset),BC
+.endif
+            LD   HL,AggregateInitializerBase
+            LD   DE,(AggregateCurrentObjectExtent)
+            ADD  HL,DE
+            DEC  HL
+.if CompilerNonlocalDiagnostics
+            POP  AF
+.else
+            LD   A,(AggregateCurrentTypeId)
+.endif
+            LD   (HL),A
+.else
+            LD   BC,(ReadOnlyImageLength)
+            LD   (AggregateCurrentObjectOffset),BC
+.endif
+            CALL Stage7AppendReadOnlyObject
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+.if TargetStreamingOutput
+.if CompilerNonlocalDiagnostics
+            POP  HL
+.else
+            LD   HL,(AggregateCurrentObjectOffset)
+.endif
+.else
+            LD   HL,(AggregateCurrentObjectOffset)
+.endif
+            OR   A
+            RET
+
+.if TargetStreamingOutput
+; Reserve the current object's extent in its source bank's read-only stream.
+; Return the source bank in A and the object's old bank-local offset in BC.
+.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
+Stage7AllocateBankReadOnly:
+            CALL TargetCurrentSourceBank
+            OR   A
+            PUSH AF
+            CALL TargetBankRoLengthAddress
+            LD   C,(HL)
+            INC  HL
+            LD   B,(HL)
+            LD   DE,(AggregateCurrentObjectExtent)
+            EX   DE,HL
+            ADD  HL,BC
+            EX   DE,HL
+            LD   (HL),D
+            DEC  HL
+            LD   (HL),E
+            POP  AF
+            RET
+.endif
+
+; Append the prepared object to the shared declaration-ordered read-only
+; staging image. Named constants and anonymous literals use the same checked
+; capacity and copy path.
+.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+Stage7AppendReadOnlyObject:
+            LD   BC,(ReadOnlyImageLength)
+            LD   HL,(AggregateCurrentObjectExtent)
+            ADD  HL,BC
+            LD   DE,(StaticImageLength)
+            ADD  HL,DE
+.if CompilerNonlocalDiagnostics
+            PUSH BC
+.endif
+            CALL AggregateCheckReadOnlyCapacity
+.if CompilerNonlocalDiagnostics
+            POP  BC
+.endif
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            OR   A
+            SBC  HL,DE
+            LD   (ReadOnlyImageLength),HL
+            LD   HL,StaticImageBase
+            ADD  HL,DE
+            ADD  HL,BC
+            EX   DE,HL
+            LD   HL,AggregateInitializerBase
+            LD   BC,(AggregateCurrentObjectExtent)
+            LDIR
+            OR   A
+            RET
 
 ; Convert one concrete or already-open bounded-string carrier into the two-word
 ; internal call form: actual capacity below the ordinary address carrier.

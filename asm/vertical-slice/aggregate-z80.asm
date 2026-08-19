@@ -10,15 +10,15 @@
 ; compiler backing image. Switching banks never replays source or semantics.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitBankedAggregateConstants:
-            LD   A,(SymbolCount)
-            OR   A
-            RET  Z
-            LD   B,A
-            LD   C,0
-            LD   IX,SymbolTableBase
             LD   IY,StaticImageBase
             LD   DE,(StaticImageLength)
             ADD  IY,DE
+            LD   A,(SymbolCount)
+            OR   A
+            JR   Z,TargetEmitBankedStringLiterals
+            LD   B,A
+            LD   C,0
+            LD   IX,SymbolTableBase
 TargetEmitBankedConstantSymbolLoop:
             LD   A,(IX+3)
             LD   D,A
@@ -57,8 +57,56 @@ TargetEmitBankedConstantNext:
             ADD  IX,DE
             INC  C
             DJNZ TargetEmitBankedConstantSymbolLoop
+
+; Anonymous literal objects follow all named aggregate constants in the
+; staging image. Their compiler-only final byte retains the source bank;
+; publish the preceding sealed bytes and restore the permanent zero.
+TargetEmitBankedStringLiterals:
+            LD   HL,StaticImageBase
+            LD   DE,(StaticImageLength)
+            ADD  HL,DE
+            LD   DE,(ReadOnlyImageLength)
+            ADD  HL,DE
+            PUSH HL
+            POP  IX                      ; end of staged read-only bytes
+TargetEmitBankedStringLiteralLoop:
+            PUSH IY
+            POP  HL
+            PUSH IX
+            POP  DE
             OR   A
-            RET
+            SBC  HL,DE
+            RET  Z
+            LD   L,(IY+0)
+            LD   H,0
+            LD   A,L
+            OR   A
+            JR   NZ,TargetEmitBankedStringExtentReady
+            INC  HL                      ; empty literal capacity is one
+TargetEmitBankedStringExtentReady:
+            INC  HL
+            INC  HL
+            PUSH HL
+            PUSH IY
+            POP  DE
+            ADD  HL,DE
+            DEC  HL
+            LD   A,(HL)                  ; compiler-only source bank
+            LD   (HL),0                  ; publish the permanent terminator
+            CALL TargetSelectOutputBank
+            POP  BC
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            PUSH IY
+            POP  HL
+            CALL EmitBlock
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            PUSH HL
+            POP  IY
+            JR   TargetEmitBankedStringLiteralLoop
 .endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY

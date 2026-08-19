@@ -1849,9 +1849,11 @@ cross-capacity bounded-string assignment were removed. Exact-capacity string
 assignment remains ordinary exact-type aggregate copying. A source library can
 implement output and comparison over `string[]`; cross-capacity copying remains
 deferred until the language defines a length-changing operation and its source
-semantics. String literals remain contextual static initializers, so a direct
-call such as `emit("hello")` is not yet admitted; the current form names a
-concrete bounded-string constant and passes it.
+semantics. At that checkpoint, string literals remained contextual static
+initializers, so a direct call such as `emit("hello")` was not admitted and
+required a named concrete bounded-string constant. A later increment below
+adds the narrower direct `string[]` argument position without changing the open
+carrier.
 
 The focused post-correctness compression pass removes a measured 128 compiler
 code bytes. It walks retained parameter records directly, shares the concrete
@@ -2875,6 +2877,49 @@ selected proof runtime remains 899 bytes, the historical runtime remains 921
 bytes, the generated-program maximum remains 4,096 bytes, and transcript
 capacities remain 511 payload bytes and 255 operations.
 
+### Contextual string-literal arguments
+
+This increment starts from the literal-`while true` commit
+`ae0fe6c41a663e58b89737f0997dade4e3c78ed0`. A string literal may now occupy an
+argument position selected by a `string[]` formal. Each occurrence creates one
+distinct program-lifetime bounded-string object. Its inferred capacity is the
+decoded length, except that an empty literal has capacity one. The ordinary
+address-and-capacity carrier and the existing open-string operations are
+unchanged. Literals remain invalid as general expressions, assignments,
+results, locals, and concrete aggregate arguments.
+
+The compiler appends anonymous objects to the existing declaration-ordered
+read-only staging image. A flat target publishes them after named aggregate
+constants. A banked target retains the source bank in a compiler-private final
+byte until publication, restores the permanent zero, and emits the object only
+in that bank. A literal cannot cross a bank boundary because the runtime
+carrier has no bank identity. Each argument contributes six existing semantic
+transcript bytes. Generated argument materialization is the same ten-byte
+carrier sequence used for a named bounded-string object, and the complete
+simple-call fixture remains 60 bytes. Target storage is `N + 2` bytes per
+decoded literal, or three bytes for an empty literal. Runtime and provider
+images gain no bytes.
+
+The first sound prototype added 296 production core bytes. Its feature-only
+compression pass shares named and anonymous read-only allocation and append
+paths, keeps the literal bank and offset on the compiler stack in the nonlocal
+production layout, and reuses the existing bank-check tail. The retained result
+adds 185 production code bytes and no immutable data or workspace. Production
+is 15,013 code bytes plus 398 immutable bytes, or 15,411 compiler-core bytes,
+leaving 973 bytes below the 16 KiB limit. The instrumented compiler is 15,069
+code bytes plus 398 immutable bytes, or 15,467 core bytes. Historical
+returning-diagnostic layouts are 14,550 code bytes plus 398 immutable bytes, or
+14,948 core bytes. Workspace remains 3,613 production bytes and 3,623
+historical bytes. Semantic capacity remains 511 payload bytes and 255
+operations, and the generated-program maximum remains 4,096 bytes.
+
+The flat proof executes 881,986 instructions in 9,518,684 T-states, an increase
+of 94 instructions and 1,104 T-states. Debug has the same increase at 885,777
+instructions and 9,560,475 T-states. The historical Chapter 21 proof is
+1,417,992 instructions and 14,019,163 T-states; Stage 8 is 1,723,424 and
+16,753,301; the complete LL(1) proof is 1,920,739 and 18,412,361. Every
+instruction and T-state change remains below 0.02 percent.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -2909,7 +2954,7 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | committed object generations            |          1 | storage-layer current-generation reference; incomplete generation remains uncommitted | output-service failure; previous commit remains current                          | A retained after divergent image-plus-patch B failure; C committed and executed   |
 | structured-initializer depth            |          4 | recursive parser state; total nodes are streamed and not retained                     | capacity diagnostic                                                              | nested record/array boundary and wide 256-element initializer                     |
 | initialized program-data bytes          |      1,024 | prefix of the private compiler image plus a retained word length                      | program-data capacity diagnostic                                                 | exact four-string-plus-tail image and rejected following byte                     |
-| aggregate-constant bytes                |      1,024 | private-image suffix, one shared length word, and relative-offset symbol payloads     | read-only-data capacity diagnostic                                               | record/array/string constants; exact 1,024-byte suffix and rejected next byte     |
+| aggregate-constant bytes                |      1,024 | private-image suffix shared by named constants and anonymous literal arguments        | read-only-data capacity diagnostic                                               | record/array/string constants, distinct `N + 2` literal objects, exact 1,024-byte suffix, and rejected next byte |
 | total generated read-only-data bytes    |      1,024 | initialized-data prefix followed by aggregate-constant suffix                         | diagnostic for the declaration class that first exceeds the combined region      | mixed data/constant shifting and exact separate boundary proofs                   |
 | zero-initialized program-data bytes     |      1,024 | retained word length; no stored image bytes                                           | capacity diagnostic                                                              | exact four-string-plus-tail BSS and rejected following byte                       |
 | emitted Z80 image bytes per bank        |      4,096 | four cursor-plus-remaining entries; independent monotonic target streams              | target-capacity diagnostic before append                                         | flat 881 bytes; banked 1,138/914 bytes; per-bank and entry-bank overflow proofs   |

@@ -1029,7 +1029,7 @@ or caller-chosen count, and whole-array assignment through the view is invalid.
 
 `string[N]` is a fixed-capacity counted sequence of bytes with a current length from 0 through `N`. `N` is a compile-time integer from 1 through 253 and is part of the type. The empty string is a valid value. Payload bytes may have any value from 0 through 255, including zero.
 
-A string literal is a contextual bounded-string initializer. It is compatible with `string[N]` when its decoded byte length does not exceed `N`. A literal that is too long is invalid. The literal does not create an open-ended string type or infer a capacity independently of its context.
+A string literal is a contextual bounded-string initializer. It is compatible with `string[N]` when its decoded byte length does not exceed `N`. A literal that is too long is invalid. When a literal is passed directly to a `string[]` parameter, its inferred concrete capacity is its decoded length, except that an empty literal has capacity one. The literal does not create an open-ended string type or infer a capacity in any other context.
 
 Two concrete bounded-string types are identical only when their capacities are equal. An alias to `string[16]` cannot bind to a `string[32]` parameter or result, even when the current contents would fit both. Concrete aggregate aliases and results therefore retain an exact extent.
 
@@ -1082,7 +1082,9 @@ field scope. Any other field suffix on a bounded string is invalid.
 
 `string[]` is a parameter-only, capacity-polymorphic view. A call may bind it to a concrete `string[N]` storage path or transient alias, for any admitted `N`, or forward another `string[]` parameter. The view retains the actual capacity for `.capacity`, checked `.length` assignment, `.length` reads, and checked indexing. It does not own storage and is invalid as a variable, constant, record field, array element, local, or routine result. Whole-object assignment and comparison through an open view are invalid.
 
-A string literal remains a contextual static initializer, not a general aggregate expression or argument. Passing literal text therefore requires a named concrete bounded-string object in this version. `string[]` is not a slice: it always views one complete bounded-string object, has no offset or independently chosen length, and cannot be rebound.
+A string literal remains contextual rather than becoming a general aggregate expression. In the argument position selected by a `string[]` formal, each literal occurrence creates a distinct anonymous, program-lifetime bounded-string object and binds the ordinary open view to it. The object uses the decoded length as its capacity, with capacity one for an empty literal. It is not interned, copied on each call, or admitted for a concrete aggregate parameter, assignment, result, stored view, or local.
+
+The `string[]` parameter remains writable. Mutation of an anonymous literal object may persist when the call site executes again. A RAM target can therefore expose the changed bytes, while a ROM target may ignore the physical write. Portable programs and libraries treat literal arguments as immutable and do not depend on either result. `string[]` is not a slice: it always views one complete bounded-string object, has no offset or independently chosen length, and cannot be rebound.
 
 This chapter fixes the semantic domain and capacity, not the stored layout. Chapter 7 defines storage identity and lifetime, Chapter 8 defines declaration initialization, and the Z80 runtime and backend contract defines the physical representation and byte encoding. That representation preserves embedded zero bytes, logical lengths through 253, and alias-visible byte mutation.
 
@@ -1822,7 +1824,7 @@ argument-list          ::= "(" [ expression { "," expression } ] ")"
 
 Chapter 17 incorporates this fragment into the complete grammar. The semantic restrictions below reject suffix combinations that the compact syntactic loop can recognize but Nucleus does not admit.
 
-A string literal is not a general expression primary. Chapter 8 permits it as a bounded-string initializer. A later system or bounded-string operation may accept a string literal in an explicitly defined operand position without turning it into a copyable aggregate value.
+A string literal is not a general expression primary. Chapter 8 permits it as a bounded-string initializer, and Section 13.4 permits it in the argument position selected by a `string[]` formal. That contextual argument does not turn the literal into a copyable aggregate value.
 
 ### 9.3 Names, calls, and postfix operations
 
@@ -2518,9 +2520,7 @@ If argument evaluation traps, no later argument is evaluated and the routine bod
 
 A scalar argument must have the exact parameter type, be an exact integer value that fits it, or use one of the value-preserving implicit conversions: `u8` to `u16`, `u8` to `i16`, or `i8` to `i16`. Every other integer conversion requires the explicit destination-type form `u8(...)`, `u16(...)`, `i8(...)`, or `i16(...)`, which traps when the mathematical source value lies outside the destination range. Boolean and integer arguments do not convert between each other.
 
-An argument for a concrete aggregate parameter must be an aggregate storage path or transient alias with exact referent-type identity. An argument for `string[]` may instead have any concrete bounded-string capacity or be another `string[]` parameter. An argument for `T[]` may be any complete concrete `T[N]` storage path or transient alias, or another `T[]` parameter; its element type must match exactly. In every case the call transfers an alias rather than copying the object. An open binding also retains the actual capacity or count used by its postfix operations. Scalar-leaf mutation through the parameter is visible through every other path to the same storage.
-
-A string literal is not an aggregate argument. Source that passes fixed text first declares a concrete bounded-string constant and passes that name. This keeps argument evaluation within the ordinary storage-and-alias model.
+An argument for a concrete aggregate parameter must be an aggregate storage path or transient alias with exact referent-type identity. An argument for `string[]` may instead have any concrete bounded-string capacity, be another `string[]` parameter, or be a string literal. A literal argument creates the distinct anonymous object defined in Section 6.8 and transfers its ordinary address-and-capacity carrier. An argument for `T[]` may be any complete concrete `T[N]` storage path or transient alias, or another `T[]` parameter; its element type must match exactly. In every case the call transfers an alias rather than copying the object. An open binding also retains the actual capacity or count used by its postfix operations. Scalar-leaf mutation through the parameter is visible through every other path to the same storage.
 
 Nucleus has no parameter modes, implicit read-only aggregate parameter, write permission, copy-in/copy-out aggregate parameter, or hidden source-level pointer conversion.
 
@@ -3248,7 +3248,7 @@ The standard service names and error constants from Chapter 16 are visible befor
 
 Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, `i8`, `i16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Concrete bounded-string identity consists of exact capacity. `string[]` is admitted only for parameters and retains the argument's actual capacity. `T[]` is also parameter-only and retains the complete concrete array's actual element count while preserving exact element-type identity.
 
-Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and the value-preserving implicit conversions `u8` to `u16`, `u8` to `i16`, and `i8` to `i16`. Every other conversion among `u8`, `u16`, `i8`, and `i16` requires the explicit checked destination-type form. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity or another open-string parameter. A `T[]` parameter admits any complete concrete `T[N]` path or transient alias, or another `T[]`, with exact element invariance. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
+Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and the value-preserving implicit conversions `u8` to `u16`, `u8` to `i16`, and `i8` to `i16`. Every other conversion among `u8`, `u16`, `i8`, and `i16` requires the explicit checked destination-type form. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity, another open-string parameter, or a contextual string literal. A `T[]` parameter admits any complete concrete `T[N]` path or transient alias, or another `T[]`, with exact element invariance. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
 
 The compiler checks every operator, condition, assignment, argument, result, field, index, initializer, and failure code locally. A failable invocation supplies no ordinary expression value until its failure has been consumed under Chapter 14.
 
@@ -3268,7 +3268,7 @@ Program variables use the zero or complete static initializer forms in Chapter 8
 
 ### 18.6 Routine and failure checking
 
-A call must match the visible signature in arity and parameter order. Scalar arguments copy compatible values. Concrete aggregate parameters bind aliases of the exact referent type. `string[]` binds any complete bounded-string object and preserves its actual capacity. `T[]` binds any complete concrete `T[N]` array or a forwarded view with the same exact element type and preserves its actual element count. A forward declaration is the sole complete signature. Its abbreviated `sub NAME` body header must resolve to that exact incomplete forward, and the stored forward parameter names bind the body.
+A call must match the visible signature in arity and parameter order. Scalar arguments copy compatible values. Concrete aggregate parameters bind aliases of the exact referent type. `string[]` binds any complete bounded-string object or its contextual literal object and preserves the actual capacity. `T[]` binds any complete concrete `T[N]` array or a forwarded view with the same exact element type and preserves its actual element count. A forward declaration is the sole complete signature. Its abbreviated `sub NAME` body header must resolve to that exact incomplete forward, and the stored forward parameter names bind the body.
 
 Every failable invocation has exactly one failure consumer. `else fail` requires a failable enclosing routine and is admitted only after a complete direct failable call in a scalar-local initializer, assignment right side, or call statement. Same-line `handle NAME` is admitted only after an eligible assignment or call statement and requires an existing writable `u8` destination that is not an active counted-loop counter. Failable invocations are invalid in returns, larger expressions, and argument lists.
 

@@ -437,20 +437,6 @@ describe("open bounded-string parameters", () => {
       line: 3,
       column: 1,
     },
-    {
-      name: "direct string-literal argument",
-      source: [
-        "sub emit(text as string[])",
-        "end",
-        "sub main()",
-        'emit("a")',
-        "end",
-        "",
-      ].join("\n"),
-      code: 130,
-      line: 4,
-      column: 6,
-    },
   ])(
     "rejects $name with an exact diagnostic",
     async ({ source, code, line, column }) => {
