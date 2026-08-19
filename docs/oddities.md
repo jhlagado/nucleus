@@ -43,6 +43,11 @@ File names, directories, and open/close are not source constructs. Byte
 streams and bulk storage are the language boundary. Filing systems sit in
 libraries and in the host that selects those streams.
 
+Direct Z80 port I/O has two typed predefined routines. `readPort(u16)` returns
+one `u8`; `writePort(u16, u8)` writes one byte. The port is the complete `BC`
+I/O address, including its upper byte. These operations are infallible and do
+not use `else fail` or `handle`.
+
 ## The programming model
 
 Routine locals are scalar only: `u8`, `u16`, `i8`, `i16`, and `boolean`.
@@ -180,14 +185,6 @@ undermines an otherwise consistent rule.
    short route that uses the implemented forms together: signed counters,
    `string[]`, `T[]`, nested arrays, `else fail`, and `handle`. This is a
    documentation deliverable, not another syntax feature.
-
-### P2 — analysis and system boundary
-
-3. **Port access.** Nucleus has typed byte streams and no source-visible Z80
-   ports. A future system boundary could provide typed port input and output
-   without exposing arbitrary memory or inline assembly. This needs a service
-   and portability design before it becomes a language feature; it is not a
-   missing core expression operator.
 
 ### Ongoing release discipline
 

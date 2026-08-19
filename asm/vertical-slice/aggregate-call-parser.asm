@@ -2191,6 +2191,8 @@ Stage8TypedPrimaryConstant:
 ; whether a successful u8 result is kept.
 .routine in A,B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 Stage8ParseServiceCall:
+            CP   Stage8PredefinedPortBase
+            JR   NC,Stage8ParsePortCall
             LD   E,A
             LD   D,B
             LD   HL,Stage8ServiceSignatureTable
@@ -2271,11 +2273,54 @@ Stage7TypedPrimaryAggregateSymbol:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-.if TargetStreamingOutput
-            JR   Stage7TypedPrimaryRoutineAggregate
-.else
             JP   Stage7TypedPrimaryRoutineAggregate
+
+; Parse one infallible direct Z80 port operation. The source port is the full
+; u16 BC address used by IN/OUT (C). The stored selector is zero for a discarded
+; read, one for a retained read, and two for a write.
+.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage8ParsePortCall:
+            SUB  Stage8PredefinedPortBase
+            ADD  A,A
+            OR   C
+            LD   (Stage8ServiceId),A
+            CALL ParserExpectLeft
+.if CompilerDiagnosticReturns
+            RET  C
 .endif
+            LD   A,ScalarTypeU16
+            CALL Stage7ParseScalarArgument
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage8ServiceId)
+            CP   2
+            JR   C,Stage8PortArgumentsDone
+            LD   E,TokenComma
+            CALL ParserExpect
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,ScalarTypeU8
+            CALL Stage7ParseScalarArgument
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+Stage8PortArgumentsDone:
+            CALL ParserExpectRight
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage8ServiceId)
+            LD   C,A
+            ADD  A,SemanticReadPortDiscard
+            CALL SemanticSinkOperation
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,C
+            AND  ScalarTypeU8
+            RET
 
 ; Current routine name has already been consumed as a complete statement.
 .if HybridLL1Full

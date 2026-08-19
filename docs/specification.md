@@ -2926,6 +2926,10 @@ The execution environment must preserve a trap even if its reporting device or o
 
 Nucleus 0.1 defines a small portable service boundary for byte-stream input and output, slow bulk storage, successful termination, and trap reporting. Programs invoke typed predefined routines and use predefined constants. The source language exposes no service numbers, ports, firmware entry points, raw addresses, file descriptors, device registers, or machine-specific memory map.
 
+The direct Z80 boundary separately provides the typed `readPort` and
+`writePort` operations in Section 16.4. They expose a complete 16-bit Z80 I/O
+address, not a service number, memory address, or general machine-code escape.
+
 Nucleus source contains no physical placement, and a target description contains no source-symbol reference. The source manifest selects and orders declarations; the target description supplies bounded execution regions. Neither input can name or rewrite entities owned by the other.
 
 The **Nucleus System Services 0.1** set is versioned with this language revision. A conforming execution environment supplies every service in Section 16.3 with the stated source contract and the initial stream states stated there. Later additions require a language revision or an explicit extension under Section 1.7 and measured admission under Chapter 2.
@@ -2968,7 +2972,30 @@ The bulk-storage routines operate on one logical input stream and one logical ou
 
 These contracts support streaming programs without exposing a filesystem. Nucleus 0.1 source cannot open, close, name, enumerate, create, or delete files. A launcher or build tool selects the streams outside the source language.
 
-### 16.4 Program startup and termination
+### 16.4 Direct Z80 port access
+
+The compiler also establishes these infallible predefined routines:
+
+```nucleus
+sub readPort(port as u16) as u8
+sub writePort(port as u16, value as u8)
+```
+
+`readPort` reads one byte from the complete 16-bit Z80 I/O address supplied by
+`port` and returns a canonical `u8`. `writePort` writes `value` to that address
+and has no result. Arguments use the ordinary left-to-right call order. The
+normal integer rules permit a `u8` port or value where the signature accepts
+it; Boolean and incompatible integer values are rejected at the applicable
+argument check.
+
+These operations use the Z80 `(C)` instruction family with the source `u16`
+address in `BC`: `B` drives the upper eight I/O-address lines and `C` drives
+the lower eight. They do not use a system-service vector, cannot fail
+recoverably, and add no service status, handler, runtime entry, or target
+provider operation. `readPort` may appear in an ordinary expression or as a
+discarded call statement. `writePort` is a result-free call statement.
+
+### 16.5 Program startup and termination
 
 The implementation enters its implicit startup path before `main`. Startup establishes explicit program-variable initializers, establishes zero values for the remaining program variables, and then transfers to `main`. These operations are complete before source execution begins and are not source-callable. The environment supplies no command-line arguments or implicit source values. Source code obtains input only through the predefined services.
 
@@ -2976,11 +3003,11 @@ Normal return from `main` terminates successfully. Nucleus 0.1 has no source sta
 
 The external representation of success, recoverable-error codes, and trap reasons is implementation-defined only where the Z80 runtime and backend contract explicitly says so. That representation must preserve the source-level distinction among normal termination, unhandled recoverable error, and each required trap reason.
 
-### 16.5 Portability and implementation
+### 16.6 Portability and implementation
 
 An environment may implement services with CP/M calls, a monitor, port I/O, host callbacks, or another mechanism. It may buffer transfers if buffering preserves call order, failure points, and visible bytes. Those choices do not add source names or expose their addresses.
 
-Arbitrary BIOS calls, machine-code-call declarations, inline assembly, memory peeks and pokes, port access, and callbacks are excluded from the safe source boundary. A later service must have a typed target-independent contract and pass the measured admission rule before it enters the standard set.
+Arbitrary BIOS calls, machine-code-call declarations, inline assembly, memory peeks and pokes, and callbacks are excluded from the safe source boundary. Port access is limited to the two typed operations in Section 16.4. A later service must have a typed target-independent contract and pass the measured admission rule before it enters the standard set.
 
 The target adapter may place the program in ROM, loaded RAM, or bank-switched ROM while preserving the same startup and source semantics. The target-system specification and Z80 runtime contract govern bank assignment and calls. Source code supplies neither a bank number nor a target address, and a target restriction on cross-bank references does not alter source validity.
 
@@ -3336,7 +3363,7 @@ Error propagation ends activations through ordinary return control. It performs 
 
 ### 19.7 System services and traps
 
-The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success.
+The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success. Direct port operations also execute in source order and use the complete source `u16` as the Z80 I/O address.
 
 A trap stops source execution at the failing operation. The environment reports the required reason and best available location. Earlier completed effects remain; no later source operation or source-level cleanup executes.
 
@@ -3357,7 +3384,7 @@ The following mechanisms are required in the single Nucleus 0.1 language:
 | Control      | Flat `if`/`elseif`/`else`, pre-test `while`, counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                                                                                                                              |
 | Routines     | Formal arguments including capacity-polymorphic `string[]` and length-polymorphic `T[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                      |
 | Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
-| System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes, normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                                                                                     |
+| System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes; typed direct Z80 `readPort(u16)` and `writePort(u16, u8)`; normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                         |
 
 No conforming compiler may expose a standard profile that omits one of these mechanisms.
 
@@ -3385,7 +3412,7 @@ These candidates are not provisional 0.1 syntax. Extensions may prototype them o
 
 ### 20.4 Excluded mechanisms
 
-Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory or port access, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
+Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory access, port operations other than the two typed routines in Section 16.4, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
 
 It also excludes assignment expressions, chained comparisons, conditional expressions, general expression statements, `call` and `then` keywords, `select`/`case`, pattern matching, repeat/do loops, `for in`, omitted counted-loop operands, counted-loop counters drawn from program variables or parameters, source assignment to an active counter, nested reuse of an active counter, labels, goto, labelled exit, exceptions, throw/catch, unwinding, destructors, `finally`, `defer`, resumable traps, and runtime type tags.
 

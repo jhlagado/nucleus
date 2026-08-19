@@ -192,10 +192,37 @@ TypedOperationTable:
             .dw TypedConvertInteger  ; 116
             .dw TypedDivideSigned    ; 117
             .dw TypedPromoteI8Pair   ; 118
-TypedOperationCount .equ 99
+            .dw TypedReadPortDiscard ; 119
+            .dw TypedReadPort        ; 120
+            .dw TypedWritePort       ; 121
+TypedOperationCount .equ 102
 .else
 TypedOperationCount .equ 62
 .endif
+
+; Direct typed port access uses the complete u16 address in BC. A result-bearing
+; read pushes a canonical u8 carrier; a discarded read leaves no carrier.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedReadPort:
+            LD   B,7
+            JR   TypedEmitReadPort
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedReadPortDiscard:
+            LD   B,3
+TypedEmitReadPort:
+            LD   HL,TypedReadPortBytes
+            JP   EmitBytes
+TypedReadPortBytes:
+            .db  $C1,$ED,$78             ; POP BC / IN A,(C)
+            .db  $6F,$26,$00,$E5         ; LD L,A / LD H,0 / PUSH HL
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+TypedWritePort:
+            LD   HL,TypedWritePortBytes
+            LD   B,5
+            JP   EmitBytes
+TypedWritePortBytes:
+            .db  $E1,$7D,$C1,$ED,$79     ; POP HL / LD A,L / POP BC / OUT (C),A
 
 ; Operand-prefetch metadata is deliberately separate from the full-width
 ; handler addresses. C returns the zero-based operation index. For marked

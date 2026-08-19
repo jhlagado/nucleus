@@ -619,6 +619,9 @@ SemanticEndTypedRoutine .equ 81
 SemanticConvertInteger  .equ 116
 SemanticDivideSigned    .equ 117
 SemanticPromoteI8Pair   .equ 118
+SemanticReadPortDiscard .equ 119
+SemanticReadPort        .equ 120
+SemanticWritePort       .equ 121
 
 ComparisonEqual         .equ 0
 ComparisonNotEqual      .equ 1

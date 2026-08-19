@@ -264,6 +264,13 @@ width, modular wraparound, short-circuit behaviour, and invalid constant
 operations. Reducing compiler size does not justify a second arithmetic
 language for constants.
 
+The predefined `readPort(u16)` and `writePort(u16, u8)` routines form the sole
+direct hardware-I/O boundary. Their port argument is the complete Z80 `BC`
+address, their arguments evaluate left to right, and they are infallible.
+`readPort` returns a canonical `u8`; `writePort` has no result. They do not
+admit inline assembly, memory access, service vectors, or general machine
+calls.
+
 ### Aggregate types
 
 Nucleus admits nominal records, nested fixed arrays, and `string[N]`. Each

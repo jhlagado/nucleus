@@ -372,6 +372,15 @@ code never assumes a platform-specific service address.
 Arithmetic and aggregate helpers remain local code within each bank. They are
 not vectored or reached through a bank switch.
 
+The typed `readPort` and `writePort` operations are also outside the vector
+table. Generated code executes `IN A,(C)` or `OUT (C),A` directly with the
+complete source `u16` address in `BC`. They add no runtime-identity field,
+provider image, vector entry, or writable state. A target profile that admits
+Nucleus execution must expose the corresponding Z80 I/O behavior, and a host
+or proof adapter must observe the same 16-bit port address and byte value.
+Direct I/O uses no memory-bank address and is valid in both flat and banked
+images.
+
 ## 7. Banked programs
 
 ### 7.1 One program and one compilation

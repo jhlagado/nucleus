@@ -99,7 +99,9 @@ export declare const executeCommittedNobj: (serialized: Uint8Array, execution: {
         readonly bytes: readonly number[];
     }[];
 }, options?: {
-    readonly observations?: readonly NobjObservation[];
+    readonly observations?: readonly NobjObservation[] | undefined;
     readonly bankSwitch?: NobjProofManifest["bankSwitch"];
+    readonly ioRead?: ((port: number) => number) | undefined;
+    readonly ioWrite?: ((port: number, value: number) => void) | undefined;
 }) => NobjExecutionOutcome;
 export {};

@@ -39,6 +39,9 @@ const semanticOperationWidth = (payload, key) => {
         case 94:
         case 100:
         case 101:
+        case 119:
+        case 120:
+        case 121:
             return 1;
         case 22:
         case 25:

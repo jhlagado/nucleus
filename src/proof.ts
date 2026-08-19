@@ -525,6 +525,8 @@ export const executeCommittedNobj = (
   options: {
     readonly observations?: readonly NobjObservation[];
     readonly bankSwitch?: NobjProofManifest["bankSwitch"];
+    readonly ioRead?: (port: number) => number;
+    readonly ioWrite?: (port: number, value: number) => void;
   } = {},
 ): NobjExecutionOutcome => {
   const parsed = parseNobjForExecution(serialized);
@@ -549,6 +551,7 @@ export const executeCommittedNobj = (
     program,
     parsed.map.entryAddress,
     {
+      read: (port) => options.ioRead?.(port) ?? 0,
       write: (port, value) => {
         if (switchConfig !== undefined && (port & 0xff) === switchConfig.port) {
           if (value >= parsed.begin.bankCount) {
@@ -561,6 +564,7 @@ export const executeCommittedNobj = (
           }
           runtime.hardware.memory.set(selectedImage, parsed.begin.imageBase);
         }
+        options.ioWrite?.(port, value);
       },
     },
     parsed.begin.banked && switchConfig !== undefined

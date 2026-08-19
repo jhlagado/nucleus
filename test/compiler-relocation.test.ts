@@ -193,7 +193,7 @@ const executePrefetchSelectorsAt = (
   expect(entry).toBeDefined();
   expect(cursor).toBeDefined();
   expect(operationBase).toBeDefined();
-  expect(operationCount).toBe(99);
+  expect(operationCount).toBe(102);
   if (
     entry === undefined ||
     cursor === undefined ||

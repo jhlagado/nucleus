@@ -743,6 +743,8 @@ TypedPrimaryName:
             JR   NC,TypedPrimaryOrdinaryName
             CP   Stage8PredefinedConstantBase
             JP   NC,Stage8TypedPrimaryConstant
+            CP   Stage8PredefinedPortBase
+            JP   Z,Stage8TypedPrimaryService
             LD   C,A
             AND  $FD                     ; readInput/readStorage map to zero
             JP   NZ,TypedTypeFailure
