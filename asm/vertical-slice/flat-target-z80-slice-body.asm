@@ -273,7 +273,7 @@ BankedOtherOverflowDescriptor:
             .db 2,0
             .dw BankedFailurePartBanks
 
-; The accepted multipart program from Chapter 21.1 is compiled through the
+; The accepted multipart program from Chapter 18.1 is compiled through the
 ; production target entry and executed only from its committed NOBJ image.
 ; This proof-only corpus is deliberately separate from the deployment source
 ; window: the individual compile still observes the published source-window

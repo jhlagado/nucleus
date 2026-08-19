@@ -64,9 +64,6 @@ describe("the normative Nucleus 0.1 grammar", () => {
     expect(text).toContain(
       "[Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md)",
     );
-    expect(text).toContain(
-      "The first compiler emits Z80 machine code directly",
-    );
     expect(text).not.toContain("Nucleus Virtual Machine Specification");
     expect(text).not.toContain("virtual-machine-specification.md");
     expect(text).not.toContain("primary bytecode path");
@@ -111,20 +108,23 @@ describe("the normative Nucleus 0.1 grammar", () => {
       'local-initializer     ::= expression [ "else" "fail" ]',
     );
     expect(text).toContain(
-      "A failable call is parsed as an ordinary call and then checked for exactly one failure consumer under Chapter 14.",
+      "Chapter 14 restricts every failable call to a position with one explicit failure consumer.",
     );
     expect(text).not.toContain("failable-invocation");
     expect(text).not.toContain("restricted failable-invocation path");
   });
 
-  it("records exact case identity and the external manifest boundary", () => {
+  it("records exact case identity and the external packaging boundary", () => {
     expect(text).toContain(
       "Identifiers are case-sensitive and preserve their source spelling.",
     );
     expect(text).toContain(
       "A reserved word is recognized only in the canonical lowercase spelling",
     );
-    expect(text).toContain("#### 4.3.1 Flat source manifest");
+    expect(text).toContain("#### 4.3.1 Host packaging");
+    expect(text).toContain(
+      "The complete source bytes, including that comment, must still reach",
+    );
     expect(text).not.toMatch(
       /case-insensitive exact names|ASCII-folded identity/,
     );
@@ -132,10 +132,10 @@ describe("the normative Nucleus 0.1 grammar", () => {
 
   it("keeps the language independent of one Z80 platform", () => {
     expect(text).toContain(
-      "a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems",
+      "Nucleus is a safe, practical, structured language for small Z80 systems",
     );
-    expect(text).toContain(
-      "does not bind Nucleus source semantics to a particular operating system, monitor, or memory map",
+    expect(text).toMatch(
+      /Target memory\s+placement, output transport, and compiler-host services are outside the/,
     );
     expect(text).not.toContain("TEC-1");
   });
@@ -145,7 +145,7 @@ describe("the normative Nucleus 0.1 grammar", () => {
       "The declared local type must be `u8`, `u16`, `i8`, `i16`, or `boolean`",
     );
     expect(text).toContain(
-      "A routine-local declaration with aggregate type is invalid.",
+      "A routine cannot declare aggregate storage or an aggregate-alias local.",
     );
     expect(text).toContain(
       "Aggregate assignment requires a mutable aggregate destination and an aggregate source of the exact same concrete type",
@@ -177,17 +177,17 @@ describe("the normative Nucleus 0.1 grammar", () => {
     expect(text).toContain(
       "A scalar local serving as an active counted-loop counter is read-only and cannot be the error destination",
     );
-    expect(text).toContain(
-      "counted-loop counters drawn from program variables or parameters",
-    );
     expect(text).not.toContain(
       "If the body changes the counter, the increment and next test use the changed value",
     );
   });
 
-  it("reports the analyzed grammar dimensions in Chapter 17", () => {
-    expect(text).toContain(
-      `expanded the grammar above to ${analysis.grammar.rules.length} BNF rules over ${analysis.grammar.nonterminals.size} nonterminals`,
-    );
+  it("keeps one prerequisite-ordered chapter sequence", () => {
+    expect(
+      Array.from(text.matchAll(/^## (\d+)\. /gm), (match) => Number(match[1])),
+    ).toEqual(Array.from({ length: 18 }, (_, index) => index + 1));
+    expect(text).not.toContain("## 18. Static semantics");
+    expect(text).not.toContain("## 19. Runtime semantics");
+    expect(text).not.toContain("## 20. Feature ledger");
   });
 });

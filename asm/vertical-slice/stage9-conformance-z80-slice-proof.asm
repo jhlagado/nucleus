@@ -1,4 +1,4 @@
-; Compile and execute the exact Chapter 21 conformance corpus through the
+; Compile and execute the exact Chapter 18 conformance corpus through the
 ; production packed LL(1) compiler and direct-Z80 backend.
 
             .include "memory-map.asmi"

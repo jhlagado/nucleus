@@ -5,7 +5,7 @@
 1. [Status and conformance](#1-status-and-conformance)
 2. [Design constraints](#2-design-constraints)
 3. [Source text and lexical rules](#3-source-text-and-lexical-rules)
-4. [Program and file structure](#4-program-and-file-structure)
+4. [Program and compilation structure](#4-program-and-compilation-structure)
 5. [Names and scopes](#5-names-and-scopes)
 6. [Types](#6-types)
 7. [Storage, values, and lifetime](#7-storage-values-and-lifetime)
@@ -19,10 +19,7 @@
 15. [Safety failures and traps](#15-safety-failures-and-traps)
 16. [System boundary](#16-system-boundary)
 17. [Complete grammar](#17-complete-grammar)
-18. [Static semantics](#18-static-semantics)
-19. [Runtime semantics](#19-runtime-semantics)
-20. [Feature ledger](#20-feature-ledger)
-21. [Conformance examples](#21-conformance-examples)
+18. [Conformance examples](#18-conformance-examples)
 
 ## 1. Status and conformance
 
@@ -37,8 +34,6 @@ The language under design is named **Nucleus 0.1**. It has one source language: 
 This specification defines the source-language syntax, static semantics, runtime semantics, required diagnostics, specified safety failures, and abstract compilation-input contract of Nucleus 0.1. It defines the conditions for a source program or compiler to claim Nucleus 0.1 conformance.
 
 The separate [Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md) defines the packed data representation, direct-code integrity rules, runtime boundary, and target execution obligations. Non-normative implementation plans and design papers record compiler strategies and project constraints; they do not add source-language semantics.
-
-The first implementation is a handwritten Z80 compiler that emits Z80 machine code directly. Project acceptance requires its compiler core and required immutable constants to fit in one 16 KiB bank; generated programs, compiler workspace, and the target runtime have separate budgets. That gate does not create a smaller Nucleus dialect or alter the meaning of a conforming program. Chapter 2 and the implementation plan carry the detailed budget rules.
 
 ### 1.3 Authority
 
@@ -76,7 +71,7 @@ A conforming Nucleus 0.1 source program:
 
 Exceeding one compiler's documented capacity does not affect a program's language conformance. The compiler may reject the program with a capacity diagnostic; that diagnostic reports an implementation limit rather than a source-language violation.
 
-The complete accepted programs in Chapter 21 form the minimum conformance corpus. A conforming compiler and execution environment must compile and execute each program under its stated inputs without a capacity diagnostic or an `activation-capacity` trap. An implementation may publish smaller limits than another implementation only above this floor. This requirement establishes a minimum useful implementation without creating a language profile or changing the conformance of larger source programs.
+The complete accepted programs in Chapter 18 form the minimum conformance corpus. A conforming compiler and execution environment must compile and execute each program under its stated inputs without a capacity diagnostic or an `activation-capacity` trap. An implementation may publish smaller limits than another implementation only above this floor. This requirement establishes a minimum useful implementation without creating a language profile or changing the conformance of larger source programs.
 
 A program can use this complete working revision to establish conformance. Such a claim identifies the exact specification revision because the draft may still change before the 0.1 freeze.
 
@@ -84,7 +79,7 @@ A program can use this complete working revision to establish conformance. Such 
 
 A compiler claiming Nucleus 0.1 conformance must:
 
-- compile every complete accepted program in Chapter 21 without a capacity diagnostic;
+- compile every complete accepted program in Chapter 18 without a capacity diagnostic;
 - accept and translate every conforming source program within its documented capacity limits;
 - accept an in-capacity program presented through the multipart compilation stream in Section 4.3;
 - preserve the specified observable results, side effects, and runtime traps of each accepted program;
@@ -95,8 +90,6 @@ A compiler claiming Nucleus 0.1 conformance must:
 - keep extensions separate from standard Nucleus mode.
 
 A compiler must not report successful translation and then emit code with semantics that differ from this specification. Diagnostic wording and presentation are implementation-defined unless a later chapter requires a particular machine-readable result.
-
-The first handwritten compiler passes an additional project acceptance gate only if its core plus required immutable constants fit in one 16 KiB bank. A compiler may conform to the language and fail that size gate. Conversely, fitting in the bank does not excuse a compiler that rejects an in-capacity conforming program, accepts invalid source without a diagnostic, or changes program meaning.
 
 ### 1.7 Extensions
 
@@ -123,113 +116,59 @@ These cases are distinct:
 
 A runtime trap is specified behaviour, not undefined behaviour and not evidence that the source was necessarily invalid. Later chapters define which failures are compile-time invalid, which are recoverable, and which trap at runtime.
 
-### 1.10 Provisional features
-
-Design candidates may be prototyped and measured while Nucleus 0.1 remains a working draft. Before 0.1 is frozen, the project either admits each candidate to the single normative language or omits it. Nucleus does not expose candidates as language levels or standard profiles.
-
-A program that depends on an unadmitted candidate is not yet a conforming Nucleus 0.1 program. Prototype support for that candidate follows the extension rules in Section 1.7.
-
-### 1.11 Direct Z80 implementation
-
-The first compiler emits Z80 machine code directly and satisfies the separate Z80 runtime and backend contract. It may retain a checked semantic-operation transcript as private compiler workspace, but it does not serialize or execute that transcript as a public bytecode format.
-
-Another compiler may use a different internal organization or target only when it preserves the same source semantics, diagnostics, and specified traps. An implementation choice does not create another Nucleus language profile.
-
-### 1.12 Non-requirements
-
-This working draft makes no claim that Nucleus 0.1 is frozen or implementation-validated. It does not require the first compiler to be written in Nucleus or compile its own source. It also does not require another conforming compiler to copy the first compiler's internal organization.
-
 ## 2. Design constraints
 
 ### 2.1 Scope
 
-This chapter records three kinds of constraint: properties preserved by the Nucleus 0.1 language design, acceptance gates for the first handwritten Z80 compiler, and evidence required before a provisional feature enters the language. Later chapters define the source language and its semantics. The separate Z80 runtime and backend contract defines the direct target obligations.
+This chapter records the constraints that shape Nucleus source semantics. Later
+chapters define the language in detail. The reviewers' charter and
+implementation plan govern compiler budgets, measurements, and feature
+admission; the Z80 runtime and backend contract governs target representation.
 
-The implementation gates in this chapter apply to the first compiler project. They are not language-conformance requirements for every Nucleus compiler. A compiler may conform to Nucleus 0.1 on another host without using Z80 code, banked memory, or the same internal architecture.
-
-Nucleus 0.1 is one language. Measurements may change the draft before it is frozen, but they do not create language levels, implementation-selected syntax profiles, or optional dialects. Each candidate is either admitted to the single language or omitted.
+Nucleus 0.1 is one language. It has no implementation-selected syntax profiles
+or optional dialects. A conforming implementation may use a different host or
+internal architecture, but it must accept and execute the same language.
 
 ### 2.2 Language-shaping constraints
 
-Nucleus is a safe, practical, general-purpose structured language designed to remain viable on small Z80 systems. Its minimum programming model includes `u8`, `u16`, `i8`, `i16`, and Boolean values; scalar and aggregate constants; formal arguments, including capacity-polymorphic `string[]` and length-polymorphic `T[]` parameters; named scalar local variables; routines with no result or one typed result; fixed-layout records; checked nested fixed arrays; bounded strings with length and checked byte indexing; complete positional static initializers; assignment and calls; `if`/`elseif`/`else`; `while`; counted `for`; `return`; and the unlabeled, innermost-loop forms of `exit` and `continue`. Silently removing one of these requirements does not make an oversized compiler acceptable. If a faithful implementation cannot fit, that result requires compiler-architecture redesign or rejection of the architecture hypothesis.
+Nucleus is a safe, practical, structured language for small Z80 systems. The
+complete language is the language defined by Chapters 3–17; a compiler does not
+conform by implementing a smaller subset.
 
-The language design uses deterministic parsing with canonical forms, minimal lookahead, and no backtracking. A smaller production count is useful only when it preserves the required programming model. Grammar terseness is not an independent design goal.
+The grammar is deterministic, uses canonical forms, and requires no
+backtracking. Grammar terseness is not an independent design goal.
 
 A conforming compiler must perform every source-safety check for which compilation provides sufficient information. Safety conditions that depend on runtime values must produce defined traps. Source code has no raw pointer arithmetic or unchecked reinterpretation. Later chapters define the checks, traps, and source types.
 
 Every implementation capacity must have an explicit limit and a diagnostic for excess. Exhausting a symbol table, input limit, nesting limit, or other bounded resource must not alter program meaning or produce silently incorrect output.
 
-### 2.3 Compiler-core gate
-
-Project acceptance requires the first compiler's executable core and every immutable table or constant required while compiling to fit together in one 16 KiB bank. Placing required code or immutable data in another bank does not satisfy this gate.
-
-For each tested configuration, the compiler-core total includes the front end, the direct-Z80 emitter, and all immutable data that either component requires. The report identifies the resident configuration and includes every shared or required component.
-
-The first implementation may use a flat 64 KiB address-space model as its initial abstraction. This model does not bind Nucleus source semantics to a particular operating system, monitor, or memory map. Additional memory or banks may hold separately budgeted components, but they are not a fallback for an oversized core.
-
-### 2.4 Separate resource accounts
-
-Resources outside the compiler-core gate may use other RAM or banks where the platform permits, but they remain bounded, measured, and reported. Separate accounting does not make a resource free or unlimited.
-
-| Account                     | Required report                                                                                                            |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Compiler core               | Executable code and required immutable data for the tested front end and active emitter, measured against the 16 KiB gate. |
-| Writable compiler workspace | Peak live bytes, including lexical, parsing, name, type, lowering, diagnostic, and emission state.                         |
-| Generated output            | Emitted Z80 program and static-data bytes, separate from compiler storage.                                                 |
-| Target runtime              | Shared helpers, service adapter, trap machinery, immutable data, writable state, and relevant execution cost.              |
-| Execution                   | A stated measure, such as instruction count or cycles, for representative emitted programs.                                |
-
-Project accounting counts each shared component once and assigns it to an identified account. Reports distinguish resident components, overlays, and mutually exclusive configurations. Peak workspace is the maximum simultaneously live storage, not the sum of buffers whose lifetimes do not overlap.
-
-### 2.5 Streaming compilation model
+### 2.3 Ordered compilation
 
 Bulk storage may be available but slow. The compiler consumes the ordered multipart compilation stream defined by Chapter 4 and emits one logical Z80 program and static-data output. A platform may materialize either stream in external storage. Physical source discovery, ordering, and transport do not require the compiler to retain the whole program in memory.
 
-The first compiler is handwritten Z80 and uses streaming, single-pass compilation wherever the language semantics permit it. Declarations precede use. An explicit forward routine signature supplies the necessary exception without requiring a later whole-program pass. Because that declaration is the sole signature, the compiler retains its parameter names until the abbreviated body begins and performs no body-signature comparison. Its compiler-core and workspace effects remain unmeasured.
+Declarations precede use. An explicit forward routine declaration is the sole
+exception and supplies the signature needed to check later calls. Chapter 13
+defines that declaration and its completion.
 
-The architecture excludes an abstract syntax tree, global type inference, whole-program optimization, and unbounded buffering from the first compiler. The compiler may retain bounded state required for declarations, scopes, forward signatures, control-flow fixups, and emission, provided each capacity is explicit and measured.
+The source rules support bounded, streaming compilation, but do not prescribe
+a compiler's private representation. An abstract syntax tree, semantic
+transcript, fixup table, or direct emitter has no source-level meaning.
 
-### 2.6 Semantic operations and direct emission
+### 2.4 System boundary and portability
 
-Compiler size has priority over compilation speed. The front end records a compact vocabulary of checked semantic operations and the backend turns those operations into Z80 machine code. The operation transcript is a private, bounded compiler representation rather than a portable target or execution format.
-
-Structured control lowers to ordinary comparisons, branches, calls, and checked runtime operations. The first direct backend uses fixed, proof-driven templates and bounded fixups before adding register allocation, branch shortening, whole-program optimization, or peephole optimization. Each increment measures compiler code, immutable data, workspace, generated output, target runtime, and execution cost.
-
-The companion Z80 runtime and backend contract fixes packed data layout, stable service and trap codes, call obligations, and generated-code integrity. Physical register allocation, helper organization, fixup representation, and calling-convention details remain measured implementation choices where that contract leaves them open.
-
-### 2.7 System boundary and portability
-
-The initial system boundary contains only services that Nucleus programs demonstrably require: input, output, termination, trap reporting, and bulk-storage access. Each additional service requires measured need.
-
-The semantic-operation boundary may support later direct backends for other Z80 variants or other targets where target neutrality has no material cost against the compiler-core gate and other bounded accounts. Portability does not justify growth that causes the first compiler to fail its core gate.
+Chapter 16 defines the services visible to source programs. Target memory
+placement, output transport, and compiler-host services are outside the
+language unless a later chapter explicitly makes them observable.
 
 Nucleus 0.1 defines no interrupt routine, interrupt or restart vector declaration, interrupt-reentrant calling convention, or interrupt-safe service guarantee. The compiler emits no interrupt vector table. A target may interrupt a Nucleus program only through a handler outside the language that preserves the program's machine state and does not enter a Nucleus routine or service.
 
-A target may assign ordered source parts to banked target regions without changing manifest order, declaration visibility, or source identity. Banking introduces no source construct, address value, or alternate return convention. The target-system specification and Z80 runtime contract define bank placement and may diagnose references that their banked representation cannot preserve safely; such a target restriction does not make the source program invalid under this specification.
-
-### 2.8 Evidence and feature admission
-
-Project reports assign every size, storage, or performance claim one of these evidence classes:
-
-- **Measured:** obtained from an identified build or run with the method recorded.
-- **Projected:** calculated from measured components under stated assumptions.
-- **Hypothesis:** an expectation not yet tested by an implementation.
-
-A candidate's admission record reports its incremental compiler-core code, required immutable data, peak writable workspace, target-runtime cost, effect on emitted programs, and total-system trade. Source-line count, host executable size, and an instruction sketch are not substitutes for target measurements. Before Nucleus 0.1 is frozen, the project either admits the candidate to the one normative language or omits it.
-
-Nucleus 0.1 admits the explicit recoverable-error mechanism in Chapter 14. The implementation ledger still records its compiler-core, immutable-data, workspace, emitted-code, and runtime costs. General exceptions, stack unwinding, destructors, `finally`, and `defer` remain excluded.
-
-Nucleus 0.1 admits recursive routine calls. The current compiler implements direct, main, and mutual recursion with a published activation-depth bound. Chapter 13 defines the source semantics, and Chapter 15 defines activation-capacity failure.
-
-Several source-preserving economies belong in the implementation rather than in language variants. The compiler uses one precedence-driven loop for binary expressions and classifies a completed call expression before admitting `else fail`; it does not duplicate the precedence ladder or branch on a routine signature before parsing the call. It uses interned type ordinals naming compact structural metadata. The direct backend may continue to measure shared tails, table dispatch, helper calls, fall-through layout, and width-specific target sequences. None of these choices may change accepted source, arithmetic width, required diagnostics, array aliases, or observable behavior.
-
-### 2.9 Decision boundary and failure conditions
-
-An architecture decision requires measurements from an identified compiler configuration and representative accepted and rejected source. The report includes the complete compiler-core total, immutable-data contribution, peak writable workspace, target-runtime total, emitted-program size, execution cost under a stated method, capacity limits, and diagnostics produced when those limits are exceeded. Candidate comparisons use equivalent source semantics and accounting boundaries.
-
-The decision record labels every value as Measured, Projected, or Hypothesis and states the assumptions behind projections. Unmeasured values remain open rather than being replaced with invented byte estimates.
-
-The first implementation is not required to compile itself. The project may evaluate self-hosting only after measurements show that the handwritten compiler satisfies its budget and conformance goals. Failure to preserve the minimum programming model, diagnose bounded-resource exhaustion, or keep required compiler code and constants within the one-bank gate rejects the tested architecture; it does not justify a weaker, unnamed language profile.
+A target may assign ordered source parts to banked target regions without
+changing part order, declaration visibility, or source identity. Banking
+introduces no source construct, address value, or alternate return convention.
+The target-system specification and Z80 runtime contract define bank placement
+and may diagnose references that their banked representation cannot preserve
+safely; such a target restriction does not make the source program invalid
+under this specification.
 
 ## 3. Source text and lexical rules
 
@@ -237,7 +176,11 @@ The first implementation is not required to compile itself. The project may eval
 
 This chapter defines how the source bytes in each ordered source part become one logical token stream. It defines source bytes, line endings, whitespace, comments, names, reserved words, literals, punctuation, source positions, and lexical errors. Chapter 4 defines the multipart input around those bytes. Later chapters define grammar, name resolution, types, expression precedence, and runtime meaning.
 
-The rules are deterministic and require no backtracking. Rules stated for source text, token identity, or lexical errors apply to every conforming compiler. Project acceptance requires the first compiler to consume the source in order with bounded state and without retaining a complete source copy. This is a Chapter 2 project constraint, not a required internal organization for another compiler. Another compiler may organize tokenization differently, but it must produce the same tokens. One byte of lookahead is sufficient for every token rule in this chapter.
+The rules are deterministic and require no backtracking. Rules stated for source
+text, token identity, or lexical errors apply to every conforming compiler. A
+compiler may organize tokenization differently, but it must produce the same
+tokens. One byte of lookahead is sufficient for every token rule in this
+chapter.
 
 ### 3.2 Source bytes
 
@@ -277,7 +220,7 @@ ASCII space and horizontal tab are the only horizontal whitespace. They separate
 
 A logical newline is the only statement terminator. Nucleus has no semicolon terminator and no second interchangeable terminator.
 
-Delimiter state tracks open parentheses and square brackets. A physical line ending produces `NEWLINE` only when no delimiter is open. Inside either delimiter, a physical line ending is whitespace and produces no token. Parentheses and brackets inside a comment or literal do not affect this state. The first compiler represents it with a bounded stack; another compiler may use a different representation.
+Delimiter state tracks open parentheses and square brackets. A physical line ending produces `NEWLINE` only when no delimiter is open. Inside either delimiter, a physical line ending is whitespace and produces no token. Parentheses and brackets inside a comment or literal do not affect this state. The representation of this state is implementation-defined.
 
 This is a tokenizer-parser interface rule rather than statement grammar: the tokenizer emits `NEWLINE` under this rule, while later chapters specify which grammar positions accept it. Delimiter state must distinguish `(` from `[`. A closing delimiter with no matching opener, a mismatched closing delimiter, an open delimiter at EOF, or implementation-capacity exhaustion is diagnosed.
 
@@ -452,7 +395,10 @@ line-ending        ::= LF | CR LF
 
 ### 3.10 Lexical errors and bounded failure
 
-The first compiler stops after its first lexical diagnostic. Another compiler may continue only to report additional diagnostics; it must not accept the source by guessing, replacing, truncating, or silently resynchronizing tokens, and it must not report successful compilation.
+A compiler may stop after its first lexical diagnostic or continue to report
+additional diagnostics. It must not accept the source by guessing, replacing,
+truncating, or silently resynchronizing tokens, and it must not report
+successful compilation.
 
 Lexical errors include:
 
@@ -518,9 +464,9 @@ The two physical line endings inside delimiters do not appear in the token seque
 
 ### 3.12 Reserved-word and literal decisions
 
-Chapter 8 admits `assert`. Chapter 9 admits `mod`, `not`, `and`, `or`, and `xor`. Chapter 14 admits `fail`, `fails`, and `handle`. These nine words are reserved. Chapter 11 omits a conditional header marker, so `then` remains an identifier. Nucleus integer literals use decimal digits, `$` hexadecimal, or `%` binary. A later revision that needs another token requires an amendment here and cost accounting for the added scanner, table, test, and diagnostic work.
+Chapter 8 admits `assert`. Chapter 9 admits `mod`, `not`, `and`, `or`, and `xor`. Chapter 14 admits `fail`, `fails`, and `handle`. These nine words are reserved. Chapter 11 omits a conditional header marker, so `then` remains an identifier. Nucleus integer literals use decimal digits, `$` hexadecimal, or `%` binary. A later revision that needs another token requires an amendment here.
 
-## 4. Program and file structure
+## 4. Program and compilation structure
 
 ### 4.1 Scope
 
@@ -566,13 +512,25 @@ The compiler may consume each event and byte chunk incrementally. It need not ma
 
 The packaging layer must not add declarations, replace tokens, perform textual macro processing, or make accepted source depend on a part's physical origin. A diagnostic from multipart input must carry the stable source-part identity and the Chapter 3 position within that part, allowing the packaging layer to map it back to a physical source when such a mapping exists.
 
-#### 4.3.1 Flat source manifest
+#### 4.3.1 Host packaging
 
-The standard authoring convention for this abstract stream is a flat ordered manifest. Each nonblank logical line contains one physical source name. Blank lines are ignored. The build driver processes entries in their written order, resolves every name within one base directory or storage namespace selected for that build, reads the named source, and emits one source part for it. The listed name is the part's diagnostic name. Its stable source identity combines that name with the entry's position, so a driver that permits a duplicate entry can still identify each part.
+The packaging layer may obtain the ordered parts from an explicit file list or
+by discovering and ordering dependencies. Its project-file syntax, path rules,
+and dependency algorithm are host contracts, not Nucleus syntax.
 
-The manifest has no nesting, glob patterns, variables, conditional entries, dependency discovery, or recursive import meaning. It does not enter the source-byte stream, and the Nucleus tokenizer never sees it. The build driver defines how physical source names and line endings are encoded; a later compiler-input specification may define concrete multipart framing. Those transport choices do not change the ordered-part contract in Section 4.3.
+A host may recognize a dependency directive written inside a Nucleus `//`
+comment. The complete source bytes, including that comment, must still reach
+the compiler unchanged. To Nucleus it remains an ordinary comment: it produces
+no token, declaration, scope, or dependency rule. This permits dependency-aware
+tools without making the compiler aware of files or preprocessing.
 
-The driver reports a missing physical source or an unresolvable source name before compilation. It may reject a duplicate manifest entry. If it emits the duplicate instead, the compiler processes both parts in order and ordinarily reports duplicate source declarations. A forgotten dependency ordinarily produces an unknown-name diagnostic; a wrong order produces the applicable declaration-before-use diagnostic; and a forward that no later part completes fails at `EOF`. The compiler does not search for another file or reorder parts in response.
+The packaging layer reports missing inputs, invalid paths, dependency cycles,
+and other discovery failures before compilation. It suppresses duplicate
+physical dependencies when its format requires import-once behavior, assigns
+the final stable identities, and presents dependencies before the parts that
+use them. A forgotten dependency or incorrect explicit order can instead reach
+the compiler and produce the ordinary undeclared-name, declaration-order, or
+incomplete-forward diagnostic.
 
 ### 4.4 Top-level declarations
 
@@ -647,7 +605,8 @@ Execution enters an implicit implementation startup path, which establishes ever
 
 The startup entry is not a source declaration and cannot be called by source. Nucleus defines no source-visible reset, vector, interrupt, or alternate entry declaration.
 
-Program startup, initialization, termination, and system services are specified in Chapters 16 and 19.
+Program startup, initialization, termination, and system services are specified
+in Chapter 16.
 
 ### 4.8 End of input and duplicate completion
 
@@ -660,15 +619,13 @@ At `EOF`, the compiler must verify that:
 - no top-level declaration remains structurally incomplete; and
 - exactly one defined `main` satisfies Section 4.7.
 
-The compiler may diagnose a duplicate declaration or mismatched completion as soon as it encounters the later declaration. It must not defer a detectable error merely because end-of-input validation also covers the condition. After any structural error, the initial compiler may stop under the diagnostic policy in Chapter 1; it must not report a successful translation.
+The compiler may diagnose a duplicate declaration or mismatched completion as soon as it encounters the later declaration. It must not defer a detectable error merely because end-of-input validation also covers the condition. After any structural error, it may stop under the diagnostic policy in Chapter 1; it must not report a successful translation.
 
 ### 4.9 Capacity limits and source parts
 
 Documented compiler capacities apply to the complete logical compilation unit. A source-part boundary must not reset a symbol count, forward-signature count, nesting limit, or other unit-wide resource. Dividing the same ordered source among more parts neither increases a language-defined capacity nor creates extra scopes. Chapter 3 source-position counters restart for each part because diagnostics use part-relative positions.
 
 An implementation may bound the complete logical source length, source-part count, source-identity or diagnostic-name length, number of declarations, number of unresolved forwards, or other storage required by this chapter. It must document each limit and issue a capacity diagnostic when the limit is exceeded. Under Chapter 1, that diagnostic does not make an otherwise conforming source program invalid.
-
-The first compiler's 16 KiB core gate does not change these structural rules. Project measurements account for the code and immutable data used to enforce them, while writable tables and source maps remain in their separately reported accounts under Chapter 2.
 
 ## 5. Names and scopes
 
@@ -874,8 +831,6 @@ Compiler-generated temporaries, labels, and helper names remain outside the sour
 The compiler must diagnose an undeclared use, a same-scope duplicate, forbidden routine or predefined-name shadowing, a wrong declaration class, an abbreviated body without one incomplete forward, a second completion, and an uncompleted forward declaration. It may stop after the first diagnostic under Chapter 1.
 
 An implementation may bound identifier length, retained name bytes, ordinary bindings, routine-local bindings, record fields, or unresolved forward signatures. It must document each limit and issue a capacity diagnostic before truncation, wraparound, dropped declarations, or unchecked collision can occur. A capacity failure does not change identifier identity or make an otherwise conforming program invalid.
-
-The implementation may use one bounded ordinary symbol table, a mark for the current routine, and a field table associated with each record type. That layout is non-normative. The observable lookup, collision, visibility, and diagnostic rules above remain the same for any internal representation.
 
 ## 6. Types
 
@@ -1096,7 +1051,9 @@ An aggregate alias has the same source type as its referent and a separate alias
 
 The compiler must retain the referent type through aggregate parameters, field and element selection, scalar and aggregate assignments, calls, and aggregate results. Passing or returning a concrete alias requires exact referent-type identity. Binding `string[]` retains the argument's concrete capacity separately from its address. Binding `T[]` retains the concrete array's element count. Forwarding either view preserves the address and retained bound.
 
-A direct backend may represent a concrete alias at runtime with one untagged address because compiler metadata records its extent. An open view additionally needs the actual capacity or count supplied by its caller. These carriers have no source spelling or runtime type tag. Source code cannot read, write, compare, convert, store, return as a scalar, or perform arithmetic on a carrier itself.
+The carrier used for an alias has no source spelling or runtime type tag. Source
+code cannot read, write, compare, convert, store, return as a scalar, or perform
+arithmetic on that carrier itself.
 
 An alias carrier and `u16` remain different typed entities even though both occupy one word. No conversion exists in either direction. Address derivation for field and element access is a checked compiler or backend operation, not `u16` arithmetic visible to the program.
 
@@ -1161,25 +1118,15 @@ An implementation must diagnose a source form that requires one of these mechani
 
 ### 6.12 Type metadata and capacity
 
-Exact type identity is checked from retained metadata without reconstructing source text. Record declarations require nominal IDs. Predefined scalars, fixed arrays, and bounded strings have compact, bounded structural descriptions: kind, element type when applicable, and length or capacity. A compiler may store those descriptions directly in symbols and signatures or intern them behind compact ordinals. Measurements of compiler-core bytes, immutable data, writable workspace, and comparison code determine the representation used by the first implementation.
+Exact type identity is checked from retained metadata without reconstructing
+source text. Record declarations require nominal identities; arrays and bounded
+strings require their complete structural identity, including nested element
+types and every bound.
 
-One direct representation fits every admitted dynamic type in four bytes. Its
-kind byte distinguishes records, bounded strings, and fixed arrays. A second
-byte carries a record ordinal, string capacity, or the complete interned element
-type ordinal, and two bytes carry an array length. Nested arrays use the same
-descriptor: each distinct intermediate row type consumes one entry in the
-shared dynamic-type table and contributes its retained complete extent.
-
-Four inline bytes are not automatically cheaper than one ordinal per symbol. With mostly distinct types, direct descriptors avoid an interning table; with many repeated types, ordinals reduce writable symbol storage. The measurement package reports both retained-data totals for representative symbol populations. The first compiler also counts the code and scratch state for descriptor construction, interning, exhaustion checks, and equality before selecting either form.
-
-Every selected representation has a published capacity. The first compiler
-admits at most four concrete array suffixes in one type and retains at most
-eight dynamic types across records, bounded strings, and fixed arrays. An
-ordinal representation diagnoses exhaustion before an ID wraps or aliases
-another type. An inline representation diagnoses any limit on element-type
-nesting, length, capacity, symbol entries, record fields, or signatures before
-truncation changes a compatibility result. A byte-sized type ID remains a
-candidate, not a language or target requirement.
+An implementation may represent this information directly or intern it behind
+private identifiers. Every resulting capacity is implementation-defined and
+must be diagnosed before exhaustion, truncation, wrapping, or aliasing can
+change a compatibility result.
 
 The numeric type ID has no source meaning and need not match across compilations. Z80 registers and compiler-managed storage locations are untagged; the compiler's symbol and expression metadata supply their current source types. Runtime type tags, reflection, and dynamic type tests are absent.
 
@@ -1667,7 +1614,7 @@ A local becomes visible only after its complete declaration and initializer have
 
 Scalar constant expressions are evaluated during compilation and perform no source-level runtime operation. The compiler also constructs every aggregate constant's complete static value before source execution begins.
 
-The compiler establishes every program variable's zero or explicit initial value exactly once before the entry routine begins. Aggregate constants and variables follow source declaration order. Static initializers have no source-level effects and cannot read runtime storage. Copying the already established static value of an earlier aggregate constant is a compile-time image operation, so this order is not otherwise observable. Every program-lifetime object has reached its initial value before source execution can read it. Chapter 7 defines lifetime, and Chapter 19 defines startup semantics and implementation requirements.
+The compiler establishes every program variable's zero or explicit initial value exactly once before the entry routine begins. Aggregate constants and variables follow source declaration order. Static initializers have no source-level effects and cannot read runtime storage. Copying the already established static value of an earlier aggregate constant is a compile-time image operation, so this order is not otherwise observable. Every program-lifetime object has reached its initial value before source execution can read it. Chapter 7 defines lifetime, and Section 16.6 defines startup.
 
 On each routine invocation, parameter binding precedes activation-local initialization. Scalar local declarations then take effect in source order, and each receives its zero or evaluated value at its declaration. After the last local declaration, execution continues with the first statement.
 
@@ -1883,7 +1830,10 @@ Binary arithmetic, `and`, `or`, and `xor` associate from left to right. Unary `+
 
 `not` is a unary operator with the same precedence as unary `+` and `-`. It therefore binds more tightly than multiplication, addition, and comparison. Thus `not mask = expected` means `(not mask) = expected`. Negating a complete comparison requires parentheses, as in `not (left = right)`.
 
-The repeated forms in Section 9.2 preserve left association without a left-recursive predictive grammar. The first handwritten compiler implements the binary levels with one precedence-driven loop and a compact operator table; comparison's single-use rule and Boolean short-circuit emission remain explicit cases in that loop. Separate parsing remains appropriate for primary, postfix, and right-recursive unary operators. Another conforming compiler may use a different parser family only if it accepts the same token sequences and produces the same association and evaluation order.
+The repeated forms in Section 9.2 preserve left association without a
+left-recursive grammar. A compiler may organize expression parsing differently,
+but it must accept the same token sequences and preserve this association and
+the evaluation order in Section 9.11.
 
 ### 9.7 Exact-integer resolution
 
@@ -1948,7 +1898,9 @@ Boolean `and` and `or` short-circuit. The left operand is evaluated first:
 
 An operand that is not evaluated performs no call, storage access, bounds check, conversion check, arithmetic trap, or other source operation. The Boolean and integer meanings are selected by static types and create no parsing ambiguity.
 
-Shifts, rotations, power, and symbolic Boolean operators are absent. A later proposal for one of these operators requires its own measured admission and a Chapter 3 token amendment when it uses a word.
+Shifts, rotations, power, and symbolic Boolean operators are absent. Adding one
+of these operators requires a language revision and, for a word operator, a
+Chapter 3 token amendment.
 
 ### 9.11 Evaluation order
 
@@ -2124,15 +2076,15 @@ Only the invocation itself forms the statement. A scalar arithmetic expression, 
 
 All four are complete simple statements. No label, condition, target name, or trailing expression may follow `exit` or `continue`.
 
-### 10.7 Execution and bounded failure
+### 10.7 Execution, diagnostics, and capacity
 
 Statements in a sequence begin in source order. A compound statement completes before the following statement begins. A `return`, `fail`, taken `exit`, taken `continue`, or trap prevents normal execution of the remaining statements on that path.
 
-A compiler may emit semantic operations as it checks each statement. It need not retain a statement tree. Forward branches may use bounded fixup state under Chapter 2, provided capacity exhaustion produces a diagnostic rather than an unresolved or incorrect branch.
-
 The compiler must diagnose an invalid statement start, a wrong-class name, a missing assignment operator or argument list, a non-writable assignment target, an assignment to an active counted-loop counter, an incompatible right-hand expression, a forbidden general expression statement, and any context-invalid `return`, `fail`, `exit`, or `continue`.
 
-An implementation may bound statement nesting, active control contexts, branch fixups, and retained emission state. It must publish each limit and issue a capacity diagnostic before overflow changes statement association, branch targets, or execution order.
+An implementation may bound statement nesting and active control state. It must
+publish each limit and issue a capacity diagnostic before overflow changes
+statement association, transfer targets, or execution order.
 
 ### 10.8 Examples
 
@@ -2234,63 +2186,7 @@ Nucleus conditional headers do not use `then`. The logical newline already separ
 
 Consequently, `then` remains an identifier under Chapter 3. A Boolean variable named `then` may appear as the complete condition in `if then`; the following logical newline terminates that header.
 
-### 11.7 Lowering boundary
-
-The source semantics require ordered condition evaluation and selection of at most one body. A compiler may lower the statement to comparisons, conditional branches, and ordinary branches while parsing it. The internal semantic-operation interface requires no dedicated `if`, `elseif`, or `else` operation.
-
-Branch fixups and active clause state are implementation details. They must preserve the source order above, skip every unselected body, and continue after the one closing `end`.
-
-### 11.8 Excluded conditional mechanisms
-
-Nucleus 0.1 has no:
-
-- one-line `if` form;
-- postfix or statement-modifier condition;
-- conditional expression;
-- pattern matching;
-- fall-through selection; or
-- implicit integer truth test.
-
-The current `select` form has no ranges, duplicate-value diagnostics, jump-table semantics, or fallthrough.
-
-### 11.9 Invalid conditionals and capacity limits
-
-The compiler must diagnose a non-Boolean condition, `elseif` after `else`, more than one `else`, `else if` used as a flat-clause spelling, a missing logical newline, a missing closing `end`, and any clause token outside its conditional context.
-
-An implementation may bound nested conditional depth, clause count, and branch-fixup state. It must publish each limit and issue a capacity diagnostic before overflow changes clause association, skips a selected body, evaluates an unselected condition, or emits an unresolved branch.
-
-### 11.10 Examples
-
-This chain evaluates `ready` first and `waiting` only when `ready` is false:
-
-```nucleus
-if ready
-    run()
-elseif waiting
-    poll()
-else
-    stop()
-end
-```
-
-An empty body is valid:
-
-```nucleus
-if unchanged
-elseif needsUpdate
-    update()
-end
-```
-
-These headers are invalid:
-
-```nucleus
-if count              // u16 is not a condition
-if ready then         // then is an identifier, not a header marker
-else if waiting       // not the flat elseif token
-```
-
-### 11.11 Integer selection
+### 11.7 Integer selection
 
 The selection grammar is:
 
@@ -2329,7 +2225,59 @@ else
 end
 ```
 
-This version admits equality cases only. It has no case ranges, overlap analysis, jump tables, binary-search lowering, pattern cases, Boolean selection, or source-visible `break`.
+This version admits equality cases only. It has no case ranges, pattern cases,
+Boolean selection, fallthrough, or source-visible `break`.
+
+### 11.8 Excluded conditional mechanisms
+
+Nucleus 0.1 has no:
+
+- one-line `if` form;
+- postfix or statement-modifier condition;
+- conditional expression;
+- pattern matching;
+- fall-through selection; or
+- implicit integer truth test.
+
+Duplicate case values are permitted under Section 11.7; the first matching item
+wins.
+
+### 11.9 Invalid conditionals and capacity limits
+
+The compiler must diagnose a non-Boolean condition, `elseif` after `else`, more than one `else`, `else if` used as a flat-clause spelling, a missing logical newline, a missing closing `end`, and any clause token outside its conditional context.
+
+An implementation may bound nested conditional depth, clause count, and branch-fixup state. It must publish each limit and issue a capacity diagnostic before overflow changes clause association, skips a selected body, evaluates an unselected condition, or emits an unresolved branch.
+
+### 11.10 Examples
+
+This chain evaluates `ready` first and `waiting` only when `ready` is false:
+
+```nucleus
+if ready
+    run()
+elseif waiting
+    poll()
+else
+    stop()
+end
+```
+
+An empty body is valid:
+
+```nucleus
+if unchanged
+elseif needsUpdate
+    update()
+end
+```
+
+These headers are invalid:
+
+```nucleus
+if count              // u16 is not a condition
+if ready then         // then is an identifier, not a header marker
+else if waiting       // not the flat elseif token
+```
 
 ## 12. Loop control
 
@@ -2337,7 +2285,7 @@ This version admits equality cases only. It has no case ranges, overlap analysis
 
 This chapter defines the two Nucleus 0.1 loop forms, counted-loop direction and bounds, and the required `exit` and `continue` statements. Chapter 9 defines expressions, and Chapter 10 defines statement sequences.
 
-Nucleus has one pre-test conditional loop and one counted loop. Both use ordinary comparisons and direct Z80 branches; neither requires a dedicated loop runtime mechanism.
+Nucleus has one pre-test conditional loop and one counted loop.
 
 ### 12.2 Grammar
 
@@ -2373,7 +2321,7 @@ An indefinite loop uses `while true`. Nucleus has no separate unconditional-loop
 
 The counter name must resolve to a scalar local of type `u8`, `u16`, `i8`, or `i16`. The programmer chooses the counter type when declaring that local. A program variable, parameter, constant, Boolean, aggregate, alias, routine, field path, or indexed path is invalid. The loop introduces no declaration, so the local must appear in the routine's declaration prefix.
 
-The counter becomes read-only to source statements from the beginning of the loop body through its closing `end`. The body may read it and pass its scalar value, but it cannot assign to it. A nested counted loop cannot reuse the same local as its counter because its initialization would be another write. The compiler enforces both restrictions by comparing the resolved local binding with the counters in its active loop contexts; it needs no call-graph analysis because another routine cannot name a caller's local.
+The counter becomes read-only to source statements from the beginning of the loop body through its closing `end`. The body may read it and pass its scalar value, but it cannot assign to it. A nested counted loop cannot reuse the same local as its counter because its initialization would be another write. Another routine cannot name the caller's local, so this restriction does not extend through calls.
 
 The start and bound expressions must be assignment-compatible with the counter under Chapter 9's integer rules. An exact start or bound may adopt the counter type when representable, and an admitted value-preserving conversion may convert a typed expression to that type. A wider typed value is not narrowed merely because another loop operand has the counter type; source must use an explicit checked conversion.
 
@@ -2424,15 +2372,7 @@ In a `while` loop, `continue` transfers control to the next condition test. In a
 
 Either statement outside a loop is invalid. Nucleus has no labelled transfer, numeric loop depth, `break` synonym, or transfer directly to an outer loop. An early `return` under Chapter 13 remains the way to leave the routine from inside nested loops.
 
-The grammar adds only the two simple statements, and their lowering uses the active loop's existing continue and exit branch targets. This low incremental structure is a settled language decision; target-byte cost remains subject to the Chapter 2 ledger.
-
-### 12.8 Lowering boundary
-
-A counted loop has the same source effect as ordered start and bound evaluation, counter initialization, a direction-specific comparison, a conditional branch, a body in which the counter is read-only, a checked mathematical increment, and a backward branch. `to` and `until` differ only in whether the bound comparison is inclusive.
-
-The semantic-operation interface requires no dedicated `for`, `while`, `exit`, or `continue` operation. A compiler may emit ordinary comparisons and branches, provided it preserves one-time operand evaluation, the test and store order, and the transfer targets above.
-
-### 12.9 Excluded loop forms
+### 12.8 Excluded loop forms
 
 Nucleus 0.1 has no:
 
@@ -2445,13 +2385,13 @@ Nucleus 0.1 has no:
 
 These omissions leave `while` for condition-controlled iteration and one mechanically specified `for` for counted traversal.
 
-### 12.10 Invalid loops and capacity limits
+### 12.9 Invalid loops and capacity limits
 
 The compiler must diagnose a non-Boolean `while` condition, a counter that is not an integer scalar local, assignment to an active counter, reuse of an active counter by a nested loop, an incompatible start or bound, an unavailable or nonconstant step magnitude, a zero step, a missing header `NEWLINE` or closing `end`, and `exit` or `continue` outside a loop.
 
 An implementation may bound loop nesting, retained saved bounds, active counter bindings, active branch targets, and fixup state. It must publish each limit and issue a capacity diagnostic before overflow changes a loop's bound, direction, target, or counter update.
 
-### 12.11 Examples
+### 12.10 Examples
 
 With `level`, `index`, `row`, and `position` declared as scalar locals, these counted loops visit ascending, exclusive, and descending ranges:
 
@@ -2587,7 +2527,9 @@ An aggregate result must be an aggregate storage path or transient aggregate-ali
 
 The caller may consume that transient alias only by discarding it as a complete call statement, passing it directly to a compatible aggregate parameter, forwarding it as an aggregate return, applying an immediate field or index suffix, or using it as an exact-type aggregate-assignment source. It cannot be retained in a source variable. To retain the returned value, the caller assigns the call result into a program object or caller-supplied aggregate destination, causing the copy defined by Section 7.8.
 
-If evaluating a later argument or suffix performs another call, the compiler preserves the transient carrier until its containing operation consumes it. Backend liveness or argument staging provides that protection; it does not create a source-visible pointer or extend the result beyond the operation.
+If evaluating a later argument or suffix performs another call, the transient
+carrier remains valid until its containing operation consumes it. This does not
+create a source-visible pointer or extend the result beyond the operation.
 
 `return` may appear anywhere in a routine statement sequence, including inside a conditional or loop. It ends the current activation immediately after transferring the result, if any. It does not execute later statements in the routine.
 
@@ -2601,9 +2543,10 @@ The static rule uses a bounded structured fallthrough summary:
 - assignment and call statements fall through;
 - an `if` does not fall through only when it has an `else` and every clause body does not fall through;
 - an `if` without `else` may fall through; and
+- a `select` follows the fallthrough rule in Section 11.7; and
 - a `while` whose condition folds to the Boolean constant `true` does not fall through when no syntactic `exit` targets that loop; every other `while` and every `for` is treated as able to finish.
 
-A statement sequence can reach its end when control can pass through every statement on a path. Once a statement on a path does not fall through, later statements on that path do not restore fallthrough. This rule permits one streaming summary per nested statement and requires no control-flow graph.
+A statement sequence can reach its end when control can pass through every statement on a path. Once a statement on a path does not fall through, later statements on that path do not restore fallthrough.
 
 The non-fallthrough loop rule recognizes any condition that the ordinary
 expression folder proves to be the Boolean constant `true`. Parentheses,
@@ -2618,27 +2561,27 @@ loop is a nested `while` or `for` does not count against the outer loop.
 
 A forward declaration contains the routine's complete and sole signature, including its parameter names. Its later body begins with `sub NAME` and a logical newline. That name must resolve to exactly one incomplete forward under Chapters 4, 5, and 8. The stored parameter names bind the body; no parameter, result, or `fails` clause is repeated. The forward declaration and body definition denote one routine.
 
-The body does not repeat the signature, so the compiler performs no body-signature comparison. A streaming compiler must retain the forward's parameter names as well as its type and effect metadata until it compiles the body. The current compiler uses the measured retained routine and parameter tables published in the implementation plan.
+The body does not repeat the signature, so there is no second signature to
+compare. A streaming compiler must retain the forward's parameter names and
+signature until it compiles the body.
 
 After its complete signature has been checked, a routine may call itself directly. Mutually recursive routines require an earlier forward signature for every routine called before its definition. Recursive calls use the ordinary argument, activation, result, and lifetime rules; Nucleus has no separate recursive syntax.
 
-Recursion is admitted in Nucleus 0.1 and implemented by the current compiler. Standard language mode must not reinterpret or reject recursive source within the implementation's documented compile-time capacities.
+Recursion is part of Nucleus 0.1. Standard language mode must not reinterpret or
+reject recursive source within the implementation's documented compile-time
+capacities.
 
 ### 13.9 Activation capacity
 
-Runtime activation capacity is implementation-defined. An implementation may bound the number of simultaneously active routine invocations, the storage consumed by their activation state, or both. It must publish every bound and provide at least the capacity needed by every complete accepted program in Chapter 21 under its stated inputs. Before beginning a call that would exceed a published bound, the program performs the activation-capacity trap specified by Chapter 15; it must not overwrite a live activation, alias one activation's locals with another, or continue with partial parameter binding.
+Runtime activation capacity is implementation-defined. An implementation may bound the number of simultaneously active routine invocations, the storage consumed by their activation state, or both. It must publish every bound and provide at least the capacity needed by every complete accepted program in Chapter 18 under its stated inputs. Before beginning a call that would exceed a published bound, the program performs the activation-capacity trap specified by Chapter 15; it must not overwrite a live activation, alias one activation's locals with another, or continue with partial parameter binding.
 
 The trap point is after argument evaluation and before the new activation begins. Effects from evaluated arguments remain observable, while the callee performs no local initialization or body statement.
 
 This runtime limit does not create a non-recursive language profile. A compiler accepts recursive call graphs subject to its ordinary compile-time capacities; active depth is a runtime property.
 
-### 13.10 Cleanup and lowering boundary
+### 13.10 Cleanup
 
 Nucleus routines have no destructors, `finally`, `defer`, exception unwinding, variable-sized local allocation, or other source-level scope-exit action. A `return` therefore performs no hidden source cleanup before transferring control.
-
-The source semantics permit an all-caller-save implementation. A backend may save live implementation values before a call, place arguments, invoke the callee, capture a result before restoring overlapping state, and restore the caller afterward. Recursive calls may use the same rule for each activation. These operations are backend mechanics, not source-visible registers, clobber declarations, or parameter modes.
-
-The compiler may lower calls and returns to regular semantic operations while parsing. This specification does not define register assignments, save regions, hardware-stack use, helper entry points, or the physical calling convention. The Z80 runtime and backend contract supplies the required target-level effects.
 
 ### 13.11 Invalid calls and capacity limits
 
@@ -2902,13 +2845,7 @@ Ordinary `return` denotes successful completion only. A result-free failable rou
 
 The fixed `main` routine may declare `fails`. A failure returned from `main` has no source caller and performs the unhandled-error trap in Chapter 15 with the returned code. A successful return from `main` terminates normally.
 
-### 14.8 Lowering boundary
-
-The source semantics require a success/failure discriminant and a `u8` code for each failable result. The Z80 runtime and backend contract defines their required target behavior while leaving the carrier choice private. Carry plus a byte register is one possible calling convention, not source semantics.
-
-Failure propagation is an ordinary conditional return. Local handling is an ordinary conditional branch. Nucleus has no exception object, stack walk, cleanup action, hidden handler registration, or resumable failure state. The all-caller-save-compatible call semantics in Chapter 13 apply to both outcomes.
-
-### 14.9 Invalid forms and capacities
+### 14.8 Invalid forms and capacities
 
 The compiler must diagnose:
 
@@ -2978,9 +2915,12 @@ complete 16-bit Z80 I/O address. The packet gateway in Section 16.5 exposes a
 machine-interface slot and writable byte packet. Neither boundary exposes a
 memory address, source pointer, register, or general machine-code escape.
 
-Nucleus source contains no physical placement, and a target description contains no source-symbol reference. The source manifest selects and orders declarations; the target description supplies bounded execution regions. Neither input can name or rewrite entities owned by the other.
+Nucleus source contains no physical placement, and a target description contains
+no source-symbol reference. The packaging layer selects and orders source
+parts; the target description supplies bounded execution regions. Neither input
+can name or rewrite entities owned by the other.
 
-The **Nucleus System Services 0.1** set is versioned with this language revision. A conforming execution environment supplies every service in Section 16.3 with the stated source contract and the initial stream states stated there. Later additions require a language revision or an explicit extension under Section 1.7 and measured admission under Chapter 2.
+The **Nucleus System Services 0.1** set is versioned with this language revision. A conforming execution environment supplies every service in Section 16.3 with the stated source contract and the initial stream states stated there. Later additions require a language revision or an explicit extension under Section 1.7.
 
 ### 16.2 Predefined error codes
 
@@ -3014,7 +2954,7 @@ Standard input starts with its cursor before the first supplied byte. `readInput
 
 Standard output starts empty and is append-only. `writeOutputByte` appends one byte to standard output. It succeeds after the byte has been accepted else fails with `outputFailure`. Successful writes occur in call order; failure leaves the output unchanged.
 
-The bulk-storage routines operate on one logical input stream and one logical output stream selected by the execution environment. Both cursors start at offset zero. The output supplied to a Chapter 21 conformance run starts empty. `readStorageByte` advances the input cursor after a successful byte and reports `endOfInput` or `storageFailure` otherwise. `rewindStorageInput` moves the input cursor to offset zero or reports `storageFailure`.
+The bulk-storage routines operate on one logical input stream and one logical output stream selected by the execution environment. Both cursors start at offset zero. The output supplied to a Chapter 18 conformance run starts empty. `readStorageByte` advances the input cursor after a successful byte and reports `endOfInput` or `storageFailure` otherwise. `rewindStorageInput` moves the input cursor to offset zero or reports `storageFailure`.
 
 `writeStorageByte` overwrites the existing byte when the output cursor is below the current end, appends when the cursor is exactly at the end, and advances the cursor by one on success. It never inserts a byte or truncates later bytes. `seekStorageOutput` moves that cursor to an existing offset or exactly to the current end; seeking past the end fails with `storageFailure`. Every failed bulk-storage operation is atomic: it leaves its affected cursor and all output contents unchanged.
 
@@ -3036,12 +2976,11 @@ normal integer rules permit a `u8` port or value where the signature accepts
 it; Boolean and incompatible integer values are rejected at the applicable
 argument check.
 
-These operations use the Z80 `(C)` instruction family with the source `u16`
-address in `BC`: `B` drives the upper eight I/O-address lines and `C` drives
-the lower eight. They do not use a system-service vector, cannot fail
-recoverably, and add no service status, handler, runtime entry, or target
-provider operation. `readPort` may appear in an ordinary expression or as a
-discarded call statement. `writePort` is a result-free call statement.
+Both operations use the complete `u16` address, not only its lower byte. They
+cannot fail recoverably and add no service status or handler. `readPort` may
+appear in an ordinary expression or as a discarded call statement. `writePort`
+is a result-free call statement. The Z80 runtime and backend contract defines
+their instruction-level implementation.
 
 ### 16.5 Target-specific packet services
 
@@ -3089,7 +3028,7 @@ The external representation of success, recoverable-error codes, and trap reason
 
 An environment may implement services with CP/M calls, a monitor, port I/O, host callbacks, or another mechanism. It may buffer transfers if buffering preserves call order, failure points, and visible bytes. Those choices do not add source names or expose their addresses.
 
-Arbitrary BIOS calls, machine-code-call declarations, inline assembly, memory peeks and pokes, and callbacks are excluded from the safe source boundary. Port access is limited to the two typed operations in Section 16.4. Machine-specific native calls are limited to the bounded packet gateway in Section 16.5; it does not admit raw call addresses, pointers, registers, or inline code. A later portable service must have a typed target-independent contract and pass the measured admission rule before it enters the standard set.
+Arbitrary BIOS calls, machine-code-call declarations, inline assembly, memory peeks and pokes, and callbacks are excluded from the safe source boundary. Port access is limited to the two typed operations in Section 16.4. Machine-specific native calls are limited to the bounded packet gateway in Section 16.5; it does not admit raw call addresses, pointers, registers, or inline code. A later portable service requires a typed, target-independent contract and a language revision before it enters the standard set.
 
 The target adapter may place the program in ROM, loaded RAM, or bank-switched ROM while preserving the same startup and source semantics. The target-system specification and Z80 runtime contract govern bank assignment and calls. Source code supplies neither a bank number nor a target address, and a target restriction on cross-bank references does not alter source validity.
 
@@ -3333,186 +3272,37 @@ The grammar uses these declared semantic predicates:
 
 Field lookup after `.` uses the selected record type. A concrete bounded-string base admits `.length`; an open `string[]` base admits `.length` and `.capacity`, with writable `.length` restricted to an assignment target. A concrete or open array base admits read-only `.length`. Index selection uses a concrete fixed bound, an open array's retained actual count, or a bounded string's current logical length according to the base type; these distinctions need no grammar change. Static initializer checking descends the finite declared type tree and records the expected component before parsing each nested initializer. A counted-loop step uses the ordinary constant-expression parser for its unsigned magnitude and then requires a nonzero integer result in the range specified by Chapter 12; the optional leading sign selects direction. A call suffix first produces a call expression with the visible signature's result and failure category. The checker then rejects a failable call unless an eligible initializer, assignment, or complete call statement immediately consumes that direct call under Chapter 14. A return source is always an ordinary successful expression and cannot contain a failable invocation. These are static semantic checks over an otherwise deterministic token stream, not token backtracking.
 
-### 17.4 Predictive analysis
-
-The repository grammar analyzer mechanically expanded the grammar above to 186 BNF rules over 100 nonterminals. It found no nullable-prefix left-recursion cycle, unreachable nonterminal, or unproductive nonterminal. The only predicate-resolved conflict sites are the name-led statement choice and the type-directed initializer choice. The focused test reads this Chapter 17 block directly, so the analyzer evidence does not create a second grammar authority.
-
-| Nonterminal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Lookahead | Conflict                                           | Resolution                          |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | ----------------------------------- |
-| `name-statement`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `NAME`    | assignment versus routine call                     | `isWritableName` / `isCallableName` |
-| `static-initializer`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `(`       | record initializer versus parenthesized expression | `isInitializerForDeclaredType`      |
-| No unexplained FIRST/FIRST or FIRST/FOLLOW conflict remains. The expression repetitions expand to right-recursive analysis rules while their semantic actions preserve the left association specified in Section 9.6. Unary recursion remains right-recursive by design. `or` is exclusively the Boolean operator. A same-line `else fail` is selected only after a complete name-led statement or local initializer, while `else` at the start of the following logical line remains an `if` clause. The newline makes those cases deterministic without backtracking. The completed source before `else fail` must be exactly one direct failable invocation. Other reported conflicts require their named predicate or an audited equivalent; a compiler must report a specification defect rather than change the language silently. |
-
-The analyzer result checks the collected grammar's formal shape. It does not prove the static compatibility, lifetime, capacity, or flow rules consolidated in Chapter 18.
-
-## 18. Static semantics
-
-### 18.1 Compilation order
-
-The compiler processes one logical compilation unit in token order across the ordered source parts from Section 4.3. Source-part metadata has no static meaning. Every use requires an earlier visible declaration, except that an exact forward routine signature makes that routine callable before its body. An ordinary header or earlier forward makes the routine's signature visible before its local prefix and body. At `EOF`, every forward must be completed and exactly one `main` definition satisfying Section 4.7 must exist.
-
-Top-level declarations occur only in the compilation-unit sequence. Parameters occur only in routine headers. Local declarations form one contiguous prefix before the first statement. Record fields occur only inside their record declaration. Conditional and loop bodies contain statements and open no declaration scope.
-
-### 18.2 Names and declaration classes
-
-Identifiers use their complete case-sensitive source spelling as identity. Program and routine scopes each have one ordinary namespace; record fields have one field scope per record type. No declaration overloads or redefines another declaration in the same scope. A parameter or local may shadow a visible program data, constant, or type binding, and routine-scope lookup then wins; source routines, `main`, and predefined bindings remain protected. Definition order never changes which declaration governs a later use within one scope. A suffix name uses the statically selected record type's field scope or an array or bounded-string intrinsic selected by the base type.
-
-Name-led parsing first resolves the visible binding, then checks its declaration class. A routine name starts a call. A mutable scalar or aggregate storage path starts an assignment. An aggregate constant starts a readable aggregate path but is rejected as a direct-root assignment target. A record type is valid only in a type position. A failable call is parsed as an ordinary call and then checked for exactly one failure consumer under Chapter 14. Failure to find a binding, finding the wrong class, or finding a later declaration is invalid source.
-
-The standard service names and error constants from Chapter 16 are visible before source declarations. `main` is source-defined and must have no parameters and no result.
-
-### 18.3 Types and compatibility
-
-Every expression, storage path, symbol, parameter, local, field, and routine result has one static type. Scalar values have type `u8`, `u16`, `i8`, `i16`, or `boolean`. Records are nominal. Fixed-array identity consists of exact element type and length. Concrete bounded-string identity consists of exact capacity. `string[]` is admitted only for parameters and retains the argument's actual capacity. `T[]` is also parameter-only and retains the complete concrete array's actual element count while preserving exact element-type identity.
-
-Scalar compatibility permits exact type, a fitting exact integer literal or named constant, and the value-preserving implicit conversions `u8` to `u16`, `u8` to `i16`, and `i8` to `i16`. Every other conversion among `u8`, `u16`, `i8`, and `i16` requires the explicit checked destination-type form. Boolean and integer types do not convert. Concrete aggregate arguments, results, parameter bindings, and assignments require exact type identity. A `string[]` parameter instead admits any concrete bounded-string capacity, another open-string parameter, or a contextual string literal. A `T[]` parameter admits any complete concrete `T[N]` path or transient alias, or another `T[]`, with exact element invariance. Aggregate parameters are fixed aliases, while aggregate results are transient aliases that must be consumed immediately.
-
-The compiler checks every operator, condition, assignment, argument, result, field, index, initializer, and failure code locally. A failable invocation supplies no ordinary expression value until its failure has been consumed under Chapter 14.
-
-### 18.4 Storage and aliases
-
-A program variable or aggregate constant owns program-lifetime storage. A scalar parameter or local owns one activation value. An aggregate parameter is a fixed typed alias established for the activation; `string[]` additionally retains its actual capacity, and `T[]` retains its actual element count. A returned aggregate alias is transient and cannot establish a source binding. Alias binding is not assignment. A writable aggregate storage path may be an assignment destination whose source has the exact same concrete aggregate type. Direct paths rooted at an aggregate constant are readable but not writable; aliases derived from them do not retain that marker. A routine-local declaration with aggregate type is invalid.
-
-Field and checked-index selection preserve the root identity and exact selected type. A bounded-string index selects an existing writable `u8` byte when the index is below the string's current length. String `.length` yields `u8` and is writable only through `string[]` under Section 6.8; `.capacity` yields a read-only `u8` only through that view. Array `.length` yields a read-only `u16`, and open-array indexing checks against the retained actual count before producing the exact element type. Every aggregate object and subobject has program lifetime, so a returned aggregate alias needs no separate lifetime metadata.
-
-### 18.5 Constants, bounds, and initialization
-
-Scalar named constants are top-level values with types inferred from restricted constant initializers. Boolean-valued constants retain type `boolean`; integer-valued constants remain exact at later uses. Aggregate constants have explicit record, fixed-array, or bounded-string types and complete static initializers. Scalar constant evaluation may use literals, earlier scalar constants, admitted pure scalar operators, parentheses, and checked scalar conversions. A complete static aggregate initializer node may instead name one earlier aggregate constant of the exact required concrete type. This copies its established static bytes and does not evaluate a storage path. No constant evaluation may read a variable or call a routine.
-
-Array lengths and string capacities are positive constant values in the ranges set by Chapter 6. Constant fixed-array indices outside their domains are invalid. A bounded-string byte index is checked at runtime against the current logical length, even when the index expression is constant, unless the compiler proves the current length makes it safe at that program point.
-
-Program variables use the zero or complete static initializer forms in Chapter 8. Aggregate constants require a complete static initializer. At any aggregate node, an earlier aggregate constant of the identical concrete type may replace the corresponding complete structured or string form. Scalar locals use zero, an ordinary compatible expression, or a direct compatible failable result followed by `else fail`. Structured aggregate initialization occurs only for top-level variables and aggregate constants. An aggregate assignment materializes a transient result when retention is required.
-
-### 18.6 Routine and failure checking
-
-A call must match the visible signature in arity and parameter order. Scalar arguments copy compatible values. Concrete aggregate parameters bind aliases of the exact referent type. `string[]` binds any complete bounded-string object or its contextual literal object and preserves the actual capacity. `T[]` binds any complete concrete `T[N]` array or a forwarded view with the same exact element type and preserves its actual element count. A forward declaration is the sole complete signature. Its abbreviated `sub NAME` body header must resolve to that exact incomplete forward, and the stored forward parameter names bind the body.
-
-Every failable invocation has exactly one failure consumer. `else fail` requires a failable enclosing routine and is admitted only after a complete direct failable call in a scalar-local initializer, assignment right side, or call statement. Same-line `handle NAME` is admitted only after an eligible assignment or call statement and requires an existing writable `u8` destination that is not an active counted-loop counter. Failable invocations are invalid in returns, larger expressions, and argument lists.
-
-A result-bearing routine is invalid if its closing `end` is reachable without `return expression` or, when it declares `fails`, `fail`. Structured fallthrough follows Section 13.7. A `while` condition that folds to constant `true`, with no syntactic `exit` targeting that loop, does not fall through; all other loops remain conservatively able to finish. Exits belonging to nested loops do not count against an outer constant-true loop. `return` and `fail` do not fall through; a call with `else fail` may succeed and fall through.
-
-### 18.7 Control contexts
-
-An `if` or `elseif` condition and a `while` condition must be Boolean. A counted-loop counter must be an integer scalar local; its declared type may be `u8`, `u16`, `i8`, or `i16`. It is read-only to source statements while that loop is active and cannot be reused as a nested counted-loop counter. Its step is a nonzero signed compile-time constant. After the step produces the mathematical next value, an overshoot ends without storing or trapping. A next value that remains within the loop bound but lies outside the counter type performs `loop-range` if execution reaches that increment. `exit` and `continue` require an enclosing loop and target the innermost one.
-
-A `select` selector must be an integer scalar. Every case item must be constant and representable in that selector's exact type. The first equal item selects its body. `select` creates no loop context, so `exit` and `continue` inside a case still target an enclosing loop.
-
-No label, goto, exception region, or hidden cleanup edge changes these contexts. The compiler may summarize active loops and fallthrough with bounded stacks, but capacity exhaustion must produce a diagnostic before it changes a target or validity result.
-
-### 18.8 Invalid source and capacities
-
-A grammar, visibility, declaration-class, type, lifetime, constant, flow, failure-consumption, or context violation makes the source invalid. The compiler issues a diagnostic and must not present an executable as a successful translation.
-
-An implementation may bound complete source length, source-part count and metadata length, identifier length, symbols, types, fields, forwards, retained forward parameter-name bytes, parameters, scalar locals, expression depth, statement nesting, fixups, constants, structured-initializer depth and elements, emitted code size, total emitted image size, and other retained compile-time state. It must document every limit that can reject otherwise conforming source and issue a capacity diagnostic before truncation, wraparound, dropped state, or changed semantics. Those limits must still compile every complete accepted Chapter 21 program. Runtime activation capacity is separately implementation-defined, must accommodate the accepted corpus, and traps under Chapter 15 beyond any published activation-depth or activation-storage limit.
-
-## 19. Runtime semantics
-
-### 19.1 Startup and observable behaviour
-
-Execution begins after the implementation has established every program variable's required initial value in declaration order. The environment then calls `main`. Observable behaviour consists of ordered system-service effects, object copies and mutations visible through source paths, normal termination, recoverable-error outcomes consumed by source, and required traps.
-
-Normal return from `main` terminates successfully. Failure from `main` and a safety trap terminate unsuccessfully. The source language defines no other program-termination operation.
-
-### 19.2 Evaluation and assignment
-
-Expressions evaluate in the order specified by Section 9.11. Binary operands are left-to-right except for Boolean short-circuit suppression. Postfix suffixes apply left-to-right, and each index is checked when reached. Arguments evaluate left-to-right before a call begins.
-
-Integer arithmetic uses the fixed widths and wraparound rules in Chapter 9. Ordering uses the signedness of the resolved common type; equality remains bitwise at the resolved width. Checked conversion, division, indexing, and counted-loop increment perform their required checks before producing or storing a result.
-
-Scalar assignment evaluates and checks the complete target path, then evaluates the right side, then converts and stores. Aggregate assignment evaluates its complete destination path first and its source second, then validates both complete extents before changing the destination. It copies the common exact-type representation. Self-assignment has no effect. The type rules make two distinct assignment-compatible aggregate subobjects disjoint, so partial overlap cannot arise in Nucleus 0.1.
-
-Checked assignment to an open string's `.length` evaluates the open carrier
-once and the new `u8` length once. It validates the complete referent, old
-length, and new length before changing the representation. Shrinking clears
-the removed bytes before storing the new length; growing exposes the existing
-zero tail. A failed validation changes no byte and performs the `bounds` trap.
-
-A failure or trap before a success-result store or aggregate copy leaves the destination unchanged, while effects already completed remain visible. A handled failable scalar assignment then stores its error code in the handler destination; if both destinations name the same scalar, that scalar receives the error code.
-
-### 19.3 Objects and aliases
-
-Program variables exist throughout execution. Each routine call creates a distinct logical activation containing copied scalar parameters, scalar locals, and aggregate-parameter bindings. Aggregate aliases denote existing program objects or aggregate subobjects and preserve identity. Mutation of a scalar leaf is visible through every path to that leaf.
-
-Aggregate arguments and results transfer aliases, not object contents. A returned aggregate alias transiently denotes the original program-lifetime object after the callee activation ends. It may be discarded, forwarded, selected, passed onward, or consumed by aggregate assignment, but it cannot become a stored local binding. Aggregate assignment copies object contents into the destination referent and does not rebind either operand. Bounded-string byte mutation through any alias is visible through every alias to the same object; it replaces an existing byte without changing length or capacity. Checked `.length` assignment through `string[]` changes the same referent while preserving its capacity and sealed representation. No runtime type tag accompanies an alias, and the source language provides no operation that inspects its carrier.
-
-### 19.4 Calls, returns, and recursion
-
-A call starts after all arguments have been evaluated and the activation-capacity check succeeds. Parameter binding precedes activation-local initialization. Scalar locals initialize in source order, and the first statement begins after the local prefix.
-
-`return` transfers an optional success result and ends the activation. A result-free routine also returns successfully at its closing `end`. `return` is success-only: a caller propagates a failable value in an earlier local initializer or assignment, or propagates a result-free call as its own statement, before returning successfully. Direct and mutual recursion use the same rules and create distinct active state at each depth. Backend save regions, register files, stacks, and return encodings must preserve these semantics but are not source-visible.
-
-### 19.5 Conditional and loop execution
-
-An `if` chain tests conditions in source order until one is true, executes at most one body, and skips every later condition. A `while` tests before each iteration. A counted `for` evaluates its start and bound once, initializes the counter, tests before the first iteration, and uses the direction and inclusive or exclusive rule from Chapter 12.
-
-Normal completion and `continue` in a counted loop use the increment-and-next-test path. `exit`, `return`, and `fail` can leave the body without running that path. Source statements cannot change the scalar-local counter while the loop is active. A counted-loop next value is tested mathematically before storage, preventing unsigned wrap from creating another iteration; a continuing value outside the counter type performs `loop-range` at runtime even when statically predictable.
-
-### 19.6 Recoverable errors
-
-A failable call returns success or one `u8` error code. On success, the ordinary result, if any, is transferred before surrounding evaluation continues. On failure, `else fail` returns the same code from the caller, while `handle NAME` performs no success-result store, stores the code, and executes its handler. No success result exists on the failure path.
-
-Error propagation ends activations through ordinary return control. It performs no stack unwinding, source cleanup, or handler search. A trap bypasses this channel. Failure reaching the external caller of `main` becomes the `unhandled-error` trap.
-
-### 19.7 System services and traps
-
-The predefined services execute in call order and follow Chapter 16's initial-state, cursor, byte, success, and atomic-failure rules. Standard output appends. Bulk output overwrites below its end and appends at its end without insertion or truncation. Host buffering or target-specific calls may not reorder visible bytes or change a recoverable result into silent success. Direct port operations also execute in source order and use the complete source `u16` as the Z80 I/O address.
-
-A trap stops source execution at the failing operation. The environment reports the required reason and best available location. Earlier completed effects remain; no later source operation or source-level cleanup executes.
-
-## 20. Feature ledger
-
-### 20.1 Required Nucleus 0.1 language
-
-The following mechanisms are required in the single Nucleus 0.1 language:
-
-| Area         | Required forms and rules                                                                                                                                                                                                                                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source       | Ordered multipart compilation input with stable part identities and part-relative diagnostics; flat ordered build manifest; ASCII-compatible bytes, `//` comments, logical newlines, case-sensitive preserved names, lowercase keywords, decimal, hexadecimal, and binary integers, byte characters, bounded string literals, fixed punctuation. |
-| Structure    | One program scope and ordered declaration sequence across source parts, declaration before use, sole-signature forwards with abbreviated bodies, fixed `main()` entry, no executable top level.                                                                                                                                                  |
-| Types        | `u8`, `u16`, `i8`, `i16`, `boolean`, nominal fixed records, checked nested fixed arrays with outermost-first suffixes, mutable bounded `string[N]` with current length and byte indexing, parameter-only `string[]` and exact-element outermost `T[]` views, exact aggregate aliases, and exact-type aggregate copying.                          |
-| Declarations | Inferred scalar constants, explicitly typed aggregate constants with read-only direct roots, compile-time assertions, program variables, complete positional recursive static initializers, record fields, formal parameters, contiguous scalar locals, routine definitions and forwards.                                                        |
-| Expressions  | Calls, checked concrete/open-array and bounded-string indexing, field selection, array and string `.length`, and open-string `.capacity`; explicit integer conversions; unary `+`/`-`; arithmetic including quotient and remainder; one scalar comparison; `not`, `and`, `or`; and integer-only `xor`.                                           |
-| Statements   | Scalar assignment, exact-type aggregate assignment, checked open-string `.length` assignment, name-led calls, `return`, `fail`, `exit`, and `continue`.                                                                                                                                                                                          |
-| Control      | Flat `if`/`elseif`/`else`; ordered integer `select`/`case` with constant equality items, optional final `else`, and no fallthrough; pre-test `while`; counted `for` over a read-only scalar-local counter with `to` or `until` and optional constant `step`.                                                                                     |
-| Routines     | Formal arguments including capacity-polymorphic `string[]` and length-polymorphic `T[]`, named scalar locals, no result or one typed result, early return, direct and mutual recursion, and one complete forward signature whose parameter names bind its abbreviated body.                                                                      |
-| Failure      | Explicit `fails`, `fail`, same-line `else fail`, and immediate `handle NAME ... end`; success-only `return` and required safety traps remain separate.                                                                                                                                                                                           |
-| System       | Nucleus System Services 0.1 with deterministic initial cursors and output writes; typed direct Z80 `readPort(u16)` and `writePort(u16, u8)`; normal entry return, unhandled-error termination, and stable trap reasons.                                                                                                                          |
-
-No conforming compiler may expose a standard profile that omits one of these mechanisms.
-
-### 20.2 Implementation-defined limits
-
-An implementation selects and documents capacities, not syntax or semantics. Permitted limits include complete source length, source-part count and metadata length, identifier length, symbol and type counts, record fields, array and string storage capacity below a target's available resources, parameters, scalar locals, nesting, fixups, structured-initializer depth and elements, emitted code size, total emitted image size, simultaneous activation depth, and activation-storage consumption. Every limit must be high enough to compile and execute the complete accepted Chapter 21 programs under their stated inputs. A compile-time excess above that floor produces a capacity diagnostic; runtime activation-capacity excess above that floor traps at runtime.
-
-Diagnostic wording, private compiler representations, generated-code organization, service transport, and the external presentation of status are implementation-defined where earlier chapters leave them to the Z80 runtime and backend contract. These choices must preserve the source rules.
-
-### 20.3 Post-0.1 candidates
-
-These forms are omitted from 0.1 and may be reconsidered only by a future language revision after measured admission:
-
-The maintainer of this language specification owns source-language admission. The maintainer of the Z80 runtime and backend contract co-owns decisions that change the target representation or System Services interface.
-
-| Candidate                                                        | Required decision evidence and owner                                                                                                                                     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Selection ranges or dense jump-table lowering                    | Source range rules, overlap policy, compiler cost, and emitted-size savings on representative programs; language-specification maintainer in a future revision.          |
-| Routine-local aggregate objects or fixed local aggregate aliases | Representative-program need, declaration and initialization rules, recursion effects, compiler-core cost, and activation cost; language maintainer.                      |
-| General slices, array ranges, and caller-selected view lengths   | Source typing, lifetime, bounds, overlap, call/result ABI, compiler and target-runtime cost; language and runtime-contract maintainers in a coordinated future revision. |
-| Intrinsic bounded-string append, insertion, slicing, or splicing | Typed contract, overlap and failure semantics, emitted cost, and reusable-program evidence; language-specification maintainer in a future revision.                      |
-| Additional system services                                       | Portable typed contract and complete compiler, runtime, and target cost; System Services maintainer in a future service revision.                                        |
-
-These candidates are not provisional 0.1 syntax. Extensions may prototype them only under Section 1.7.
-
-### 20.4 Excluded mechanisms
-
-Nucleus 0.1 excludes language levels and compiler-selected profiles; modules, imports, namespaces, macros, and textual includes; raw pointers, address arithmetic, memory access, port operations other than the two typed routines in Section 16.4, inline assembly, arbitrary machine-code calls, interrupt routines, vector declarations, source-visible bank selection, and unrestricted casts; enumeration, subrange, set, union, variant, overlaid, generic, heap, resizable, slice, and dynamic types; open-array storage, results, rebinding, and caller-selected view ranges; transitive immutability or const-qualified alias types, routine-local aggregate declarations, activation-lifetime owned aggregates, general aggregate expressions or constructors, partial or named-field initializers, destructuring, inferred variable declarations, nested routines, overloads, routine values, callbacks, indirect calls, parameter modes, and multiple results.
-
-It also excludes assignment expressions, chained comparisons, conditional expressions, general expression statements, `call` and `then` keywords, selection ranges, selection fallthrough, dense jump-table syntax, pattern matching, repeat/do loops, `for in`, omitted counted-loop operands, counted-loop counters drawn from program variables or parameters, source assignment to an active counter, nested reuse of an active counter, labels, goto, labelled exit, exceptions, throw/catch, unwinding, destructors, `finally`, `defer`, resumable traps, and runtime type tags.
-
-Implementation alternatives such as register allocation, helper organization, hardware-stack use, fixup representation, and physical calling convention are not source features. The Z80 runtime and backend contract records the selected target obligations, and project decisions use measurements without creating Nucleus dialects.
-
-## 21. Conformance examples
-
-### 21.1 Complete accepted program
+### 17.4 Determinism
+
+The two name-led choices require the semantic predicates declared above:
+
+| Nonterminal          | Lookahead | Choice                                  | Resolution                          |
+| -------------------- | --------- | --------------------------------------- | ----------------------------------- |
+| `name-statement`     | `NAME`    | assignment or routine call              | `isWritableName` / `isCallableName` |
+| `static-initializer` | `(`       | record initializer or scalar expression | `isInitializerForDeclaredType`      |
+
+Expression repetitions preserve the left association specified in Section 9.6;
+unary recursion remains right-associative. `or` is exclusively the Boolean or
+integer operator. A same-line `else fail` follows a complete eligible call,
+initializer, or assignment, while `else` at the start of the next logical line
+belongs to an `if`. These choices require no token backtracking.
+
+## 18. Conformance examples
+
+This chapter is the executable minimum corpus referenced by Section 1.5. It is
+not a second definition of the language: Chapters 3–16 govern when an example
+and its stated result disagree.
+
+| Sections    | Principal coverage                                                                                  |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| 18.1–18.4   | records, arrays, aggregate aliases and copying, calls, control flow, recursion, and bounded strings |
+| 18.5–18.7   | failure propagation, immediate handling, and stateful system services                               |
+| 18.8–18.10  | counted-loop arithmetic, required traps, and compile-time rejection                                 |
+| 18.11–18.14 | multipart input, name identity, forward parameters, and aggregate destinations                      |
+| 18.15–18.20 | constants, numeric literals, `xor`, `mod`, assertions, and aggregate constants                      |
+| 18.21–18.22 | open-array library interfaces and ordered integer selection                                         |
+
+### 18.1 Complete accepted program
 
 This program exercises records, complete aggregate initializers, exact-type record assignment, a checked fixed array, an aggregate alias parameter and result, scalar locals, a counted loop, a conditional chain, a call, and observable output:
 
@@ -3556,7 +3346,7 @@ end
 
 Each aggregate assignment copies `template` into the selected array element before `template` is changed for the next iteration. The expected standard output is the byte for `Y`, provided the output service succeeds.
 
-### 21.2 Recoverable error and propagation
+### 18.2 Recoverable error and propagation
 
 ```nucleus
 const badByte = 10
@@ -3581,7 +3371,7 @@ end
 
 For the minimum conformance-corpus run, standard input supplies byte `A` and the output service succeeds; the expected standard output is `A`. More generally, success copies one input byte to output. End of input or a service error propagates its standard code, a zero byte produces `badByte`, and any failure reaching `main` performs the `unhandled-error` trap with that code.
 
-### 21.3 Recursion and control flow
+### 18.3 Recursion and control flow
 
 ```nucleus
 forward sub odd(value as u16) as boolean
@@ -3622,12 +3412,12 @@ end
 
 The program is valid and writes byte value 4 when the output service succeeds.
 The condition of the loop in `odd` folds to `true`, and no `exit` targets that
-loop, so the value routine needs no return after the loop. The Chapter 21
+loop, so the value routine needs no return after the loop. The Chapter 18
 conformance floor requires enough activation capacity for this execution; an
 implementation may perform `activation-capacity` only beyond its published,
 conformant limit.
 
-### 21.4 Bounded-string aliasing and byte mutation
+### 18.4 Bounded-string aliasing and byte mutation
 
 ```nucleus
 var text as string[4] = "A\0B"
@@ -3656,7 +3446,7 @@ end
 
 The literal's embedded zero is an ordinary byte, so its logical length is three. Assignment materializes `textAlias()` by copying it into the program-level `snapshot` object. Passing a second result directly to `mutate` forwards the transient alias without copying, so mutation changes `text` while `snapshot` retains its copied zero byte. The expected standard output is `Y`.
 
-### 21.5 Result-free call propagation
+### 18.5 Result-free call propagation
 
 ```nucleus
 sub emitMarker() fails
@@ -3675,7 +3465,7 @@ end
 
 When output succeeds, `emitMarker` has no result, `relayMarker` returns successfully, and the expected standard output is `R`. An output failure propagates unchanged through both callers.
 
-### 21.6 Same-destination error handling
+### 18.6 Same-destination error handling
 
 ```nucleus
 const sampleFailure = 7
@@ -3698,7 +3488,7 @@ end
 
 The failed assignment performs no success-result store and then stores `sampleFailure` in `code`, even though `code` is both destinations. The expected standard output is byte value 7.
 
-### 21.7 Bulk-output cursor state
+### 18.7 Bulk-output cursor state
 
 ```nucleus
 sub main() fails
@@ -3711,7 +3501,7 @@ end
 
 The conformance output begins empty with its cursor at zero. The first two calls append `AB`; the seek returns to zero; the final call overwrites the first byte without inserting or truncating. The expected bulk output is `ZB`, with its cursor at offset one.
 
-### 21.8 Counted-loop overshoot before storage
+### 18.8 Counted-loop overshoot before storage
 
 ```nucleus
 sub main()
@@ -3727,7 +3517,7 @@ The step expression folds to 10. This program is valid and terminates normally
 with `index` equal to 250. Without the `exit`, the mathematical next value is 260. It fails the `to 255` next-bound test, so the loop ends without storing it
 and without a `loop-range` trap.
 
-### 21.9 Specified trap cases
+### 18.9 Specified trap cases
 
 Each listing below is valid source. The external conformance harness supplies the stated standard-input byte and observes the trap report.
 
@@ -3768,7 +3558,7 @@ end
 
 With input byte zero, the required result is likewise `division-by-zero` at `mod`.
 
-### 21.10 Complete rejected programs
+### 18.10 Complete rejected programs
 
 Each program is rejected for the stated independent reason.
 
@@ -3918,23 +3708,18 @@ end
 
 Both programs fail lexically at the literal prefix. A hexadecimal literal has at most four digits, and a binary literal has at most sixteen.
 
-### 21.11 Multipart input presentation
+### 18.11 Multipart input presentation
 
-The conformance harness must also present the complete accepted program in Section 21.1 as at least two ordered source parts. It splits the program after a delimiter-depth-zero logical newline, assigns a distinct stable identity to each part, and otherwise preserves every source byte and the declared order. The expected output remains `Y`.
+The conformance harness must also present the complete accepted program in Section 18.1 as at least two ordered source parts. It splits the program after a delimiter-depth-zero logical newline, assigns a distinct stable identity to each part, and otherwise preserves every source byte and the declared order. The expected output remains `Y`.
 
 For the diagnostic case, the harness introduces an undeclared name in the second part. The compiler diagnostic must identify the second part's stable identity and the position of that name within the part. A separate run may use different physical files or transport chunks, but those changes must not alter tokens, declaration visibility, validity, or program behaviour.
 
-The harness must also construct the same ordered parts from this flat manifest, using one selected base directory:
+The packaging mechanism is not part of this conformance case. Whether the host
+uses an explicit list or dependency discovery, it must present the same two
+parts in the same order. Diagnostics for the second part use `main.nu` as its
+diagnostic name.
 
-```text
-model.nu
-
-main.nu
-```
-
-It emits `model.nu` first and `main.nu` second. The blank line adds no part. The manifest text is not presented to the Nucleus tokenizer, and diagnostics for the second part use `main.nu` as its diagnostic name.
-
-### 21.12 Case-sensitive names and forward parameters
+### 18.12 Case-sensitive names and forward parameters
 
 This complete program uses three distinct case variants and a forward parameter binding:
 
@@ -3962,7 +3747,7 @@ The abbreviated body obtains that parameter binding from the forward signature.
 
 Changing the body header to `sub Render` makes the program invalid because no incomplete forward named `Render` exists. Writing `SUB render` is also invalid: `SUB` is a `NAME`, not the keyword `sub`.
 
-### 21.13 Caller-supplied aggregate destination
+### 18.13 Caller-supplied aggregate destination
 
 This program copies and changes a record through aggregate parameters without declaring aggregate storage inside the routine:
 
@@ -3989,7 +3774,7 @@ end
 
 `input` and `output` are fixed aliases to caller storage. Complete assignment copies `source` into `destination`, after which the scalar-field assignment changes only `destination`. The expected standard output is `Y`.
 
-### 21.14 Aggregate selection and forwarding
+### 18.14 Aggregate selection and forwarding
 
 This program returns and forwards an alias to one selected array element:
 
@@ -4022,7 +3807,7 @@ end
 
 Both result-bearing routines transfer transient aliases to storage inside `samples`. `replace` receives the forwarded alias and mutates the selected original object without an aggregate copy. The expected standard output is `Y`.
 
-### 21.15 Inferred constant types
+### 18.15 Inferred constant types
 
 This program uses one exact integer constant in both integer widths and retains a separate Boolean constant:
 
@@ -4041,7 +3826,7 @@ end
 
 `sharedValue` adopts `u8` for `byteUse` and `u16` for `wordUse`. `enabled` has type `boolean`. The expected standard output is `Y`.
 
-### 21.16 Integer literal spellings
+### 18.16 Integer literal spellings
 
 This program exercises hexadecimal and binary literals at ordinary and maximum word values:
 
@@ -4060,7 +3845,7 @@ end
 
 All three literal spellings produce the same exact integer category. The expected standard output is byte value 176.
 
-### 21.17 Integer exclusive OR
+### 18.17 Integer exclusive OR
 
 This program exercises constant and runtime `xor` at both integer widths. It also distinguishes left association at the shared `or` and `xor` precedence level:
 
@@ -4092,7 +3877,7 @@ end
 
 The second program is rejected at `xor` because exclusive OR is integer-only.
 
-### 21.18 Integer remainder
+### 18.18 Integer remainder
 
 This program exercises constant and runtime `mod` at both integer widths:
 
@@ -4123,7 +3908,7 @@ end
 
 The second program is rejected at the zero divisor with the same division-by-zero diagnostic used by `/ 0`.
 
-### 21.19 Compile-time assertions
+### 18.19 Compile-time assertions
 
 This program states and uses a relationship between two earlier constants:
 
@@ -4163,7 +3948,7 @@ end
 
 The third program is rejected at `assert` because an exact integer is not a Boolean condition.
 
-### 21.20 Aggregate constants
+### 18.20 Aggregate constants
 
 This program reads record, array, and bounded-string constants, uses earlier
 aggregate constants as complete static initializer nodes, and deliberately
@@ -4220,7 +4005,7 @@ end
 
 The second program is rejected at `Origin`. The same rule rejects assignment to the whole constant, an array element, or a bounded-string byte reached directly from its constant name.
 
-### 21.21 Open-array library routines
+### 18.21 Open-array library routines
 
 This program uses one set of routines with concrete arrays of different lengths:
 
@@ -4271,7 +4056,7 @@ end
 
 The expected standard-output bytes are 6, 1, and 9. Each `T[]` binding denotes the complete concrete array and retains its actual `u16` element count. `copy` checks the destination length before writing; no source form can pass a shortened prefix or substitute another count.
 
-### 21.22 Ordered integer selection
+### 18.22 Ordered integer selection
 
 This program evaluates one `u16` selector and writes 7. The values 1 and 2
 share their case body, while 300 selects the later body:

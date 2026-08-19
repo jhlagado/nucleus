@@ -53,7 +53,7 @@ SemanticBufferBase      .equ CompilerStateEnd
 SemanticPayloadBase     .equ SemanticBufferBase+1
 ; The leading byte is an operation count and the remaining 511 bytes are a
 ; bounded variable-width transcript. Word aggregate operands must not make the
-; complete Chapter 21 program depend on the retired byte-extent encoding.
+; complete Chapter 18 program depend on the retired byte-extent encoding.
 SemanticBufferLimit     .equ SemanticBufferBase+$200
 
 ; Host-only source-map trace ports. Every instruction that uses these equates

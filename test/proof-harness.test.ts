@@ -180,7 +180,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.memory[0x4029]).toBe(7);
   }, 30_000);
 
-  it("runs the accepted Chapter 21 multipart program through committed NOBJ", async () => {
+  it("runs the accepted Chapter 18 multipart program through committed NOBJ", async () => {
     const outcome = await runProofManifest(
       proof("chapter21-target-z80-slice-proof"),
     );
@@ -195,8 +195,8 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       path.resolve(import.meta.dirname, "..", "docs", "specification.md"),
       "utf8",
     );
-    const chapter21 = specification.slice(specification.indexOf("## 21."));
-    const firstProgram = /```nucleus\n([\s\S]*?)```/.exec(chapter21)?.[1];
+    const chapter18 = specification.slice(specification.indexOf("## 18."));
+    const firstProgram = /```nucleus\n([\s\S]*?)```/.exec(chapter18)?.[1];
     expect(
       source("Chapter21TargetPart1", "Chapter21TargetPart1End") +
         source("Chapter21TargetPart2", "Chapter21TargetPart2End"),
@@ -207,7 +207,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.memory[0x7300]).toBe("Y".charCodeAt(0));
   }, 30_000);
 
-  it("retains the historical direct-Z80 Chapter 21 module proof", async () => {
+  it("retains the historical direct-Z80 Chapter 18 module proof", async () => {
     const outcome = await runProofManifest(
       proof("stage9-conformance-z80-slice-proof"),
     );
@@ -243,9 +243,9 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       path.resolve(import.meta.dirname, "..", "docs", "specification.md"),
       "utf8",
     );
-    const chapter21 = specification.slice(specification.indexOf("## 21."));
+    const chapter18 = specification.slice(specification.indexOf("## 18."));
     const specificationPrograms = Array.from(
-      chapter21.matchAll(/```nucleus\n([\s\S]*?)```/g),
+      chapter18.matchAll(/```nucleus\n([\s\S]*?)```/g),
       (match) => match[1] ?? "",
     );
     const proofPrograms = [

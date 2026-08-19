@@ -100,10 +100,10 @@ state, and other information required for correct emission, but it does not
 need a complete syntax tree or general whole-program inference.
 
 Declarations precede use. Explicit forward routine declarations permit direct
-and mutual call cycles without a second source pass. An external build driver
-reads a flat ordered manifest and supplies a multipart logical source stream;
-the compiler contains no filesystem search, import resolver, or dependency
-reordering algorithm.
+and mutual call cycles without a second source pass. An external packaging
+layer supplies the ordered multipart source stream, whether its host contract
+uses an explicit list or dependency discovery; the compiler contains no
+filesystem search, import resolver, or dependency-reordering algorithm.
 
 Generated output follows the same single-pass boundary. The compiler consumes
 its private checked semantic transcript once and submits target-addressed image

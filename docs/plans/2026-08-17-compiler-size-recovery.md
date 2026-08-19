@@ -27,13 +27,13 @@ Host API, diagnostic, NOBJ, D8, runtime, banking, failure, or artifact contract.
 
 ## Measured starting account
 
-| Account | Frozen original | Rewrite prototype | Difference | Classification |
-| --- | ---: | ---: | ---: | --- |
-| executable code | 16,270 | 16,315 | +45 | Measured |
-| immutable data | 410 | 1,508 | +1,098 | Measured |
-| complete core | 16,680 | 17,823 | +1,143 | Measured |
-| excess above 16,384 | 296 | 1,439 | +1,143 | Measured |
-| recovery needed for 15,360 | 1,320 | 2,463 | +1,143 | Measured |
+| Account                    | Frozen original | Rewrite prototype | Difference | Classification |
+| -------------------------- | --------------: | ----------------: | ---------: | -------------- |
+| executable code            |          16,270 |            16,315 |        +45 | Measured       |
+| immutable data             |             410 |             1,508 |     +1,098 | Measured       |
+| complete core              |          16,680 |            17,823 |     +1,143 | Measured       |
+| excess above 16,384        |             296 |             1,439 |     +1,143 | Measured       |
+| recovery needed for 15,360 |           1,320 |             2,463 |     +1,143 | Measured       |
 
 The rewrite account is incomplete. Its public compile entry does not yet link
 the runtime, place startup code, publish MAP records, complete generation-wide
@@ -731,7 +731,7 @@ generated artifacts, NOBJ, and D8 pass. Relocation passes at `$0100`, `$8000`,
 and the highest-fitting origin.
 
 A separate three-byte `ParserTake` candidate changed the retained historical
-HL result and failed the Chapter 21 proof. Preserving HL with a balanced AF
+HL result and failed the Chapter 18 proof. Preserving HL with a balanced AF
 save did not pass strict register-contract analysis. The cursor rewrite was
 therefore rejected, while deleting the old flag-neutralizing `OR A` retained
 one safe byte without weakening the contract gate.
@@ -766,8 +766,7 @@ locks all 35 spelling-to-token mappings, the seven terminal markers, and the
 seven length-group entries.
 
 The group entries are byte offsets within the 180-byte keyword object, not
-compiler addresses. Their assembled values are 0, 18, 58, 83, 113, 155, and
-171. The scanner bounds the length before indexing, then adds the selected
+compiler addresses. Their assembled values are 0, 18, 58, 83, 113, 155, and 171. The scanner bounds the length before indexing, then adds the selected
 offset to the table's full-width symbolic address. Compiler relocation and the
 address space remain unrestricted.
 

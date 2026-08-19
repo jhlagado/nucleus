@@ -191,7 +191,7 @@ expectation checks those observations directly.
 ## Current readiness baseline
 
 Stages 2 through 8 remain executable historical evidence for the direct-Z80
-compiler increments. Stage 9 compiles and executes the complete Chapter 21
+compiler increments. Stage 9 compiles and executes the complete Chapter 18
 corpus, including ordered multipart input, and locks the final resource
 accounts. Each completed increment has a correctness baseline and a measured
 compression pass. The resident Stage 9 size is the current implementation
@@ -202,7 +202,7 @@ plateau.
 | Specifications   | The language, target, NOBJ, runtime, Host API, and D8 authorities describe the implemented system.                                                       | Review each affected authority before changing an implemented contract.        |
 | Grammar          | The production grammar and packed LL(1) tables regenerate exactly; external expression and name-statement islands have focused tests.                    | Preserve the grammar and diagnostics unless a normative language change lands. |
 | Type metadata    | Interned ordinals name four-byte structural descriptors; alias-category separation and exhaustion have executable tests.                                 | Remeasure any alternative against the complete compiler.                       |
-| Source corpus    | Every Chapter 21 program is byte-locked and has a direct output, state, diagnostic, or trap proof; broader focused tests cover the remaining constructs. | Add a discriminator whenever a language or implementation change needs one.    |
+| Source corpus    | Every Chapter 18 program is byte-locked and has a direct output, state, diagnostic, or trap proof; broader focused tests cover the remaining constructs. | Add a discriminator whenever a language or implementation change needs one.    |
 | Z80 evidence     | The complete corpus runs through the direct compiler with the final measured accounts below.                                                             | Preserve the byte, layout, register, stack, size, and timing gates.            |
 | Host integration | Host API 1, CLI, flat and banked NOBJ, HEX, D8, and Debug80's flat launch path have end-to-end tests.                                                    | Keep source identity, target layout, and publication failure behavior exact.   |
 
@@ -640,7 +640,7 @@ grammar at 127 productions; Stage 7 uses 63.
 
 Completion evidence:
 
-- Chapter 21 caller-supplied destination and selection-forwarding programs
+- Chapter 18 caller-supplied destination and selection-forwarding programs
   produce their required output;
 - no source operation can inspect, store, convert, compare, or calculate with
   an address carrier;
@@ -705,7 +705,7 @@ workspace, immutable data, and runtime size are unchanged.
 
 ### Stage 9: complete corpus and final accounting
 
-Compile every accepted Chapter 21 program with the Z80 compiler, run it through
+Compile every accepted Chapter 18 program with the Z80 compiler, run it through
 the selected execution path, and reject every invalid program before execution.
 Report all resource accounts for the complete implementation.
 
@@ -715,7 +715,7 @@ capacities. If it fails, use the component ledger to select a semantics-
 preserving representation or lowering experiment. Do not infer the cause from
 source size or host measurements.
 
-The completed harness locks all twenty-four `nucleus` code fences in Chapter 21
+The completed harness locks all twenty-four `nucleus` code fences in Chapter 18
 byte for byte. It compiles and runs every accepted program, checks both
 specified runtime-trap cases at their exact source offsets, and rejects all
 ten invalid programs before execution with their required diagnostic class
@@ -723,7 +723,7 @@ and position. The generated terminal paths restore the root stack pointer, IX,
 and activation depth. The largest generated program in this corpus is 945
 bytes.
 
-The Section 21.1 program is assembled from the literal flat manifest
+The Section 18.1 program is assembled from the literal flat manifest
 `model.nu`, a blank line, and `main.nu`. The host adapter preserves written
 order, gives duplicate names distinct stable identities, and maps a diagnostic
 from identity 2 back to `main.nu`. The Z80 adapter accepts one through eight
@@ -745,7 +745,7 @@ selected runtime was 561 bytes.
 
 The inferred-constant pass removes the scalar-type phrase from constant
 declarations and records integer constants as exact values while retaining
-Boolean constants as Boolean. The Chapter 21 proof uses one integer constant
+Boolean constants as Boolean. The Chapter 18 proof uses one integer constant
 in both `u8` and `u16` contexts and rejects an out-of-range use rather than its
 declaration. Regenerated LL(1) tables and actions reduce the active compiler by
 seven code bytes. Fresh assembly measures 13,443 code bytes plus 368 immutable
@@ -766,7 +766,7 @@ permanent zero itself adds one static-data byte per string object.
 The original implementation milestone, before the later 255-byte object
 correction, measured 13,616 code bytes plus 368 immutable bytes, for a
 13,984-byte compiler core with 1,405 bytes of workspace. The selected runtime
-is 585 bytes. The unchanged 1,326-byte Chapter 21 proof executes 1,147,209
+is 585 bytes. The unchanged 1,326-byte Chapter 18 proof executes 1,147,209
 instructions in 10,800,907 T-states. Relative to the inferred-constant
 baseline, the sealed-string change adds 173 core bytes, four workspace bytes,
 and 24 runtime bytes. Those figures include the retired 256-byte object paths;
@@ -776,7 +776,7 @@ remains 2,400 bytes inside the 16 KiB gate.
 The subsequent correctness review found that an incompatible exact constant
 was diagnosed at the end of its expression rather than at the constant name.
 The repaired parser retains offset, line, and column for both operands in each
-pending expression entry. The Chapter 21 proof now locks the direct and nested
+pending expression entry. The Chapter 18 proof now locks the direct and nested
 use positions and rejects named Boolean and integer constants in the opposite
 category. Additional aggregate proofs reject a corrupted length through both
 `.length` and indexing and distinguish the accepted `string[253]` boundary
@@ -784,8 +784,8 @@ from rejected capacities 254 and 255.
 
 Before the follow-up size pass, fresh assembly measures 13,687 code bytes plus
 368 immutable bytes, for a 14,055-byte compiler core with 1,509 bytes of
-workspace. The selected runtime remains 585 bytes and the largest Chapter 21
-program remains 1,019 bytes. The expanded 1,449-byte Chapter 21 proof executes
+workspace. The selected runtime remains 585 bytes and the largest Chapter 18
+program remains 1,019 bytes. The expanded 1,449-byte Chapter 18 proof executes
 1,188,701 instructions in 11,211,558 T-states. These figures are the repaired
 correctness baseline, not a size plateau.
 
@@ -806,12 +806,12 @@ shortens the expression-entry address calculation, and uses `JR` for the final
 range-qualified call-argument failure branch. Fresh assembly measures 13,649
 code bytes plus 368 immutable bytes, for a 14,017-byte compiler core with 1,509
 bytes of workspace. The selected runtime remains 585 bytes, and the largest
-Chapter 21 program remains 1,019 bytes. The 1,449-byte Chapter 21 proof executes
+Chapter 18 program remains 1,019 bytes. The 1,449-byte Chapter 18 proof executes
 1,188,358 instructions in 11,202,292 T-states.
 
 Three arithmetically promising rewrites were rejected by executable evidence:
 a shared six-byte position-copy helper disturbed the Stage 9 proof; inlining
-the fixed-width `ForNext` semantic reader changed the first Chapter 21
+the fixed-width `ForNext` semantic reader changed the first Chapter 18
 program's runtime result; and conditional calls could not replace the two
 initializer-capacity helpers because successful `CP` paths deliberately retain
 carry. The proven inline copies, reader boundary, and capacity helpers remain.
@@ -819,12 +819,12 @@ carry. The proven inline copies, reader boundary, and capacity helpers remain.
 The first post-Stage-9 language increment adds `$` hexadecimal and `%` binary
 integer literals. Their scanners share base-dependent accumulation but retain
 separate four- and sixteen-digit overflow guards; the decimal value guard is
-unchanged. The Chapter 21 corpus accepts both spellings at their 16-bit
+unchanged. The Chapter 18 corpus accepts both spellings at their 16-bit
 boundaries and rejects a fifth hexadecimal digit and seventeenth binary digit
 at the literal position. Fresh assembly measures 13,736 compiler-code bytes
 plus 372 immutable bytes, for a 14,108-byte compiler core with 1,509 bytes of
 workspace. The largest generated program remains 1,019 bytes and the selected
-runtime remains 585 bytes. The expanded 1,501-byte Chapter 21 proof executes
+runtime remains 585 bytes. The expanded 1,501-byte Chapter 18 proof executes
 1,248,626 instructions in 11,767,489 T-states. Relative to the Stage 9 plateau,
 the feature adds 87 compiler-code bytes and four immutable descriptor bytes,
 for 91 compiler-core bytes in total; it changes no workspace, generated, or
@@ -833,12 +833,12 @@ runtime account.
 The next increment adds integer-only `xor` at the same precedence as `or`.
 The existing integer-pair resolver supplies exact-constant adoption, widening,
 and Boolean rejection; the backend adds width-specific semantic operations and
-direct Z80 templates, while the constant path folds both bytes. The Chapter 21
+direct Z80 templates, while the constant path folds both bytes. The Chapter 18
 corpus proves left association, constant folding, runtime `u8` and `u16`
 execution, and rejection at a Boolean `xor`. Fresh assembly measures 13,803
 compiler-code bytes plus 377 immutable bytes, for a 14,180-byte compiler core
 with 1,509 bytes of workspace. The largest generated program remains 1,019
-bytes and the selected runtime remains 585 bytes. The 1,553-byte Chapter 21
+bytes and the selected runtime remains 585 bytes. The 1,553-byte Chapter 18
 proof executes 1,316,919 instructions in 12,402,392 T-states. Relative to the
 numeric-literal commit, `xor` adds 67 compiler-code bytes and five immutable
 bytes, for 72 compiler-core bytes in total; it changes no workspace, maximum
@@ -847,12 +847,12 @@ generated-program, or runtime account.
 The following increment adds integer `mod` at multiplicative precedence. The
 constant folder retains the remainder already produced by its division loop;
 the generated backend selects a shared runtime division core whose quotient
-and remainder entry points preserve the same zero-divisor trap. The Chapter 21
+and remainder entry points preserve the same zero-divisor trap. The Chapter 18
 corpus proves constant folding, runtime `u8` and `u16` remainder, and rejection
 of a constant zero divisor at that divisor. Fresh assembly measures 13,847
 compiler-code bytes plus 382 immutable bytes, for a 14,229-byte compiler core
 with 1,509 bytes of workspace. The largest generated program remains 1,019
-bytes. The selected runtime is 596 bytes. The 1,653-byte Chapter 21 proof
+bytes. The selected runtime is 596 bytes. The 1,653-byte Chapter 18 proof
 executes 1,428,311 instructions in 13,446,134 T-states. Relative to the `xor`
 commit, `mod` adds 44 compiler-code bytes and five immutable bytes, for 49
 compiler-core bytes, and 11 runtime bytes; workspace and maximum generated
@@ -868,20 +868,20 @@ the shortcut would be slower. Direct runtime proofs cover zero, 1, 2, 255,
 compiler code remains 13,847 bytes, immutable data 382 bytes, compiler core
 14,229 bytes, workspace 1,509 bytes, and maximum generated program 1,019
 bytes. The selected runtime grows by 53 bytes, from 596 to 649. The unchanged
-1,653-byte Chapter 21 proof executes 1,428,272 instructions in 13,445,707
+1,653-byte Chapter 18 proof executes 1,428,272 instructions in 13,445,707
 T-states. This is a runtime-only increment: no compiler-core, workspace, or
 generated-output account moves.
 
 The final Track A increment adds top-level compile-time `assert`. The packed
 grammar delegates its operand to the existing constant-expression island; one
 action accepts only a constant Boolean result, rejects false with a dedicated
-diagnostic at `assert`, and emits no semantic operation. The Chapter 21 proof
+diagnostic at `assert`, and emits no semantic operation. The Chapter 18 proof
 accepts a true relationship, rejects false and exact-integer operands at the
 keyword, and compares the generated image against an equal-position comment
 control byte for byte. Fresh assembly measures 13,895 compiler-code bytes plus
 390 immutable bytes, for a 14,285-byte compiler core with 1,509 bytes of
 workspace. The largest generated program remains 1,019 bytes and the selected
-runtime remains 649 bytes. The 1,786-byte Chapter 21 proof executes 1,502,625
+runtime remains 649 bytes. The 1,786-byte Chapter 18 proof executes 1,502,625
 instructions in 14,130,034 T-states. Relative to the runtime-fast-path commit,
 `assert` adds 48 compiler-code bytes and eight immutable bytes, for 56
 compiler-core bytes; it changes no workspace, maximum generated-program, or
@@ -926,7 +926,7 @@ object, and publishes an explicit 256-byte initialized array.
 Fresh production assembly measures 14,311 compiler-code bytes plus 390
 immutable bytes, for a 14,701-byte compiler core. Workspace is 3,623 bytes,
 including the 1,024-byte object-building scratch and 511-byte semantic
-transcript. The selected runtime is 655 bytes, and the largest Chapter 21
+transcript. The selected runtime is 655 bytes, and the largest Chapter 18
 generated program is 1,040 bytes. The expanded Stage 7 proof executes
 1,701,877 instructions in 15,720,339 T-states and occupies 3,044 proof bytes.
 
@@ -952,18 +952,18 @@ are selected while `handle` is the current token.
 The measured pre-change account at commit `0cc5a6f` was 14,311 code bytes plus
 390 immutable bytes, for a 14,701-byte compiler core. The parser was 9,226
 bytes: 230 engine, 760 tables, 2,791 actions, and 5,445 residual islands.
-Workspace was 3,623 bytes; the largest Chapter 21 generated program was 1,040
+Workspace was 3,623 bytes; the largest Chapter 18 generated program was 1,040
 bytes; and the selected runtime was 655 bytes. The Stage 7 proof occupied
 3,044 bytes and executed 1,701,877 instructions in 15,720,339 T-states.
 
 After correctness review and the focused size pass, fresh assembly measures
 14,208 code bytes plus 387 immutable bytes, for a 14,595-byte core. The parser
 is 9,123 bytes: 230 engine, 746 tables, 2,699 actions, and 5,448 residual
-islands. Workspace is 3,622 bytes; the largest Chapter 21 generated program
+islands. Workspace is 3,622 bytes; the largest Chapter 18 generated program
 remains 1,040 bytes; and the selected runtime remains 655 bytes. The Stage 7
 proof occupies 3,046 bytes and executes 1,698,773 instructions in 15,699,547
 T-states. The expanded Stage 8 proof occupies 3,575 bytes and executes
-1,960,585 instructions in 18,249,735 T-states. The Chapter 21 proof remains
+1,960,585 instructions in 18,249,735 T-states. The Chapter 18 proof remains
 1,883 bytes and executes 1,516,312 instructions in 14,282,612 T-states.
 
 The exact compiler-core saving is 106 bytes: 103 code and three immutable
@@ -1001,7 +1001,7 @@ frames and one from folding service keep/discard into the selector. Source call
 records shrink from 11 to 10 transcript bytes and service records from eight to
 seven. The parser is 9,035 bytes: 230 engine, 746 tables, 2,699 actions, and
 5,360 residual islands. The selected runtime remains 655
-bytes and the largest Chapter 21 generated program remains 1,040 bytes. A
+bytes and the largest Chapter 18 generated program remains 1,040 bytes. A
 temporary comparison matched 81 of 83 baseline generated publications exactly.
 The remaining two keep the same size and differ only in one immediate source-
 offset byte: a failable service whose argument contains an infallible source
@@ -1010,7 +1010,7 @@ This diagnostic correction is deliberate; every other generated byte matches.
 The Stage 7 proof remains 3,046 bytes and executes 1,696,273 instructions in
 15,674,472 T-states; Stage 8 grows to 3,692 bytes for the nested-call failure
 position and four-frame service-argument discriminators and executes 2,025,763
-in 18,849,650; Chapter 21 remains
+in 18,849,650; Chapter 18 remains
 1,883 bytes and executes 1,513,884 in 14,258,168.
 
 The packed action dispatcher now groups three measured families behind
@@ -1045,7 +1045,7 @@ the baseline, as do the selected runtime bytes. The largest generated program
 therefore remains 1,040 bytes and the selected runtime remains 655 bytes. The
 Stage 7 proof remains 3,046 bytes and executes 1,696,205 instructions in
 15,673,656 T-states; Stage 8 remains 3,692 bytes and executes 2,025,638 in
-18,848,156; Chapter 21 remains 1,883 bytes and executes 1,513,817 in
+18,848,156; Chapter 18 remains 1,883 bytes and executes 1,513,817 in
 14,257,361.
 
 A subsequent current-core compression pass shares the segmented startup-entry
@@ -1061,7 +1061,7 @@ Workspace remains 3,613 bytes, the largest generated program remains 1,040
 bytes, and the selected runtime remains 655 bytes. Baseline/current comparison
 keeps complete semantic buffers, active generated publications, and runtime
 bytes identical. The Stage 7 proof executes 1,696,249 instructions in
-15,674,079 T-states; Stage 8 executes 2,025,638 in 18,848,024; and Chapter 21
+15,674,079 T-states; Stage 8 executes 2,025,638 in 18,848,024; and Chapter 18
 executes 1,513,833 in 14,257,474.
 
 The next semantics-preserving compression pass removes another 105 code bytes.
@@ -1080,7 +1080,7 @@ actions, and 5,353 residual islands. The typed/aggregate sink is 3,208 bytes.
 Workspace remains 3,613 bytes, the largest generated program remains 1,040
 bytes, and the selected runtime remains 655 bytes. The Stage 7 proof remains
 3,046 bytes and executes 1,696,451 instructions in 15,676,452 T-states; Stage
-8 remains 3,692 bytes and executes 2,025,934 in 18,851,465; and Chapter 21
+8 remains 3,692 bytes and executes 2,025,934 in 18,851,465; and Chapter 18
 remains 1,883 bytes and executes 1,514,048 in 14,259,956.
 
 The next measured compression pass removes 200 compiler-code bytes, 13
@@ -1104,7 +1104,7 @@ transcript identical. Generated publications keep the same sizes and bytes
 except for absolute `CALL` operands relocated to the same named entries in the
 smaller runtime. The Stage 7 proof remains 3,046 bytes and executes 1,702,331
 instructions in 15,737,944 T-states; Stage 8 remains 3,692 bytes and executes
-2,032,759 in 18,918,203; and Chapter 21 remains 1,883 bytes and executes
+2,032,759 in 18,918,203; and Chapter 18 remains 1,883 bytes and executes
 1,520,260 in 14,322,659.
 
 A focused helper pass removes another 116 compiler-code bytes. Five repeated
@@ -1124,7 +1124,7 @@ program remains 1,040 bytes, and the selected runtime remains 582 bytes. A
 temporary baseline comparison keeps generated publications and selected
 runtime bytes identical. The Stage 7 proof remains 3,046 bytes and executes
 1,702,823 instructions in 15,743,156 T-states; Stage 8 remains 3,692 bytes and
-executes 2,034,307 in 18,936,135; and Chapter 21 remains 1,883 bytes and
+executes 2,034,307 in 18,936,135; and Chapter 18 remains 1,883 bytes and
 executes 1,521,339 in 14,334,990.
 
 The aggregate-constant increment adds explicitly typed record, fixed-array,
@@ -1148,7 +1148,7 @@ bytes, for a 14,204-byte compiler core. The parser is 8,943 bytes: 230 engine,
 is 3,117 bytes. Workspace is 3,602 bytes, the largest generated program remains
 1,040 bytes, and the selected runtime is 596 bytes. The Stage 7 proof is 3,501
 bytes and executes 2,171,678 instructions in 20,115,678 T-states; Stage 8 is
-3,692 bytes and executes 2,035,400 in 18,945,941; and Chapter 21 is 1,935 bytes
+3,692 bytes and executes 2,035,400 in 18,945,941; and Chapter 18 is 1,935 bytes
 and executes 1,655,345 in 15,585,591. Relative to the preceding plateau, the
 feature adds 199 compiler-core bytes, two workspace bytes, and 14 selected
 runtime bytes; immutable compiler data and the largest generated program do
@@ -1515,14 +1515,14 @@ ordinary flat program as artifact A. The Z80 compiler then emits image and
 patch operations for the different trap program B and fails during its late
 map operation. Replaying B's saved tentative operations against the same host
 generation store with a rejected final map leaves A current byte for byte. The
-compiler's Chapter 21 output becomes artifact C, which replaces A only after a
+compiler's Chapter 18 output becomes artifact C, which replaces A only after a
 valid commit and executes from a fresh materialization. No step restores
 compiler-resident output bytes.
 
 The production target proof also compiles and executes the established Stage 7
 aggregate-call program, the Stage 8 propagation program, and the accepted
-multipart program from Chapter 21.1 through NOBJ. The complete historical
-Stage 7, Stage 8, and Chapter 21 direct proofs remain module evidence only and
+multipart program from Chapter 18.1 through NOBJ. The complete historical
+Stage 7, Stage 8, and Chapter 18 direct proofs remain module evidence only and
 do not claim target-system conformance.
 
 Fresh Stage 6 assembly measures 15,717 compiler-code bytes plus 393 immutable
@@ -1536,7 +1536,7 @@ runtime state remains 37 bytes and activation storage remains 3,840 bytes.
 The expanded producer proof is 2,300 bytes and executes 1,016,419 instructions
 in 9,951,207 T-states. The representative flat and banked artifact sizes remain
 1,396 and 5,228 NOBJ bytes, with used bank extents of 556 and 813/589 bytes.
-The Chapter 21 object uses 1,461 of 4,096 target-image bytes and commits 7,913
+The Chapter 18 object uses 1,461 of 4,096 target-image bytes and commits 7,913
 NOBJ bytes. Its external image spool reaches 7,635 bytes across 1,029 records
 with 1,461 payload bytes; its patch spool reaches 205 bytes across 27 records
 with 43 payload bytes. Its committed target execution uses 1,696 instructions
@@ -1577,7 +1577,7 @@ remains 3,840 bytes. The producer proof remains 2,300 bytes and executes
 
 All seven production NOBJ fixtures are byte-identical to their Stage 6
 counterparts: flat ROM, flat loaded, flat trap, flat unhandled failure, banked
-success, banked trap, and Chapter 21. Their generated extents, NOBJ sizes,
+success, banked trap, and Chapter 18. Their generated extents, NOBJ sizes,
 image and patch spool high-water marks, selected runtime, and committed target
 execution therefore remain unchanged. The full proof harness, package suite,
 strict AZM register contracts, typecheck, formatting, prose, and diff checks
@@ -1695,7 +1695,7 @@ reproduced before editing: 15,482 compiler-code bytes plus 393 immutable
 bytes, for a 15,875-byte core and 509 bytes of headroom. Workspace was 3,606
 bytes; the selected proof runtime was 574 bytes; proof code and data were 2,345
 bytes; and the proof executed 1,043,353 instructions in 10,196,561 T-states.
-Its Chapter 21 NOBJ was 7,913 bytes and used 1,461 target-image bytes.
+Its Chapter 18 NOBJ was 7,913 bytes and used 1,461 target-image bytes.
 
 The compression pass introduced checked inline operands for tail diagnostics
 and single-byte emission, then shared only register-contract-compatible parser
@@ -1747,7 +1747,7 @@ Runtime identity `$0005` adds the 18-byte `PrintString` helper at offset 364.
 selected runtime, while `proofs/stage9-conformance-z80-slice-proof.json`
 measures the 614-byte historical direct-proof form. The
 target-enabled producer proof remains 2,345 bytes and executes 1,043,067
-instructions in 10,189,213 T-states. Its ordinary Chapter 21 source does not
+instructions in 10,189,213 T-states. Its ordinary Chapter 18 source does not
 call `print`; its larger 1,479-byte image and 7,931-byte NOBJ come from the
 selected runtime revision. Generated-code length and instruction topology,
 initialized-data contents, and source semantics remain unchanged, but the
@@ -1786,7 +1786,7 @@ The bounded-string operator pass began at standalone HEAD
 `91b52cf4ccee824dda8f8f78fcf2fdb961acd25e`. Measured baseline: 15,504
 compiler-code bytes plus 399 immutable bytes, or 15,903 bytes of compiler core
 with 481 bytes of headroom. Measured workspace: 3,606 bytes. The target-enabled
-Chapter 21 proof selected a measured 592-byte runtime, emitted a measured
+Chapter 18 proof selected a measured 592-byte runtime, emitted a measured
 7,931-byte NOBJ using 1,479 image bytes, and executed a measured 1,043,067
 compiler instructions in 10,189,213 T-states.
 
@@ -1894,7 +1894,7 @@ checkpoint. `proofs/flat-target-debug-z80-slice-proof.json` measured the
 instrumented host image at 15,783 code bytes plus 393 immutable bytes, or
 16,176 core bytes, inside its separate 17 KiB host-only core reservation.
 `test/nobj.test.ts` measures the canonical runtime at identity `$0004` and 364
-bytes. The target-enabled Chapter 21 proof selects 574 runtime bytes;
+bytes. The target-enabled Chapter 18 proof selects 574 runtime bytes;
 the current assembly of `proofs/stage9-conformance-z80-slice-proof.json`
 measures 14,006 compiler-code bytes, 393 immutable bytes, and the 596-byte
 runtime used by that historical direct proof.
@@ -2338,7 +2338,7 @@ assignment statement, including carrier preparation, region checks, and trap
 lowering. The corresponding direct concrete properties are absent and generate
 no code: concrete `.capacity` and writable concrete `.length` are positioned
 type errors. The largest retained generated-program proof remains 1,040 bytes.
-The accepted Chapter 21 target image uses 1,487 bytes after the 26-byte runtime
+The accepted Chapter 18 target image uses 1,487 bytes after the 26-byte runtime
 increase.
 
 A real inline-resize prototype assembled the resize algorithm from ordinary
@@ -2370,7 +2370,7 @@ execution, parser reset, and exact diagnostics.
 The final target-enabled proof executes 1,051,848 instructions in 10,357,287
 T-states. Proof code and data remain 2,487 bytes. The instrumented proof
 executes 1,056,425 instructions in 10,407,726 T-states and retains 2,489 proof
-bytes. The historical direct Chapter 21 and Stage 8 layouts measure 14,160 code
+bytes. The historical direct Chapter 18 and Stage 8 layouts measure 14,160 code
 bytes plus 401 immutable bytes, 3,605 workspace bytes, and 622 runtime bytes;
 their exact instruction and timing locks are 1,657,395 / 15,616,178 and
 2,036,906 / 18,975,165 respectively.
@@ -2724,7 +2724,7 @@ measures 689 bytes under the default link context; the historical Stage 8 and
 Stage 9 proof context measures 921 bytes. The runtime revision adds checked
 conversion, signed comparison, signed division and modulo, signed loop
 continuation, and mixed-byte promotion. The ordinary target-enabled proof
-publishes a 1,721-byte NOBJ with 881 used image bytes. The Chapter 21 proof
+publishes a 1,721-byte NOBJ with 881 used image bytes. The Chapter 18 proof
 publishes an 8,238-byte NOBJ with 1,786 used image bytes. Its maximum generated
 program remains 1,040 bytes.
 
@@ -2834,7 +2834,7 @@ bytes. Production workspace remains 3,613 bytes.
 
 The flat proof executes 881,892 instructions in 9,517,580 T-states; the debug
 proof executes 885,683 instructions in 9,559,371 T-states. The historical
-Chapter 21 proof executes 1,417,919 instructions in 14,018,507 T-states, the
+Chapter 18 proof executes 1,417,919 instructions in 14,018,507 T-states, the
 Stage 8 failure proof executes 1,723,350 instructions in 16,752,593 T-states,
 and the complete LL(1) proof executes 1,920,597 instructions in 18,411,051
 T-states. The largest increase is 1.08 percent in Stage 8 instructions and 0.85
@@ -2870,7 +2870,7 @@ are 14,436 code bytes plus 398 immutable bytes, or 14,834 core bytes, with
 
 The flat proof remains 881,892 instructions and 9,517,580 T-states, and the
 debug proof remains 885,683 instructions and 9,559,371 T-states. The historical
-Chapter 21 proof is 1,417,934 instructions and 14,018,627 T-states; Stage 8 is
+Chapter 18 proof is 1,417,934 instructions and 14,018,627 T-states; Stage 8 is
 unchanged at 1,723,350 instructions and 16,752,593 T-states; the complete LL(1)
 proof is unchanged at 1,920,597 instructions and 18,411,051 T-states. The
 selected proof runtime remains 899 bytes, the historical runtime remains 921
@@ -2915,7 +2915,7 @@ operations, and the generated-program maximum remains 4,096 bytes.
 
 The flat proof executes 881,986 instructions in 9,518,684 T-states, an increase
 of 94 instructions and 1,104 T-states. Debug has the same increase at 885,777
-instructions and 9,560,475 T-states. The historical Chapter 21 proof is
+instructions and 9,560,475 T-states. The historical Chapter 18 proof is
 1,417,992 instructions and 14,019,163 T-states; Stage 8 is 1,723,424 and
 16,753,301; the complete LL(1) proof is 1,920,739 and 18,412,361. Every
 instruction and T-state change remains below 0.02 percent.
@@ -2952,7 +2952,7 @@ bytes.
 
 The flat proof executes 885,594 instructions in 9,547,723 T-states, increases
 of 0.4091 and 0.3051 percent. Debug executes 889,385 instructions in 9,589,514
-T-states. The historical Chapter 21 proof executes 1,424,200 instructions in
+T-states. The historical Chapter 18 proof executes 1,424,200 instructions in
 14,069,055 T-states; Stage 8 executes 1,730,834 in 16,812,478; and the complete
 LL(1) proof executes 1,926,869 in 18,461,393. The largest measured increase is
 0.4378 percent in instructions and 0.3559 percent in T-states. Flat and banked
@@ -3000,7 +3000,7 @@ provider must remain callable in every selected bank and must validate before
 native dispatch or packet mutation.
 
 The flat proof executes 875,383 instructions in 9,430,916 T-states, and debug
-executes 879,008 in 9,470,881. The historical Chapter 21 proof executes
+executes 879,008 in 9,470,881. The historical Chapter 18 proof executes
 1,427,422 instructions in 14,095,150 T-states; Stage 8 executes 1,734,602 in
 16,842,722; and the complete LL(1) proof executes 1,930,029 in 18,486,787.
 Every increase from the pre-feature checkpoint is below 0.3 percent, while the
@@ -3055,7 +3055,7 @@ increases of 1.126 and 0.650 percent. Debug executes 888,864 instructions in
 9,532,219 T-states. Stage 8 executes 1,759,208 instructions in 17,002,694
 T-states, and the complete LL(1) proof executes 1,950,941 instructions in
 18,619,555 T-states; both changes remain below two percent. The expanded
-Chapter 21 proof executes 1,483,742 instructions in 14,606,024 T-states. Its
+Chapter 18 proof executes 1,483,742 instructions in 14,606,024 T-states. Its
 larger change includes compilation and execution of the new accepted select
 program plus the new rejected Boolean-selector program, so it is not a
 fixed-workload timing comparison.
@@ -3274,7 +3274,7 @@ Before a new language stage begins:
   charter, and published editions agree;
 - machine-readable trap and service assignments match the direct runtime
   contract;
-- every Chapter 21 program has a source-level expected result;
+- every Chapter 18 program has a source-level expected result;
 - the Z80 memory map identifies the compiler bank, compiler workspace, generated
   program destination, target-runtime regions, program code and data, and
   activation arena without overlap; and
