@@ -1418,7 +1418,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofUnknownCompletionFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DiagnosticHandleLine
             LD   BC,Stage8UnconsumedServicePoint-1-Stage8UnconsumedServiceSource
             LD   HL,Stage8UnconsumedServiceSource
             LD   DE,Stage8UnconsumedServiceSourceEnd
@@ -1842,7 +1842,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,118
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DiagnosticHandleLine
             LD   BC,Stage8BareAssignmentPoint-Stage8BareAssignmentSource
             LD   HL,Stage8BareAssignmentSource
             LD   DE,Stage8BareAssignmentSourceEnd
@@ -1858,7 +1858,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,120
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DiagnosticHandleLine
             LD   BC,Stage8LegacyOnErrorPoint-Stage8LegacyOnErrorSource
             LD   HL,Stage8LegacyOnErrorSource
             LD   DE,Stage8LegacyOnErrorSourceEnd
@@ -1874,7 +1874,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,122
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DiagnosticHandleLine
             LD   BC,Stage8InfallibleHandlePoint-Stage8InfallibleHandleSource
             LD   HL,Stage8InfallibleHandleSource
             LD   DE,Stage8InfallibleHandleSourceEnd

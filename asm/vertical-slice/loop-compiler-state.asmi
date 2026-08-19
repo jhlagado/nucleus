@@ -438,6 +438,9 @@ DiagnosticAssertionFailed .equ 91
 DiagnosticOutputSegment .equ 92
 DiagnosticReadOnlyCapacity .equ 93
 DiagnosticReadOnlyAssignment .equ 94
+; Target diagnostics occupy 95..97 in target-output-state.asmi. Append the
+; same-line handler diagnostic without changing any published ordinal.
+DiagnosticHandleLine .equ 98
 DiagnosticRecordEmpty  .equ 82
 DiagnosticTypeBound    .equ 83
 

@@ -55,6 +55,7 @@ const diagnosticMessages: Readonly<Record<number, string>> = {
   95: "target configuration is invalid",
   96: "target image capacity exceeded",
   97: "target output failed",
+  98: "`handle NAME` must follow an eligible failable call on the same logical line",
 };
 
 export const nucleusDiagnosticMessage = (code: number): string =>

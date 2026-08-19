@@ -1161,7 +1161,7 @@ Stage8SelectFailureConsumer:
             CP   TokenElse
             JR   Z,HybridLL1FailureContext
             CP   TokenHandle
-            JR   Z,HybridLL1FailureContext
+            JP   Z,HybridLL1HandleContext
             OR   A
             RET
 
@@ -1178,9 +1178,11 @@ Stage8SelectPendingFailure:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenElse
+            DEC  A                       ; newline becomes zero
+            JP   Z,HybridLL1HandleContext
+            CP   TokenElse-1
             JR   Z,Stage8ConsumePropagationSelected
-            CP   TokenHandle
+            CP   TokenHandle-1
             JR   NZ,HybridLL1FailureContext
             LD   B,ControlKindHandler
             CALL HybridLL1PushFlowFrameAndLabelA

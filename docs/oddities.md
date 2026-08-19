@@ -129,12 +129,20 @@ integers. Signed division truncates toward zero; remainder follows the
 dividend. The defined two's-complement result of `-32768 / -1` is `-32768`,
 with remainder zero.
 
-**Recoverable failure is consumed at the call.** A failable call must be
-consumed at the site with `else fail` or same-line `handle NAME`. A scalar
-local initializer admits only `else fail`; assignment and complete call
-statements admit either form. A failable call cannot sit inside an argument or
-a `return`. `return` is success only. The handler name is an existing writable
-`u8`, not a new binding. Traps are not recoverable.
+**Recoverable failure is consumed at the call.** A failable call must use
+`else fail` or `handle NAME` on the call's logical line:
+
+```nucleus
+value = readStorageByte() else fail
+value = readStorageByte() handle code
+    return
+end
+```
+
+A scalar local initializer admits only `else fail`; assignment and complete
+call statements admit either form. A failable call cannot sit inside an
+argument or a `return`. `return` is success only. The handler name is an
+existing writable `u8`, not a new binding. Traps are not recoverable.
 
 **String literals are initializers, not values.** Given `sub
 writeText(text as string[])`, `writeText("Hi")` is not admitted. You declare a
@@ -178,25 +186,15 @@ undermines an otherwise consistent rule.
    `string[]`, `T[]`, nested arrays, `else fail`, and `handle`. This is a
    documentation deliverable, not another syntax feature.
 
-### P1 — diagnostics and safety consistency
-
-4. **`else if` versus `elseif`.** BASIC programmers will write the two-word
-   form. Keep the one-token grammar if that is the language choice, but issue a
-   diagnostic that says to write `elseif`; a generic newline error makes the
-   rule look accidental.
-5. **Same-line `handle`.** Failure consumption is consistent, but attaching
-   `handle` to the call's logical line is easy to miss. Give a misplaced
-   next-line `handle` a diagnostic that names the same-line form, and show the
-   form beside `else fail` in the manual.
 ### P2 — analysis and system boundary
 
-6. **Fallthrough after `while true`.** A result routine whose only live
+4. **Fallthrough after `while true`.** A result routine whose only live
    `return` is inside an unconditional loop still needs a trailing structural
    `return`. A narrow analysis could treat literal `while true` as
    non-returning only when no reachable `exit` targets that loop; an `exit`
    from a nested loop does not make the outer loop fall through. Without that
    proof, the conservative rule is correct.
-7. **Port access.** Nucleus has typed byte streams and no source-visible Z80
+5. **Port access.** Nucleus has typed byte streams and no source-visible Z80
    ports. A future system boundary could provide typed port input and output
    without exposing arbitrary memory or inline assembly. This needs a service
    and portability design before it becomes a language feature; it is not a

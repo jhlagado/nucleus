@@ -953,7 +953,7 @@ ProofStart:
             LD   A,21
             LD   (ProofCase),A
             LD   A,51
-            LD   B,DiagnosticFailureContext
+            LD   B,DiagnosticHandleLine
             LD   IX,Chapter21_10UnconsumedPoint-Chapter21_10UnconsumedSource
             LD   HL,Chapter21_10UnconsumedSource
             LD   DE,Chapter21_10UnconsumedSourceEnd

@@ -2804,6 +2804,43 @@ identical NOBJ and materialized bank bytes for the same nested-array program.
 The implementation introduces no raw machine-instruction data, pointer tags,
 origin assumptions, semantic operations, runtime helpers, or target services.
 
+### Same-line `handle` diagnostic
+
+This increment starts from the released 0.2.0 compiler at
+`9d78d1535f3f597153d5b91afd849a4b3ac8c213`. It appends diagnostic 98 without
+renumbering an existing diagnostic. The compiler now reports that `handle NAME`
+must follow an eligible failable call on the same logical line when a direct
+failable assignment or call reaches its newline without a consumer, when
+`handle` begins an ordinary statement, and when an infallible assignment or
+call is followed by `handle`. Categorically unsupported contexts, including a
+scalar-local initializer, retain the general failure-context diagnostic.
+
+The parser checks the four generated statement-dispatch nonterminals before
+ordinary LL(1) prediction. Their ordinals form one masked group, which avoids a
+new table. The failure-consumer action classifies newline, `else`, and `handle`
+from their existing token ordinals. No token beyond the current logical line is
+read or consumed. The accepted grammar, semantic transcript, generated Z80,
+runtime, and published capacities are unchanged.
+
+The final compressed implementation adds 25 production code bytes and no
+immutable data or workspace. Production is 14,768 code bytes plus 398 immutable
+bytes, or 15,166 compiler-core bytes, leaving 1,218 bytes below the 16 KiB
+limit. The instrumented compiler is 14,824 code bytes plus 398 immutable bytes,
+or 15,222 core bytes. Historical returning-diagnostic layouts measure 14,376
+code bytes plus 398 immutable bytes, or 14,774 core bytes, with 3,623 workspace
+bytes. Production workspace remains 3,613 bytes.
+
+The flat proof executes 881,892 instructions in 9,517,580 T-states; the debug
+proof executes 885,683 instructions in 9,559,371 T-states. The historical
+Chapter 21 proof executes 1,417,919 instructions in 14,018,507 T-states, the
+Stage 8 failure proof executes 1,723,350 instructions in 16,752,593 T-states,
+and the complete LL(1) proof executes 1,920,597 instructions in 18,411,051
+T-states. The largest increase is 1.08 percent in Stage 8 instructions and 0.85
+percent in Stage 8 T-states. The selected proof runtime remains 899 bytes, the
+historical runtime remains 921 bytes, the generated-program maximum remains
+4,096 bytes, and the semantic transcript remains bounded at 511 payload bytes
+and 255 operations; the exact-fill transcript proofs remain unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

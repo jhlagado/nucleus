@@ -3,7 +3,9 @@
 ; semantic or retained-expression actions $80..$FE. Productions store their
 ; right sides in reverse order so one bounded copy pushes a complete rule.
 
-HybridLL1StackCapacity .equ 64
+HybridLL1StackCapacity         .equ 64
+HybridLL1RoutineBodySymbol     .equ $40+20
+HybridLL1StatementSymbolMask   .equ $FA
 .if AggregateCallSlices
 .if TargetStreamingOutput
 HybridLL1StackDepth    .equ TargetCompilerWorkspaceEnd
@@ -76,6 +78,26 @@ HybridLL1Terminal:
             JR   HybridLL1Loop
 
 HybridLL1Nonterminal:
+            ; A standalone handle can arrive while selecting the routine
+            ; body, the local-list continuation, the statement sequence, or
+            ; the statement itself. Those generated ordinals differ from the
+            ; routine-body ordinal only in bits 0 and 2. Peek without
+            ; consuming so all other prediction and diagnostics stay exact.
+            LD   L,A
+            SUB  HybridLL1RoutineBodySymbol
+            AND  HybridLL1StatementSymbolMask
+            JR   NZ,HybridLL1StatementTokenReady
+            CALL ParserPeek
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CP   TokenHandle
+            JR   NZ,HybridLL1StatementTokenReady
+HybridLL1HandleContext:
+            CALL SetDiagInline
+            .db  DiagnosticHandleLine
+HybridLL1StatementTokenReady:
+            LD   A,L
             SUB  $40
             LD   L,A
             LD   H,0
@@ -125,7 +147,7 @@ HybridLL1PredictionFound:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            JR   HybridLL1Loop
+            JP   HybridLL1Loop
 
 ; A is a production ordinal. Adjacent directory offsets delimit its body.
 .routine in A out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry

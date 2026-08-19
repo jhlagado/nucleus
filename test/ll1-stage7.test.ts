@@ -17,6 +17,16 @@ const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
 
 describe("Stage 7 packed LL(1)", () => {
+  it("keeps the statement-dispatch nonterminals in the compact handle group", () => {
+    const generated = readFileSync(
+      path.resolve(import.meta.dirname, "..", "grammar", "stage7-tables.asmi"),
+      "utf8",
+    );
+    expect(generated).toMatch(
+      /HybridLL1Row20: ; routine-body[\s\S]*HybridLL1Row21: ; local-list[\s\S]*HybridLL1Row24: ; statement-sequence[\s\S]*HybridLL1Row25: ; statement/,
+    );
+  });
+
   it("keeps every published keyword in one bounded length group", () => {
     const source = readFileSync(
       path.resolve(
@@ -325,7 +335,7 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
-      bytes: 227,
+      bytes: 248,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-workspace",
@@ -344,12 +354,12 @@ describe("Stage 7 packed LL(1)", () => {
     expect(outcome.symbols.SourceDelimiterDepth).toBe(
       (outcome.symbols.SourceLineHasToken ?? -2) + 1,
     );
-    expect(outcome.instructions).toBe(1_905_782);
-    expect(outcome.cycles).toBe(18_303_384);
-    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_333 });
+    expect(outcome.instructions).toBe(1_920_597);
+    expect(outcome.cycles).toBe(18_411_051);
+    expect(outcome.extents).toContainEqual({ name: "parser", bytes: 9_359 });
     expect(outcome.extents).toContainEqual({
       name: "ll1-engine",
-      bytes: 227,
+      bytes: 248,
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-tables",
@@ -357,15 +367,15 @@ describe("Stage 7 packed LL(1)", () => {
     });
     expect(outcome.extents).toContainEqual({
       name: "ll1-actions",
-      bytes: 2_336,
+      bytes: 2_341,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-core",
-      bytes: 14_748,
+      bytes: 14_774,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-code",
-      bytes: 14_350,
+      bytes: 14_376,
     });
     expect(outcome.extents).toContainEqual({
       name: "compiler-immutable",
