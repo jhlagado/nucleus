@@ -6,7 +6,7 @@ TokenRecordStart:
             LD   DE,TokenStartOffset
             LD   BC,8
             LDIR
-            JP   SourcePeek
+            JR   SourcePeek
 
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,C
 TokenIsLetter:

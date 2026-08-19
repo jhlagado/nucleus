@@ -221,10 +221,9 @@ TypedReadPortBytes:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedWritePort:
             LD   HL,TypedWritePortBytes
-            LD   B,5
-            JP   EmitBytes
+            JP   EmitFour
 TypedWritePortBytes:
-            .db  $E1,$7D,$C1,$ED,$79     ; POP HL / LD A,L / POP BC / OUT (C),A
+            .db  $D1,$C1,$ED,$59         ; POP DE / POP BC / OUT (C),E
 
 ; Invoke the target-defined packet gateway with A=slot, HL=packet address and
 ; BC=packet extent. DE privately carries the statement offset to the shared

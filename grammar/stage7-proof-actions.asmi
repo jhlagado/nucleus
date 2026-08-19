@@ -83,5 +83,4 @@ HybridLL1BeginSelectElse:
 HybridLL1EndSelectWithElse:
 HybridLL1EndSelectWithoutElse:
 HybridLL1MissingSelectEnd:
-HybridLL1StraySelectClause:
             RET

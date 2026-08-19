@@ -197,7 +197,7 @@ StructuredSelectCompareReady:
             CALL NextSemanticByte
             LD   C,A
             LD   A,$CA                    ; JP Z,body
-            JP   StructuredEmitFixup
+            JR   StructuredEmitFixup
 StructuredSelectByteCompare:
             .db  $7B,$BD,$00              ; LD A,E / CP L / NOP
 

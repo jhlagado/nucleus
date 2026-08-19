@@ -439,7 +439,7 @@ export function generateStage7ProofActions(): string {
   const grammar = readStage7Grammar();
   const handlers = [
     ...new Set(stage7ActionLayout(grammar).map(({ handler }) => handler)),
-  ];
+  ].filter((handler) => handler !== "StraySelectClause");
   return [
     "; Generated proof-only action aliases from stage7-grammar.json.",
     ...handlers.map((handler) => `HybridLL1${handler}:`),

@@ -43,11 +43,6 @@ HybridLL1StrayClause:
             CALL SetDiagInline
             .db  DiagnosticExpectedEnd
 
-HybridLL1StraySelectClause:
-HybridLL1SelectClauseFailure:
-            CALL SetDiagInline
-            .db  DiagnosticSelectClause
-
 HybridLL1MissingSelectEnd .equ HybridLL1StrayClause
 
 ; --------------------------------------------------------------- type actions
@@ -1144,6 +1139,7 @@ Stage8SelectFailureConsumer:
 HybridLL1TopFrameFieldToC:
             CALL ControlTopFrameField
             LD   C,(HL)
+            LD   A,C
             RET
 
 Stage8SelectPendingFailure:
@@ -1852,7 +1848,6 @@ HybridLL1SelectTypeReady:
             LD   B,ControlFrameMode
             CALL ControlTopFrameField
             LD   (HL),C
-            OR   A
             RET
 
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
@@ -1905,7 +1900,6 @@ HybridLL1FinishSelectCaseValue:
 .endif
             LD   B,ControlFrameLabelA
             CALL HybridLL1TopFrameFieldToC
-            LD   A,C
             JP   SemanticSinkPut
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1958,7 +1952,9 @@ HybridLL1EndSelectWithElse:
 .endif
             LD   A,(HL)
             XOR  1                       ; all non-fallthrough -> select result
+.if CompilerDiagnosticReturns
             LD   B,A
+.endif
             JR   HybridLL1EndSelect
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1967,21 +1963,33 @@ HybridLL1EndSelectWithoutElse:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if CompilerNonlocalDiagnostics
+            LD   A,1                     ; no else always permits fallthrough
+.else
             LD   B,1                     ; no else always permits fallthrough
+.endif
 HybridLL1EndSelect:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DebugTraceContextPopPort),A
 .endif
 .endif
+.if CompilerNonlocalDiagnostics
+            PUSH AF
+.else
             PUSH BC
+.endif
             LD   B,ControlFrameExit
             CALL HybridLL1EmitFrameLabel
+.if CompilerNonlocalDiagnostics
+            POP  AF
+.else
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,B
+.endif
             JP   HybridLL1CombineFlow
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -2074,7 +2082,6 @@ HybridLL1EndWhile:
 .endif
             LD   B,ControlFrameMode
             CALL HybridLL1TopFrameFieldToC
-            LD   A,C
             XOR  ControlWhileLiteralTrue
             JP   HybridLL1CombineFlow
 

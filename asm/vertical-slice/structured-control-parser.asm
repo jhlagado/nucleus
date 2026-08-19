@@ -192,11 +192,8 @@ ControlFindLoopFound:
             CP   ControlKindWhile+TokenExit
             JR   NZ,ControlFindLoopReady
             PUSH HL
-            INC  HL
-            INC  HL
-            INC  HL
-            INC  HL
-            INC  HL
+            LD   DE,ControlFrameMode
+            ADD  HL,DE
             LD   (HL),0
             POP  HL
 ControlFindLoopReady:

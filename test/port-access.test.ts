@@ -207,7 +207,7 @@ describe("typed Z80 port access", () => {
       true,
     );
     expect(contains(image, [0xc1, 0xed, 0x78])).toBe(true);
-    expect(contains(image, [0xe1, 0x7d, 0xc1, 0xed, 0x79])).toBe(true);
+    expect(contains(image, [0xd1, 0xc1, 0xed, 0x59])).toBe(true);
   });
 
   it("works in a banked target without service-vector or runtime additions", async () => {

@@ -167,7 +167,7 @@ TargetValidateCompileFailure:
             JP   TargetConfigurationFailure
 
 ; Return the bank mapped to the current manifest source-part ordinal.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX
+.routine out A,carry,zero,sign,parity,halfCarry clobbers D,DE,HL,IX
 TargetCurrentSourceBank:
             LD   A,(SourcePartsRemaining)
             AND  SourcePartOrdinalMask
@@ -1540,11 +1540,9 @@ Stage7CallArgumentLoop:
             INC  HL
             INC  HL
             INC  HL
-            LD   A,(HL)
-            LD   D,A
             XOR  A
             LD   (Stage8DirectFailable),A
-            LD   A,D
+            LD   A,(HL)
             CP   AggregateOpenStringTypeId
             JR   NZ,Stage7CallClassifyStoredArgument
             CALL ParserPeek
@@ -1553,8 +1551,7 @@ Stage7CallArgumentLoop:
 .endif
             CP   TokenStringLiteral
             JR   Z,Stage7CallStringLiteralArgument
-            LD   D,(HL)
-            LD   A,D
+            LD   A,(HL)
 Stage7CallClassifyStoredArgument:
             CP   AggregateFirstDynamicTypeId
             JR   NC,Stage7CallAggregateArgument
@@ -1564,11 +1561,78 @@ Stage7CallClassifyStoredArgument:
 .endif
             JP   Stage7CallArgumentReady
 Stage7CallStringLiteralArgument:
+.if CompilerDiagnosticReturns
             CALL Stage7ParseStringLiteralArgument
-.if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
-.endif
             JP   Stage7CallArgumentReady
+.endif
+; Materialize one contextual string literal as a distinct bank-local constant.
+; The object remains anonymous: only its bank-local read-only offset enters the
+; semantic stream, and target publication walks it after the named constants.
+.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+Stage7ParseStringLiteralArgument:
+            CALL ParserTake
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(TokenLength)
+            CP   254
+            JP   NC,AggregateStringCapacityFailure
+            OR   A
+            JR   NZ,Stage7StringLiteralCapacityReady
+            INC  A
+Stage7StringLiteralCapacityReady:
+            LD   (Stage7ArgumentCount),A
+            LD   L,A
+            LD   H,0
+            INC  HL
+            INC  HL
+            LD   (AggregateCurrentObjectExtent),HL
+.if TargetStreamingOutput
+            CALL Stage7CurrentCallFrame
+            LD   DE,Stage7CallFrameFlags
+            ADD  HL,DE
+            LD   D,(HL)
+            CALL TargetRequireCurrentBank
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+Stage7StringLiteralBankReady:
+.endif
+.if TargetStreamingOutput
+            LD   H,A                     ; successful bank match leaves A=0
+            LD   L,A
+.else
+            LD   HL,0
+.endif
+            LD   (AggregateCurrentObjectOffset),HL
+            CALL AggregateZeroCurrentObject
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            LD   A,(Stage7ArgumentCount)
+            LD   B,A
+            CALL AggregateDecodeString
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7CommitStringLiteralObject
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            PUSH HL
+            LD   A,SemanticLoadReadOnlyAlias
+            CALL SemanticSinkOperation
+            POP  HL
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            CALL Stage7EmitWord
+.if CompilerDiagnosticReturns
+            RET  C
+.endif
+            XOR  A
+            JP   Stage7PrepareOpenStringReady
 Stage7CallAggregateArgument:
             CALL Stage7ParseAggregateValue
 .if CompilerDiagnosticBranches
@@ -1654,15 +1718,23 @@ Stage7CallAggregateBankReady:
             JR   Z,Stage7CallPrepareOpenString
             CP   AggregateOpenArrayTypeMask
             JR   C,Stage7CallArgumentReady
+.if CompilerNonlocalDiagnostics
+            JP   Stage7PublishOpenArrayArgument
+.else
             CALL Stage7PublishOpenArrayArgument
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
 .endif
             JR   Stage7CallArgumentReady
+.endif
 Stage7CallPrepareOpenString:
+.if CompilerNonlocalDiagnostics
+            JR   Stage7PrepareOpenStringArgument
+.else
             CALL Stage7PrepareOpenStringArgument
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
+.endif
 .endif
 Stage7CallArgumentReady:
             CALL Stage7CurrentCallFrame
@@ -1685,69 +1757,6 @@ Stage7CallArgumentReady:
 .endif
             JP   Stage7CallArgumentLoop
 
-; Materialize one contextual string literal as a distinct bank-local constant.
-; The object remains anonymous: only its bank-local read-only offset enters the
-; semantic stream, and target publication walks it after the named constants.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7ParseStringLiteralArgument:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,(TokenLength)
-            CP   254
-            JP   NC,AggregateStringCapacityFailure
-            OR   A
-            JR   NZ,Stage7StringLiteralCapacityReady
-            INC  A
-Stage7StringLiteralCapacityReady:
-            LD   (Stage7ArgumentCount),A
-            LD   L,A
-            LD   H,0
-            INC  HL
-            INC  HL
-            LD   (AggregateCurrentObjectExtent),HL
-.if TargetStreamingOutput
-            CALL Stage7CurrentCallFrame
-            LD   DE,Stage7CallFrameFlags
-            ADD  HL,DE
-            LD   D,(HL)
-            CALL TargetRequireCurrentBank
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-Stage7StringLiteralBankReady:
-.endif
-            LD   HL,0
-            LD   (AggregateCurrentObjectOffset),HL
-            CALL AggregateZeroCurrentObject
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            LD   A,(Stage7ArgumentCount)
-            LD   B,A
-            CALL AggregateDecodeString
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL Stage7CommitStringLiteralObject
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            PUSH HL
-            LD   A,SemanticLoadReadOnlyAlias
-            CALL SemanticSinkOperation
-            POP  HL
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            CALL Stage7EmitWord
-.if CompilerDiagnosticReturns
-            RET  C
-.endif
-            XOR  A
-            JP   Stage7PrepareOpenStringReady
-
 ; Append the prepared sealed object to the declaration-ordered read-only
 ; image and retain its bank-local offset. In banked output the compiler-only
 ; terminator byte carries the source bank until target publication replaces
@@ -1758,8 +1767,6 @@ Stage7CommitStringLiteralObject:
             CALL Stage7AllocateBankReadOnly
 .if CompilerNonlocalDiagnostics
             PUSH BC
-            OR   A
-            PUSH AF
 .else
             LD   (AggregateCurrentTypeId),A
             LD   (AggregateCurrentObjectOffset),BC
@@ -1769,7 +1776,6 @@ Stage7CommitStringLiteralObject:
             ADD  HL,DE
             DEC  HL
 .if CompilerNonlocalDiagnostics
-            POP  AF
 .else
             LD   A,(AggregateCurrentTypeId)
 .endif
@@ -1791,7 +1797,6 @@ Stage7CommitStringLiteralObject:
 .else
             LD   HL,(AggregateCurrentObjectOffset)
 .endif
-            OR   A
             RET
 
 .if TargetStreamingOutput
@@ -1800,7 +1805,6 @@ Stage7CommitStringLiteralObject:
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
 Stage7AllocateBankReadOnly:
             CALL TargetCurrentSourceBank
-            OR   A
             PUSH AF
             CALL TargetBankRoLengthAddress
             LD   C,(HL)
@@ -1825,6 +1829,9 @@ Stage7AppendReadOnlyObject:
             LD   BC,(ReadOnlyImageLength)
             LD   HL,(AggregateCurrentObjectExtent)
             ADD  HL,BC
+.if CompilerNonlocalDiagnostics
+            PUSH HL
+.endif
             LD   DE,(StaticImageLength)
             ADD  HL,DE
 .if CompilerNonlocalDiagnostics
@@ -1837,8 +1844,12 @@ Stage7AppendReadOnlyObject:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if CompilerNonlocalDiagnostics
+            POP  HL
+.else
             OR   A
             SBC  HL,DE
+.endif
             LD   (ReadOnlyImageLength),HL
             LD   HL,StaticImageBase
             ADD  HL,DE
@@ -1884,8 +1895,12 @@ Stage7CompleteOpenArgument:
             LD   DE,Stage7CallFrameArgumentCount
             ADD  HL,DE
             INC  (HL)
+.if CompilerNonlocalDiagnostics
+            JP   Stage7CallArgumentReady
+.else
             OR   A
             RET
+.endif
 
 ; Convert a concrete or forwarded open-array carrier into the shared two-word
 ; call form. The retained array count remains a complete u16 word.
@@ -2266,15 +2281,13 @@ Stage8ParsePacketService:
             LD   HL,ExpressionValuePosition
             CALL CompilerRestoreTokenPosition
             POP  HL
-            LD   D,A
-            AND  ScalarMetaConstant
-            JP   Z,TypedTypeFailure
-            LD   A,D
             LD   E,ScalarTypeU8
             CALL TypedCheckAssignable
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            AND  ScalarMetaConstant
+            JP   Z,TypedTypeFailure
             LD   A,L
             LD   (Stage8ServiceId),A
             LD   E,TokenComma
@@ -2316,8 +2329,7 @@ Stage8PacketRootReady:
             JP   NZ,TypedTypeFailure
             JR   Stage8PacketTypeReady
 Stage8PacketOpenArray:
-            AND  AggregateOpenArrayElementMask
-            CP   ScalarTypeU8
+            CP   AggregateOpenArrayTypeMask+ScalarTypeU8
             JP   NZ,TypedTypeFailure
 Stage8PacketTypeReady:
             CALL Stage7PrepareOpenArrayCarrier

@@ -69,6 +69,11 @@ HybridLL1ActionReturn:
 .endif
             JR   HybridLL1Loop
 
+HybridLL1StraySelectClause:
+HybridLL1SelectClauseFailure:
+            CALL SetDiagInline
+            .db  DiagnosticSelectClause
+
 HybridLL1Terminal:
             LD   L,A
             CP   TokenEnd
@@ -78,9 +83,9 @@ HybridLL1Terminal:
             RET  C
 .endif
             CP   TokenElse
-            JP   Z,HybridLL1StraySelectClause
+            JR   Z,HybridLL1StraySelectClause
             CP   TokenCase
-            JP   Z,HybridLL1StraySelectClause
+            JR   Z,HybridLL1StraySelectClause
 HybridLL1TerminalReady:
             LD   E,L
             CALL ParserExpect

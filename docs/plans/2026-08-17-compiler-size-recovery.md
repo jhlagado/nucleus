@@ -1642,3 +1642,37 @@ release. The language specification remains Nucleus 0.1. The optimization
 search ended by release decision rather than a three-audit plateau: later
 experiments were not retained, and the release keeps the measured 15,141-byte
 core and 1,243 bytes of headroom for feature work.
+
+### Post-0.2 feature compression plateau
+
+The six commits after 0.2.0 added detached-handle diagnostics, literal-true
+loop flow analysis, contextual string arguments, typed Z80 port access, packet
+services, and `select`/`case`. Their integrated production account was 15,610
+code bytes plus 437 immutable bytes, or 16,047 core bytes. Workspace remained
+3,613 bytes, leaving 337 bytes below the 16 KiB limit.
+
+A three-track audit reviewed the control and diagnostic additions, the string
+and packet-call paths, and the port/backend integration. The retained changes
+remove repeated string-publication state, share existing argument and frame
+paths, shorten proved local branches, reuse live zero and flow values, and emit
+the four-byte `writePort` sequence directly. No byte moved into workspace,
+runtime, another bank, or external storage. One proposed four-byte read-port
+template overlap was rejected because it interrupted the existing string-index
+template tail; the contextual string execution proof exposed the error before
+retention.
+
+The qualifying round totals were 10, 5, 5, 6, 5, and 6 bytes. The final three
+rounds recovered 1, 3, and 0 bytes, satisfying the revised plateau rule. The
+verified production account is 15,566 code bytes plus 437 immutable bytes, or
+16,003 core bytes. Workspace remains 3,613 bytes and the 16 KiB headroom is 381
+bytes. The debug core is 16,067 bytes and the returning-diagnostic historical
+core is 15,575 bytes.
+
+The representative flat proof changes from 885,239 to 885,240 instructions
+and from 9,492,254 to 9,495,366 T-states. Those increases are below 0.001 and
+0.033 percent respectively. Diagnostics, semantic transcripts, runtime and
+provider bytes, NOBJ and D8 behavior, flat and banked output, historical
+layouts, stack behavior, and relocation remain unchanged. `writePort` now
+emits a four-byte `POP DE / POP BC / OUT (C),E` sequence instead of its former
+five-byte sequence; the full BC port address, low-byte value, evaluation order,
+and stack effect remain the same.

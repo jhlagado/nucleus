@@ -15,8 +15,8 @@ TargetEmitBankedAggregateConstants:
             ADD  IY,DE
             LD   A,(SymbolCount)
             OR   A
-            JR   Z,TargetEmitBankedStringLiterals
             LD   B,A
+            JR   Z,TargetEmitBankedStringLiterals
             LD   C,0
             LD   IX,SymbolTableBase
 TargetEmitBankedConstantSymbolLoop:
@@ -69,43 +69,39 @@ TargetEmitBankedStringLiterals:
             ADD  HL,DE
             PUSH HL
             POP  IX                      ; end of staged read-only bytes
-TargetEmitBankedStringLiteralLoop:
             PUSH IY
-            POP  HL
+            POP  HL                      ; first anonymous literal
+TargetEmitBankedStringLiteralLoop:
             PUSH IX
             POP  DE
             OR   A
             SBC  HL,DE
             RET  Z
-            LD   L,(IY+0)
-            LD   H,0
-            LD   A,L
+            ADD  HL,DE                   ; restore the current object
+            LD   C,(HL)
+            LD   A,C
             OR   A
             JR   NZ,TargetEmitBankedStringExtentReady
-            INC  HL                      ; empty literal capacity is one
+            INC  BC                      ; empty literal capacity is one
 TargetEmitBankedStringExtentReady:
-            INC  HL
-            INC  HL
+            INC  BC
+            INC  BC
             PUSH HL
-            PUSH IY
-            POP  DE
-            ADD  HL,DE
+            PUSH BC
+            ADD  HL,BC
             DEC  HL
             LD   A,(HL)                  ; compiler-only source bank
             LD   (HL),0                  ; publish the permanent terminator
             CALL TargetSelectOutputBank
             POP  BC
+            POP  HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            PUSH IY
-            POP  HL
             CALL EmitBlock
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            PUSH HL
-            POP  IY
             JR   TargetEmitBankedStringLiteralLoop
 .endif
 
