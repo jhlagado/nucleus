@@ -58,6 +58,7 @@ const diagnosticMessages: Readonly<Record<number, string>> = {
   98: "`handle NAME` must follow an eligible failable call on the same logical line",
   99: "expected at least one `case` clause",
   100: "`case` must belong to an active `select`; `else` must be its one final clause",
+  101: "source position capacity exceeded",
 };
 
 export const nucleusDiagnosticMessage = (code: number): string =>

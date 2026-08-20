@@ -16,6 +16,9 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`nucleus-object-format.md`](nucleus-object-format.md) governs the binary
   append-only object stream, patch records, integrity check, and commit.
 - [`z80-runtime-contract.md`](z80-runtime-contract.md) governs packed representation, generated-code integrity, services, traps, and direct Z80 execution; the language specification remains authoritative for source-language meaning.
+- [`native-z80-host-contract.md`](native-z80-host-contract.md) defines the
+  compiler-host ABI, streaming source and object boundaries, and the separate
+  Z80 NOBJ consumer-platform ABI.
 - [`implementation-plan.md`](implementation-plan.md) records the non-normative construction order, measurement accounts, capacity ledger, and readiness gates for the first Z80 implementation.
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
 - [`oddities.md`](oddities.md) records deliberate first-time surprises and the

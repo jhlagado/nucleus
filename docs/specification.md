@@ -212,6 +212,12 @@ Diagnostics must identify a reproducible source position. Each source part start
 
 When CRLF produces `NEWLINE`, its two bytes occupy one token span, advance the byte offset by two, and advance the line number once. A synthesized source-part-boundary or final `NEWLINE` has a zero-width span at the end of its source part. A horizontal tab advances the byte column by one; the column is not a display-cell count. The optional diagnostic name from Section 4.3 may accompany a diagnostic but does not replace the stable identity. These counters permit streaming diagnostics without a resident source map. An implementation that bounds a counter or source-part length must publish the limit and diagnose overflow.
 
+The first Z80 implementation publishes a maximum source-part length of 65,535
+bytes and maximum offset, line, and byte-column counter values of 65,535. It
+reports a source-position-capacity diagnostic before any counter would wrap.
+These are implementation capacities under Chapter 1, not limits on a
+conforming Nucleus program.
+
 ### 3.4 Whitespace, comments, and logical newlines
 
 ASCII space and horizontal tab are the only horizontal whitespace. They separate tokens where separation is needed and are otherwise ignored. Indentation has no syntactic meaning. Whitespace never joins adjacent names, numbers, or literals into one token.

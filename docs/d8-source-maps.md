@@ -83,10 +83,24 @@ The normal and instrumented compiler images have separate caches. Each image
 is paired with the AZM symbol map from that exact assembly. The host never uses
 shipping-image addresses to inspect an instrumented compiler.
 
+The collector also fixes one source-provider mode when the compilation starts:
+
+- the resident compatibility provider reports declaration and routine name
+  words as pointers into loaded source parts; and
+- the streaming provider reports them as opaque retained-name handles.
+
+In streaming mode the collector resolves each handle through the active source
+generation to its stable part identity, offset, length, and exact spelling. It
+never guesses pointer or handle mode from the numeric word. An unknown, stale,
+or spelling-mismatched handle invalidates D8 publication. The collector copies
+or resolves every required name correlation after compiler commit and before
+the host releases that source and retained-name generation.
+
 ## Validation and publication
 
-Trace state is tentative until the compiler emits a valid NOBJ commit. The
-collector checks that:
+Trace state is tentative. When D8 is requested, the target sink performs these
+checks and resolves every retained-name correlation as a preflight of NOBJ
+commit, while the source generation remains live. The collector checks that:
 
 - source keys are nondecreasing;
 - operation keys are strictly increasing, match the published operation count,
@@ -94,7 +108,9 @@ collector checks that:
   finalized variable-width transcript; the decoded final operation must end
   exactly at the semantic read cursor observed with the single end event;
 - successful dispatch has exactly one end event;
-- routine and declaration names point into a loaded source part;
+- routine and declaration names either point into a loaded source part in
+  resident mode or resolve exactly through the active handle generation in
+  streaming mode;
 - the construct stack is balanced on successful parsing; and
 - the ordered `$DF` stream exactly matches every compiler-adapter `IMAGE` byte;
 - every observed bank, address, and byte belongs to an original committed
@@ -109,14 +125,16 @@ callback for every compiler-adapter `IMAGE` byte.
 `PATCH` does not create new attribution. A patched byte keeps the source
 association recorded when the corresponding `IMAGE` byte was emitted.
 
-A diagnostic, output failure, invalid event sequence, missing commit, or D8
-write failure cannot publish a partial map. The CLI writes tentative sidecars
-and replaces the previous group as a recoverable best-effort transaction. A
-failed promotion restores that previous group; a concurrent reader or process
-crash can still observe an in-progress filesystem update. Switching between
-flat and banked output, or reducing the bank count, removes obsolete members of
-the old group in the same publication transaction. NOBJ remains the canonical
-non-relocatable target object; D8 remains a separate host artifact.
+A diagnostic, output failure, or invalid event sequence prevents NOBJ commit
+when D8 was requested. Once the validated NOBJ commits, later JSON formatting
+or D8 filesystem failure does not undo it and does not overwrite the previous
+sidecar group. The CLI writes tentative sidecars and replaces the previous
+group as a recoverable best-effort transaction. A failed promotion restores
+that previous group; a concurrent reader or process crash can still observe an
+in-progress filesystem update. Switching between flat and banked output, or
+reducing the bank count, removes obsolete members of the old group in the same
+publication transaction. NOBJ remains the canonical non-relocatable target
+object; D8 remains a separate host artifact.
 
 ## D8 output
 

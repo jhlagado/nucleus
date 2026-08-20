@@ -447,6 +447,7 @@ DiagnosticReadOnlyAssignment .equ 94
 DiagnosticHandleLine .equ 98
 DiagnosticExpectedCase .equ 99
 DiagnosticSelectClause .equ 100
+DiagnosticSourcePositionCapacity .equ 101
 DiagnosticRecordEmpty  .equ 82
 DiagnosticTypeBound    .equ 83
 
