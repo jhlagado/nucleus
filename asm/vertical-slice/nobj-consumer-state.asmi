@@ -1,0 +1,118 @@
+; Workspace and ABI constants for the standalone NOBJ 0.1 consumer.
+;
+; The including deployment supplies:
+;   NobjConsumerWorkspaceBase
+;   NobjConsumerPlatformBase
+;   NobjConsumerPlatformCodeBase / NobjConsumerPlatformCodeLimit
+;   NobjConsumerCodeBase / NobjConsumerCodeLimit
+;   NobjConsumerStackBase / NobjConsumerStackLimit
+;   NobjConsumerObjectBase / NobjConsumerObjectLimit
+;   NobjConsumerControlBase / NobjConsumerControlLimit
+;
+; The protected extents are half-open. A zero base and zero limit disable
+; the object extent for a binding whose object is not memory mapped.
+
+NobjKindBegin       .equ 1
+NobjKindImage       .equ 2
+NobjKindPatch       .equ 3
+NobjKindMap         .equ 4
+NobjKindCommit      .equ 5
+
+NobjPhaseBegin      .equ 0
+NobjPhaseImage      .equ 1
+NobjPhasePatch      .equ 2
+NobjPhaseMap        .equ 3
+NobjPhaseCommit     .equ 4
+
+NobjOutcomeProof    .equ 0
+NobjOutcomeInvalid  .equ 1
+NobjOutcomePlatform .equ 2
+
+NobjStatusDescriptor        .equ 1
+NobjStatusConsumerVector    .equ 2
+NobjStatusDeploymentProfile .equ 3
+NobjStatusTruncated         .equ 4
+NobjStatusFraming           .equ 5
+NobjStatusRecordOrder       .equ 6
+NobjStatusTargetExtent      .equ 7
+NobjStatusImageOrder        .equ 8
+NobjStatusPatchOverlap      .equ 9
+NobjStatusMap               .equ 10
+NobjStatusCommit            .equ 11
+NobjStatusCrc               .equ 12
+NobjStatusTrailingData      .equ 13
+NobjStatusGenerationChanged .equ 14
+NobjStatusProtectedMemory   .equ 15
+
+NobjPlatformEnd             .equ 1
+
+NobjConsumerVectorSize      .equ 32
+NobjConsumerMapCapacity     .equ 325
+
+; Platform vector entries after the eight-byte NC header.
+NobjPlatformObjectOpen       .equ NobjConsumerPlatformBase+8
+NobjPlatformObjectReadByte   .equ NobjConsumerPlatformBase+11
+NobjPlatformObjectRewind     .equ NobjConsumerPlatformBase+14
+NobjPlatformObjectLock       .equ NobjConsumerPlatformBase+17
+NobjPlatformSelectTargetBank .equ NobjConsumerPlatformBase+20
+NobjPlatformPublishTarget    .equ NobjConsumerPlatformBase+23
+NobjPlatformEnterTarget      .equ NobjConsumerPlatformBase+26
+NobjPlatformObjectClose      .equ NobjConsumerPlatformBase+29
+
+NobjStateDescriptorPointer .equ NobjConsumerWorkspaceBase
+NobjStateProfilePointer    .equ NobjStateDescriptorPointer+2
+NobjStateResultPointer     .equ NobjStateProfilePointer+2
+NobjStateIdentityLow       .equ NobjStateResultPointer+2
+NobjStateIdentityHigh      .equ NobjStateIdentityLow+2
+NobjStateRecordOrdinal     .equ NobjStateIdentityHigh+2
+NobjStateCrc               .equ NobjStateRecordOrdinal+2
+NobjStatePayloadLength     .equ NobjStateCrc+2
+NobjStateImageBase         .equ NobjStatePayloadLength+2
+NobjStateImageCapacity     .equ NobjStateImageBase+2
+NobjStateWritableBase      .equ NobjStateImageCapacity+2
+NobjStateWritableCapacity  .equ NobjStateWritableBase+2
+NobjStatePatchCount        .equ NobjStateWritableCapacity+2
+NobjStateOuterPatch        .equ NobjStatePatchCount+2
+NobjStateScanPatch         .equ NobjStateOuterPatch+2
+NobjStateLocatePatch       .equ NobjStateScanPatch+2
+NobjStatePatchStart        .equ NobjStateLocatePatch+2
+NobjStatePatchEnd          .equ NobjStatePatchStart+2
+NobjStateCurrentAddress    .equ NobjStatePatchEnd+2
+NobjStateCurrentEnd        .equ NobjStateCurrentAddress+2
+NobjStateMapLength         .equ NobjStateCurrentEnd+2
+NobjStateRecordKind        .equ NobjStateMapLength+2
+NobjStatePhase             .equ NobjStateRecordKind+1
+NobjStateMaterialize       .equ NobjStatePhase+1
+NobjStateRomMode           .equ NobjStateMaterialize+1
+NobjStateBeginFlags        .equ NobjStateRomMode+1
+NobjStateProfileFlags      .equ NobjStateBeginFlags+1
+NobjStateRuntimeIdentity   .equ NobjStateProfileFlags+1
+NobjStateBankCount         .equ NobjStateRuntimeIdentity+2
+NobjStateImageFill         .equ NobjStateBankCount+1
+NobjStateEntryBank         .equ NobjStateImageFill+1
+NobjStateImageSeen         .equ NobjStateEntryBank+1
+NobjStateCurrentBank       .equ NobjStateImageSeen+1
+NobjStateFailureOutcome    .equ NobjStateCurrentBank+1
+NobjStateFailureStatus     .equ NobjStateFailureOutcome+1
+NobjStateObjectOpen        .equ NobjStateFailureStatus+1
+NobjStateImageEnds         .equ NobjStateObjectOpen+1 ; four u16 ends
+NobjStatePatchEnds         .equ NobjStateImageEnds+8      ; four u16 ends
+NobjStateMapBuffer         .equ NobjStatePatchEnds+8
+NobjConsumerWorkspaceEnd   .equ NobjStateMapBuffer+NobjConsumerMapCapacity
+
+NobjMapFlags                .equ 1
+NobjMapEntryBank            .equ 2
+NobjMapEntryAddress         .equ 3
+NobjMapWritableBase         .equ 5
+NobjMapWritableCapacity     .equ 7
+NobjMapVectorBase           .equ 9
+NobjMapVectorLength         .equ 11
+NobjMapInitializedRunBase   .equ 13
+NobjMapInitializedRunLength .equ 15
+NobjMapBssBase              .equ 17
+NobjMapBssLength            .equ 19
+NobjMapStackRequirement     .equ 21
+NobjMapDataLoadBank         .equ 23
+NobjMapDataLoadAddress      .equ 24
+NobjMapDataLoadLength       .equ 26
+NobjMapPartCount            .equ 28

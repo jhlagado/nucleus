@@ -1,0 +1,51 @@
+extern NobjPlatformObjectOpen
+in HL
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+
+extern NobjPlatformObjectReadByte
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves BC,DE,HL,IX,IY
+end
+
+extern NobjPlatformObjectRewind
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+
+extern NobjPlatformObjectLock
+out A,D,E,H,L,carry,zero
+clobbers B,C,sign,parity,halfCarry
+preserves IX,IY
+end
+
+extern NobjPlatformSelectTargetBank
+in A,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+
+extern NobjPlatformPublishTarget
+in A,BC,DE,HL,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IXH,IXL,sign,parity,halfCarry
+preserves IY
+end
+
+extern NobjPlatformEnterTarget
+in A,HL,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IXH,IXL,sign,parity,halfCarry
+preserves IY
+end
+
+extern NobjPlatformObjectClose
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end

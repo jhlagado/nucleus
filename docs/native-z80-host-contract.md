@@ -532,7 +532,7 @@ The host calls `NobjConsumerRun` with `IX` pointing to this ten-byte descriptor:
 |      0 | `descriptorSize`           | `u8`  | exactly 10                    |
 |      1 | `consumerAbiMajor`         | `u8`  | 0                             |
 |      2 | `consumerAbiMinor`         | `u8`  | 1                             |
-|      3 | `strategy`                 | `u8`  | 0 locked two-pass, 1 isolated |
+|      3 | `strategy`                 | `u8`  | 0 locked two-pass; other values reserved |
 |      4 | `objectSelector`           | `u16` | platform object selector      |
 |      6 | `deploymentProfilePointer` | `u16` | stable validated profile      |
 |      8 | `resultPointer`            | `u16` | stable four-byte result block |
@@ -541,6 +541,85 @@ The result block is `outcome:u8`, `status:u8`, `recordOrdinal:u16`. Outcome
 zero is used only by a validation-only proof binding; the runnable loader does
 not return after success. Outcome one is an NOBJ validation failure and outcome
 two is a platform failure. `status` is the exact validator or platform code.
+
+The deployment profile pointer addresses this exact 18-byte revision-one
+record:
+
+| Offset | Field                | Type  | Required value or meaning                         |
+| -----: | -------------------- | ----- | ------------------------------------------------- |
+|      0 | `profileSize`        | `u8`  | exactly 18                                        |
+|      1 | `profileRevision`    | `u8`  | exactly 1                                         |
+|      2 | `flags`              | `u8`  | bit 0 banked, bit 1 established stack             |
+|      3 | `runtimeIdentity`    | `u16` | admitted runtime identity                         |
+|      5 | `bankCount`          | `u8`  | one flat bank or two through four banked banks     |
+|      6 | `imageFill`          | `u8`  | required fill byte                                |
+|      7 | `imageBase`          | `u16` | flat image base or common bank-window base         |
+|      9 | `imageCapacity`      | `u16` | flat capacity or capacity of each selected bank    |
+|     11 | `writableBase`       | `u16` | first byte of the writable region                  |
+|     13 | `writableCapacity`   | `u16` | complete writable-region capacity                  |
+|     15 | `entryBank`          | `u8`  | required entry-bank ordinal                        |
+|     16 | `bankBindingsPointer`| `u16` | zero for flat; stable banked binding table pointer |
+
+Only flag bits 0 and 1 are defined. The profile uses the same seventeenth-bit
+region arithmetic as the target specification. A banked binding table contains
+one six-byte record per logical bank: `selector:u8`, `reserved:u8` (zero), and
+`deviceOffset:u32le`. It is stable through `EnterTarget`. The consumer treats
+the selector and device offset as opaque; the platform adapter uses them when
+it selects or publishes physical backing.
+
+The consumer validates the descriptor and profile before `ObjectOpen`. A flat
+profile requires bank count one, entry bank zero, a clear banked flag, and a
+zero binding pointer. A banked profile requires two through four banks, an
+entry bank below the count, the banked flag, and a nonzero binding pointer.
+The consumer validates every binding's reserved byte and uses 32-bit device
+offsets; this ABI revision does not impose a 64 KiB ceiling on the physical
+device image.
+
+The revision-one reference consumer accepts strategy zero only. An isolated
+one-pass strategy remains a compatible future extension, but it is not
+advertised until its platform contract can validate arbitrarily ordered,
+nonoverlapping PATCH extents without requiring rewindable input.
+
+For a flat profile, the consumer derives loaded or ROM mode from the two
+mathematical half-open extents. Writable storage wholly inside the image is
+loaded mode. Writable storage wholly outside it is ROM mode. Partial overlap
+is invalid. A banked profile requires writable storage wholly outside the
+common bank window and is always ROM mode. This is the target specification's
+derived mode; the deployment profile contains no independent mode flag.
+
+`BEGIN` must match the profile's runtime identity, banking mode, bank count,
+fill byte, image base, and image capacity exactly. `MAP` must match the derived
+ROM-mode bit, writable region, established-stack policy, and entry bank. Its
+entry address, and the COMMIT entry address, must equal `imageBase`; the entry
+bank must equal the profile entry bank. Logical source-part bank ordinals
+remain object metadata; every one must simply be below the validated bank
+count.
+
+Validation failures use these stable status values:
+
+| Value | Name                    | Meaning                                           |
+| ----: | ----------------------- | ------------------------------------------------- |
+|     1 | `descriptor`            | invalid run descriptor                            |
+|     2 | `consumerVector`        | invalid `NC` vector header                        |
+|     3 | `deploymentProfile`     | invalid or inconsistent deployment profile        |
+|     4 | `truncated`             | clean EOF before the required terminal position    |
+|     5 | `framing`               | invalid kind, length, magic, version, or flags      |
+|     6 | `recordOrder`           | invalid record phase or record count               |
+|     7 | `targetExtent`          | invalid bank, address, region, or used extent       |
+|     8 | `imageOrder`            | descending or overlapping IMAGE extent             |
+|     9 | `patchOverlap`          | overlapping PATCH extents                          |
+|    10 | `map`                   | invalid MAP length, field, or cross-field relation  |
+|    11 | `commit`                | invalid COMMIT entry pair or record count           |
+|    12 | `crc`                   | CRC-16/CCITT-FALSE mismatch                        |
+|    13 | `trailingData`          | byte present after COMMIT                          |
+|    14 | `generationChanged`     | locked identity changed between passes             |
+|    15 | `protectedMemory`       | target write would overlap consumer state or input  |
+
+`recordOrdinal` is one for `BEGIN` and advances for every record header. It is
+zero when failure occurs before the first header. A platform failure preserves
+the platform status returned in `A`, sets outcome two, and retains the current
+record ordinal. Validator statuses never masquerade as platform statuses
+because the outcome byte distinguishes the two domains.
 
 The consumer-platform vector has an eight-byte `NC`, version 0.1 header with
 the same header layout as Section 3.3, followed by eight three-byte `JP`
@@ -576,9 +655,9 @@ consumer-platform adapter:
 | `ObjectReadByte`   | current generation                                          | `A = byte`                        | `AF`               |
 | `ObjectRewind`     | current generation                                          | cursor at first byte              | `AF,BC,DE,HL`      |
 | `ObjectLock`       | current generation                                          | `DE:HL = generation identity`     | `AF,BC,DE,HL`      |
-| `SelectTargetBank` | `A = logical NOBJ bank ordinal`                             | mapped physical bank selected     | `AF,BC,DE,HL`      |
-| `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length` | new target generation published   | `AF,BC,DE,HL,IX`   |
-| `EnterTarget`      | `A = entry bank, HL = entry`                                | no return                         | target entry state |
+| `SelectTargetBank` | `A = logical NOBJ bank ordinal, IX = deployment profile`    | mapped physical bank selected     | `AF,BC,DE,HL`      |
+| `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length, DE = deployment profile` | new target generation published | `AF,BC,DE,HL,IX` |
+| `EnterTarget`      | `A = entry bank, HL = entry, IX = deployment profile`       | no return on success; carry set and `A = platform status` on failure | `AF,BC,DE,HL,IX` on failure; target entry state on success |
 | `ObjectClose`      | current generation                                          | no object open                    | `AF,BC,DE,HL`      |
 
 `ObjectReadByte` uses carry clear for a byte. Carry set with `A = end` means
@@ -595,18 +674,25 @@ selector in `A`. `SelectTargetBank` may change only the physical target window,
 and the adapter restores any storage bank needed by the opened object before
 the next read. `EnterTarget` establishes the target's documented entry-bank
 and stack policy and does not return on success. A failure before control
-transfer returns under the ordinary rule.
+transfer returns with carry set and the exact platform status in `A`; `SP` is
+restored to its call-entry value and `IY` is preserved. Its other registers
+may be clobbered as listed in the table.
 
 The `PublishTarget` MAP pointer addresses the exact validated NOBJ MAP payload
-and remains readable for the duration of the call. The platform copies any
-metadata it needs before returning; it does not retain the consumer buffer
-pointer.
+and remains readable for the duration of the call. `DE` points to the same
+validated deployment profile used by selection and entry, so publication can
+bind logical banks to physical selectors and device offsets without relying on
+unstated persistent state. The platform copies any metadata it needs before
+returning; it does not retain either consumer buffer pointer.
 
 ### 7.3 Loading strategies
 
-An isolated target or private backing permits one pass: validate records while
-writing only into storage that cannot run or replace the current program, then
-publish after COMMIT and EOF.
+An isolated target or private backing can permit one pass in a later consumer
+revision: records are validated while writes go only to storage that cannot run
+or replace the current program, followed by publication after COMMIT and EOF.
+NOBJ permits PATCH records in resolution order, so such a consumer still needs
+a bounded or external way to prove pairwise non-overlap. Strategy one remains
+reserved until that operation is part of the platform contract.
 
 Otherwise the consumer uses a locked stored object:
 
@@ -626,13 +712,16 @@ Every deployment publishes half-open extents for:
 - consumer code and immutable tables;
 - consumer workspace and record buffer;
 - consumer stack;
+- the consumer-platform vector, adapter code, and immutable tables;
+- the live run descriptor, result block, deployment profile, and bank bindings;
 - mapped or buffered object bytes; and
 - every visible target write region.
 
-No target write overlaps consumer code, workspace, stack, the current record
-buffer, or immutable object storage. Banked consumer state stays outside the
-switched window. A flat image that would overwrite the loader requires
-relocation or isolated backing and is otherwise rejected.
+Neither the image extent nor the writable extent overlaps consumer code,
+workspace, stack, platform code, live ABI records, the current record buffer,
+or immutable object storage. Banked consumer state stays outside the switched
+window. A flat image that would overwrite the loader requires relocation or an
+implemented isolated strategy and is otherwise rejected.
 
 ROM burning is not a loader operation. A burner utility validates and
 materializes NOBJ before applying its device protocol.
@@ -713,7 +802,8 @@ Conformance requires at least:
 - provider suspension, failure, cancellation, and sequential reset;
 - late output failure preserving a previous object;
 - low-memory overlapping-patch rejection;
-- one-pass isolated and two-pass locked consumer proofs; and
+- two-pass locked consumer proofs, plus rejection of every unimplemented
+  strategy; and
 - exact stack, register, flag, bank, CRC, count, MAP, COMMIT, and EOF behavior.
 
 Compiler-core, compiler-workspace, host-code, host-workspace, consumer-code,

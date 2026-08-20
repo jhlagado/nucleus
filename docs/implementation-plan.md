@@ -3317,6 +3317,31 @@ core by 16 bytes without changing the host image. Workspace, generated
 programs, selected runtime, semantic transcript, NOBJ bytes, and compatibility
 proof timings are unchanged.
 
+### Native Z80 NOBJ consumer
+
+The native consumer is a standalone Z80 component rather than compiler core.
+It accepts a stored, rewindable NOBJ generation, validates it completely, then
+rewinds and materializes the same locked generation. IMAGE and PATCH bytes do
+not become runnable until CRC, MAP, COMMIT, terminal EOF, deployment-profile,
+and protected-memory checks have all passed. PATCH overlap is proved by bounded
+rescans, so the consumer does not retain a patch table proportional to the
+object.
+
+The reference consumer supports flat loaded, flat ROM, and banked objects. Its
+consumer-platform vector separates object access, target-bank selection,
+publication, and entry from the object parser. The revision-one implementation
+accepts only the locked two-pass strategy. A direct isolated one-pass strategy
+is reserved because resolution-ordered PATCH records cannot yet be checked for
+arbitrary overlap through the fixed platform interface.
+
+The measured consumer is 2,887 code bytes with 399 workspace bytes, including
+a 325-byte maximum MAP payload buffer. The flat proof executes 22,876
+instructions and the two-bank proof executes 26,416. Fifty-five executable
+cases cover framing, truncation, CRC, record order, IMAGE and PATCH overlap,
+loaded and ROM layout, banking, mathematical `$10000` ends, protected memory,
+platform failure, publication, and sequential reset. Compiler code, compiler
+workspace, generated program, and target runtime are unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -3355,6 +3380,8 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | object-stream patch records             |     65,531 | external sequential patch spool; exact maximum when one required image record is used | output-service failure or total-record capacity diagnostic before partial record | resolution-order submission, image-before-patch serialization, and count boundary                                |
 | object-stream image or patch bytes      |     65,532 | one NOBJ record with a word payload length and three-byte bank/address prefix         | output-service failure or target-capacity diagnostic                             | accepted 1 and 65,532 bytes; rejected 65,533 before append                                                       |
 | committed object generations            |          1 | storage-layer current-generation reference; incomplete generation remains uncommitted | output-service failure; previous commit remains current                          | A retained after divergent image-plus-patch B failure; C committed and executed                                  |
+| native NOBJ consumer MAP bytes          |        325 | fixed consumer-workspace payload buffer                                                | MAP validation failure before buffer overflow                                    | exact maximum derived from eight parts and four ten-byte bank entries; malformed and truncated MAP proofs        |
+| native NOBJ consumer target banks       |          4 | four image ends and four patch ends in fixed consumer workspace                        | deployment-profile or target-extent failure                                      | flat, two-bank, alternating-bank, invalid-bank, and exact-boundary proofs                                         |
 | structured-initializer depth            |          4 | recursive parser state; total nodes are streamed and not retained                     | capacity diagnostic                                                              | nested record/array boundary and wide 256-element initializer                                                    |
 | initialized program-data bytes          |      1,024 | prefix of the private compiler image plus a retained word length                      | program-data capacity diagnostic                                                 | exact four-string-plus-tail image and rejected following byte                                                    |
 | aggregate-constant bytes                |      1,024 | private-image suffix shared by named constants and anonymous literal arguments        | read-only-data capacity diagnostic                                               | record/array/string constants, distinct `N + 2` literal objects, exact 1,024-byte suffix, and rejected next byte |

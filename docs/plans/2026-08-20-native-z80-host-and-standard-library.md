@@ -877,12 +877,30 @@ separate host account.
 
 ### Milestone 6: Z80 NOBJ consumer
 
+Status: implemented, adversarially reviewed, and verified.
+
 - implement the stored flat loader first;
 - add bank selection and banked materialization;
 - enforce the consumer memory map and locked two-pass input;
 - verify CRC, record order, overlaps, MAP, and COMMIT;
 - keep partial output non-runnable; and
 - test it beneath Debug80 before binding storage operations to TEC-FS.
+
+The revision-one consumer accepts the locked stored-object strategy. It first
+validates the complete object, rewinds the same locked generation, and only
+then materializes it. NOBJ PATCH records occur in resolution order, so the
+consumer proves pairwise non-overlap by bounded rescans rather than retaining a
+patch table. A direct isolated one-pass strategy remains reserved until its
+platform contract supplies an equally bounded way to validate arbitrary patch
+order.
+
+The standalone consumer occupies 2,887 code bytes and 399 workspace bytes.
+The successful flat proof executes 22,876 instructions; the two-bank proof
+executes 26,416. Fifty-five executable cases cover loaded, ROM, and banked
+objects; CRC and framing; record order and overlap; MAP and COMMIT consistency;
+the mathematical `$10000` boundary; protected image and writable regions;
+platform failures; atomic publication; and sequential reuse. These accounts
+are separate from the 16 KiB compiler gate.
 
 ### Milestone 7: native service host
 
