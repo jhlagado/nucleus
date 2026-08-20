@@ -902,14 +902,32 @@ the mathematical `$10000` boundary; protected image and writable regions;
 platform failures; atomic publication; and sequential reuse. These accounts
 are separate from the 16 KiB compiler gate.
 
-### Milestone 7: native service host
+### Milestone 7a: native launch shell under Debug80
 
-- implement the stable Nucleus host vectors in Z80;
-- implement a MON3-compatible RST gateway beneath them;
-- run it under Node/Debug80 device services;
-- prove provider request/suspend/resume and cancellation;
+Status: implemented and under final review.
+
+- implement the stable Nucleus host vectors and `NucleusHostCompile` entry in
+  Z80;
+- run that Z80 shell under Node/Debug80 device services;
+- prove bounded provider request/suspend/resume and cancellation;
+- keep source diagnostics distinct from host and D8-preflight failures;
+- provide cold initialization and interrupted-launch reset; and
+- prove same-image reuse, exact result publication, stack restoration, and
+  transactional output.
+
+The reference binding occupies 913 external host-code bytes without D8 and 915
+with D8, plus 22 bytes of host workspace. It leaves the shipping compiler core
+unchanged at 16,314 bytes. The lower Debug80 binding still uses private OUT
+ports as device traps; it is not the MON3 deployment gateway.
+
+### Milestone 7b: MON3-compatible service gateway
+
+- place the compiler and host so the monitor RST vector remains available;
+- implement the bounded MON3-compatible RST gateway beneath the stable host
+  calls;
+- run that same gateway under Node/Debug80 before hardware deployment;
 - test stack, bank, failure, reset, and sequential-run behavior; and
-- document the later MON3/TECM8 binding work.
+- document the later MON3/TECM8 service-number and filesystem bindings.
 
 ### Milestone 8: import resolver, standard library, and documentation
 

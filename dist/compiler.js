@@ -10,6 +10,8 @@ const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
 const PART_BANKS = TARGET_DESCRIPTOR + 0x10;
+const NATIVE_LAUNCH_DESCRIPTOR = TARGET_DESCRIPTOR + 0x20;
+const NATIVE_LAUNCH_RESULT = TARGET_DESCRIPTOR + 0x30;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
 const RUNTIME_IDENTITY = 9;
@@ -519,6 +521,8 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
     const retainedNames = new NativeRetainedNameStore();
     let materializedNameHandle;
     let nativeHostFailure;
+    let hostGenerationCancelled = false;
+    let launchActive = false;
     let pendingHostWork;
     let sink;
     let metadata;
@@ -548,6 +552,50 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                 if (debugHooks && isNucleusDebugPort(selectedPort)) {
                     collector?.collect(selectedPort, cpu);
                     return;
+                }
+                else if (selectedPort === symbol(image.symbols, "NativeHostLaunchBeginPort")) {
+                    if (options.signal?.aborted === true) {
+                        cpu.a = 6;
+                        cpu.flags.C = 1;
+                        return;
+                    }
+                    if (launchActive ||
+                        cpu.ix !== NATIVE_LAUNCH_DESCRIPTOR ||
+                        (memory[cpu.ix] ?? 0) !== 14 ||
+                        (memory[cpu.ix + 1] ?? 0) !== 0 ||
+                        (memory[cpu.ix + 2] ?? 0) !== 1 ||
+                        (memory[cpu.ix + 3] ?? 0) !== parts.length ||
+                        readWord(memory, cpu.ix + 4) !== 1 ||
+                        readWord(memory, cpu.ix + 6) !== TARGET_DESCRIPTOR ||
+                        readWord(memory, cpu.ix + 8) !== NATIVE_LAUNCH_RESULT ||
+                        readWord(memory, cpu.ix + 10) !== 1 ||
+                        (memory[cpu.ix + 12] ?? 0) !== (debugHooks ? 2 : 0) ||
+                        (memory[cpu.ix + 13] ?? 0) !== 0) {
+                        cpu.a = 4;
+                        cpu.flags.C = 1;
+                        return;
+                    }
+                    try {
+                        validateNativeTargetDescriptor(memory, TARGET_DESCRIPTOR, begin, target, prepared.partBanks);
+                    }
+                    catch {
+                        cpu.a = 4;
+                        cpu.flags.C = 1;
+                        return;
+                    }
+                    launchActive = true;
+                    succeed();
+                }
+                else if (selectedPort === symbol(image.symbols, "NativeHostLaunchEndPort")) {
+                    if (!launchActive ||
+                        value > 2 ||
+                        (value === 0) !== (metadata !== undefined)) {
+                        nativeHostFailure = new Error("native Nucleus launch ended in an inconsistent state");
+                        cpu.halted = true;
+                        return;
+                    }
+                    launchActive = false;
+                    succeed();
                 }
                 else if (selectedPort ===
                     symbol(image.symbols, "NativeHostSourceNextChunkPort")) {
@@ -697,27 +745,55 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                     symbol(image.symbols, "NativeHostRuntimeImagePort") ||
                     selectedPort ===
                         symbol(image.symbols, "NativeHostRuntimeInitialPort")) {
-                    const context = nativeRuntimeContext(memory, cpu.ix, target.services ?? defaultNucleusServices);
-                    const bank = value;
+                    const requestOperation = memory[symbol(image.symbols, "NativeHostRuntimeOperation")] ??
+                        0xff;
+                    const requestBank = memory[symbol(image.symbols, "NativeHostRuntimeBank")] ?? 0xff;
+                    const requestLength = readWord(memory, symbol(image.symbols, "NativeHostRuntimeLength"));
+                    const requestIdentity = readWord(memory, symbol(image.symbols, "NativeHostRuntimeIdentity"));
+                    const requestAddress = readWord(memory, symbol(image.symbols, "NativeHostRuntimeAddress"));
+                    const requestContext = readWord(memory, symbol(image.symbols, "NativeHostRuntimeContext"));
+                    const requestStatus = symbol(image.symbols, "NativeHostRuntimeStatus");
+                    const requestPending = symbol(image.symbols, "NativeHostRuntimePending");
                     const initial = selectedPort ===
                         symbol(image.symbols, "NativeHostRuntimeInitialPort");
+                    if (memory[requestPending] !== 1 ||
+                        memory[requestStatus] !== 0xff ||
+                        requestOperation !== (initial ? 1 : 0) ||
+                        requestBank !== value ||
+                        requestLength !== bc ||
+                        requestIdentity !== de ||
+                        requestAddress !== hl ||
+                        requestContext !== cpu.ix) {
+                        memory[requestStatus] = 95;
+                        return;
+                    }
+                    const context = nativeRuntimeContext(memory, requestContext, target.services ?? defaultNucleusServices);
                     pendingHostWork = (async () => {
                         try {
-                            if (activeProvider?.get(de, context) === undefined) {
-                                activeProvider = await loadCanonicalRuntimeProvider([
+                            if (activeProvider?.get(requestIdentity, context) === undefined) {
+                                const loadedProvider = await loadCanonicalRuntimeProvider([
                                     context,
                                 ]);
+                                if (hostGenerationCancelled)
+                                    return;
+                                activeProvider = loadedProvider;
                             }
+                            if (hostGenerationCancelled)
+                                return;
                             if (initial) {
-                                sink?.runtimeInitialImage(bank, hl, de, context, bc);
+                                sink?.runtimeInitialImage(requestBank, requestAddress, requestIdentity, context, requestLength);
                             }
                             else {
-                                sink?.runtimeImage(bank, hl, de, context, bc);
+                                sink?.runtimeImage(requestBank, requestAddress, requestIdentity, context, requestLength);
                             }
-                            succeed();
+                            if (hostGenerationCancelled)
+                                return;
+                            memory[requestStatus] = 0;
                         }
                         catch {
-                            fail(95);
+                            if (hostGenerationCancelled)
+                                return;
+                            memory[requestStatus] = 95;
                         }
                     })();
                 }
@@ -739,10 +815,10 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                         try {
                             debugMapping = collector.finishStreaming(begin, adapterImages);
                         }
-                        catch (error) {
-                            nativeHostFailure =
-                                error instanceof Error ? error : new Error(String(error));
-                            cpu.halted = true;
+                        catch {
+                            memory[symbol(image.symbols, "NativeHostAsyncStatus")] = 4;
+                            cpu.a = 4;
+                            cpu.flags.C = 1;
                             return;
                         }
                     }
@@ -784,16 +860,38 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
     }
     memory[RETURN_SENTINEL] = 0x76;
     writeWord(memory, STACK_TOP, RETURN_SENTINEL);
-    runtime.cpu.sp = STACK_TOP;
-    runtime.cpu.pc = symbol(image.symbols, "CompileTargetAggregateCallParts");
-    runtime.cpu.a = parts.length;
-    runtime.cpu.h = 0;
-    runtime.cpu.l = 0;
-    runtime.cpu.ix = TARGET_DESCRIPTOR;
-    runtime.cpu.halted = false;
+    memory.fill(0, NATIVE_LAUNCH_DESCRIPTOR, NATIVE_LAUNCH_DESCRIPTOR + 14);
+    memory[NATIVE_LAUNCH_DESCRIPTOR] = 14;
+    memory[NATIVE_LAUNCH_DESCRIPTOR + 1] = 0;
+    memory[NATIVE_LAUNCH_DESCRIPTOR + 2] = 1;
+    memory[NATIVE_LAUNCH_DESCRIPTOR + 3] = parts.length;
+    writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 4, 1);
+    writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 6, TARGET_DESCRIPTOR);
+    writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 8, NATIVE_LAUNCH_RESULT);
+    writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 10, 1);
+    memory[NATIVE_LAUNCH_DESCRIPTOR + 12] = debugHooks ? 2 : 0;
+    memory[NATIVE_LAUNCH_DESCRIPTOR + 13] = 0;
+    memory.fill(0xa5, NATIVE_LAUNCH_RESULT, NATIVE_LAUNCH_RESULT + 9);
     let instructions = 0;
     let cycles = 0;
+    runtime.cpu.sp = STACK_TOP;
+    runtime.cpu.pc = symbol(image.symbols, "NucleusHostInitialize");
+    runtime.cpu.halted = false;
     try {
+        while (!runtime.isHalted()) {
+            if (instructions >= DEFAULT_INSTRUCTION_LIMIT ||
+                cycles >= DEFAULT_CYCLE_LIMIT) {
+                throw new Error("Nucleus host initialization exceeded its execution limit");
+            }
+            const step = runtime.step();
+            instructions += 1;
+            cycles += step.cycles ?? 0;
+        }
+        writeWord(memory, STACK_TOP, RETURN_SENTINEL);
+        runtime.cpu.sp = STACK_TOP;
+        runtime.cpu.pc = symbol(image.symbols, "NucleusHostCompile");
+        runtime.cpu.ix = NATIVE_LAUNCH_DESCRIPTOR;
+        runtime.cpu.halted = false;
         while (!runtime.isHalted()) {
             if (instructions >= DEFAULT_INSTRUCTION_LIMIT ||
                 cycles >= DEFAULT_CYCLE_LIMIT) {
@@ -805,30 +903,62 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
             if (pendingHostWork !== undefined) {
                 const pending = pendingHostWork;
                 pendingHostWork = undefined;
-                await pending;
+                const signal = options.signal;
+                if (signal === undefined) {
+                    await pending;
+                }
+                else if (signal.aborted) {
+                    hostGenerationCancelled = true;
+                    memory[symbol(image.symbols, "NativeHostRuntimeStatus")] = 6;
+                }
+                else {
+                    let abort;
+                    const cancelled = new Promise((resolve) => {
+                        abort = () => resolve("cancelled");
+                        signal.addEventListener("abort", abort, { once: true });
+                    });
+                    const completed = await Promise.race([
+                        pending.then(() => "completed"),
+                        cancelled,
+                    ]);
+                    if (abort !== undefined)
+                        signal.removeEventListener("abort", abort);
+                    if (completed === "cancelled") {
+                        hostGenerationCancelled = true;
+                        memory[symbol(image.symbols, "NativeHostRuntimeStatus")] = 6;
+                    }
+                }
             }
         }
         if (nativeHostFailure !== undefined)
             throw nativeHostFailure;
-        const nativeHostStatus = memory[symbol(image.symbols, "SourceHostStatus")] ?? 0;
-        if (nativeHostStatus !== 0) {
-            throw new Error(`native Nucleus host failed with status ${nativeHostStatus}`);
+        const outcome = memory[NATIVE_LAUNCH_RESULT] ?? 0xff;
+        const resultCode = memory[NATIVE_LAUNCH_RESULT + 1] ?? 0;
+        if (runtime.cpu.a !== outcome ||
+            runtime.cpu.flags.C !== (outcome === 0 ? 0 : 1)) {
+            throw new Error("native Nucleus launch return differs from its result block");
         }
-        if (runtime.cpu.flags.C !== 0) {
-            const part = memory[symbol(image.symbols, "DiagnosticPartId")] ?? 0;
+        if (outcome === 2) {
+            throw new Error(`native Nucleus host failed with status ${resultCode}`);
+        }
+        if (outcome === 1) {
+            const part = memory[NATIVE_LAUNCH_RESULT + 2] ?? 0;
             return {
                 success: false,
                 diagnostic: {
-                    code: memory[symbol(image.symbols, "DiagnosticCode")] ?? 0,
+                    code: resultCode,
                     sourcePart: part,
                     sourceName: parts[part - 1]?.name,
-                    offset: readWord(memory, symbol(image.symbols, "DiagnosticOffset")),
-                    line: readWord(memory, symbol(image.symbols, "DiagnosticLine")),
-                    column: readWord(memory, symbol(image.symbols, "DiagnosticColumn")),
+                    offset: readWord(memory, NATIVE_LAUNCH_RESULT + 3),
+                    line: readWord(memory, NATIVE_LAUNCH_RESULT + 5),
+                    column: readWord(memory, NATIVE_LAUNCH_RESULT + 7),
                 },
                 instructions,
                 cycles,
             };
+        }
+        if (outcome !== 0) {
+            throw new Error(`native Nucleus host returned invalid outcome ${outcome}`);
         }
         if (metadata === undefined) {
             throw new Error("native Nucleus host returned without committing output");
@@ -842,8 +972,10 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
         };
     }
     finally {
+        hostGenerationCancelled = true;
         if (metadata === undefined)
             sink?.abort();
+        launchActive = false;
         retainedNames.clear();
     }
 };

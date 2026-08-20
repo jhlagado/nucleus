@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   compileNucleus,
@@ -9,7 +9,12 @@ import {
   defaultNucleusServices,
   writeNucleusIntelHex,
 } from "../src/compiler.js";
-import type { NobjSequentialOutput } from "../src/nobj.js";
+import { NucleusDebugCollector } from "../src/d8.js";
+import {
+  MemoryNobjSpool,
+  type NobjSequentialOutput,
+  type NobjSpool,
+} from "../src/nobj.js";
 import { runProofManifest } from "../src/proof.js";
 
 const proof = (name: string): string =>
@@ -392,9 +397,9 @@ describe("emulator-backed compiler host", () => {
     expect(resident.success).toBe(true);
     if (!resident.success) return;
 
-    expect(
-      await compileNucleusToBytes([{ name: "main.nu", source }]),
-    ).toEqual(resident.nobj);
+    expect(await compileNucleusToBytes([{ name: "main.nu", source }])).toEqual(
+      resident.nobj,
+    );
   }, 30_000);
 
   it("keeps comments and CRLF boundaries transparent across source refills", async () => {
@@ -413,9 +418,7 @@ describe("emulator-backed compiler host", () => {
       await compileNucleusToBytes([{ name: "main.nu", source: splitCrLf }]),
     ).toEqual(baseline.nobj);
     expect(
-      await compileNucleusToBytes([
-        { name: "main.nu", source: splitComment },
-      ]),
+      await compileNucleusToBytes([{ name: "main.nu", source: splitComment }]),
     ).toEqual(baseline.nobj);
   }, 30_000);
 
@@ -613,6 +616,65 @@ describe("emulator-backed compiler host", () => {
       diagnostic: { code: 97 },
     });
     expect(aborted).toBe(true);
+  }, 30_000);
+
+  it("cancels a suspended runtime-provider request without resuming stale work", async () => {
+    await compileNucleusToBytes([
+      { name: "warm.nu", source: "sub main()\nend\n" },
+    ]);
+    const controller = new AbortController();
+    let spoolClears = 0;
+    let writes = 0;
+    let commits = 0;
+    let outputAborts = 0;
+    const spoolFactory = (): NobjSpool => {
+      const spool = new MemoryNobjSpool();
+      return {
+        get byteLength() {
+          return spool.byteLength;
+        },
+        append: (bytes) => spool.append(bytes),
+        chunks: () => spool.chunks(),
+        clear: () => {
+          spoolClears += 1;
+          spool.clear();
+        },
+      };
+    };
+    const timer = setTimeout(() => controller.abort(), 0);
+    try {
+      await expect(
+        compileNucleusTo(
+          [{ name: "cancel.nu", source: "sub main()\nend\n" }],
+          {},
+          {
+            write: () => {
+              writes += 1;
+            },
+            commit: () => {
+              commits += 1;
+            },
+            abort: () => {
+              outputAborts += 1;
+            },
+          },
+          { signal: controller.signal, spoolFactory },
+        ),
+      ).rejects.toThrow("native Nucleus host failed with status 6");
+    } finally {
+      clearTimeout(timer);
+    }
+    expect(spoolClears).toBeGreaterThan(0);
+    expect({ writes, commits, outputAborts }).toEqual({
+      writes: 0,
+      commits: 0,
+      outputAborts: 0,
+    });
+
+    const recovered = await compileNucleusToBytes([
+      { name: "after-cancel.nu", source: "sub main()\nend\n" },
+    ]);
+    expect(recovered.length).toBeGreaterThan(0);
   }, 30_000);
 
   it("streams the loaded-layout MAP with initialized data outside read-only data", async () => {
@@ -1237,6 +1299,49 @@ describe("emulator-backed compiler host", () => {
       diagnostic: { code: 40, sourceName: "capacity.nu", line: 88, column: 6 },
     });
     expect("debugMapping" in overflow).toBe(false);
+  }, 30_000);
+
+  it("returns D8 preflight failure through the native host lifecycle", async () => {
+    const finish = vi
+      .spyOn(NucleusDebugCollector.prototype, "finishStreaming")
+      .mockImplementationOnce(() => {
+        throw new Error("forced D8 preflight failure");
+      });
+    let writes = 0;
+    let commits = 0;
+    let outputAborts = 0;
+    try {
+      await expect(
+        compileNucleusTo(
+          [{ name: "d8-failure.nu", source: "sub main()\nend\n" }],
+          {},
+          {
+            write: () => {
+              writes += 1;
+            },
+            commit: () => {
+              commits += 1;
+            },
+            abort: () => {
+              outputAborts += 1;
+            },
+          },
+          { debugMap: true },
+        ),
+      ).rejects.toThrow("native Nucleus host failed with status 4");
+    } finally {
+      finish.mockRestore();
+    }
+    expect({ writes, commits, outputAborts }).toEqual({
+      writes: 0,
+      commits: 0,
+      outputAborts: 0,
+    });
+
+    const recovered = await compileNucleusToBytes([
+      { name: "after-d8-failure.nu", source: "sub main()\nend\n" },
+    ]);
+    expect(recovered.length).toBeGreaterThan(0);
   }, 30_000);
 
   it("retains source attribution on forward-patched call bytes", async () => {

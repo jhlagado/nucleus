@@ -3342,6 +3342,40 @@ loaded and ROM layout, banking, mathematical `$10000` ends, protected memory,
 platform failure, publication, and sequential reset. Compiler code, compiler
 workspace, generated program, and target runtime are unchanged.
 
+### Native Z80 launch shell under Debug80
+
+The first native launch shell calls the streaming compiler through
+`NucleusHostCompile` rather than entering a compiler-private routine from
+TypeScript. Its fourteen-byte launch descriptor binds source, target, output,
+and D8 generations. Its nine-byte result distinguishes success, an exact
+compiler diagnostic, and a private host failure.
+
+Runtime linking uses a bounded host mailbox. The Z80 entry records the complete
+request, yields to the Debug80 device binding, and resumes the same compiler
+call frame after Node supplies a status. Cancellation takes the compiler's
+nonlocal target-abort continuation and cannot resume stale asynchronous work.
+D8 preflight failure follows the same host-outcome path instead of halting the
+emulator inside an output callback.
+
+`NucleusHostInitialize` clears cold host state. `NucleusHostReset` releases one
+active tentative generation after an interrupted outer run, clears the same
+workspace, and permits the image to be reused. Direct shell proofs cover exact
+diagnostic and host results, malformed and concurrent launches, ordinary and
+initial runtime requests, same-image reuse, one failing shell-owned abort, and
+stack restoration.
+
+The measured non-D8 host is 913 code bytes; the D8 host is 915. Both use 22
+bytes of host workspace. This is an external-host account: the native shipping
+compiler remains 15,877 code plus 437 immutable bytes, or 16,314 core bytes.
+The MON3-compatible RST gateway is the next deployment increment and is not
+claimed by this checkpoint.
+
+A final branch experiment tried the apparently in-range transfers in the new
+shell as `JR`. AZM's current forward/local resolution rejected even the nearby
+reset tail with a spurious displacement above 28,000. The exact source was
+restored and regenerated; the retained `JP` instructions are a toolchain
+constraint, not unmeasured resident headroom.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -3350,12 +3384,14 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | Resource                                |      Limit | Representation                                                                        | Excess diagnostic or trap                                                        | Evidence                                                                                                         |
 | --------------------------------------- | ---------: | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | source part count                       |          8 | external five-byte descriptors plus three compiler-workspace bytes                    | capacity diagnostic                                                              | accepted 1- and 8-part units; rejected ninth part                                                                |
-| source-part raw bytes                    |     65,535 | native host stream with word offset, line, and column counters                         | source-position-capacity diagnostic before any counter wraps                      | exact 65,535-byte part; first overflowing offset, line, and column                                                |
-| native source chunk bytes               |        768 | refillable host window; old bytes are dead after token pinning                         | host source failure                                                               | exact-boundary and cross-boundary identifier proofs                                                               |
-| native raw-token cache bytes            |      1,280 | pinned token spelling outside the refillable source window                             | host source failure before overwrite                                              | accepted 1,014-byte bounded-string token and exact 1,022-byte tokenizer boundary across refills                  |
-| native retained-name entries            |      1,024 | generation-scoped exact handles in host storage                                        | host capacity failure before handle allocation                                    | exact entry capacity, first excess, and reset to an empty generation                                             |
-| native retained-name spelling bytes     |     65,535 | exact copied bytes in host storage                                                     | host capacity failure before copying or publishing a handle                       | exact byte capacity, first excess, and atomic retained usage                                                     |
-| compatibility source window bytes       |      2,048 | complete source retained only by the compatibility API                                 | compatibility packaging error                                                     | differential resident-source fixtures                                                                            |
+| source-part raw bytes                   |     65,535 | native host stream with word offset, line, and column counters                        | source-position-capacity diagnostic before any counter wraps                     | exact 65,535-byte part; first overflowing offset, line, and column                                               |
+| native source chunk bytes               |        768 | refillable host window; old bytes are dead after token pinning                        | host source failure                                                              | exact-boundary and cross-boundary identifier proofs                                                              |
+| native raw-token cache bytes            |      1,280 | pinned token spelling outside the refillable source window                            | host source failure before overwrite                                             | accepted 1,014-byte bounded-string token and exact 1,022-byte tokenizer boundary across refills                  |
+| native retained-name entries            |      1,024 | generation-scoped exact handles in host storage                                       | host capacity failure before handle allocation                                   | exact entry capacity, first excess, and reset to an empty generation                                             |
+| native retained-name spelling bytes     |     65,535 | exact copied bytes in host storage                                                    | host capacity failure before copying or publishing a handle                      | exact byte capacity, first excess, and atomic retained usage                                                     |
+| native launch-shell code bytes          |    913/915 | always-visible external Z80 host image without/with D8                                | deployment memory-map rejection                                                  | generated-symbol locks; compiler core remains 16,314 bytes                                                       |
+| native launch-shell workspace bytes     |         22 | launch lifecycle, result pointers, and one bounded runtime-request mailbox            | deployment memory-map rejection                                                  | cold initialization, interrupted reset, suspended request, and same-image reuse proofs                           |
+| compatibility source window bytes       |      2,048 | complete source retained only by the compatibility API                                | compatibility packaging error                                                    | differential resident-source fixtures                                                                            |
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                                                           |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                                               |
 | ordinary binding symbols                |         16 | one shared table of six-byte source-backed scalar and aggregate entries               | capacity diagnostic                                                              | accepted sixteen aggregate variables; rejected seventeenth binding                                               |
@@ -3380,8 +3416,8 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | object-stream patch records             |     65,531 | external sequential patch spool; exact maximum when one required image record is used | output-service failure or total-record capacity diagnostic before partial record | resolution-order submission, image-before-patch serialization, and count boundary                                |
 | object-stream image or patch bytes      |     65,532 | one NOBJ record with a word payload length and three-byte bank/address prefix         | output-service failure or target-capacity diagnostic                             | accepted 1 and 65,532 bytes; rejected 65,533 before append                                                       |
 | committed object generations            |          1 | storage-layer current-generation reference; incomplete generation remains uncommitted | output-service failure; previous commit remains current                          | A retained after divergent image-plus-patch B failure; C committed and executed                                  |
-| native NOBJ consumer MAP bytes          |        325 | fixed consumer-workspace payload buffer                                                | MAP validation failure before buffer overflow                                    | exact maximum derived from eight parts and four ten-byte bank entries; malformed and truncated MAP proofs        |
-| native NOBJ consumer target banks       |          4 | four image ends and four patch ends in fixed consumer workspace                        | deployment-profile or target-extent failure                                      | flat, two-bank, alternating-bank, invalid-bank, and exact-boundary proofs                                         |
+| native NOBJ consumer MAP bytes          |        325 | fixed consumer-workspace payload buffer                                               | MAP validation failure before buffer overflow                                    | exact maximum derived from eight parts and four ten-byte bank entries; malformed and truncated MAP proofs        |
+| native NOBJ consumer target banks       |          4 | four image ends and four patch ends in fixed consumer workspace                       | deployment-profile or target-extent failure                                      | flat, two-bank, alternating-bank, invalid-bank, and exact-boundary proofs                                        |
 | structured-initializer depth            |          4 | recursive parser state; total nodes are streamed and not retained                     | capacity diagnostic                                                              | nested record/array boundary and wide 256-element initializer                                                    |
 | initialized program-data bytes          |      1,024 | prefix of the private compiler image plus a retained word length                      | program-data capacity diagnostic                                                 | exact four-string-plus-tail image and rejected following byte                                                    |
 | aggregate-constant bytes                |      1,024 | private-image suffix shared by named constants and anonymous literal arguments        | read-only-data capacity diagnostic                                               | record/array/string constants, distinct `N + 2` literal objects, exact 1,024-byte suffix, and rejected next byte |

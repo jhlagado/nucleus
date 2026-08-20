@@ -150,6 +150,15 @@ The target descriptor retains its existing byte layout. Its part-bank pointer
 addresses one byte per final source-part ordinal. The host derives those
 ordinals after import discovery; filenames never cross the compiler boundary.
 
+The platform calls `NucleusHostInitialize` once after installing the host
+image. It clears the complete host workspace without consulting any previous
+contents. If an outer reset or emulator termination interrupts an active
+launch, the platform calls `NucleusHostReset` before reuse. Reset requests one
+target abort when a generation was active, clears the workspace whether that
+abort succeeds or fails, and reports `storage` if release failed. Cold
+initialization and interrupted-launch reset are deliberately separate: random
+power-on RAM must never be mistaken for an active generation.
+
 ### 3.2 Launch sequence
 
 The Z80 host launch routine:
@@ -162,7 +171,9 @@ The Z80 host launch routine:
 6. as part of `TargetSinkCommit`, prevalidates and copies every requested D8
    source/name correlation while source and name handles remain valid;
 7. on success, requires a successfully committed target generation;
-8. on every other return, requests target abort; and
+8. relies on the compiler's single target-abort continuation for ordinary
+   backend failure and requests abort itself only if the compiler returns
+   success without committing; and
 9. releases generation-scoped source and retained-name state.
 
 The existing `CompileTargetAggregateCallParts` entry remains the compatibility
@@ -172,7 +183,7 @@ operations, NOBJ, and D8 correlations.
 
 A second launch starts from the same state whether the previous launch
 succeeded, diagnosed source, failed output, was cancelled while suspended, or
-terminated unexpectedly.
+terminated unexpectedly and was followed by `NucleusHostReset`.
 
 ### 3.3 Compiler-host vector
 
@@ -387,18 +398,18 @@ generation and leaves the previous committed generation unchanged.
 
 The production adapter preserves the current logical calls and contracts:
 
-| Entry                           | Inputs                                               | Clobbers            |
-| ------------------------------- | ---------------------------------------------------- | ------------------- |
-| `TargetSinkBegin`               | `IX = 15-byte target descriptor`                     | `AF,BC,DE,HL,IX,IY` |
-| `TargetSinkImageByte`           | `A = byte, C = bank, HL = target address`            | flags, `DE`         |
+| Entry                           | Inputs                                                                                   | Clobbers            |
+| ------------------------------- | ---------------------------------------------------------------------------------------- | ------------------- |
+| `TargetSinkBegin`               | `IX = 15-byte target descriptor`                                                         | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkImageByte`           | `A = byte, C = bank, HL = target address`                                                | flags, `DE`         |
 | `TargetSinkRuntimeImage`        | `A = bank, BC = length, DE = identity, HL = address, IX = 18-byte compiler link context` | `AF,BC,DE,HL,IX,IY` |
-| `TargetSinkRuntimeInitialImage` | same as runtime image                                | `AF,BC,DE,HL,IX,IY` |
-| `TargetSinkPatchByte`           | `A = byte, C = bank, HL = target address`            | flags, `DE`         |
-| `TargetSinkPatchWord`           | `C = bank, DE = address, HL = replacement`           | flags               |
-| `TargetSinkMapFlat`             | `IX = 38-byte map request`                           | `AF,BC,DE,HL,IX,IY` |
-| `TargetSinkMapBanked`           | `IX = 38-byte map request`                           | `AF,BC,DE,HL,IX,IY` |
-| `TargetSinkCommit`              | current generation                                   | flags               |
-| `TargetSinkAbort`               | current generation, if any                           | flags               |
+| `TargetSinkRuntimeInitialImage` | same as runtime image                                                                    | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkPatchByte`           | `A = byte, C = bank, HL = target address`                                                | flags, `DE`         |
+| `TargetSinkPatchWord`           | `C = bank, DE = address, HL = replacement`                                               | flags               |
+| `TargetSinkMapFlat`             | `IX = 38-byte map request`                                                               | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkMapBanked`           | `IX = 38-byte map request`                                                               | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkCommit`              | current generation                                                                       | flags               |
+| `TargetSinkAbort`               | current generation, if any                                                               | flags               |
 
 Every entry returns the common `A` and carry result. Both map calls receive the
 same stable, versioned request:
@@ -527,15 +538,15 @@ its deployment mapping succeeds.
 
 The host calls `NobjConsumerRun` with `IX` pointing to this ten-byte descriptor:
 
-| Offset | Field                      | Type  | Meaning                       |
-| -----: | -------------------------- | ----- | ----------------------------- |
-|      0 | `descriptorSize`           | `u8`  | exactly 10                    |
-|      1 | `consumerAbiMajor`         | `u8`  | 0                             |
-|      2 | `consumerAbiMinor`         | `u8`  | 1                             |
+| Offset | Field                      | Type  | Meaning                                  |
+| -----: | -------------------------- | ----- | ---------------------------------------- |
+|      0 | `descriptorSize`           | `u8`  | exactly 10                               |
+|      1 | `consumerAbiMajor`         | `u8`  | 0                                        |
+|      2 | `consumerAbiMinor`         | `u8`  | 1                                        |
 |      3 | `strategy`                 | `u8`  | 0 locked two-pass; other values reserved |
-|      4 | `objectSelector`           | `u16` | platform object selector      |
-|      6 | `deploymentProfilePointer` | `u16` | stable validated profile      |
-|      8 | `resultPointer`            | `u16` | stable four-byte result block |
+|      4 | `objectSelector`           | `u16` | platform object selector                 |
+|      6 | `deploymentProfilePointer` | `u16` | stable validated profile                 |
+|      8 | `resultPointer`            | `u16` | stable four-byte result block            |
 
 The result block is `outcome:u8`, `status:u8`, `recordOrdinal:u16`. Outcome
 zero is used only by a validation-only proof binding; the runnable loader does
@@ -545,20 +556,20 @@ two is a platform failure. `status` is the exact validator or platform code.
 The deployment profile pointer addresses this exact 18-byte revision-one
 record:
 
-| Offset | Field                | Type  | Required value or meaning                         |
-| -----: | -------------------- | ----- | ------------------------------------------------- |
-|      0 | `profileSize`        | `u8`  | exactly 18                                        |
-|      1 | `profileRevision`    | `u8`  | exactly 1                                         |
-|      2 | `flags`              | `u8`  | bit 0 banked, bit 1 established stack             |
-|      3 | `runtimeIdentity`    | `u16` | admitted runtime identity                         |
-|      5 | `bankCount`          | `u8`  | one flat bank or two through four banked banks     |
-|      6 | `imageFill`          | `u8`  | required fill byte                                |
-|      7 | `imageBase`          | `u16` | flat image base or common bank-window base         |
-|      9 | `imageCapacity`      | `u16` | flat capacity or capacity of each selected bank    |
-|     11 | `writableBase`       | `u16` | first byte of the writable region                  |
-|     13 | `writableCapacity`   | `u16` | complete writable-region capacity                  |
-|     15 | `entryBank`          | `u8`  | required entry-bank ordinal                        |
-|     16 | `bankBindingsPointer`| `u16` | zero for flat; stable banked binding table pointer |
+| Offset | Field                 | Type  | Required value or meaning                          |
+| -----: | --------------------- | ----- | -------------------------------------------------- |
+|      0 | `profileSize`         | `u8`  | exactly 18                                         |
+|      1 | `profileRevision`     | `u8`  | exactly 1                                          |
+|      2 | `flags`               | `u8`  | bit 0 banked, bit 1 established stack              |
+|      3 | `runtimeIdentity`     | `u16` | admitted runtime identity                          |
+|      5 | `bankCount`           | `u8`  | one flat bank or two through four banked banks     |
+|      6 | `imageFill`           | `u8`  | required fill byte                                 |
+|      7 | `imageBase`           | `u16` | flat image base or common bank-window base         |
+|      9 | `imageCapacity`       | `u16` | flat capacity or capacity of each selected bank    |
+|     11 | `writableBase`        | `u16` | first byte of the writable region                  |
+|     13 | `writableCapacity`    | `u16` | complete writable-region capacity                  |
+|     15 | `entryBank`           | `u8`  | required entry-bank ordinal                        |
+|     16 | `bankBindingsPointer` | `u16` | zero for flat; stable banked binding table pointer |
 
 Only flag bits 0 and 1 are defined. The profile uses the same seventeenth-bit
 region arithmetic as the target specification. A banked binding table contains
@@ -597,23 +608,23 @@ count.
 
 Validation failures use these stable status values:
 
-| Value | Name                    | Meaning                                           |
-| ----: | ----------------------- | ------------------------------------------------- |
-|     1 | `descriptor`            | invalid run descriptor                            |
-|     2 | `consumerVector`        | invalid `NC` vector header                        |
-|     3 | `deploymentProfile`     | invalid or inconsistent deployment profile        |
-|     4 | `truncated`             | clean EOF before the required terminal position    |
-|     5 | `framing`               | invalid kind, length, magic, version, or flags      |
-|     6 | `recordOrder`           | invalid record phase or record count               |
-|     7 | `targetExtent`          | invalid bank, address, region, or used extent       |
-|     8 | `imageOrder`            | descending or overlapping IMAGE extent             |
-|     9 | `patchOverlap`          | overlapping PATCH extents                          |
-|    10 | `map`                   | invalid MAP length, field, or cross-field relation  |
-|    11 | `commit`                | invalid COMMIT entry pair or record count           |
-|    12 | `crc`                   | CRC-16/CCITT-FALSE mismatch                        |
-|    13 | `trailingData`          | byte present after COMMIT                          |
-|    14 | `generationChanged`     | locked identity changed between passes             |
-|    15 | `protectedMemory`       | target write would overlap consumer state or input  |
+| Value | Name                | Meaning                                            |
+| ----: | ------------------- | -------------------------------------------------- |
+|     1 | `descriptor`        | invalid run descriptor                             |
+|     2 | `consumerVector`    | invalid `NC` vector header                         |
+|     3 | `deploymentProfile` | invalid or inconsistent deployment profile         |
+|     4 | `truncated`         | clean EOF before the required terminal position    |
+|     5 | `framing`           | invalid kind, length, magic, version, or flags     |
+|     6 | `recordOrder`       | invalid record phase or record count               |
+|     7 | `targetExtent`      | invalid bank, address, region, or used extent      |
+|     8 | `imageOrder`        | descending or overlapping IMAGE extent             |
+|     9 | `patchOverlap`      | overlapping PATCH extents                          |
+|    10 | `map`               | invalid MAP length, field, or cross-field relation |
+|    11 | `commit`            | invalid COMMIT entry pair or record count          |
+|    12 | `crc`               | CRC-16/CCITT-FALSE mismatch                        |
+|    13 | `trailingData`      | byte present after COMMIT                          |
+|    14 | `generationChanged` | locked identity changed between passes             |
+|    15 | `protectedMemory`   | target write would overlap consumer state or input |
 
 `recordOrdinal` is one for `BEGIN` and advances for every record header. It is
 zero when failure occurs before the first header. A platform failure preserves
@@ -649,16 +660,16 @@ and immediate EOF all succeed.
 The reference register binding keeps one opened object implicit in the
 consumer-platform adapter:
 
-| Entry              | Inputs                                                      | Success result                    | Clobbers           |
-| ------------------ | ----------------------------------------------------------- | --------------------------------- | ------------------ |
-| `ObjectOpen`       | `HL = platform object selector`                             | opened generation becomes current | `AF,BC,DE,HL`      |
-| `ObjectReadByte`   | current generation                                          | `A = byte`                        | `AF`               |
-| `ObjectRewind`     | current generation                                          | cursor at first byte              | `AF,BC,DE,HL`      |
-| `ObjectLock`       | current generation                                          | `DE:HL = generation identity`     | `AF,BC,DE,HL`      |
-| `SelectTargetBank` | `A = logical NOBJ bank ordinal, IX = deployment profile`    | mapped physical bank selected     | `AF,BC,DE,HL`      |
-| `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length, DE = deployment profile` | new target generation published | `AF,BC,DE,HL,IX` |
-| `EnterTarget`      | `A = entry bank, HL = entry, IX = deployment profile`       | no return on success; carry set and `A = platform status` on failure | `AF,BC,DE,HL,IX` on failure; target entry state on success |
-| `ObjectClose`      | current generation                                          | no object open                    | `AF,BC,DE,HL`      |
+| Entry              | Inputs                                                                               | Success result                                                       | Clobbers                                                   |
+| ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `ObjectOpen`       | `HL = platform object selector`                                                      | opened generation becomes current                                    | `AF,BC,DE,HL`                                              |
+| `ObjectReadByte`   | current generation                                                                   | `A = byte`                                                           | `AF`                                                       |
+| `ObjectRewind`     | current generation                                                                   | cursor at first byte                                                 | `AF,BC,DE,HL`                                              |
+| `ObjectLock`       | current generation                                                                   | `DE:HL = generation identity`                                        | `AF,BC,DE,HL`                                              |
+| `SelectTargetBank` | `A = logical NOBJ bank ordinal, IX = deployment profile`                             | mapped physical bank selected                                        | `AF,BC,DE,HL`                                              |
+| `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length, DE = deployment profile` | new target generation published                                      | `AF,BC,DE,HL,IX`                                           |
+| `EnterTarget`      | `A = entry bank, HL = entry, IX = deployment profile`                                | no return on success; carry set and `A = platform status` on failure | `AF,BC,DE,HL,IX` on failure; target entry state on success |
+| `ObjectClose`      | current generation                                                                   | no object open                                                       | `AF,BC,DE,HL`                                              |
 
 `ObjectReadByte` uses carry clear for a byte. Carry set with `A = end` means
 clean EOF; carry set with another status means failure. This entry is the
@@ -763,6 +774,17 @@ parse Nucleus or replay compiler work.
 This binding proves asynchronous provider success, failure, cancellation, and
 a following clean launch. Its output is compared byte for byte with the
 resident-source and AdapterLog compatibility path.
+
+The first completed binding uses the public `NucleusHostCompile` entry and its
+nine-byte result block. Runtime linking suspends at a bounded 13-byte request
+mailbox and resumes the original Z80 call frame. Compiler diagnostics remain
+outcome 1; source-provider, cancellation, and D8-preflight failures remain host
+outcome 2. `NucleusHostInitialize` and `NucleusHostReset` make the same image
+reusable after ordinary and interrupted launches.
+
+The Debug80 reference host occupies 913 Z80 code bytes without D8 and 915 with
+D8, plus 22 bytes of host workspace. These bytes are outside the compiler-core
+account. The native shipping compiler remains 16,314 core bytes.
 
 ### 8.3 MON3 and TECM8
 

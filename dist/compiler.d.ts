@@ -43,6 +43,7 @@ export interface NucleusStreamingCompileOptions {
     readonly compilerIoWrite?: (port: number, value: number) => void;
     readonly spoolFactory?: NobjSpoolFactory;
     readonly lowMemoryPatchValidation?: boolean;
+    readonly signal?: AbortSignal;
 }
 export interface NucleusDiagnostic {
     readonly code: number;

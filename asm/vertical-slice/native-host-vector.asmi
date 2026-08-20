@@ -17,6 +17,8 @@ NativeHostMapFlatPort           .equ $CA
 NativeHostMapBankedPort         .equ $CB
 NativeHostCommitPort            .equ $CC
 NativeHostAbortPort             .equ $CD
+NativeHostLaunchBeginPort       .equ $CE
+NativeHostLaunchEndPort         .equ $CF
 
             .org HostVectorBase
             .db "NH",0,1,8,14,0,0
@@ -72,11 +74,19 @@ NativeHostTargetImageByte:
                                OUT (NativeHostTargetImageBytePort),A
                                RET
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeHostRuntimeImage:        OUT (NativeHostRuntimeImagePort),A
-                               RET
+NativeHostRuntimeImage:        LD   (NativeHostRuntimeBank),A
+                               XOR  A
+                               LD   (NativeHostRuntimeOperation),A
+                               CALL NativeHostPrepareRuntimeRequest
+                               OUT  (NativeHostRuntimeImagePort),A
+                               JP   NativeHostResumeRuntimeRequest
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeHostRuntimeInitialImage: OUT (NativeHostRuntimeInitialPort),A
-                               RET
+NativeHostRuntimeInitialImage: LD   (NativeHostRuntimeBank),A
+                               LD   A,1
+                               LD   (NativeHostRuntimeOperation),A
+                               CALL NativeHostPrepareRuntimeRequest
+                               OUT  (NativeHostRuntimeInitialPort),A
+                               JP   NativeHostResumeRuntimeRequest
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 NativeHostPatchByte:           OUT (NativeHostPatchBytePort),A
                                RET
@@ -91,10 +101,15 @@ NativeHostMapBanked:           OUT (NativeHostMapBankedPort),A
                                RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeHostCommit:              OUT (NativeHostCommitPort),A
+                               RET  C
+                               LD   A,1
+                               LD   (NativeHostLaunchCommitted),A
+                               OR   A
                                RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeHostAbort:               OUT (NativeHostAbortPort),A
                                RET
 
             .include "native-source-host.asm"
+            .include "native-host-shell.asm"
 HostVectorEnd:
