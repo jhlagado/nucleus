@@ -25,3 +25,8 @@ Implementation records, deferred proposals, and active plans live in
 [`plans/`](plans/); each file's status header says which it is. Machine-readable
 grammar sources and generated LL(1) tables live in [`../grammar/`](../grammar/)
 rather than under documentation.
+
+The active [native Z80 host and standard-library
+plan](plans/2026-08-20-native-z80-host-and-standard-library.md) defines the
+current work to replace resident-source and materialized-output assumptions
+with native streaming adapters and a shared console library.
