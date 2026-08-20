@@ -33,3 +33,9 @@ The active [native Z80 host and standard-library
 plan](plans/2026-08-20-native-z80-host-and-standard-library.md) defines the
 current work to replace resident-source and materialized-output assumptions
 with native streaming adapters and a shared console library.
+
+The proposed [direct NOBJ loader
+correction](plans/2026-08-21-direct-nobj-loader.md) restores the approved
+one-read loader model: IMAGE bytes are deposited into their destination,
+PATCH records overwrite them in stream order, and only valid COMMIT permits
+entry. It is the restart document for the next loader increment.
