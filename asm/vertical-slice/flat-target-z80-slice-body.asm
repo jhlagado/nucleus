@@ -1106,14 +1106,14 @@ TargetSinkImageByteReserveFailure:
             SCF
             RET
 
-.routine in A,BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkRuntimeImage:
             PUSH AF
             LD   A,3
             LD   (AdapterRuntimeKind),A
             POP  AF
             JR   TargetSinkRuntimeSelected
-.routine in A,BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkRuntimeInitialImage:
             PUSH AF
             LD   A,4
@@ -1206,7 +1206,7 @@ TargetSinkPatchWordFailure:
             POP  IY
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkMapFlat:
             LD   A,(AdapterMapFailure)
             OR   A
@@ -1218,10 +1218,14 @@ TargetSinkMapReady:
             OR   A
             RET
 
-.routine in IX,IY out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkMapBanked:
-            LD   A,(IX+TargetDescriptorBankCount)
+            LD   A,(IX+TargetMapRequestBankCount-TargetMapRequest)
             LD   B,A
+            LD   L,(IX+TargetMapRequestBankState-TargetMapRequest)
+            LD   H,(IX+TargetMapRequestBankState-TargetMapRequest+1)
+            PUSH HL
+            POP  IY
             LD   HL,AdapterCapturedBankCursors
             LD   DE,AdapterCapturedBankRemaining
             LD   IX,AdapterCapturedBankRoLengths
@@ -1282,7 +1286,7 @@ ProofCallTargetValidateRegion:
             LD   (CompilerAbortSp),SP
             JP   TargetValidateRegion
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCallTargetClassifyFlatLayout:
             LD   (CompilerAbortSp),SP
             JP   TargetClassifyFlatLayout

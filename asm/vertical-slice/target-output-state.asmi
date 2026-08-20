@@ -101,14 +101,44 @@ TargetTerminalAddress     .equ TargetFlatMapBase+$2E ; word
 ; failure handling, so it cannot alias either published bank byte.
 TargetOutputBank          .equ TargetFlatMapBase+$30
 TargetLayoutEnd           .equ TargetFlatMapBase+$31
-; The retained descriptor bytes remain live during both parsing and lowering,
-; so they follow the shared 64-byte parser-stack/post-parse-layout overlay.
-TargetDescriptorBankCountValue .equ TargetLayoutEnd ; byte
+; Stable native-host MAP request. It becomes live only after parsing, so it
+; follows the post-parse target layout and may overlap the dead upper portion
+; of the LL(1) parser stack.
+TargetMapRequest          .equ TargetLayoutEnd
+TargetMapRequestRevision  .equ TargetMapRequest+$00
+TargetMapRequestFlags     .equ TargetMapRequest+$01
+TargetMapRequestEntryBank .equ TargetMapRequest+$02
+TargetMapRequestEntryAddress .equ TargetMapRequest+$03 ; word
+TargetMapRequestImageBase .equ TargetMapRequest+$05 ; word
+TargetMapRequestImageCapacity .equ TargetMapRequest+$07 ; word
+TargetMapRequestWritableBase .equ TargetMapRequest+$09 ; word
+TargetMapRequestWritableCapacity .equ TargetMapRequest+$0B ; word
+TargetMapRequestVectorLength .equ TargetMapRequest+$0D ; word
+TargetMapRequestInitializedLength .equ TargetMapRequest+$0F ; word
+TargetMapRequestBssBase   .equ TargetMapRequest+$11 ; word
+TargetMapRequestBssLength .equ TargetMapRequest+$13 ; word
+TargetMapRequestStackRequirement .equ TargetMapRequest+$15 ; word
+TargetMapRequestDataLoadBank .equ TargetMapRequest+$17
+TargetMapRequestDataLoadAddress .equ TargetMapRequest+$18 ; word
+TargetMapRequestDataLoadLength .equ TargetMapRequest+$1A ; word
+TargetMapRequestPartCount .equ TargetMapRequest+$1C
+TargetMapRequestPartBanks .equ TargetMapRequest+$1D ; word
+TargetMapRequestBankCount .equ TargetMapRequest+$1F
+TargetMapRequestBankState .equ TargetMapRequest+$20 ; word
+TargetMapRequestRuntimeLength .equ TargetMapRequest+$22 ; word
+TargetMapRequestStartupLength .equ TargetMapRequest+$24 ; word
+TargetMapRequestSize      .equ $26
+; These values remain live while the LL(1) stack may occupy its complete
+; 64-byte capacity. They therefore follow both that stack and the post-parse
+; MAP request rather than aliasing either one.
+TargetRetainedAcrossParseBase .equ TargetMapRequest+TargetMapRequestSize
+TargetDescriptorBankCountValue .equ TargetRetainedAcrossParseBase ; byte
 TargetDescriptorEntryBankValue .equ TargetDescriptorBankCountValue+1 ; byte
+TargetSourcePartCount      .equ TargetDescriptorEntryBankValue+1 ; byte
+TargetPartBanksPointer     .equ TargetSourcePartCount+1 ; word
 ; The production compiler retains the caller's hardware stack pointer across
 ; parsing and replaces it with an output-abort continuation during generation.
-; Its lifetime spans both sides of the parser-stack/target-layout overlay.
-CompilerAbortSp           .equ TargetDescriptorEntryBankValue+1 ; word
+CompilerAbortSp           .equ TargetPartBanksPointer+2 ; word
 TargetWorkspaceEnd        .equ CompilerAbortSp+2
 
 DiagnosticTargetConfiguration .equ 95

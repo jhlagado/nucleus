@@ -117,6 +117,7 @@ CompileTargetAggregateCallParts:
             RET  C
 .endif
             LD   A,B
+            LD   (TargetSourcePartCount),A
             ; Validate every bank-bearing descriptor field before source
             ; semantics can retain a bank ordinal. A is the bounded part count.
             LD   B,A
@@ -134,6 +135,7 @@ CompileTargetAggregateCallParts:
             LD   (TargetDescriptorEntryBankValue),A
             LD   L,(IX+TargetDescriptorPartBanksPointer)
             LD   H,(IX+TargetDescriptorPartBanksPointer+1)
+            LD   (TargetPartBanksPointer),HL
 TargetValidatePartBankLoop:
             LD   A,(HL)
             CP   C

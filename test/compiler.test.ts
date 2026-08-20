@@ -255,6 +255,130 @@ describe("emulator-backed compiler host", () => {
     expect("materialized" in streamed).toBe(false);
   }, 30_000);
 
+  it("aborts native sequential publication after an output failure", async () => {
+    let aborted = false;
+    const failed = await compileNucleusTo(
+        [{ name: "main.nu", source: "sub main()\nend\n" }],
+        {},
+        {
+          write: () => {
+            throw new Error("storage failed");
+          },
+          commit: () => {
+            throw new Error("failed output must not commit");
+          },
+          abort: () => {
+            aborted = true;
+          },
+        },
+      );
+    expect(failed).toMatchObject({
+      success: false,
+      diagnostic: { code: 97 },
+    });
+    expect(aborted).toBe(true);
+  }, 30_000);
+
+  it("streams the loaded-layout MAP with initialized data outside read-only data", async () => {
+    const parts = [
+      {
+        name: "loaded.nu",
+        source:
+          'var initialized as u8 = 7\nconst text as string[3] = "ok"\nsub main()\nend\n',
+      },
+    ];
+    const target = {
+      imageBase: 0x8000,
+      imageCapacity: 0x2000,
+      writableBase: 0x9000,
+      writableCapacity: 0x1000,
+      establishStack: false,
+    } as const;
+    const conventional = await compileNucleus(parts, target);
+    expect(conventional.success).toBe(true);
+    if (!conventional.success) return;
+    const chunks: Uint8Array[] = [];
+    const streamed = await compileNucleusTo(parts, target, {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => undefined,
+      abort: () => {
+        throw new Error("unexpected loaded-layout streaming abort");
+      },
+    });
+    expect(streamed.success).toBe(true);
+    expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
+      conventional.nobj,
+    );
+  }, 30_000);
+
+  it("streams exact flat and banked images ending at $10000", async () => {
+    const cases = [
+      {
+        parts: [{ name: "main.nu", source: "sub main()\nend\n" }],
+        target: {
+          imageBase: 0x8000,
+          imageCapacity: 0x1000,
+          writableBase: 0x4000,
+          writableCapacity: 0x1000,
+        },
+      },
+      {
+        parts: [
+          { name: "library.nu", source: "sub helper()\nend\n" },
+          { name: "main.nu", source: "sub main()\nend\n" },
+        ],
+        target: {
+          imageBase: 0x8000,
+          imageCapacity: 0x1000,
+          writableBase: 0x4000,
+          writableCapacity: 0x1000,
+          bankCount: 2,
+          entryBank: 1,
+          partBanks: [0, 1],
+        },
+      },
+    ] as const;
+    for (const fixture of cases) {
+      const sizing = await compileNucleus(fixture.parts, fixture.target);
+      expect(sizing.success).toBe(true);
+      if (!sizing.success) continue;
+      const capacity = Math.max(
+        ...sizing.materialized.parsed.map.banks.map((bank) => bank.usedLength),
+      );
+      const boundaryTarget = {
+        ...fixture.target,
+        imageBase: 0x10000 - capacity,
+        imageCapacity: capacity,
+      };
+      const conventional = await compileNucleus(fixture.parts, boundaryTarget);
+      expect(conventional.success).toBe(true);
+      if (!conventional.success) continue;
+      expect(
+        Math.max(
+          ...conventional.materialized.parsed.map.banks.map(
+            (bank) => bank.usedLength,
+          ),
+        ) + boundaryTarget.imageBase,
+      ).toBe(0x10000);
+      const chunks: Uint8Array[] = [];
+      const streamed = await compileNucleusTo(
+        fixture.parts,
+        boundaryTarget,
+        {
+          write: (bytes) => chunks.push(bytes.slice()),
+          commit: () => undefined,
+          abort: () => {
+            throw new Error("unexpected top-of-memory streaming abort");
+          },
+        },
+      );
+      expect(streamed.success).toBe(true);
+      expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
+        conventional.nobj,
+      );
+    }
+  }, 30_000);
+
   it("matches the established banked-target NOBJ byte for byte", async () => {
     const baseline = await runProofManifest(
       proof("banked-target-z80-slice-proof"),
@@ -293,12 +417,11 @@ describe("emulator-backed compiler host", () => {
       "end",
       "",
     ].join("\n");
-    const result = await compileNucleus(
-      [
-        { name: "library.nu", source: library },
-        { name: "main.nu", source: main },
-      ],
-      {
+    const parts = [
+      { name: "library.nu", source: library },
+      { name: "main.nu", source: main },
+    ];
+    const target = {
         bankCount: 2,
         entryBank: 0,
         partBanks: [1, 0],
@@ -316,11 +439,23 @@ describe("emulator-backed compiler host", () => {
           farJump: 0x7080,
           packetService: 0x70c6,
         },
-      },
-    );
+      } as const;
+    const result = await compileNucleus(parts, target);
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.nobj).toEqual(baseline.nobj?.serialized);
+    const chunks: Uint8Array[] = [];
+    const streamed = await compileNucleusTo(parts, target, {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => undefined,
+      abort: () => {
+        throw new Error("unexpected banked streaming abort");
+      },
+    });
+    expect(streamed.success).toBe(true);
+    expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
+      result.nobj,
+    );
   }, 30_000);
 
   it("matches the established entry-bank-one NOBJ and D8 identity", async () => {
@@ -361,6 +496,18 @@ describe("emulator-backed compiler host", () => {
     if (!ordinary.success || !traced.success) return;
     expect(ordinary.nobj).toEqual(baseline.nobj?.serialized);
     expect(traced.nobj).toEqual(ordinary.nobj);
+    const nativeChunks: Uint8Array[] = [];
+    const streamed = await compileNucleusTo(parts, target, {
+      write: (bytes) => nativeChunks.push(bytes.slice()),
+      commit: () => undefined,
+      abort: () => {
+        throw new Error("unexpected entry-bank-one streaming abort");
+      },
+    });
+    expect(streamed.success).toBe(true);
+    expect(
+      Uint8Array.from(nativeChunks.flatMap((chunk) => [...chunk])),
+    ).toEqual(ordinary.nobj);
     expect(
       traced.debugMapping?.maps[1]?.map.files["main.nu"]?.symbols?.[0],
     ).toMatchObject({ name: "main" });

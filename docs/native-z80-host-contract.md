@@ -379,7 +379,7 @@ The production adapter preserves the current logical calls and contracts:
 | ------------------------------- | ---------------------------------------------------- | ------------------- |
 | `TargetSinkBegin`               | `IX = 15-byte target descriptor`                     | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkImageByte`           | `A = byte, C = bank, HL = target address`            | flags, `DE`         |
-| `TargetSinkRuntimeImage`        | `A = bank, BC = length, DE = identity, HL = address` | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkRuntimeImage`        | `A = bank, BC = length, DE = identity, HL = address, IX = 18-byte compiler link context` | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkRuntimeInitialImage` | same as runtime image                                | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkPatchByte`           | `A = byte, C = bank, HL = target address`            | flags, `DE`         |
 | `TargetSinkPatchWord`           | `C = bank, DE = address, HL = replacement`           | flags               |
@@ -424,8 +424,10 @@ such record. The compiler-facing adapter finalizes this request from its live
 layout before the call; the sink neither reads private compiler cells nor
 discovers addresses through an assembler symbol map.
 
-The sink checks each cursor and remaining-capacity pair against image base and
-capacity, then derives `usedLength`. It derives each bank's read-only and
+The sink derives `usedLength` as the 16-bit modular difference from image base,
+then requires `usedLength + remainingCapacity == imageCapacity`. This admits a
+legal final cursor of zero when the mathematical image end is `$10000` without
+treating zero as an empty image. It derives each bank's read-only and
 aggregate extents from the fixed image order, entry bank, runtime length,
 startup length, initialized length, and aggregate length. It serializes the
 exact NOBJ MAP payload and validates every relationship in the NOBJ authority.
@@ -438,7 +440,12 @@ appends low then high byte as one atomic logical patch.
 ### 5.3 Runtime requests
 
 Runtime-image calls request provider work; they do not pass a pointer to linked
-bytes. The provider uses the retained validated context, verifies identity,
+bytes. The compiler passes its source-dependent portion of the link context in
+the existing 18-byte `TargetRuntimeContext`: runtime base, writable base and
+capacity, state base, vector base, program-data base and capacity, and
+read-only-data base and capacity, all as little-endian words in that order.
+The provider combines it with the retained target context's service
+destinations, verifies identity,
 exact length, and helper offsets, then appends resolved bytes to IMAGE at the
 supplied bank and address.
 

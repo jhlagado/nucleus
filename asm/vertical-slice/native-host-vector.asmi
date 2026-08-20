@@ -1,0 +1,94 @@
+; Reference Debug80/Node binding of the native compiler-host vector. The
+; vector is fixed Z80 ABI; OUT merely yields each call to the outer host.
+
+HostVectorBase .equ $B000
+
+NativeHostSourceNextChunkPort   .equ $C0
+NativeHostRetainNamePort        .equ $C1
+NativeHostCompareNamePort       .equ $C2
+NativeHostMaterializeNamePort   .equ $C3
+NativeHostTargetBeginPort       .equ $C4
+NativeHostTargetImageBytePort   .equ $C5
+NativeHostRuntimeImagePort      .equ $C6
+NativeHostRuntimeInitialPort    .equ $C7
+NativeHostPatchBytePort         .equ $C8
+NativeHostPatchWordPort         .equ $C9
+NativeHostMapFlatPort           .equ $CA
+NativeHostMapBankedPort         .equ $CB
+NativeHostCommitPort            .equ $CC
+NativeHostAbortPort             .equ $CD
+
+            .org HostVectorBase
+            .db "NH",0,1,8,14,0,0
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+HostSourceNextChunk:           JP NativeHostSourceNextChunk
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+HostRetainCurrentName:         JP NativeHostRetainCurrentName
+.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+HostCompareCurrentName:        JP NativeHostCompareCurrentName
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,DE
+HostMaterializeName:           JP NativeHostMaterializeName
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkBegin:               JP NativeHostTargetBegin
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSinkImageByte:           JP NativeHostTargetImageByte
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkRuntimeImage:        JP NativeHostRuntimeImage
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkRuntimeInitialImage: JP NativeHostRuntimeInitialImage
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSinkPatchByte:           JP NativeHostPatchByte
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkPatchWord:           JP NativeHostPatchWord
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkMapFlat:             JP NativeHostMapFlat
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkMapBanked:           JP NativeHostMapBanked
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkCommit:              JP NativeHostCommit
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkAbort:               JP NativeHostAbort
+
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+NativeHostSourceNextChunk:     OUT (NativeHostSourceNextChunkPort),A
+                               RET
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+NativeHostRetainCurrentName:   OUT (NativeHostRetainNamePort),A
+                               RET
+.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NativeHostCompareCurrentName:  OUT (NativeHostCompareNamePort),A
+                               RET
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,DE
+NativeHostMaterializeName:     OUT (NativeHostMaterializeNamePort),A
+                               RET
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostTargetBegin:         OUT (NativeHostTargetBeginPort),A
+                               RET
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NativeHostTargetImageByte:     OUT (NativeHostTargetImageBytePort),A
+                               RET
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostRuntimeImage:        OUT (NativeHostRuntimeImagePort),A
+                               RET
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostRuntimeInitialImage: OUT (NativeHostRuntimeInitialPort),A
+                               RET
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NativeHostPatchByte:           OUT (NativeHostPatchBytePort),A
+                               RET
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+NativeHostPatchWord:           OUT (NativeHostPatchWordPort),A
+                               RET
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostMapFlat:             OUT (NativeHostMapFlatPort),A
+                               RET
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostMapBanked:           OUT (NativeHostMapBankedPort),A
+                               RET
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+NativeHostCommit:              OUT (NativeHostCommitPort),A
+                               RET
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+NativeHostAbort:               OUT (NativeHostAbortPort),A
+                               RET
+HostVectorEnd:

@@ -20,15 +20,15 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(874_179);
-    expect(outcome.cycles).toBe(9_608_830);
+    expect(outcome.instructions).toBe(874_979);
+    expect(outcome.cycles).toBe(9_619_341);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_706 },
+      { name: "compiler-code", bytes: 15_844 },
       { name: "compiler-immutable", bytes: 437 },
-      { name: "compiler-core", bytes: 16_143 },
-      { name: "compiler-workspace", bytes: 3_877 },
+      { name: "compiler-core", bytes: 16_281 },
+      { name: "compiler-workspace", bytes: 3_918 },
       { name: "selected-proof-runtime", bytes: 899 },
-      { name: "proof-code-and-data", bytes: 2_346 },
+      { name: "proof-code-and-data", bytes: 2_355 },
     ]);
     expect(outcome.nobj?.parsed.begin.runtimeIdentity).toBe(9);
     expect(outcome.nobj?.parsed.map.entryAddress).toBe(0x8000);
@@ -103,16 +103,16 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-    expect(outcome.instructions).toBe(877_804);
-    expect(outcome.cycles).toBe(9_648_795);
+    expect(outcome.instructions).toBe(878_604);
+    expect(outcome.cycles).toBe(9_659_306);
     expect(outcome.extents).toEqual([
-      { name: "compiler-code", bytes: 15_772 },
+      { name: "compiler-code", bytes: 15_910 },
       { name: "compiler-immutable", bytes: 437 },
-      { name: "compiler-core", bytes: 16_209 },
-      { name: "instrumented-core-gap", bytes: 8_367 },
-      { name: "compiler-workspace", bytes: 3_877 },
+      { name: "compiler-core", bytes: 16_347 },
+      { name: "instrumented-core-gap", bytes: 8_229 },
+      { name: "compiler-workspace", bytes: 3_918 },
       { name: "selected-proof-runtime", bytes: 899 },
-      { name: "proof-code-and-data", bytes: 2_348 },
+      { name: "proof-code-and-data", bytes: 2_357 },
     ]);
   }, 30_000);
 

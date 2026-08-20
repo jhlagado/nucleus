@@ -3235,6 +3235,43 @@ including record count and CRC. This host-only increment changes no compiler
 code, immutable data, workspace, semantic transcript, generated program,
 selected runtime, instruction count, or T-state count.
 
+### Native Z80 output adapter
+
+The production `compileNucleusTo` path now links the compiler to the versioned
+native host vector. Its fixed Z80 entries yield BEGIN, IMAGE, runtime-provider,
+PATCH, MAP, COMMIT, and ABORT operations directly to Node-backed sequential
+spools. The 92-byte reference vector and its `OUT`/`RET` stubs are host code,
+outside compiler-core accounting. The proof-only AdapterLog remains available
+for isolated assembly evidence, and the materializing/D8 API remains a named
+compatibility path until its consumers become sequential.
+
+The compiler supplies one stable 38-byte MAP request and passes its existing
+18-byte source-dependent runtime link context to the runtime provider. This
+removes private target-layout and MAP symbol reads from the production host;
+the embedded reference image still uses its public symbol map for entry,
+diagnostic, source-window, and host-vector locations. Flat and
+banked `compileNucleusTo` results are byte-identical to the compatibility NOBJ,
+including record order, MAP, record count, CRC, generated program, and selected
+runtime. Separate flat and banked discriminators place the exact used image end
+at mathematical `$10000`, where the retained 16-bit cursor is zero, and still
+produce byte-identical compatibility and native NOBJ.
+
+Measured production accounting is 15,844 code bytes plus 437 immutable bytes,
+or 16,281 compiler-core bytes, leaving 103 bytes of 16 KiB headroom. Workspace
+is 3,918 bytes: the increment adds one retained source-part count, one retained
+part-bank pointer, and the 38-byte stable MAP request. The selected runtime
+remains 899 bytes and the largest retained historical generated program remains
+1,040 bytes. The instrumented compatibility layout is 15,910 code plus 437
+immutable, or 16,347 core. The flat proof executes 874,979 instructions in
+9,619,341 T-states; the instrumented proof executes 878,604 instructions in
+9,659,306 T-states. The
+feature-local size pass moved the MAP request into dead post-parse LL(1) stack
+storage, reused values at their existing production sites, merged flat/banked
+MAP routing, and retained the part-bank pointer for a measured four-core-byte,
+two-workspace-byte trade. The account is below the hard limit but leaves little
+reserve; further compiler-core growth requires a new measured compression or
+replacement.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

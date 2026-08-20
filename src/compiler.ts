@@ -5,12 +5,19 @@ import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import {
   debugCompilerHex,
   debugCompilerSymbols,
+  nativeCompilerHex,
+  nativeCompilerSymbols,
+  nativeDebugCompilerHex,
+  nativeDebugCompilerSymbols,
   normalCompilerHex,
   normalCompilerSymbols,
 } from "./generated-compiler-images.js";
 
 import {
   materializeNobj,
+  MemoryNobjSpool,
+  NobjGenerationSink,
+  NobjGenerationStore,
   parseNobj,
   type MaterializedNobj,
   type NobjBegin,
@@ -21,6 +28,7 @@ import {
   type RuntimeLinkContext,
   type RuntimeServiceAddresses,
 } from "./nobj.js";
+import { loadCanonicalRuntimeProvider } from "./nucleus-runtime.js";
 import {
   commitNobjAdapterGeneration,
   commitNobjAdapterGenerationTo,
@@ -189,6 +197,7 @@ interface CompilerImage {
 }
 
 const compilerImages = new Map<boolean, Promise<CompilerImage>>();
+const nativeCompilerImages = new Map<boolean, Promise<CompilerImage>>();
 
 const symbol = (
   symbols: Readonly<Record<string, number>>,
@@ -212,6 +221,48 @@ const loadCompilerImage = async (
       return { program: parseIntelHex(hex), symbols };
     })();
     compilerImages.set(debugHooks, pending);
+  }
+  return pending;
+};
+
+const validateNativeHostVector = (image: CompilerImage): void => {
+  const base = symbol(image.symbols, "HostVectorBase");
+  const end = symbol(image.symbols, "HostVectorEnd");
+  const bytes = image.program.memory;
+  const expectedHeader = [0x4e, 0x48, 0, 1, 8, 14, 0, 0] as const;
+  if (end - base < expectedHeader.length + 14 * 3) {
+    throw new Error("Nucleus native host vector is truncated");
+  }
+  for (let offset = 0; offset < expectedHeader.length; offset += 1) {
+    if (bytes[base + offset] !== expectedHeader[offset]) {
+      throw new Error("Nucleus native host vector header is incompatible");
+    }
+  }
+  for (let entry = 0; entry < 14; entry += 1) {
+    if (bytes[base + 8 + entry * 3] !== 0xc3) {
+      throw new Error("Nucleus native host vector entry is not a JP");
+    }
+  }
+};
+
+const loadNativeCompilerImage = async (
+  debugHooks: boolean,
+): Promise<CompilerImage> => {
+  let pending = nativeCompilerImages.get(debugHooks);
+  if (pending === undefined) {
+    pending = Promise.resolve().then(() => {
+      const image = {
+        program: parseIntelHex(
+          debugHooks ? nativeDebugCompilerHex : nativeCompilerHex,
+        ),
+        symbols: debugHooks
+          ? nativeDebugCompilerSymbols
+          : nativeCompilerSymbols,
+      };
+      validateNativeHostVector(image);
+      return image;
+    });
+    nativeCompilerImages.set(debugHooks, pending);
   }
   return pending;
 };
@@ -483,7 +534,8 @@ const capturedBankedMap = (
   const banks = Array.from({ length: target.bankCount }, (_, bank) => {
     const cursor = readWord(memory, cursors + bank * 2);
     const bankRemaining = readWord(memory, remaining + bank * 2);
-    if (cursor - begin.imageBase + bankRemaining !== begin.imageCapacity) {
+    const usedLength = (cursor - begin.imageBase) & 0xffff;
+    if (usedLength + bankRemaining !== begin.imageCapacity) {
       throw new Error(
         `Nucleus bank ${bank} cursor/capacity state is inconsistent`,
       );
@@ -498,7 +550,7 @@ const capturedBankedMap = (
         ? begin.imageBase + 3 + runtimeLength + startupLength
         : 0;
     return {
-      usedLength: cursor - begin.imageBase,
+      usedLength,
       readOnlyBase:
         bank === target.entryBank
           ? entryReadOnlyBase
@@ -531,6 +583,317 @@ const capturedBankedMap = (
     partBanks,
     banks,
   };
+};
+
+const nativeMapRequest = (
+  memory: Uint8Array,
+  request: number,
+): NobjMap => {
+  const byte = (offset: number): number => memory[request + offset] ?? 0;
+  const word = (offset: number): number => readWord(memory, request + offset);
+  if (byte(0) !== 1) throw new Error("native MAP request revision is invalid");
+  const flags = byte(1);
+  if ((flags & ~3) !== 0) throw new Error("native MAP flags are invalid");
+  const entryBank = byte(2);
+  const entryAddress = word(3);
+  const imageBase = word(5);
+  const imageCapacity = word(7);
+  const writableBase = word(9);
+  const writableCapacity = word(11);
+  const vectorLength = word(13);
+  const initializedRunLength = word(15);
+  const bssBase = word(17);
+  const bssLength = word(19);
+  const stackRequirement = word(21);
+  const dataLoadBank = byte(23);
+  const dataLoadAddress = word(24);
+  const dataLoadLength = word(26);
+  const partCount = byte(28);
+  const partBanksPointer = word(29);
+  const bankCount = byte(31);
+  const bankStatePointer = word(32);
+  const runtimeLength = word(34);
+  const startupLength = word(36);
+  const romMode = (flags & 1) !== 0;
+  const partBanks = Array.from(
+    memory.slice(partBanksPointer, partBanksPointer + partCount),
+  );
+  const banks = Array.from({ length: bankCount }, (_, bank) => {
+    const state = bankStatePointer + bank * 6;
+    const cursor = readWord(memory, state);
+    const remaining = readWord(memory, state + 2);
+    const aggregateConstantLength = readWord(memory, state + 4);
+    const usedLength = (cursor - imageBase) & 0xffff;
+    if (usedLength + remaining !== imageCapacity) {
+      throw new Error(`native MAP bank ${bank} state is inconsistent`);
+    }
+    const afterRuntime = imageBase + 3 + runtimeLength;
+    const isEntry = bank === entryBank;
+    const readOnlyBase = isEntry ? afterRuntime + startupLength : afterRuntime;
+    const entryInitializedLength =
+      isEntry && romMode ? initializedRunLength : 0;
+    const readOnlyLength =
+      entryInitializedLength + aggregateConstantLength;
+    const aggregateConstantBase =
+      readOnlyBase + entryInitializedLength;
+    return {
+      usedLength,
+      readOnlyBase: readOnlyLength === 0 ? 0 : readOnlyBase,
+      readOnlyLength,
+      aggregateConstantBase:
+        aggregateConstantLength === 0 ? 0 : aggregateConstantBase,
+      aggregateConstantLength,
+    };
+  });
+  return {
+    romMode,
+    establishedStack: (flags & 2) !== 0,
+    entryBank,
+    entryAddress,
+    writableBase,
+    writableCapacity,
+    vectorBase: writableBase,
+    vectorLength,
+    initializedRunBase: writableBase,
+    initializedRunLength,
+    bssBase,
+    bssLength,
+    stackRequirement,
+    dataLoadBank,
+    dataLoadAddress,
+    dataLoadLength,
+    partBanks,
+    banks,
+  };
+};
+
+const nativeRuntimeContext = (
+  memory: Uint8Array,
+  pointer: number,
+  services: RuntimeServiceAddresses,
+): RuntimeLinkContext => ({
+  runtimeBase: readWord(memory, pointer),
+  writableBase: readWord(memory, pointer + 2),
+  writableCapacity: readWord(memory, pointer + 4),
+  writableStateBase: readWord(memory, pointer + 6),
+  vectorBase: readWord(memory, pointer + 8),
+  programDataBase: readWord(memory, pointer + 10),
+  programDataCapacity: readWord(memory, pointer + 12),
+  readOnlyBase: readWord(memory, pointer + 14),
+  readOnlyCapacity: readWord(memory, pointer + 16),
+  services,
+});
+
+const validateNativeTargetDescriptor = (
+  memory: Uint8Array,
+  pointer: number,
+  begin: NobjBegin,
+  target: NucleusTarget,
+  partBanks: readonly number[],
+): void => {
+  if (
+    readWord(memory, pointer) !== begin.runtimeIdentity ||
+    readWord(memory, pointer + 2) !== begin.imageBase ||
+    readWord(memory, pointer + 4) !== begin.imageCapacity ||
+    readWord(memory, pointer + 6) !==
+      (target.writableBase ?? 0x4000) ||
+    readWord(memory, pointer + 8) !==
+      (target.writableCapacity ?? 0x1000) ||
+    (memory[pointer + 10] ?? 0) !==
+      (target.establishStack === false ? 0 : 1) ||
+    (memory[pointer + 11] ?? 0) !== begin.bankCount ||
+    (memory[pointer + 12] ?? 0) !==
+      (isBankedTarget(target) ? target.entryBank : 0)
+  ) {
+    throw new Error("native target descriptor differs from retained target");
+  }
+  const banksPointer = readWord(memory, pointer + 13);
+  if (banksPointer + partBanks.length > memory.length) {
+    throw new Error("native target part-bank array is outside memory");
+  }
+  for (let index = 0; index < partBanks.length; index += 1) {
+    if ((memory[banksPointer + index] ?? -1) !== partBanks[index]) {
+      throw new Error("native target part-bank mapping differs from source");
+    }
+  }
+};
+
+const runNucleusCompilerNativeTo = async (
+  parts: readonly NucleusSourcePart[],
+  target: NucleusTarget,
+  output: NobjSequentialOutput,
+  options: NucleusStreamingCompileOptions,
+): Promise<NucleusStreamingCompileResult> => {
+  const image = await loadNativeCompilerImage(false);
+  let pendingHostWork: Promise<void> | undefined;
+  let sink: NobjGenerationSink | undefined;
+  let metadata: NobjCommitMetadata | undefined;
+  let activeProvider:
+    | Awaited<ReturnType<typeof loadCanonicalRuntimeProvider>>
+    | undefined;
+  const provider = {
+    get: (identity: number, context: RuntimeLinkContext) =>
+      activeProvider?.get(identity, context),
+  };
+  const runtime = createZ80Runtime(
+    { ...image.program, memory: image.program.memory.slice() },
+    symbol(image.symbols, "CompileTargetAggregateCallParts"),
+    {
+      write: (port, value) => {
+        const selectedPort = port & 0xff;
+        const cpu = runtime.cpu;
+        const memory = runtime.hardware.memory;
+        const bc = (cpu.b << 8) | cpu.c;
+        const de = (cpu.d << 8) | cpu.e;
+        const hl = (cpu.h << 8) | cpu.l;
+        const succeed = (): void => {
+          cpu.flags.C = 0;
+        };
+        const fail = (diagnostic = 97): void => {
+          cpu.a = diagnostic;
+          cpu.flags.C = 1;
+        };
+        try {
+          if (selectedPort === symbol(image.symbols, "NativeHostTargetBeginPort")) {
+            try {
+              validateNativeTargetDescriptor(
+                memory,
+                cpu.ix,
+                begin,
+                target,
+                prepared.partBanks,
+              );
+            } catch {
+              fail(95);
+              return;
+            }
+            sink = new NobjGenerationSink(
+              new NobjGenerationStore(),
+              provider,
+              options.spoolFactory ?? (() => new MemoryNobjSpool()),
+              { lowMemoryPatchValidation: options.lowMemoryPatchValidation },
+            );
+            sink.begin(begin);
+            succeed();
+          } else if (selectedPort === symbol(image.symbols, "NativeHostTargetImageBytePort")) {
+            sink?.image(cpu.c, hl, Uint8Array.of(value));
+            succeed();
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostRuntimeImagePort") ||
+            selectedPort === symbol(image.symbols, "NativeHostRuntimeInitialPort")
+          ) {
+            const context = nativeRuntimeContext(
+              memory,
+              cpu.ix,
+              target.services ?? defaultNucleusServices,
+            );
+            const bank = value;
+            const initial =
+              selectedPort === symbol(image.symbols, "NativeHostRuntimeInitialPort");
+            pendingHostWork = (async () => {
+              try {
+                if (activeProvider?.get(de, context) === undefined) {
+                  activeProvider = await loadCanonicalRuntimeProvider([context]);
+                }
+                if (initial) {
+                  sink?.runtimeInitialImage(bank, hl, de, context, bc);
+                } else {
+                  sink?.runtimeImage(bank, hl, de, context, bc);
+                }
+                succeed();
+              } catch {
+                fail(95);
+              }
+            })();
+          } else if (selectedPort === symbol(image.symbols, "NativeHostPatchBytePort")) {
+            sink?.patch(cpu.c, hl, Uint8Array.of(value));
+            succeed();
+          } else if (selectedPort === symbol(image.symbols, "NativeHostPatchWordPort")) {
+            sink?.patch(cpu.c, de, Uint8Array.of(cpu.l, cpu.h));
+            succeed();
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostMapFlatPort") ||
+            selectedPort === symbol(image.symbols, "NativeHostMapBankedPort")
+          ) {
+            sink?.map(nativeMapRequest(memory, cpu.ix));
+            succeed();
+          } else if (selectedPort === symbol(image.symbols, "NativeHostCommitPort")) {
+            metadata = sink?.commitTo(output);
+            succeed();
+          } else if (selectedPort === symbol(image.symbols, "NativeHostAbortPort")) {
+            sink?.abort();
+            succeed();
+          } else {
+            options.compilerIoWrite?.(selectedPort, value);
+          }
+        } catch {
+          fail();
+        }
+      },
+    },
+  );
+  const memory = runtime.hardware.memory;
+  const sourceBase = symbol(image.symbols, "SourceBase");
+  const sourceLimit = symbol(image.symbols, "SourceLimit");
+  const prepared = prepareSource(
+    memory,
+    parts,
+    sourceBase,
+    sourceLimit,
+    isBankedTarget(target) ? target.partBanks : undefined,
+  );
+  const begin = prepareTarget(memory, prepared.partBanks, target);
+  memory[RETURN_SENTINEL] = 0x76;
+  writeWord(memory, STACK_TOP, RETURN_SENTINEL);
+  runtime.cpu.sp = STACK_TOP;
+  runtime.cpu.pc = symbol(image.symbols, "CompileTargetAggregateCallParts");
+  runtime.cpu.a = parts.length;
+  runtime.cpu.h = sourceBase >>> 8;
+  runtime.cpu.l = sourceBase & 0xff;
+  runtime.cpu.ix = TARGET_DESCRIPTOR;
+  runtime.cpu.halted = false;
+  let instructions = 0;
+  let cycles = 0;
+  try {
+    while (!runtime.isHalted()) {
+      if (
+        instructions >= DEFAULT_INSTRUCTION_LIMIT ||
+        cycles >= DEFAULT_CYCLE_LIMIT
+      ) {
+        throw new Error("Nucleus compiler exceeded its host execution limit");
+      }
+      const step = runtime.step();
+      instructions += 1;
+      cycles += step.cycles ?? 0;
+      if (pendingHostWork !== undefined) {
+        const pending = pendingHostWork;
+        pendingHostWork = undefined;
+        await pending;
+      }
+    }
+    if (runtime.cpu.flags.C !== 0) {
+      const part = memory[symbol(image.symbols, "DiagnosticPartId")] ?? 0;
+      return {
+        success: false,
+        diagnostic: {
+          code: memory[symbol(image.symbols, "DiagnosticCode")] ?? 0,
+          sourcePart: part,
+          sourceName: parts[part - 1]?.name,
+          offset: readWord(memory, symbol(image.symbols, "DiagnosticOffset")),
+          line: readWord(memory, symbol(image.symbols, "DiagnosticLine")),
+          column: readWord(memory, symbol(image.symbols, "DiagnosticColumn")),
+        },
+        instructions,
+        cycles,
+      };
+    }
+    if (metadata === undefined) {
+      throw new Error("native Nucleus host returned without committing output");
+    }
+    return { success: true, object: metadata, instructions, cycles };
+  } finally {
+    if (metadata === undefined) sink?.abort();
+  }
 };
 
 const runNucleusCompiler = async (
@@ -724,10 +1087,4 @@ export const compileNucleusTo = async (
   output: NobjSequentialOutput,
   options: NucleusStreamingCompileOptions = {},
 ): Promise<NucleusStreamingCompileResult> =>
-  (await runNucleusCompiler(
-    parts,
-    target,
-    { compilerIoWrite: options.compilerIoWrite },
-    output,
-    options,
-  )) as NucleusStreamingCompileResult;
+  runNucleusCompilerNativeTo(parts, target, output, options);

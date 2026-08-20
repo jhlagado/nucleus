@@ -50,7 +50,10 @@ all supported failure kinds.
 `compileNucleusTo(parts, target, output)` is the low-memory object path. It
 writes to a transactional `NobjSequentialOutput` and returns validated BEGIN,
 MAP, COMMIT, byte-length, instruction, and T-state metadata. It does not return
-a complete NOBJ or materialized bank arrays. `NodeFileNobjOutput` supplies the
+a complete NOBJ or materialized bank arrays. This path runs the compiler
+against the fixed native Z80 host vector; IMAGE, runtime, PATCH, MAP, COMMIT,
+and ABORT calls go directly to Node-backed sequential spools. It does not use
+the proof-only resident `AdapterLog`. `NodeFileNobjOutput` supplies the
 standard atomic file implementation. D8, HEX, and launchable bank images still
 use the materializing API until their own streaming consumers are connected.
 By default, `compileNucleusTo` uses in-memory IMAGE and PATCH spools. A bounded

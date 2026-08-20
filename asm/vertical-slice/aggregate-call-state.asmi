@@ -3,6 +3,8 @@
 ; bounded independently. Source bytes remain resident, so names use
 ; pointer/length pairs. Types are the Stage 6 one-byte ordinals.
 
+HybridLL1StackCapacity     .equ 64
+
 Stage7StateBase             .equ AggregateWorkspaceEnd
 Stage7RoutineCount          .equ Stage7StateBase+$00
 Stage7ParameterCount        .equ Stage7StateBase+$01

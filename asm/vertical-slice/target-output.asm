@@ -114,6 +114,7 @@ TargetStartupStackFits:
             POP  HL
 TargetStartupReady:
             LD   (TargetStartupLength),HL
+            LD   (TargetMapRequestStartupLength),HL
             CALL TargetCompareSingleBank
             JP   NZ,TargetBeginBankedProgram
             LD   HL,(ReadOnlyImageLength)
@@ -218,8 +219,11 @@ TargetLoadLayoutMode:
 TargetInitializeOutputBank:
             LD   (TargetOutputBank),A
             LD   HL,(TargetImageBase)
+            LD   (TargetMapRequestEntryAddress),HL
+            LD   (TargetMapRequestImageBase),HL
             LD   (EmitCursor),HL
             LD   HL,(TargetImageCapacity)
+            LD   (TargetMapRequestImageCapacity),HL
             LD   (EmitLimit),HL
             RET
 
@@ -322,10 +326,12 @@ TargetEmitRuntimeInitialImage:
 TargetEmitRuntimeImage:
             LD   HL,(TargetLinkedRuntimeBase)
             LD   BC,NucleusRuntimeExpectedLength
+            LD   (TargetMapRequestRuntimeLength),BC
             SCF
 TargetEmitRuntimeProvider:
             PUSH BC
             LD   DE,NucleusRuntimeIdentity
+            LD   IX,TargetRuntimeContext
             JR   C,TargetEmitRuntimeProviderCode
             CALL TargetSinkRuntimeInitialImage
             JR   TargetEmitRuntimeProviderReady
@@ -466,7 +472,7 @@ TargetSubtractWritableCapacity:
 ; Classify two checked nonempty regions without storing an exclusive $10000
 ; end in a word. Loaded means writable is wholly inside image; ROM means the
 ; half-open regions are disjoint. Every partial overlap is rejected.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetClassifyFlatLayout:
             LD   HL,(TargetWritableBase)
             LD   DE,(TargetImageBase)
@@ -485,8 +491,7 @@ TargetClassifyFlatLayout:
             CALL TargetSubtractWritableCapacity
             JP   C,TargetConfigurationFailure
             XOR  A
-            LD   (TargetLayoutMode),A
-            RET
+            JR   TargetLayoutModeReady
 TargetWritableBeforeImage:
             LD   HL,(TargetImageBase)
             LD   DE,(TargetWritableBase)
@@ -496,8 +501,15 @@ TargetWritableBeforeImage:
             JP   C,TargetConfigurationFailure
 TargetFlatRomReady:
             LD   A,TargetLayoutRom
+TargetLayoutModeReady:
             LD   (TargetLayoutMode),A
-            OR   A
+            LD   B,A
+            LD   A,(TargetStackMode)
+            ADD  A,A
+            OR   B
+            LD   H,A
+            LD   L,1
+            LD   (TargetMapRequestRevision),HL
             RET
 
 ; Build the compiler-owned portion of the complete operating-layer link
@@ -508,10 +520,13 @@ TargetPrepareRuntimeContext:
             LD   (TargetContextRuntimeBase),HL
             LD   HL,(TargetWritableBase)
             LD   (TargetContextWritableBase),HL
+            LD   (TargetMapRequestWritableBase),HL
             LD   DE,(TargetWritableCapacity)
             LD   (TargetContextWritableCapacity),DE
+            LD   (TargetMapRequestWritableCapacity),DE
             LD   (TargetContextVectorBase),HL
             LD   DE,NucleusRuntimeVectorLength
+            LD   (TargetMapRequestVectorLength),DE
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextStateBase),HL
@@ -526,7 +541,9 @@ TargetPrepareRuntimeContext:
             ADD  HL,BC
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetBssBase),HL
+            LD   (TargetMapRequestBssBase),HL
             LD   DE,(ProgramBssLength)
+            LD   (TargetMapRequestBssLength),DE
             LD   H,B
             LD   L,C
             ADD  HL,DE
@@ -777,12 +794,31 @@ FinishTargetFlatProgram:
 .else
             CALL TargetEmitInitialAndStatic
 .endif
+            ; Loaded mode temporarily used EmitLimit as the initialized byte
+            ; count. Restore the bank-state meaning required by the MAP ABI:
+            ; remaining capacity from the final initialized-data end to the
+            ; mathematical image end. Modular subtraction also represents a
+            ; legal image end at $10000.
+            LD   HL,(TargetImageBase)
+            LD   DE,(TargetImageCapacity)
+            ADD  HL,DE
+            LD   DE,(EmitCursor)
+            OR   A
+            SBC  HL,DE
+            LD   (EmitLimit),HL
 TargetLoadedDataReady:
+            CALL TargetSaveOutputBank
+            JR   C,TargetFinishOutputFailureNear
+            CALL TargetPrepareMapRequest
+            JR   NZ,TargetFinishMapBanked
             CALL TargetSinkMapFlat
+            JR   TargetFinishMapReady
+TargetFinishMapBanked:
+            CALL TargetSinkMapBanked
 TargetFinishMapReady:
-            JR   C,TargetFinishOutputFailure
+            JR   C,TargetFinishOutputFailureNear
             CALL TargetSinkCommit
-            JR   C,TargetFinishOutputFailure
+            JR   C,TargetFinishOutputFailureNear
             XOR  A
             RET
 
@@ -791,22 +827,7 @@ TargetFinishMapReady:
 ; common layout state; it deterministically forms and validates the MAP.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 FinishTargetBankedProgram:
-            CALL TargetSaveOutputBank
-            JR   C,TargetFinishOutputFailure
-            LD   IX,(TargetDescriptorPointer)
-            LD   IY,TargetBankStateBase
-            CALL TargetSinkMapBanked
-            JR   TargetFinishMapReady
-
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-AbortTargetProgram:
-            PUSH AF
-            LD   A,(TargetOutputBank)
-            INC  A
-            CALL NZ,TargetSinkAbort
-            POP  AF
-            SCF
-            RET
+            JR   TargetLoadedDataReady
 
 TargetConfigurationFailure:
             LD   A,DiagnosticTargetConfiguration
@@ -815,6 +836,7 @@ TargetConfigurationFailure:
 ; generation remains open. Abort that late phase here; the production
 ; diagnostic continuation subsequently sees TargetOutputClosed and therefore
 ; cannot issue a second abort.
+TargetFinishOutputFailureNear:
 TargetFinishOutputFailure:
             PUSH AF
             CALL TargetSinkAbort
@@ -825,6 +847,47 @@ TargetOutputFailure:
             LD   A,DiagnosticTargetOutput
 TargetDiagnosticReady:
             JP   CompilerSetDiagnostic
+
+; Assemble the stable, versioned native-host MAP request after all lengths,
+; cursors, and bank states are final. IX remains valid through the sink call;
+; Z reports the flat one-bank case.
+.routine out A,carry,zero,IX clobbers sign,parity,halfCarry,B,DE,HL
+TargetPrepareMapRequest:
+            LD   A,(TargetDescriptorEntryBankValue)
+            LD   (TargetMapRequestEntryBank),A
+            LD   (TargetMapRequestDataLoadBank),A
+            LD   A,(TargetSourcePartCount)
+            LD   (TargetMapRequestPartCount),A
+            LD   HL,(TargetPartBanksPointer)
+            LD   (TargetMapRequestPartBanks),HL
+            CALL TargetInitializedLength
+            LD   (TargetMapRequestInitializedLength),HL
+            LD   (TargetMapRequestDataLoadLength),HL
+            LD   HL,TargetStackRequirement
+            LD   (TargetMapRequestStackRequirement),HL
+            CALL TargetLoadLayoutMode
+            LD   HL,(TargetWritableBase)
+            JR   Z,TargetMapRequestDataLoadAddressReady
+            LD   HL,(TargetReadOnlyBase)
+TargetMapRequestDataLoadAddressReady:
+            LD   (TargetMapRequestDataLoadAddress),HL
+            LD   HL,TargetBankStateBase
+            LD   (TargetMapRequestBankState),HL
+            LD   A,(TargetDescriptorBankCountValue)
+            LD   (TargetMapRequestBankCount),A
+            DEC  A
+            LD   IX,TargetMapRequest
+            RET
+
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+AbortTargetProgram:
+            PUSH AF
+            LD   A,(TargetOutputBank)
+            INC  A
+            CALL NZ,TargetSinkAbort
+            POP  AF
+            SCF
+            RET
 
 TargetStartupRestoreBytes: .db $C1,$E1,$F9 ; discard CALL return / restore SP
 TargetTerminalSelectBytes .equ TypedBeginAndBytes+3 ; JR NZ across one JP

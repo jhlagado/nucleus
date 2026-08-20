@@ -851,6 +851,9 @@ consumer rather than another log.
 
 ### Milestone 4: native Z80 output adapter
 
+Status: implemented for the production sequential-output API; compatibility
+materialization and D8 remain on their existing adapters by design.
+
 - replace AdapterLog in the production path with host sink calls;
 - run the adapter under Debug80 with Node-backed sequential spools;
 - preserve the proof adapter for isolated compiler tests; and

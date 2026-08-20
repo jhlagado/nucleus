@@ -1,0 +1,8 @@
+; Host-instrumented compiler linked to the native host vector.
+
+DebugHooks .equ 1
+            .include "target-memory-map.asmi"
+            .include "nucleus-runtime-identity.asmi"
+            .org CompilerCoreBase
+            .include "flat-target-compiler-image.asmi"
+            .include "native-host-vector.asmi"

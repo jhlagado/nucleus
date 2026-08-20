@@ -3,7 +3,6 @@
 ; semantic or retained-expression actions $80..$FE. Productions store their
 ; right sides in reverse order so one bounded copy pushes a complete rule.
 
-HybridLL1StackCapacity         .equ 64
 HybridLL1RoutineBodySymbol     .equ $40+20
 HybridLL1StatementSymbolMask   .equ $FA
 .if AggregateCallSlices
