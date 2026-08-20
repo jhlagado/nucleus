@@ -259,12 +259,11 @@ CompileAggregateCallReady:
             INC  A
             LD   (AggregateMode),A
             LD   HL,Stage7StateBase
-            LD   B,Stage7CompilerWorkspaceEnd-Stage7StateBase
+            LD   DE,Stage7StateBase+1
+            LD   BC,Stage7CompilerWorkspaceEnd-Stage7StateBase-1
             XOR  A
-CompileAggregateCallResetLoop:
             LD   (HL),A
-            INC  HL
-            DJNZ CompileAggregateCallResetLoop
+            LDIR
             LD   (ControlNextLabel),A
 .if Stage7LL1
             CALL HybridLL1Parse

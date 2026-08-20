@@ -151,22 +151,6 @@ Stage7TransientMisuseSource:
             .db "end",10
 Stage7TransientMisuseSourceEnd:
 
-Stage7RoutineCapacitySource:
-            .db "sub a()",10,"end",10
-            .db "sub b()",10,"end",10
-            .db "sub c()",10,"end",10
-            .db "sub d()",10,"end",10
-            .db "sub e()",10,"end",10
-Stage7RoutineCapacitySourceEnd:
-
-Stage7ParameterCapacitySource:
-            .db "sub many(a as u8, b as u8, c as u8, d as u8, e as u8, f as u8, g as u8, h as u8, i as u8, j as u8, k as u8, l as u8, m as u8, n as u8, o as u8, p as u8, "
-            .db "q as u8"
-Stage7ParameterCapacityPoint:
-            .db ")",10
-            .db "end",10
-Stage7ParameterCapacitySourceEnd:
-
 Stage7CallDepthSource:
             .db "record Box",10
             .db "value as u8",10
@@ -623,7 +607,7 @@ ProofStart:
             LD   HL,Stage7CopySource
             LD   DE,Stage7CopySourceEnd
             CALL CompileAggregateCallSlice
-            JP   C,ProofFailCompile
+            JP   C,ProofFailParameterCapacity
             CALL EncodeAggregateProgram
             JP   C,ProofFailEncode
             LD   HL,(GeneratedSize)
@@ -1100,7 +1084,7 @@ ProofStart:
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailTransientMisuse
             LD   A,DiagnosticRoutineCapacity
-            LD   BC,52
+            LD   BC,Stage7RoutineCapacityPoint-Stage7RoutineCapacitySource
             LD   HL,Stage7RoutineCapacitySource
             LD   DE,Stage7RoutineCapacitySourceEnd
             CALL ProofExpectCompileDiagnostic
@@ -2129,3 +2113,49 @@ Stage7SealedArrayCapacityPoint:
             .db "end",10,"end",10
 Stage7SealedArraySourceEnd:
 ProofEnd:
+
+; Large capacity fixtures live with proof data rather than consuming the
+; bounded resident source window used by the behavioral corpus above.
+Stage7RoutineCapacitySource:
+            .db "sub a()",10,"end",10
+            .db "sub b()",10,"end",10
+            .db "sub c()",10,"end",10
+            .db "sub d()",10,"end",10
+            .db "sub e()",10,"end",10
+            .db "sub f()",10,"end",10
+            .db "sub g()",10,"end",10
+            .db "sub h()",10,"end",10
+            .db "sub i()",10,"end",10
+            .db "sub j()",10,"end",10
+            .db "sub k()",10,"end",10
+            .db "sub l()",10,"end",10
+            .db "sub m()",10,"end",10
+            .db "sub n()",10,"end",10
+            .db "sub o()",10,"end",10
+            .db "sub p()",10,"end",10
+            .db "sub "
+Stage7RoutineCapacityPoint:
+            .db "q()",10,"end",10
+Stage7RoutineCapacitySourceEnd:
+
+            .org BackupLimit
+Stage7ParameterCapacitySource:
+            .db "forward sub a(x as u8, y as u8)",10
+            .db "forward sub b(x as u8, y as u8)",10
+            .db "forward sub c(x as u8, y as u8)",10
+            .db "forward sub d(x as u8, y as u8)",10
+            .db "forward sub e(x as u8, y as u8)",10
+            .db "forward sub f(x as u8, y as u8)",10
+            .db "forward sub g(x as u8, y as u8)",10
+            .db "forward sub h(x as u8, y as u8)",10
+            .db "forward sub i(x as u8, y as u8)",10
+            .db "forward sub j(x as u8, y as u8)",10
+            .db "forward sub k(x as u8, y as u8)",10
+            .db "forward sub l(x as u8, y as u8)",10
+            .db "forward sub m(x as u8, y as u8)",10
+            .db "forward sub n(z as u8"
+Stage7ParameterCapacityPoint:
+            .db ")",10
+            .db "end",10
+Stage7ParameterCapacitySourceEnd:
+Stage7CapacityFixturesEnd:

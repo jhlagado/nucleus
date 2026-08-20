@@ -36,6 +36,7 @@ const mapping = (...banks: number[]): NucleusDebugMapping => ({
   sourceMarks: 0,
   declarationMarks: 0,
   semanticOperations: 0,
+  semanticBytes: 0,
   imageBytes: 0,
 });
 

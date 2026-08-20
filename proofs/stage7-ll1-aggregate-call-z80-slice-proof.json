@@ -95,6 +95,18 @@
       "from": "ProofStart",
       "to": "ProofEnd",
       "maxBytes": 4096
+    },
+    {
+      "name": "routine-capacity-proof-source",
+      "from": "ProofEnd",
+      "to": "Stage7RoutineCapacitySourceEnd",
+      "maxBytes": 1024
+    },
+    {
+      "name": "parameter-capacity-proof-source",
+      "from": "Stage7ParameterCapacitySource",
+      "to": "Stage7CapacityFixturesEnd",
+      "maxBytes": 1024
     }
   ]
 }

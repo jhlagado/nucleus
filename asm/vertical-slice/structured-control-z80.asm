@@ -11,47 +11,40 @@ EmitControlExitLabel    .equ EmitFailureFixup+1
 
 ; C is a label ordinal and DE is the address of a generated word operand.
 .if TargetStreamingOutput
-; Bit 7 distinguishes a cross-bank address operand. Bits 5..6 retain the site
-; bank and bits 0..4 retain the globally unique label ordinal.
+; Bit 7 on input distinguishes a cross-bank address operand. The four-byte
+; fixup stores the full six-bit label separately from flags and site bank.
 .endif
 .routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredRecordFixup:
-.if TargetStreamingOutput
-            ; Allocated labels are 0..31; bit 7 may additionally mark a far
-            ; operand. The former masked range check therefore could not fail.
-.else
             LD   A,C
+            AND  $7F
             CP   EmitControlLabelCapacity
             JP   NC,ControlLabelFailure
-.endif
             LD   A,(EmitControlFixupCount)
             CP   EmitControlFixupCapacity
             JR   NC,StructuredFixupFailure
             PUSH BC
             LD   L,A
-.if TargetStreamingOutput
-.else
             LD   H,0
-.endif
-            ADD  A,A
-            ADD  A,L
-            LD   L,A
-            LD   H,0
+            ADD  HL,HL
+            ADD  HL,HL
             LD   BC,EmitControlFixupBase
             ADD  HL,BC
             POP  BC
+            LD   A,C
+            AND  $7F
+            LD   (HL),A
+            INC  HL
 .if TargetStreamingOutput
             LD   A,(TargetOutputBank)
-            RLCA
-            RLCA
-            RLCA
-            RLCA
-            RLCA
-            OR   C
-            LD   (HL),A
+            BIT  7,C
+            JR   Z,StructuredRecordFlagsReady
+            SET  7,A
+StructuredRecordFlagsReady:
 .else
-            LD   (HL),C
+            XOR  A
 .endif
+            LD   (HL),A
             INC  HL
             LD   (HL),E
             INC  HL
@@ -217,24 +210,15 @@ StructuredResolveFixups:
             LD   IX,EmitControlFixupBase
 StructuredResolveNext:
             LD   C,(IX+0)
-.if TargetStreamingOutput
-            LD   A,C
-            RLCA
-            RLCA
-            RLCA
-            AND  $03
-.endif
-            LD   E,(IX+1)
-            LD   D,(IX+2)
+            LD   E,(IX+2)
+            LD   D,(IX+3)
 .if TargetStreamingOutput
             PUSH BC
             PUSH DE
+            LD   D,(IX+1)
+            LD   A,D
+            AND  $03
             LD   E,A
-            LD   D,C
-            LD   A,C
-            AND  $1F
-            LD   C,A
-            LD   A,E
             LD   (TargetOutputBank),A
 .endif
             LD   A,C
@@ -246,7 +230,6 @@ StructuredResolveNext:
             PUSH DE
 .endif
 .if TargetStreamingOutput
-            LD   A,C
             CALL StructuredControlLabelEntry
 .else
             LD   B,0
@@ -283,6 +266,7 @@ StructuredResolveBankReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+            INC  IX
             INC  IX
             INC  IX
             INC  IX

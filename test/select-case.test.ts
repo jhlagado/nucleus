@@ -131,7 +131,7 @@ describe("select/case", () => {
     }
   });
 
-  it("uses the existing control, label, fixup, and transcript capacities", async () => {
+  it("uses the bounded control, label, fixup, and transcript capacities", async () => {
     const nested = (depth: number): string =>
       [
         "sub main()",
@@ -171,7 +171,7 @@ describe("select/case", () => {
     for (const [name, source] of [
       ["depth-8", nested(8)],
       ["clauses-10", clauses(10)],
-      ["labels-5", labels(5)],
+      ["labels-7", labels(7)],
     ] as const) {
       const accepted = await compileNucleus([{ name: `${name}.nu`, source }]);
       expect(accepted.success, name).toBe(true);
@@ -179,7 +179,7 @@ describe("select/case", () => {
     for (const [name, source, code, offset, line] of [
       ["depth-9", nested(9), 68, 139, 18],
       ["clauses-11", clauses(11), 70, 106, 16],
-      ["labels-6", labels(6), 69, 159, 24],
+      ["labels-8", labels(8), 69, 173, 26],
       // Ninety-eight values fill the transcript but exhaust generated fixups;
       // the next value is the first semantic-transcript rejection.
       ["values-98", values(98), 70, 414, 6],

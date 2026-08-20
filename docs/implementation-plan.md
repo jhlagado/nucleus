@@ -1236,8 +1236,10 @@ The current proof memory map reserves 4,096 bytes for generated output and
 4,096 bytes for its rollback copy. Streaming makes both regions unnecessary, a
 projected release of 8,192 Z80 address-space bytes before any small transport
 state is measured. This is not a compiler-core saving. The current structured
-fixup capacity remains 32 three-byte unresolved-site records, or 96 compiler
-workspace bytes. NOBJ adds six framing bytes around each patch payload, so a
+fixup capacity remains 32 four-byte unresolved-site records, or 128 compiler
+workspace bytes. Separate label and flag bytes preserve all six label bits
+without sharing them with target-bank and far-call flags. NOBJ adds six framing
+bytes around each patch payload, so a
 one-byte patch occupies seven external bytes and a word patch occupies eight.
 
 The target-system specification settles runtime layout independently of that
@@ -3182,6 +3184,38 @@ bounded-string representation including an embedded zero, intervening scalar
 and mutable declarations, exact-type rejection, declaration order, and an
 earlier source part assigned to another target bank.
 
+### Source-library routine capacity
+
+The source-library baseline raises non-main routine capacity from four to
+sixteen and retained parameter capacity from sixteen to twenty-six. Callable
+`main` uses label 31 and ordinary routines use labels 32 through 47. Structured
+fixups now keep the complete label in its own byte and keep site-bank and
+far-call flags in a second byte; this avoids truncating labels above 31.
+
+Measured production accounting is 15,706 code bytes plus 437 immutable bytes,
+or 16,143 compiler-core bytes, leaving 241 bytes of 16 KiB headroom. Workspace
+grows by 264 bytes, from 3,613 to 3,877: 96 bytes for twelve additional routine
+entries, 40 bytes for ten additional parameter entries, 96 bytes for 32
+additional label entries, and 32 bytes for the widened fixup records. The
+selected runtime remains 899 bytes. Semantic transcript, generated-program,
+target-layout, runtime, and NOBJ capacities are unchanged. The instrumented
+layout is 15,772 code plus 437 immutable, or 16,209 core; the tracing adapter
+still lies outside shipping core accounting. The largest retained historical
+generated program remains 1,040 bytes.
+
+The flat proof executes 874,179 instructions in 9,608,830 T-states. The
+instrumented proof executes 877,804 instructions in 9,648,795 T-states. The
+complete LL(1) proof, including the expanded routine and parameter boundaries,
+executes 2,019,670 instructions in 19,662,246 T-states. Executed local calls
+discriminate labels 31, 32, 43, and 47; executed cross-bank calls discriminate
+labels 43 and 47 with the separate far-call flag. Capacity proofs accept sixteen routines and
+twenty-six retained parameters, then reject the next declaration at its exact
+source position. The historical returning-diagnostic layout is 15,274 code plus
+437 immutable, or 15,711 core, with 3,887 workspace bytes and a 921-byte proof
+runtime. Its Chapter 18 proof executes 1,469,245 instructions in 14,811,727
+T-states; its Stage 8 proof executes 1,723,192 instructions in 17,126,791
+T-states.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -3194,8 +3228,8 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                                                           |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                                               |
 | ordinary binding symbols                |         16 | one shared table of six-byte source-backed scalar and aggregate entries               | capacity diagnostic                                                              | accepted sixteen aggregate variables; rejected seventeenth binding                                               |
-| non-main routine entries                |          4 | one shared table of eight-byte direct or forward entries                              | capacity diagnostic                                                              | direct, forward, mutual-recursion, and rejected fifth-entry proofs                                               |
-| retained parameter entries              |         16 | one global table of four-byte scalar or aggregate parameter entries                   | capacity diagnostic                                                              | accepted sixteen total entries; rejected seventeenth across routines                                             |
+| non-main routine entries                |         16 | one shared table of eight-byte direct or forward entries                              | capacity diagnostic                                                              | local labels 32, 43, and 47; cross-bank labels 43 and 47; accepted sixteen entries and rejected seventeenth      |
+| retained parameter entries              |         26 | one global table of four-byte scalar or aggregate parameter entries                   | capacity diagnostic                                                              | accepted twenty-six total entries; rejected twenty-seventh across routines                                       |
 | nested compiler call frames             |          4 | eight-byte parser frames                                                              | capacity diagnostic                                                              | rejected fifth nested call                                                                                       |
 | LL(1) grammar symbols                   |         64 | byte stack; thirteen bytes of action scratch overlay inactive initializer state       | parser-capacity diagnostic                                                       | exact-fill and atomic internal-overflow engine proof                                                             |
 | dynamic types, records, and fields      | 8 / 5 / 12 | four-byte type, two-byte record, and six-byte field entries                           | capacity diagnostic                                                              | shared nested-row interning, exact-fill, and first-overflow proofs                                               |
@@ -3208,8 +3242,9 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | semantic transcript operations          |        255 | one-byte published operation count                                                    | capacity diagnostic                                                              | pre-append operation-count guard                                                                                 |
 | Boolean fixups                          |         16 | two-byte generated addresses                                                          | capacity diagnostic                                                              | exhaustion and underflow boundary proofs                                                                         |
 | active control frames                   |          8 | ten-byte parser frames                                                                | capacity diagnostic                                                              | nested structured-control proofs                                                                                 |
-| dynamic labels                          |         27 | byte ordinals; 27 reserved for callable `main`, 28–31 for retained routines           | capacity diagnostic                                                              | exact allocation boundary and callable-main proofs                                                               |
-| branch fixups                           |         32 | three-byte absolute records                                                           | capacity diagnostic                                                              | bounded resolver and generated branch proofs                                                                     |
+| parser control-label ordinals           |         31 | byte ordinals 0–30; 31 is reserved for callable `main`                                | capacity diagnostic                                                              | nested control and select/case exact allocation boundaries                                                       |
+| emitter label entries                   |         64 | three-byte streaming entries addressable by a full six-bit ordinal                    | capacity diagnostic                                                              | local labels 31, 32, 43, and 47; cross-bank labels 43 and 47; reserved headroom through ordinal 63               |
+| branch fixups                           |         32 | four-byte label/flags/address records                                                 | capacity diagnostic                                                              | bounded resolver, generated branch proofs, and full six-bit source-routine labels                                |
 | object-stream total records             |     65,535 | NOBJ `COMMIT.recordCount` word                                                        | output-service failure or capacity diagnostic before count wrap                  | accepted exactly 65,535 records; rejected first additional data record atomically                                |
 | object-stream patch records             |     65,531 | external sequential patch spool; exact maximum when one required image record is used | output-service failure or total-record capacity diagnostic before partial record | resolution-order submission, image-before-patch serialization, and count boundary                                |
 | object-stream image or patch bytes      |     65,532 | one NOBJ record with a word payload length and three-byte bank/address prefix         | output-service failure or target-capacity diagnostic                             | accepted 1 and 65,532 bytes; rejected 65,533 before append                                                       |

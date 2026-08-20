@@ -1,5 +1,5 @@
-; Packed aggregate-call and Stage 8 routine state. Four direct routine entries,
-; sixteen retained parameter positions, and four nested parser call frames are
+; Packed aggregate-call and Stage 8 routine state. Sixteen direct routine entries,
+; twenty-six retained parameter positions, and four nested parser call frames are
 ; bounded independently. Source bytes remain resident, so names use
 ; pointer/length pairs. Types are the Stage 6 one-byte ordinals.
 
@@ -43,7 +43,7 @@ Stage7StateEnd              .equ Stage7StateBase+$22
 
 Stage7RoutineTableBase      .equ Stage7StateEnd
 Stage7RoutineEntrySize      .equ 8
-Stage7RoutineCapacity       .equ 4
+Stage7RoutineCapacity       .equ 16
 Stage7RoutineTableLimit     .equ Stage7RoutineTableBase+Stage7RoutineEntrySize*Stage7RoutineCapacity
 Stage7RoutineNamePointer    .equ 0
 Stage7RoutineNameLength     .equ 2
@@ -55,7 +55,7 @@ Stage7RoutineFlags          .equ 7
 
 Stage7ParameterTableBase    .equ Stage7RoutineTableLimit
 Stage7ParameterEntrySize    .equ 4
-Stage7ParameterCapacity     .equ 16
+Stage7ParameterCapacity     .equ 26
 Stage7ParameterTableLimit   .equ Stage7ParameterTableBase+Stage7ParameterEntrySize*Stage7ParameterCapacity
 Stage7ParameterNamePointer  .equ 0
 Stage7ParameterNameLength   .equ 2
@@ -101,10 +101,10 @@ Stage8EmitCallMode          .equ Stage8EmitFieldBase+$02
 Stage8EmitHandlerLabel      .equ Stage8EmitFieldBase+$03
 Stage8EmitRetainedCarriers  .equ Stage8EmitFieldBase+$04
 
-Stage7RoutineLabelBase      .equ 28
-; Label 27 is the callable body of main. The startup wrapper calls this label
-; just like a source call, while labels 28..31 retain ordinary routines.
-Stage7MainLabel             .equ 27
+Stage7RoutineLabelBase      .equ 32
+; Label 31 is the callable body of main. The startup wrapper calls this label
+; just like a source call, while labels 32..47 retain ordinary routines.
+Stage7MainLabel             .equ 31
 Stage7ControlLabelLimit     .equ Stage7MainLabel
 Stage7MainRoutine           .equ $FE
 Stage7NoResult              .equ 0
@@ -168,7 +168,7 @@ Stage8PredefinedPacketService .equ 8
 Stage8PredefinedConstantBase .equ 9
 
 ; One completed call selector carries the target kind, successful-result
-; retention choice, and dense target ID. Source labels occupy 27..31 and
+; retention choice, and dense target ID. Source labels occupy 31..47 and
 ; service IDs occupy 0..5, so both fit without widening the transcript.
 Stage8CallableServiceFlag    .equ $80
 Stage8CallableKeepFlag       .equ $40

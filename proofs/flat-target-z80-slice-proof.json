@@ -17,7 +17,7 @@
     { "at": "DiagnosticCode", "width": "u8", "equals": 11 },
     { "at": "AdapterCapturedRuntimeBase", "width": "u16", "equals": 32771 },
     { "at": "AdapterCapturedStateBase", "width": "u16", "equals": 16420 },
-    { "at": "AdapterRuntimeContextPointer", "width": "u16", "equals": 28158 },
+    { "at": "AdapterRuntimeContextPointer", "width": "u16", "equals": 28422 },
     { "at": "AdapterLogLength", "width": "u16", "equals": 894 }
   ],
   "extents": [

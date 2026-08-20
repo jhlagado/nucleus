@@ -102,6 +102,7 @@ export interface NucleusDebugMapping {
   readonly sourceMarks: number;
   readonly declarationMarks: number;
   readonly semanticOperations: number;
+  readonly semanticBytes: number;
   readonly imageBytes: number;
 }
 
@@ -342,6 +343,7 @@ export class NucleusDebugCollector {
       sourceMarks: this.#marks.length,
       declarationMarks: this.#declarations.length,
       semanticOperations: this.#semanticKeys.length,
+      semanticBytes: this.#semanticEndKey ?? 0,
       imageBytes: this.#images.length,
     };
   }
