@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { materializeNobj, NobjGenerationSink, NobjGenerationStore, } from "./nobj.js";
+import { materializeNobj, MemoryNobjSpool, NobjGenerationSink, NobjGenerationStore, } from "./nobj.js";
 import { defaultRuntimeLinkContext, loadCanonicalRuntimeProvider, } from "./nucleus-runtime.js";
 export class ProofFailure extends Error {
     constructor(message) {
@@ -195,7 +195,7 @@ const runNobjManifest = async (name, manifest, producerMemory, symbol) => {
         bankSwitch: manifest.bankSwitch,
     });
 };
-export const commitNobjAdapterGeneration = async ({ name, producerMemory, start, length, maxBytes, begin, map, runtimeLinkContext = defaultRuntimeLinkContext, store = new NobjGenerationStore(), onImageByte, }) => {
+const prepareNobjAdapterGeneration = async ({ name, producerMemory, start, length, maxBytes, begin, map, runtimeLinkContext = defaultRuntimeLinkContext, store = new NobjGenerationStore(), spoolFactory, lowMemoryPatchValidation = false, onImageByte, }) => {
     if (length > maxBytes) {
         throw new ProofFailure(`${name}: NOBJ adapter log uses ${length} bytes, limit ${maxBytes}`);
     }
@@ -203,61 +203,69 @@ export const commitNobjAdapterGeneration = async ({ name, producerMemory, start,
         throw new ProofFailure(`${name}: NOBJ adapter log exceeds proof memory`);
     }
     const provider = await loadCanonicalRuntimeProvider([runtimeLinkContext]);
-    const sink = new NobjGenerationSink(store, provider);
+    const sink = new NobjGenerationSink(store, provider, spoolFactory ?? (() => new MemoryNobjSpool()), { lowMemoryPatchValidation });
     sink.begin(begin);
-    let cursor = start;
-    const end = start + length;
-    while (cursor < end) {
-        if (end - cursor < 6) {
-            throw new ProofFailure(`${name}: truncated NOBJ adapter operation`);
-        }
-        const kind = producerMemory[cursor] ?? 0;
-        const bank = producerMemory[cursor + 1] ?? 0;
-        const address = (producerMemory[cursor + 2] ?? 0) |
-            ((producerMemory[cursor + 3] ?? 0) << 8);
-        const count = (producerMemory[cursor + 4] ?? 0) |
-            ((producerMemory[cursor + 5] ?? 0) << 8);
-        cursor += 6;
-        if (kind === 3 || kind === 4) {
-            if (end - cursor < 2) {
-                throw new ProofFailure(`${name}: truncated runtime-image operation`);
+    try {
+        let cursor = start;
+        const end = start + length;
+        while (cursor < end) {
+            if (end - cursor < 6) {
+                throw new ProofFailure(`${name}: truncated NOBJ adapter operation`);
             }
-            const identity = (producerMemory[cursor] ?? 0) |
-                ((producerMemory[cursor + 1] ?? 0) << 8);
-            cursor += 2;
-            if (kind === 3) {
-                sink.runtimeImage(bank, address, identity, runtimeLinkContext, count);
+            const kind = producerMemory[cursor] ?? 0;
+            const bank = producerMemory[cursor + 1] ?? 0;
+            const address = (producerMemory[cursor + 2] ?? 0) |
+                ((producerMemory[cursor + 3] ?? 0) << 8);
+            const count = (producerMemory[cursor + 4] ?? 0) |
+                ((producerMemory[cursor + 5] ?? 0) << 8);
+            cursor += 6;
+            if (kind === 3 || kind === 4) {
+                if (end - cursor < 2) {
+                    throw new ProofFailure(`${name}: truncated runtime-image operation`);
+                }
+                const identity = (producerMemory[cursor] ?? 0) |
+                    ((producerMemory[cursor + 1] ?? 0) << 8);
+                cursor += 2;
+                if (kind === 3) {
+                    sink.runtimeImage(bank, address, identity, runtimeLinkContext, count);
+                }
+                else {
+                    sink.runtimeInitialImage(bank, address, identity, runtimeLinkContext, count);
+                }
+                continue;
+            }
+            if (kind !== 1 && kind !== 2) {
+                throw new ProofFailure(`${name}: unknown NOBJ adapter operation ${kind}`);
+            }
+            if (cursor + count > end) {
+                throw new ProofFailure(`${name}: truncated NOBJ adapter bytes`);
+            }
+            const bytes = producerMemory.slice(cursor, cursor + count);
+            cursor += count;
+            if (kind === 1) {
+                for (let offset = 0; offset < bytes.length; offset += 1) {
+                    onImageByte?.({
+                        bank,
+                        address: address + offset,
+                        value: bytes[offset] ?? 0,
+                    });
+                }
+                sink.image(bank, address, bytes);
             }
             else {
-                sink.runtimeInitialImage(bank, address, identity, runtimeLinkContext, count);
+                sink.patch(bank, address, bytes);
             }
-            continue;
         }
-        if (kind !== 1 && kind !== 2) {
-            throw new ProofFailure(`${name}: unknown NOBJ adapter operation ${kind}`);
-        }
-        if (cursor + count > end) {
-            throw new ProofFailure(`${name}: truncated NOBJ adapter bytes`);
-        }
-        const bytes = producerMemory.slice(cursor, cursor + count);
-        cursor += count;
-        if (kind === 1) {
-            for (let offset = 0; offset < bytes.length; offset += 1) {
-                onImageByte?.({
-                    bank,
-                    address: address + offset,
-                    value: bytes[offset] ?? 0,
-                });
-            }
-            sink.image(bank, address, bytes);
-        }
-        else {
-            sink.patch(bank, address, bytes);
-        }
+        sink.map(map);
+        return sink;
     }
-    sink.map(map);
-    return sink.commit();
+    catch (error) {
+        sink.abort();
+        throw error;
+    }
 };
+export const commitNobjAdapterGeneration = async (generation) => (await prepareNobjAdapterGeneration(generation)).commit();
+export const commitNobjAdapterGenerationTo = async (generation, output) => (await prepareNobjAdapterGeneration(generation)).commitTo(output);
 export const executeCommittedNobj = (serialized, execution, options = {}) => {
     const parsed = parseNobjForExecution(serialized);
     const materialized = materializeNobj(parsed);

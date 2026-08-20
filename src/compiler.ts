@@ -14,12 +14,16 @@ import {
   parseNobj,
   type MaterializedNobj,
   type NobjBegin,
+  type NobjCommitMetadata,
   type NobjMap,
+  type NobjSequentialOutput,
+  type NobjSpoolFactory,
   type RuntimeLinkContext,
   type RuntimeServiceAddresses,
 } from "./nobj.js";
 import {
   commitNobjAdapterGeneration,
+  commitNobjAdapterGenerationTo,
   type NobjAdapterImageByte,
 } from "./proof.js";
 import {
@@ -96,6 +100,12 @@ export interface NucleusCompileOptions {
   readonly compilerIoWrite?: (port: number, value: number) => void;
 }
 
+export interface NucleusStreamingCompileOptions {
+  readonly compilerIoWrite?: (port: number, value: number) => void;
+  readonly spoolFactory?: NobjSpoolFactory;
+  readonly lowMemoryPatchValidation?: boolean;
+}
+
 export interface NucleusDiagnostic {
   readonly code: number;
   readonly sourcePart: number;
@@ -124,6 +134,14 @@ export interface NucleusCompileFailure extends CompileMetrics {
 
 export type NucleusCompileResult =
   NucleusCompileSuccess | NucleusCompileFailure;
+
+export interface NucleusStreamingCompileSuccess extends CompileMetrics {
+  readonly success: true;
+  readonly object: NobjCommitMetadata;
+}
+
+export type NucleusStreamingCompileResult =
+  NucleusStreamingCompileSuccess | NucleusCompileFailure;
 
 const hexByte = (value: number): string =>
   (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
@@ -438,12 +456,10 @@ const capturedContext = (
   vectorBase: map.vectorBase,
   programDataBase: map.bssBase - staticLength,
   programDataCapacity: staticLength + map.bssLength,
-  readOnlyBase: map.banks.length === 1
-    ? map.banks[0]?.aggregateConstantBase ?? 0
-    : 0,
-  readOnlyCapacity: map.banks.length === 1
-    ? map.banks[0]?.aggregateConstantLength ?? 0
-    : 0,
+  readOnlyBase:
+    map.banks.length === 1 ? (map.banks[0]?.aggregateConstantBase ?? 0) : 0,
+  readOnlyCapacity:
+    map.banks.length === 1 ? (map.banks[0]?.aggregateConstantLength ?? 0) : 0,
   services,
 });
 
@@ -517,11 +533,16 @@ const capturedBankedMap = (
   };
 };
 
-export const compileNucleus = async (
+const runNucleusCompiler = async (
   parts: readonly NucleusSourcePart[],
   target: NucleusTarget = {},
   options: NucleusCompileOptions = {},
-): Promise<NucleusCompileResult> => {
+  sequentialOutput?: NobjSequentialOutput,
+  streamingOptions?: NucleusStreamingCompileOptions,
+): Promise<NucleusCompileResult | NucleusStreamingCompileResult> => {
+  if (sequentialOutput !== undefined && options.debugMap === true) {
+    throw new Error("streaming NOBJ output does not yet support D8 collection");
+  }
   const debugHooks = options.debugMap === true;
   const image = await loadCompilerImage(debugHooks);
   let debugCollectionActive = debugHooks;
@@ -636,13 +657,7 @@ export const compileNucleus = async (
   const cursor = readWord(memory, symbol(image.symbols, "AdapterCursor"));
   const map = isBankedTarget(target)
     ? capturedBankedMap(memory, image.symbols, begin, target, partBanks)
-    : capturedMap(
-        memory,
-        image.symbols,
-        begin,
-        target,
-        partBanks,
-      );
+    : capturedMap(memory, image.symbols, begin, target, partBanks);
   const runtimeLinkContext = capturedContext(
     map,
     begin,
@@ -651,7 +666,7 @@ export const compileNucleus = async (
   );
   const adapterImages: NobjAdapterImageByte[] | undefined =
     collector === undefined ? undefined : [];
-  const nobj = await commitNobjAdapterGeneration({
+  const generation = {
     name: "nucleus-host-compile",
     producerMemory: memory,
     start: adapterBase,
@@ -660,13 +675,29 @@ export const compileNucleus = async (
     begin,
     map,
     runtimeLinkContext,
+    ...(streamingOptions?.spoolFactory === undefined
+      ? {}
+      : { spoolFactory: streamingOptions.spoolFactory }),
+    ...(streamingOptions?.lowMemoryPatchValidation === undefined
+      ? {}
+      : {
+          lowMemoryPatchValidation: streamingOptions.lowMemoryPatchValidation,
+        }),
     ...(adapterImages === undefined
       ? {}
       : {
           onImageByte: (imageByte: NobjAdapterImageByte) =>
             adapterImages.push(imageByte),
         }),
-  });
+  };
+  if (sequentialOutput !== undefined) {
+    const object = await commitNobjAdapterGenerationTo(
+      generation,
+      sequentialOutput,
+    );
+    return { success: true, object, instructions, cycles };
+  }
+  const nobj = await commitNobjAdapterGeneration(generation);
   const parsed = parseNobj(nobj);
   const debugMapping = collector?.finish(parsed, begin, adapterImages ?? []);
   return {
@@ -678,3 +709,25 @@ export const compileNucleus = async (
     cycles,
   };
 };
+
+export const compileNucleus = async (
+  parts: readonly NucleusSourcePart[],
+  target: NucleusTarget = {},
+  options: NucleusCompileOptions = {},
+): Promise<NucleusCompileResult> =>
+  (await runNucleusCompiler(parts, target, options)) as NucleusCompileResult;
+
+/** Compile to a transactional sequential NOBJ destination without materializing it. */
+export const compileNucleusTo = async (
+  parts: readonly NucleusSourcePart[],
+  target: NucleusTarget,
+  output: NobjSequentialOutput,
+  options: NucleusStreamingCompileOptions = {},
+): Promise<NucleusStreamingCompileResult> =>
+  (await runNucleusCompiler(
+    parts,
+    target,
+    { compilerIoWrite: options.compilerIoWrite },
+    output,
+    options,
+  )) as NucleusStreamingCompileResult;

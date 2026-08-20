@@ -22,6 +22,7 @@
     "./d8": "./dist/d8.js",
     "./host": "./dist/host.js",
     "./nobj": "./dist/nobj.js",
+    "./nobj-file": "./dist/nobj-file.js",
     "./publication": "./dist/publication.js"
   },
   "files": [

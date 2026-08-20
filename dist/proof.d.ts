@@ -1,4 +1,4 @@
-import { NobjGenerationStore, type MaterializedNobj, type NobjBegin, type NobjMap, type ParsedNobj, type RuntimeLinkContext } from "./nobj.js";
+import { NobjGenerationStore, type MaterializedNobj, type NobjBegin, type NobjCommitMetadata, type NobjMap, type NobjSequentialOutput, type NobjSpoolFactory, type ParsedNobj, type RuntimeLinkContext } from "./nobj.js";
 interface NobjProofManifest {
     readonly adapter: {
         readonly at: string;
@@ -46,6 +46,8 @@ export interface NobjAdapterGeneration {
     readonly map: NobjMap;
     readonly runtimeLinkContext?: RuntimeLinkContext;
     readonly store?: NobjGenerationStore;
+    readonly spoolFactory?: NobjSpoolFactory;
+    readonly lowMemoryPatchValidation?: boolean;
     readonly onImageByte?: (image: NobjAdapterImageByte) => void;
 }
 export interface NobjAdapterImageByte {
@@ -87,7 +89,8 @@ export declare class ProofFailure extends Error {
     constructor(message: string);
 }
 export declare function runProofManifest(manifestFile: string): Promise<ProofOutcome>;
-export declare const commitNobjAdapterGeneration: ({ name, producerMemory, start, length, maxBytes, begin, map, runtimeLinkContext, store, onImageByte, }: NobjAdapterGeneration) => Promise<Uint8Array>;
+export declare const commitNobjAdapterGeneration: (generation: NobjAdapterGeneration) => Promise<Uint8Array>;
+export declare const commitNobjAdapterGenerationTo: (generation: NobjAdapterGeneration, output: NobjSequentialOutput) => Promise<NobjCommitMetadata>;
 export declare const executeCommittedNobj: (serialized: Uint8Array, execution: {
     readonly maxInstructions: number;
     readonly maxCycles: number;

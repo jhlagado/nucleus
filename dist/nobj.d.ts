@@ -114,6 +114,34 @@ export interface NobjSpool {
     chunks(): Iterable<Uint8Array>;
     clear(): void;
 }
+/** Transactional sequential destination for a committed NOBJ generation. */
+export interface NobjSequentialOutput {
+    write(bytes: Uint8Array): void;
+    commit(): void;
+    abort(): void;
+}
+export interface NobjCommitMetadata {
+    readonly begin: NobjBegin;
+    readonly map: NobjMap;
+    readonly commit: NobjCommit;
+    readonly byteLength: number;
+}
+export interface NobjStreamReaderOptions {
+    readonly onBegin?: (begin: NobjBegin) => void;
+    readonly onImage?: (record: NobjImageRecord) => void;
+    readonly onPatch?: (record: NobjImageRecord) => void;
+    /** Defer patch-overlap checking to a rewindable external rescan. */
+    readonly deferPatchOverlap?: boolean;
+}
+export interface MaterializedNobjStream {
+    readonly metadata: NobjCommitMetadata;
+    readonly banks: readonly Uint8Array[];
+    readonly flatImage?: Uint8Array;
+}
+export interface NobjGenerationSinkOptions {
+    /** Retain no patch interval table; rescan the patch spool before COMMIT. */
+    readonly lowMemoryPatchValidation?: boolean;
+}
 export type NobjSpoolFactory = () => NobjSpool;
 export declare class MemoryNobjSpool implements NobjSpool {
     #private;
@@ -134,7 +162,7 @@ export declare class NobjGenerationStore {
 export declare const crc16CcittFalse: (bytes: Uint8Array) => number;
 export declare class NobjGenerationSink {
     #private;
-    constructor(store: NobjGenerationStore, provider: RuntimeImageProvider, spoolFactory?: NobjSpoolFactory);
+    constructor(store: NobjGenerationStore, provider: RuntimeImageProvider, spoolFactory?: NobjSpoolFactory, options?: NobjGenerationSinkOptions);
     get imageSpoolHighWater(): number;
     get patchSpoolHighWater(): number;
     begin(begin: NobjBegin): void;
@@ -144,7 +172,19 @@ export declare class NobjGenerationSink {
     patch(bank: number, address: number, bytes: Uint8Array): void;
     map(map: NobjMap): void;
     commit(): Uint8Array;
+    commitTo(output: NobjSequentialOutput): NobjCommitMetadata;
     abort(): void;
 }
+/** Incremental NOBJ validator retaining at most one framed record plus metadata. */
+export declare class NobjStreamReader {
+    #private;
+    constructor(options?: NobjStreamReaderOptions);
+    push(chunk: Uint8Array): void;
+    finish(): NobjCommitMetadata;
+}
+export declare const validateNobjChunks: (chunks: Iterable<Uint8Array>, options?: NobjStreamReaderOptions) => NobjCommitMetadata;
+/** Validate a rewindable object without retaining a patch interval table. */
+export declare const validateRewindableNobjChunks: (chunks: () => Iterable<Uint8Array>) => NobjCommitMetadata;
+export declare const materializeNobjChunks: (chunks: Iterable<Uint8Array>) => MaterializedNobjStream;
 export declare const parseNobj: (serialized: Uint8Array) => ParsedNobj;
 export declare const materializeNobj: (parsed: ParsedNobj) => MaterializedNobj;

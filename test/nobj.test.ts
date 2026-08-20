@@ -4,23 +4,29 @@ import { createZ80Runtime } from "@jhlagado/debug80-runtime";
 import {
   crc16CcittFalse,
   materializeNobj,
+  materializeNobjChunks,
   MemoryNobjSpool,
   NobjError,
   NobjGenerationSink,
   NobjGenerationStore,
   NobjKind,
+  NobjStreamReader,
   NOBJ_MAX_DATA_BYTES,
   parseNobj,
+  validateNobjChunks,
+  validateRewindableNobjChunks,
   type NobjBegin,
   type NobjImageRecord,
   type NobjMap,
   type NobjSpool,
+  type NobjSequentialOutput,
   type RuntimeImageProvider,
 } from "../src/nobj.js";
 import {
   defaultRuntimeLinkContext,
   loadCanonicalRuntimeImage,
 } from "../src/nucleus-runtime.js";
+import { commitNobjAdapterGenerationTo } from "../src/proof.js";
 
 const emptyProvider: RuntimeImageProvider = { get: () => undefined };
 
@@ -722,5 +728,242 @@ describe("NOBJ 0.1", () => {
     expect(sink.imageSpoolHighWater).toBeGreaterThan(0);
     expect(sink.patchSpoolHighWater).toBeGreaterThan(0);
     expect(spools[2]).not.toBe(spools[3]);
+  });
+
+  it("finalizes incrementally with byte-identical framing and CRC", () => {
+    const images = [
+      { bank: 0, address: 0x8000, bytes: Uint8Array.of(1, 2) },
+      { bank: 0, address: 0x8006, bytes: Uint8Array.of(7) },
+    ];
+    const patches = [
+      { bank: 0, address: 0x8001, bytes: Uint8Array.of(9) },
+      { bank: 0, address: 0x8004, bytes: Uint8Array.of(8) },
+    ];
+    const expected = build({ images, patches });
+    const sink = new NobjGenerationSink(
+      new NobjGenerationStore(),
+      emptyProvider,
+    );
+    sink.begin(flatRomBegin());
+    for (const image of images)
+      sink.image(image.bank, image.address, image.bytes);
+    for (const patch of patches)
+      sink.patch(patch.bank, patch.address, patch.bytes);
+    sink.map(flatRomMap(7));
+    const chunks: Uint8Array[] = [];
+    let committed = false;
+    const output: NobjSequentialOutput = {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => {
+        committed = true;
+      },
+      abort: () => {
+        throw new Error("unexpected abort");
+      },
+    };
+    const metadata = sink.commitTo(output);
+    expect(committed).toBe(true);
+    expect(metadata.byteLength).toBe(expected.length);
+    expect(metadata.commit.crc16).toBe(parseNobj(expected).commit.crc16);
+    expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
+      expected,
+    );
+    expect(Math.max(...chunks.map((chunk) => chunk.length))).toBeLessThan(
+      expected.length,
+    );
+  });
+
+  it("validates arbitrarily split chunks without retaining the object", () => {
+    const object = build({
+      images: [{ bank: 0, address: 0x8000, bytes: Uint8Array.of(1, 2, 3) }],
+      patches: [{ bank: 0, address: 0x8001, bytes: Uint8Array.of(9) }],
+    });
+    const images: NobjImageRecord[] = [];
+    const patches: NobjImageRecord[] = [];
+    const reader = new NobjStreamReader({
+      onImage: (record) => images.push(record),
+      onPatch: (record) => patches.push(record),
+    });
+    for (const byte of object) reader.push(Uint8Array.of(byte));
+    const metadata = reader.finish();
+    expect(metadata.commit).toEqual(parseNobj(object).commit);
+    expect(metadata.byteLength).toBe(object.length);
+    expect(images).toEqual([
+      { bank: 0, address: 0x8000, bytes: Uint8Array.of(1, 2, 3) },
+    ]);
+    expect(patches).toEqual([
+      { bank: 0, address: 0x8001, bytes: Uint8Array.of(9) },
+    ]);
+    expect(validateNobjChunks([object.slice(0, 5), object.slice(5)])).toEqual(
+      metadata,
+    );
+    const streamed = materializeNobjChunks(
+      Array.from(object, (byte) => Uint8Array.of(byte)),
+    );
+    expect(streamed.metadata).toEqual(metadata);
+    expect(streamed.banks).toEqual(materializeNobj(parseNobj(object)).banks);
+  });
+
+  it("rescans a rewindable object without a patch interval table", () => {
+    const object = build({
+      images: [{ bank: 0, address: 0x8000, bytes: Uint8Array.of(1, 2, 3, 4) }],
+      patches: [
+        { bank: 0, address: 0x8001, bytes: Uint8Array.of(7) },
+        { bank: 0, address: 0x8003, bytes: Uint8Array.of(9) },
+      ],
+    });
+    const source = () => [object.slice(0, 7), object.slice(7)];
+    expect(validateRewindableNobjChunks(source).commit).toEqual(
+      parseNobj(object).commit,
+    );
+
+    const overlapping = object.slice();
+    const patchSpans = recordSpans(overlapping).filter(
+      ({ kind }) => kind === NobjKind.patch,
+    );
+    const secondAddress = (patchSpans[1]?.payloadStart ?? 0) + 1;
+    overlapping[secondAddress] = 1;
+    overlapping[secondAddress + 1] = 0x80;
+    const corrected = withCrc(overlapping);
+    expect(() => validateRewindableNobjChunks(() => [corrected])).toThrow(
+      "PATCH records overlap",
+    );
+  });
+
+  it("rescans patch storage in low-memory mode before writing COMMIT", () => {
+    const store = new NobjGenerationStore();
+    const previous = build({
+      images: [{ bank: 0, address: 0x8000, bytes: Uint8Array.of(1) }],
+      store,
+    });
+    const sink = new NobjGenerationSink(
+      store,
+      emptyProvider,
+      () => new MemoryNobjSpool(),
+      { lowMemoryPatchValidation: true },
+    );
+    sink.begin(flatRomBegin());
+    sink.image(0, 0x8000, Uint8Array.of(1, 2, 3, 4));
+    sink.patch(0, 0x8001, Uint8Array.of(7, 8));
+    expect(() => sink.patch(0, 0x8002, Uint8Array.of(9, 10))).not.toThrow();
+    sink.map(flatRomMap(4));
+    let writes = 0;
+    expect(() =>
+      sink.commitTo({
+        write: () => {
+          writes += 1;
+        },
+        commit: () => undefined,
+        abort: () => undefined,
+      }),
+    ).toThrow("PATCH records overlap");
+    expect(writes).toBe(0);
+    expect(store.current).toEqual(previous);
+  });
+
+  it("wires low-memory patch validation through the adapter generation", async () => {
+    const operation = (
+      kind: number,
+      address: number,
+      bytes: readonly number[],
+    ): number[] => [
+      kind,
+      0,
+      address & 0xff,
+      address >>> 8,
+      bytes.length,
+      0,
+      ...bytes,
+    ];
+    const producerMemory = Uint8Array.from([
+      ...operation(1, 0x8000, [1, 2, 3, 4]),
+      ...operation(2, 0x8001, [7, 8]),
+      ...operation(2, 0x8002, [9, 10]),
+    ]);
+    let writes = 0;
+    await expect(
+      commitNobjAdapterGenerationTo(
+        {
+          name: "low-memory-overlap",
+          producerMemory,
+          start: 0,
+          length: producerMemory.length,
+          maxBytes: producerMemory.length,
+          begin: flatRomBegin(),
+          map: flatRomMap(4),
+          lowMemoryPatchValidation: true,
+        },
+        {
+          write: () => {
+            writes += 1;
+          },
+          commit: () => undefined,
+          abort: () => undefined,
+        },
+      ),
+    ).rejects.toThrow("PATCH records overlap");
+    expect(writes).toBe(0);
+  });
+
+  it("aborts a sequential destination when output fails", () => {
+    const sink = new NobjGenerationSink(
+      new NobjGenerationStore(),
+      emptyProvider,
+    );
+    sink.begin(flatRomBegin());
+    sink.image(0, 0x8000, Uint8Array.of(1));
+    sink.map(flatRomMap(1));
+    let aborted = false;
+    expect(() =>
+      sink.commitTo({
+        write: () => {
+          throw new Error("storage failed");
+        },
+        commit: () => undefined,
+        abort: () => {
+          aborted = true;
+        },
+      }),
+    ).toThrow("storage failed");
+    expect(aborted).toBe(true);
+    sink.abort();
+  });
+
+  it("does not publish when tentative spool cleanup fails", () => {
+    class FailingClearSpool extends MemoryNobjSpool {
+      #failed = false;
+
+      override clear(): void {
+        if (this.byteLength > 0 && !this.#failed) {
+          this.#failed = true;
+          throw new Error("spool cleanup failed");
+        }
+        super.clear();
+      }
+    }
+
+    const sink = new NobjGenerationSink(
+      new NobjGenerationStore(),
+      emptyProvider,
+      () => new FailingClearSpool(),
+    );
+    sink.begin(flatRomBegin());
+    sink.image(0, 0x8000, Uint8Array.of(1));
+    sink.map(flatRomMap(1));
+    let committed = false;
+    let aborted = false;
+    expect(() =>
+      sink.commitTo({
+        write: () => undefined,
+        commit: () => {
+          committed = true;
+        },
+        abort: () => {
+          aborted = true;
+        },
+      }),
+    ).toThrow("spool cleanup failed");
+    expect(committed).toBe(false);
+    expect(aborted).toBe(true);
   });
 });

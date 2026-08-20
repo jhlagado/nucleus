@@ -837,6 +837,8 @@ depends on it.
 
 ### Milestone 3: streaming NOBJ in Node
 
+Status: implemented, adversarially reviewed, and verified.
+
 - make spool finalization incremental;
 - add a streaming NOBJ reader and validator;
 - add the low-memory patch-overlap rescan;

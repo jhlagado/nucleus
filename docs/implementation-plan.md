@@ -3216,6 +3216,25 @@ runtime. Its Chapter 18 proof executes 1,469,245 instructions in 14,811,727
 T-states; its Stage 8 proof executes 1,723,192 instructions in 17,126,791
 T-states.
 
+### Incremental Node NOBJ path
+
+The Node reference host can now finalize and validate NOBJ without joining the
+image spool, patch spool, map, and commit into one resident byte array.
+`commitTo` updates CRC and byte count as each chunk is written. The incremental
+reader accepts arbitrary chunk boundaries, including one byte at a time, and
+the optional chunk materializer reproduces the compatibility bank images. The
+file destination publishes by temporary-file rename only after COMMIT.
+
+The low-memory producer and rewindable-reader paths rescan stored PATCH records
+pairwise. They retain at most two framed records rather than an interval table
+proportional to the number of patches. Tests distinguish an overlap detected before the first
+committed-output byte, storage failure with abort, late preflight failure with
+the previous file unchanged, and successful publication after validation. The
+compatibility encoder and `compileNucleusTo` produce byte-identical NOBJ,
+including record count and CRC. This host-only increment changes no compiler
+code, immutable data, workspace, semantic transcript, generated program,
+selected runtime, instruction count, or T-state count.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is

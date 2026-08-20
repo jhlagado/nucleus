@@ -83,6 +83,7 @@ export interface NucleusDebugMapping {
     readonly sourceMarks: number;
     readonly declarationMarks: number;
     readonly semanticOperations: number;
+    readonly semanticBytes: number;
     readonly imageBytes: number;
 }
 export declare const nucleusD8OutputPaths: (requestedPath: string, mapping: NucleusDebugMapping) => readonly {

@@ -47,6 +47,17 @@ result.
 tool integrations should use the compiler object because its result classifies
 all supported failure kinds.
 
+`compileNucleusTo(parts, target, output)` is the low-memory object path. It
+writes to a transactional `NobjSequentialOutput` and returns validated BEGIN,
+MAP, COMMIT, byte-length, instruction, and T-state metadata. It does not return
+a complete NOBJ or materialized bank arrays. `NodeFileNobjOutput` supplies the
+standard atomic file implementation. D8, HEX, and launchable bank images still
+use the materializing API until their own streaming consumers are connected.
+By default, `compileNucleusTo` uses in-memory IMAGE and PATCH spools. A bounded
+file-host build supplies `nodeFileNobjSpoolFactory(tempDirectory)` and sets
+`lowMemoryPatchValidation: true`; this moves both spools and the overlap rescan
+out of proportional resident memory.
+
 ## Results and failures
 
 A successful result contains:

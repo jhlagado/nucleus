@@ -129,6 +129,39 @@ export interface NobjSpool {
   clear(): void;
 }
 
+/** Transactional sequential destination for a committed NOBJ generation. */
+export interface NobjSequentialOutput {
+  write(bytes: Uint8Array): void;
+  commit(): void;
+  abort(): void;
+}
+
+export interface NobjCommitMetadata {
+  readonly begin: NobjBegin;
+  readonly map: NobjMap;
+  readonly commit: NobjCommit;
+  readonly byteLength: number;
+}
+
+export interface NobjStreamReaderOptions {
+  readonly onBegin?: (begin: NobjBegin) => void;
+  readonly onImage?: (record: NobjImageRecord) => void;
+  readonly onPatch?: (record: NobjImageRecord) => void;
+  /** Defer patch-overlap checking to a rewindable external rescan. */
+  readonly deferPatchOverlap?: boolean;
+}
+
+export interface MaterializedNobjStream {
+  readonly metadata: NobjCommitMetadata;
+  readonly banks: readonly Uint8Array[];
+  readonly flatImage?: Uint8Array;
+}
+
+export interface NobjGenerationSinkOptions {
+  /** Retain no patch interval table; rescan the patch spool before COMMIT. */
+  readonly lowMemoryPatchValidation?: boolean;
+}
+
 export type NobjSpoolFactory = () => NobjSpool;
 
 export class MemoryNobjSpool implements NobjSpool {
@@ -348,21 +381,101 @@ const validateBegin = (begin: NobjBegin): void => {
 export const crc16CcittFalse = (bytes: Uint8Array): number => {
   let crc = 0xffff;
   for (const byte of bytes) {
-    crc ^= byte << 8;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc =
-        (crc & 0x8000) === 0
-          ? (crc << 1) & 0xffff
-          : ((crc << 1) ^ 0x1021) & 0xffff;
-    }
+    crc = crc16CcittFalseByte(crc, byte);
   }
   return crc;
+};
+
+const crc16CcittFalseByte = (crc: number, byte: number): number => {
+  let next = crc ^ (byte << 8);
+  for (let bit = 0; bit < 8; bit += 1) {
+    next =
+      (next & 0x8000) === 0
+        ? (next << 1) & 0xffff
+        : ((next << 1) ^ 0x1021) & 0xffff;
+  }
+  return next;
+};
+
+const spoolRecords = function* (spool: NobjSpool): Iterable<Uint8Array> {
+  const bytes = (function* (): Iterable<number> {
+    for (const chunk of spool.chunks()) {
+      for (const byte of chunk) yield byte;
+    }
+  })()[Symbol.iterator]();
+
+  for (;;) {
+    const kind = bytes.next();
+    if (kind.done) return;
+    const low = bytes.next();
+    const high = bytes.next();
+    if (low.done || high.done) fail("truncated spooled record header");
+    const payloadLength = low.value | (high.value << 8);
+    const recordBytes = new Uint8Array(payloadLength + 3);
+    recordBytes[0] = kind.value;
+    recordBytes[1] = low.value;
+    recordBytes[2] = high.value;
+    for (let offset = 0; offset < payloadLength; offset += 1) {
+      const next = bytes.next();
+      if (next.done) fail("truncated spooled record payload");
+      recordBytes[offset + 3] = next.value;
+    }
+    yield recordBytes;
+  }
+};
+
+const patchInterval = (
+  recordBytes: Uint8Array,
+): Interval & {
+  readonly bank: number;
+} => {
+  if (recordBytes[0] !== NobjKind.patch)
+    fail("patch spool contains a non-PATCH record");
+  const payloadLength = readU16(recordBytes, 1);
+  if (payloadLength < 4) fail("spooled PATCH payload is empty");
+  const bank = recordBytes[3] ?? 0;
+  const start = readU16(recordBytes, 4);
+  return { bank, start, end: start + payloadLength - 3 };
+};
+
+const validatePatchSpoolWithoutIndex = (spool: NobjSpool): void => {
+  let outerIndex = 0;
+  for (const outerRecord of spoolRecords(spool)) {
+    const outer = patchInterval(outerRecord);
+    let innerIndex = 0;
+    for (const innerRecord of spoolRecords(spool)) {
+      if (innerIndex >= outerIndex) break;
+      const inner = patchInterval(innerRecord);
+      if (
+        inner.bank === outer.bank &&
+        outer.start < inner.end &&
+        inner.start < outer.end
+      ) {
+        fail("PATCH records overlap");
+      }
+      innerIndex += 1;
+    }
+    outerIndex += 1;
+  }
+};
+
+const patchHighEnds = (spool: NobjSpool): ReadonlyMap<number, number> => {
+  const ends = new Map<number, number>();
+  for (const recordBytes of spoolRecords(spool)) {
+    const interval = patchInterval(recordBytes);
+    ends.set(
+      interval.bank,
+      Math.max(ends.get(interval.bank) ?? 0, interval.end),
+    );
+  }
+  return ends;
 };
 
 export class NobjGenerationSink {
   readonly #store: NobjGenerationStore;
   readonly #provider: RuntimeImageProvider;
   readonly #spoolFactory: NobjSpoolFactory;
+  readonly #lowMemoryPatchValidation: boolean;
   #imageSpool: NobjSpool;
   #patchSpool: NobjSpool;
   #begin: NobjBegin | undefined;
@@ -378,10 +491,12 @@ export class NobjGenerationSink {
     store: NobjGenerationStore,
     provider: RuntimeImageProvider,
     spoolFactory: NobjSpoolFactory = () => new MemoryNobjSpool(),
+    options: NobjGenerationSinkOptions = {},
   ) {
     this.#store = store;
     this.#provider = provider;
     this.#spoolFactory = spoolFactory;
+    this.#lowMemoryPatchValidation = options.lowMemoryPatchValidation === true;
     this.#imageSpool = spoolFactory();
     this.#patchSpool = spoolFactory();
   }
@@ -558,9 +673,11 @@ export class NobjGenerationSink {
       encodeImageLike(NobjKind.patch, { bank, address, bytes }),
     );
     this.#patchCount += 1;
-    const intervals = this.#patchIntervals.get(bank) ?? [];
-    intervals.push({ start: address, end: address + bytes.length });
-    this.#patchIntervals.set(bank, intervals);
+    if (!this.#lowMemoryPatchValidation) {
+      const intervals = this.#patchIntervals.get(bank) ?? [];
+      intervals.push({ start: address, end: address + bytes.length });
+      this.#patchIntervals.set(bank, intervals);
+    }
     this.#patchHighWater = Math.max(
       this.#patchHighWater,
       this.#patchSpool.byteLength,
@@ -574,6 +691,37 @@ export class NobjGenerationSink {
   }
 
   commit(): Uint8Array {
+    const chunks: Uint8Array[] = [];
+    const output: NobjSequentialOutput = {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => undefined,
+      abort: () => {
+        chunks.length = 0;
+      },
+    };
+    this.commitTo(output);
+    const serialized = concat(chunks);
+
+    // Compatibility publication retains the complete object only for callers
+    // that explicitly use the in-memory generation store.
+    this.#store.publish(serialized);
+    return serialized;
+  }
+
+  commitTo(output: NobjSequentialOutput): NobjCommitMetadata {
+    try {
+      return this.#commitTo(output);
+    } catch (error) {
+      try {
+        output.abort();
+      } finally {
+        this.abort();
+      }
+      throw error;
+    }
+  }
+
+  #commitTo(output: NobjSequentialOutput): NobjCommitMetadata {
     const begin = this.#requireOpen();
     const map = this.#map;
     if (map === undefined) fail("MAP is required before COMMIT");
@@ -582,32 +730,56 @@ export class NobjGenerationSink {
     const recordCount = 1 + this.#imageCount + this.#patchCount + 1 + 1;
     if (recordCount > NOBJ_MAX_RECORDS)
       fail("NOBJ record count exceeds 65,535");
+    if (this.#lowMemoryPatchValidation) {
+      validatePatchSpoolWithoutIndex(this.#patchSpool);
+    }
 
-    const prefix = [
-      encodeBegin(begin),
-      ...this.#imageSpool.chunks(),
-      ...this.#patchSpool.chunks(),
-      encodeMap(committedMap),
-    ];
+    validateMapFromEnds(
+      begin,
+      committedMap,
+      this.#imageEnds,
+      patchHighEnds(this.#patchSpool),
+    );
+
     const commitPrefix: number[] = [NobjKind.commit, 7, 0];
     appendU16(commitPrefix, recordCount);
     commitPrefix.push(committedMap.entryBank);
     appendU16(commitPrefix, committedMap.entryAddress);
-    const covered = concat([...prefix, Uint8Array.from(commitPrefix)]);
-    const crc = crc16CcittFalse(covered);
-    const serialized = concat([
-      covered,
-      Uint8Array.from([crc & 0xff, crc >>> 8]),
-    ]);
+    let crc = 0xffff;
+    let byteLength = 0;
+    const writeCovered = (bytes: Uint8Array): void => {
+      for (const byte of bytes) crc = crc16CcittFalseByte(crc, byte);
+      byteLength += bytes.length;
+      output.write(bytes);
+    };
 
-    // Validation happens before publication; a failed commit leaves the old generation selected.
-    parseNobj(serialized);
-    this.#store.publish(serialized);
-    this.#begin = undefined;
-    this.#map = undefined;
+    writeCovered(encodeBegin(begin));
+    for (const chunk of this.#imageSpool.chunks()) writeCovered(chunk);
+    for (const chunk of this.#patchSpool.chunks()) writeCovered(chunk);
+    writeCovered(encodeMap(committedMap));
+    writeCovered(Uint8Array.from(commitPrefix));
+    const checksum = Uint8Array.of(crc & 0xff, crc >>> 8);
+    output.write(checksum);
+    byteLength += checksum.length;
+    const metadata: NobjCommitMetadata = {
+      begin: { ...begin },
+      map: cloneMap(committedMap),
+      commit: {
+        recordCount,
+        entryBank: committedMap.entryBank,
+        entryAddress: committedMap.entryAddress,
+        crc16: crc,
+      },
+      byteLength,
+    };
+    // No fallible cleanup may follow publication. Close tentative storage and
+    // prepare the return value before the destination changes generations.
     this.#imageSpool.clear();
     this.#patchSpool.clear();
-    return serialized;
+    this.#begin = undefined;
+    this.#map = undefined;
+    output.commit();
+    return metadata;
   }
 
   abort(): void {
@@ -698,6 +870,8 @@ export class NobjGenerationSink {
   }
 
   #resetTentative(): void {
+    this.#imageSpool.clear();
+    this.#patchSpool.clear();
     this.#imageSpool = this.#spoolFactory();
     this.#patchSpool = this.#spoolFactory();
     this.#imageCount = 0;
@@ -1000,6 +1174,23 @@ const validateMap = (
   }
 };
 
+const validateMapFromEnds = (
+  begin: NobjBegin,
+  map: NobjMap,
+  imageEnds: ReadonlyMap<number, number>,
+  patchEnds: ReadonlyMap<number, number>,
+): void => {
+  const synthetic = (ends: ReadonlyMap<number, number>): NobjImageRecord[] =>
+    [...ends.entries()]
+      .filter(([, end]) => end > begin.imageBase)
+      .map(([bank, end]) => ({
+        bank,
+        address: end - 1,
+        bytes: Uint8Array.of(0),
+      }));
+  validateMap(begin, map, synthetic(imageEnds), synthetic(patchEnds));
+};
+
 const validateOptionalImageExtent = (
   name: string,
   base: number,
@@ -1016,6 +1207,304 @@ const validateOptionalImageExtent = (
   const end = checkedEnd(`${name} extent`, base, length);
   if (base < imageBase || end > usedEnd)
     fail(`${name} extent is outside used image`);
+};
+
+/** Incremental NOBJ validator retaining at most one framed record plus metadata. */
+export class NobjStreamReader {
+  readonly #options: NobjStreamReaderOptions;
+  #pending = new Uint8Array();
+  #phase: "begin" | "image" | "patch" | "map" | "commit" = "begin";
+  #begin: NobjBegin | undefined;
+  #map: NobjMap | undefined;
+  #commit: NobjCommit | undefined;
+  #recordCount = 0;
+  #imageCount = 0;
+  #crc = 0xffff;
+  #byteLength = 0;
+  readonly #imageEnds = new Map<number, number>();
+  readonly #patchEnds = new Map<number, number>();
+  readonly #patchIntervals = new Map<number, Interval[]>();
+
+  constructor(options: NobjStreamReaderOptions = {}) {
+    this.#options = options;
+  }
+
+  push(chunk: Uint8Array): void {
+    if (chunk.length === 0) return;
+    if (this.#phase === "commit") fail("byte after COMMIT");
+    const available =
+      this.#pending.length === 0 ? chunk : concat([this.#pending, chunk]);
+    let cursor = 0;
+    while (available.length - cursor >= 3) {
+      const payloadLength = readU16(available, cursor + 1);
+      const end = cursor + 3 + payloadLength;
+      if (end > available.length) break;
+      const recordBytes = available.slice(cursor, end);
+      this.#acceptRecord(recordBytes);
+      cursor = end;
+      if (this.#phase === "commit" && cursor !== available.length) {
+        fail("byte after COMMIT");
+      }
+    }
+    this.#pending = available.slice(cursor);
+  }
+
+  finish(): NobjCommitMetadata {
+    if (this.#pending.length !== 0) {
+      fail(
+        this.#pending.length < 3
+          ? "truncated record header"
+          : `truncated ${kindName(this.#pending[0] ?? 0)} payload`,
+      );
+    }
+    if (
+      this.#phase !== "commit" ||
+      this.#begin === undefined ||
+      this.#map === undefined ||
+      this.#commit === undefined
+    ) {
+      fail("NOBJ record sequence is incomplete");
+    }
+    const begin = this.#begin as NobjBegin;
+    const map = this.#map as NobjMap;
+    const commit = this.#commit as NobjCommit;
+    return {
+      begin: { ...begin },
+      map: cloneMap(map),
+      commit: { ...commit },
+      byteLength: this.#byteLength,
+    };
+  }
+
+  #acceptRecord(bytes: Uint8Array): void {
+    const kind = bytes[0] ?? 0;
+    if (
+      !Object.values(NobjKind).includes(
+        kind as (typeof NobjKind)[keyof typeof NobjKind],
+      )
+    ) {
+      fail("reserved NOBJ record kind");
+    }
+    const recordValue: DecodedRecord = {
+      kind,
+      start: 0,
+      payloadStart: 3,
+      payloadEnd: bytes.length,
+    };
+    this.#recordCount += 1;
+    this.#byteLength += bytes.length;
+
+    if (kind === NobjKind.commit) {
+      if (bytes.length !== 10) fail("COMMIT payload length must be 7");
+      for (const byte of bytes.slice(0, -2)) {
+        this.#crc = crc16CcittFalseByte(this.#crc, byte);
+      }
+    } else {
+      for (const byte of bytes) {
+        this.#crc = crc16CcittFalseByte(this.#crc, byte);
+      }
+    }
+
+    switch (kind) {
+      case NobjKind.begin:
+        if (this.#phase !== "begin" || this.#recordCount !== 1)
+          fail("BEGIN must be the first and only BEGIN record");
+        this.#begin = decodeBegin(bytes, recordValue);
+        this.#options.onBegin?.(this.#begin);
+        this.#phase = "image";
+        return;
+      case NobjKind.image:
+        this.#acceptImage(bytes, recordValue);
+        return;
+      case NobjKind.patch:
+        this.#acceptPatch(bytes, recordValue);
+        return;
+      case NobjKind.map:
+        if (
+          (this.#phase !== "image" && this.#phase !== "patch") ||
+          this.#imageCount === 0
+        ) {
+          fail("MAP must follow IMAGE+ PATCH*");
+        }
+        this.#map = decodeMap(bytes, recordValue);
+        if (this.#begin === undefined) fail("MAP appears before BEGIN");
+        const begin = this.#begin as NobjBegin;
+        const map = this.#map as NobjMap;
+        validateMapFromEnds(begin, map, this.#imageEnds, this.#patchEnds);
+        this.#phase = "map";
+        return;
+      case NobjKind.commit:
+        this.#acceptCommit(bytes, recordValue);
+        return;
+    }
+  }
+
+  #acceptImage(bytes: Uint8Array, recordValue: DecodedRecord): void {
+    if (this.#phase !== "image") fail("IMAGE appears outside the IMAGE phase");
+    if (this.#begin === undefined) fail("IMAGE appears before BEGIN");
+    const begin = this.#begin as NobjBegin;
+    const item = decodeImageLike(bytes, recordValue, "IMAGE");
+    if (item.bank >= begin.bankCount) fail("IMAGE bank is out of range");
+    const end = requireRegion(
+      "IMAGE",
+      item.address,
+      item.bytes.length,
+      begin.imageBase,
+      begin.imageCapacity,
+    );
+    const previousEnd = this.#imageEnds.get(item.bank);
+    if (previousEnd !== undefined && item.address < previousEnd) {
+      fail("IMAGE records descend or overlap within a bank");
+    }
+    this.#imageEnds.set(item.bank, end);
+    this.#imageCount += 1;
+    this.#options.onImage?.(item);
+  }
+
+  #acceptPatch(bytes: Uint8Array, recordValue: DecodedRecord): void {
+    if (this.#phase !== "image" && this.#phase !== "patch")
+      fail("PATCH appears outside the PATCH phase");
+    if (this.#imageCount === 0) fail("PATCH requires at least one IMAGE");
+    if (this.#begin === undefined) fail("PATCH appears before BEGIN");
+    const begin = this.#begin as NobjBegin;
+    this.#phase = "patch";
+    const item = decodeImageLike(bytes, recordValue, "PATCH");
+    if (item.bank >= begin.bankCount) fail("PATCH bank is out of range");
+    const end = requireRegion(
+      "PATCH",
+      item.address,
+      item.bytes.length,
+      begin.imageBase,
+      begin.imageCapacity,
+    );
+    if (this.#options.deferPatchOverlap !== true) {
+      const intervals = this.#patchIntervals.get(item.bank) ?? [];
+      for (const interval of intervals) {
+        if (item.address < interval.end && interval.start < end) {
+          fail("PATCH records overlap");
+        }
+      }
+      intervals.push({ start: item.address, end });
+      this.#patchIntervals.set(item.bank, intervals);
+    }
+    this.#patchEnds.set(
+      item.bank,
+      Math.max(this.#patchEnds.get(item.bank) ?? 0, end),
+    );
+    this.#options.onPatch?.(item);
+  }
+
+  #acceptCommit(bytes: Uint8Array, recordValue: DecodedRecord): void {
+    if (this.#phase !== "map" || this.#map === undefined)
+      fail("COMMIT must follow MAP");
+    const map = this.#map as NobjMap;
+    const p = recordValue.payloadStart;
+    const recordCount = readU16(bytes, p);
+    const entryBank = bytes[p + 2] ?? 0;
+    const entryAddress = readU16(bytes, p + 3);
+    const storedCrc = readU16(bytes, p + 5);
+    if (recordCount !== this.#recordCount)
+      fail("COMMIT record count is incorrect");
+    if (entryBank !== map.entryBank || entryAddress !== map.entryAddress) {
+      fail("COMMIT entry pair differs from MAP");
+    }
+    if (storedCrc !== this.#crc) fail("COMMIT CRC is incorrect");
+    this.#commit = { recordCount, entryBank, entryAddress, crc16: storedCrc };
+    this.#phase = "commit";
+  }
+}
+
+export const validateNobjChunks = (
+  chunks: Iterable<Uint8Array>,
+  options: NobjStreamReaderOptions = {},
+): NobjCommitMetadata => {
+  const reader = new NobjStreamReader(options);
+  for (const chunk of chunks) reader.push(chunk);
+  return reader.finish();
+};
+
+/** Validate a rewindable object without retaining a patch interval table. */
+export const validateRewindableNobjChunks = (
+  chunks: () => Iterable<Uint8Array>,
+): NobjCommitMetadata => {
+  let patchCount = 0;
+  const initial = new NobjStreamReader({
+    deferPatchOverlap: true,
+    onPatch: () => {
+      patchCount += 1;
+    },
+  });
+  for (const chunk of chunks()) initial.push(chunk);
+  const metadata = initial.finish();
+
+  const scan = (onPatch: (record: NobjImageRecord, index: number) => void) => {
+    let index = 0;
+    const reader = new NobjStreamReader({
+      deferPatchOverlap: true,
+      onPatch: (record) => {
+        onPatch(record, index);
+        index += 1;
+      },
+    });
+    for (const chunk of chunks()) reader.push(chunk);
+    reader.finish();
+  };
+
+  for (let outerIndex = 0; outerIndex < patchCount; outerIndex += 1) {
+    let outer: (Interval & { readonly bank: number }) | undefined;
+    scan((record, index) => {
+      if (index === outerIndex) {
+        outer = {
+          bank: record.bank,
+          start: record.address,
+          end: record.address + record.bytes.length,
+        };
+      }
+    });
+    if (outer === undefined) fail("PATCH rescan count changed");
+    const activeOuter = outer as Interval & { readonly bank: number };
+    scan((record, index) => {
+      if (index >= outerIndex || record.bank !== activeOuter.bank) return;
+      const end = record.address + record.bytes.length;
+      if (activeOuter.start < end && record.address < activeOuter.end) {
+        fail("PATCH records overlap");
+      }
+    });
+  }
+  return metadata;
+};
+
+export const materializeNobjChunks = (
+  chunks: Iterable<Uint8Array>,
+): MaterializedNobjStream => {
+  let begin: NobjBegin | undefined;
+  let banks: Uint8Array[] = [];
+  const apply = (record: NobjImageRecord): void => {
+    if (begin === undefined) fail("object data appears before BEGIN");
+    const activeBegin = begin as NobjBegin;
+    const bank = banks[record.bank];
+    if (bank === undefined) fail("materializer bank is unavailable");
+    bank.set(record.bytes, record.address - activeBegin.imageBase);
+  };
+  const reader = new NobjStreamReader({
+    onBegin: (value) => {
+      begin = value;
+      banks = Array.from({ length: value.bankCount }, () => {
+        const image = new Uint8Array(value.imageCapacity);
+        image.fill(value.imageFill);
+        return image;
+      });
+    },
+    onImage: apply,
+    onPatch: apply,
+  });
+  for (const chunk of chunks) reader.push(chunk);
+  const metadata = reader.finish();
+  return {
+    metadata,
+    banks,
+    ...(metadata.begin.banked ? {} : { flatImage: banks[0] }),
+  };
 };
 
 export const parseNobj = (serialized: Uint8Array): ParsedNobj => {

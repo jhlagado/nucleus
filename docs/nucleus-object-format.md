@@ -360,6 +360,24 @@ become current. Power loss, compiler reset, explicit abort, or write failure
 leaves the previous committed generation selected. The storage layer may
 delete or retain the incomplete generation for diagnosis.
 
+The Node reference implementation exposes the same boundary directly.
+`NobjGenerationSink.commitTo()` drains the two spools into a transactional
+sequential destination while calculating the record count and CRC. It does not
+join them into a complete resident object. `NobjStreamReader` validates records
+as chunks arrive. Its ordinary Node path indexes PATCH extents;
+`validateRewindableNobjChunks()` instead rescans a rewindable source and retains
+at most two framed records plus fixed layout metadata.
+`materializeNobjChunks()` is the optional convenience path for callers that do
+want complete bank images. `NodeFileNobjOutput` writes a private temporary file
+and replaces the named object only after the terminal commit is complete.
+Reader callbacks are tentative: a consumer must not publish their effects until
+`finish()` has accepted MAP, COMMIT, record count, and CRC.
+
+The low-memory producer mode retains no patch interval table. Before writing
+`COMMIT`, it rescans the patch spool to reject overlap. This can take more time
+than the indexed Node path, but its resident memory does not grow with the
+number of patches.
+
 TECM8 and TEC-FS need two sequential temporary spools plus an atomic
 current-generation update. They do not need random writes or in-place patching
 during compilation. A CP/M or host tool may use temporary files, form the final

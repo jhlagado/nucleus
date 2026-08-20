@@ -5,9 +5,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   compileNucleus,
+  compileNucleusTo,
   defaultNucleusServices,
   writeNucleusIntelHex,
 } from "../src/compiler.js";
+import type { NobjSequentialOutput } from "../src/nobj.js";
 import { runProofManifest } from "../src/proof.js";
 
 const proof = (name: string): string =>
@@ -216,6 +218,41 @@ describe("emulator-backed compiler host", () => {
         0,
       ),
     ).toBe(usedLength);
+  }, 30_000);
+
+  it("streams the same committed NOBJ without returning materialized banks", async () => {
+    const parts = [
+      {
+        name: "main.nu",
+        source: "var value as u16 = 3\nsub main()\nvalue = value * 2\nend\n",
+      },
+    ];
+    const conventional = await compileNucleus(parts);
+    expect(conventional.success).toBe(true);
+    if (!conventional.success) return;
+    const chunks: Uint8Array[] = [];
+    let committed = false;
+    const output: NobjSequentialOutput = {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => {
+        committed = true;
+      },
+      abort: () => {
+        throw new Error("unexpected streaming abort");
+      },
+    };
+    const streamed = await compileNucleusTo(parts, {}, output);
+    expect(streamed.success).toBe(true);
+    if (!streamed.success) return;
+    expect(committed).toBe(true);
+    const bytes = Uint8Array.from(chunks.flatMap((chunk) => [...chunk]));
+    expect(bytes).toEqual(conventional.nobj);
+    expect(streamed.object.byteLength).toBe(conventional.nobj.length);
+    expect(streamed.object.commit).toEqual(
+      conventional.materialized.parsed.commit,
+    );
+    expect("nobj" in streamed).toBe(false);
+    expect("materialized" in streamed).toBe(false);
   }, 30_000);
 
   it("matches the established banked-target NOBJ byte for byte", async () => {

@@ -1,4 +1,4 @@
-import { type MaterializedNobj, type RuntimeServiceAddresses } from "./nobj.js";
+import { type MaterializedNobj, type NobjCommitMetadata, type NobjSequentialOutput, type NobjSpoolFactory, type RuntimeServiceAddresses } from "./nobj.js";
 import { type NucleusDebugMapping } from "./d8.js";
 export declare const nucleusCompilerCapacities: {
     readonly sourceParts: 8;
@@ -32,6 +32,11 @@ export interface NucleusCompileOptions {
     readonly debugMap?: boolean;
     readonly compilerIoWrite?: (port: number, value: number) => void;
 }
+export interface NucleusStreamingCompileOptions {
+    readonly compilerIoWrite?: (port: number, value: number) => void;
+    readonly spoolFactory?: NobjSpoolFactory;
+    readonly lowMemoryPatchValidation?: boolean;
+}
 export interface NucleusDiagnostic {
     readonly code: number;
     readonly sourcePart: number;
@@ -55,6 +60,11 @@ export interface NucleusCompileFailure extends CompileMetrics {
     readonly diagnostic: NucleusDiagnostic;
 }
 export type NucleusCompileResult = NucleusCompileSuccess | NucleusCompileFailure;
+export interface NucleusStreamingCompileSuccess extends CompileMetrics {
+    readonly success: true;
+    readonly object: NobjCommitMetadata;
+}
+export type NucleusStreamingCompileResult = NucleusStreamingCompileSuccess | NucleusCompileFailure;
 /** Convert a successful flat-target compile into a Debug80-loadable Intel HEX image. */
 export declare const writeNucleusIntelHex: (result: NucleusCompileSuccess) => string;
 export declare const nucleusCompilerInfo: () => Promise<{
@@ -71,4 +81,6 @@ export declare const nucleusCompilerInfo: () => Promise<{
     };
 }>;
 export declare const compileNucleus: (parts: readonly NucleusSourcePart[], target?: NucleusTarget, options?: NucleusCompileOptions) => Promise<NucleusCompileResult>;
+/** Compile to a transactional sequential NOBJ destination without materializing it. */
+export declare const compileNucleusTo: (parts: readonly NucleusSourcePart[], target: NucleusTarget, output: NobjSequentialOutput, options?: NucleusStreamingCompileOptions) => Promise<NucleusStreamingCompileResult>;
 export {};
