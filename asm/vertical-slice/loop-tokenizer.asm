@@ -2,6 +2,9 @@
 
 .routine out A,carry,zero,HL clobbers sign,parity,halfCarry,BC,DE
 TokenRecordStart:
+.if NativeStreamingSource
+            CALL SourcePinResetToken
+.endif
             LD   HL,SourceOffset
             LD   DE,TokenStartOffset
             LD   BC,8
@@ -45,6 +48,35 @@ TokenNameEqualsLoop:
 
 ; Compare the current NAME token with the retained name record at HL. The
 ; record begins with a pointer word followed by a one-byte length.
+.if NativeStreamingSource
+; The record word is an opaque provider handle rather than a source pointer.
+.routine in BC,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TokenNameRecordEquals:
+            PUSH BC
+            PUSH HL
+            PUSH IX
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            INC  HL
+            LD   A,(TokenLength)
+            XOR  (HL)
+            JP   Z,NativeTokenNameRecordLengthReady
+            POP  IX
+            POP  HL
+            POP  BC
+            RET
+NativeTokenNameRecordLengthReady:
+            LD   B,(HL)
+            EX   DE,HL
+            CALL SourceHostCompareCurrentName
+            POP  IX
+            POP  HL
+            POP  BC
+            RET  NZ
+            SCF
+            RET
+.else
 .routine in BC,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 TokenNameRecordEquals:
             PUSH BC
@@ -59,9 +91,34 @@ TokenNameRecordEquals:
             POP  HL
             POP  BC
             RET
+.endif
 
 ; Store the current NAME token's pointer and length in the three-byte record
 ; at HL. HL returns at the length byte, matching the former inline sequences.
+.if NativeStreamingSource
+.routine in HL out A,BC,HL clobbers carry,zero,sign,parity,halfCarry
+TokenRetainNameAtHL:
+            PUSH DE
+            PUSH HL
+            LD   HL,(TokenLexemePointer)
+            LD   A,(TokenLength)
+            LD   B,A
+            LD   A,(SourcePartId)
+            LD   C,A
+            LD   DE,(TokenStartOffset)
+            CALL SourceHostRetainCurrentName
+            LD   B,H
+            LD   C,L
+            POP  HL
+            LD   (HL),C
+            INC  HL
+            LD   (HL),B
+            INC  HL
+            LD   A,(TokenLength)
+            LD   (HL),A
+            POP  DE
+            RET
+.else
 .routine in HL out A,BC,HL clobbers carry,zero,sign,parity,halfCarry
 TokenRetainNameAtHL:
             LD   BC,(TokenLexemePointer)
@@ -72,10 +129,14 @@ TokenRetainNameAtHL:
             LD   A,(TokenLength)
             LD   (HL),A
             RET
+.endif
 
 .routine in B out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 TokenScanName:
             ; The sole entry follows the exhausted punctuation DJNZ, so B=0.
+.if NativeStreamingSource
+            CALL SourcePinBeginToken
+.endif
 TokenScanNameLoop:
             CALL SourcePeek
             JR   C,TokenScanNameDone
@@ -86,6 +147,9 @@ TokenScanNameLoop:
             JP   Z,TokenLexicalFailure
             JR   TokenScanNameLoop
 TokenScanNameDone:
+.if NativeStreamingSource
+            CALL SourcePinFinishToken
+.endif
             LD   A,B
             LD   C,B
             LD   (TokenLength),A
@@ -292,6 +356,9 @@ TokenTakeHexRequired:
 ; declaration parser can decode the bytes directly into the static image.
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TokenScanString:
+.if NativeStreamingSource
+            CALL SourcePinBeginToken
+.endif
 .if TargetStreamingOutput
             CALL TokenTakeRequired
 .else
@@ -345,6 +412,9 @@ TokenScanStringHex:
 .endif
             JR   TokenScanStringCount
 TokenScanStringDone:
+.if NativeStreamingSource
+            CALL SourcePinFinishToken
+.endif
             LD   A,C
             LD   (TokenLength),A
             CALL TokenFinishInline
@@ -383,21 +453,32 @@ TokenizerAdvancePart:
             LD   HL,SourcePartsRemaining
 .if TargetStreamingOutput
             LD   A,(HL)
-            AND  $7F
+            AND  $3F
             ADD  A,SourcePartOrdinalStep-1
             LD   (HL),A
 .else
             RES  7,(HL)
             DEC  (HL)
 .endif
+.if NativeStreamingSource
+            CALL SourceStreamBeginPart
+.else
             LD   HL,(SourcePartDescriptorCursor)
             CALL SourceLoadPart
+.endif
             JR   TokenizerNextLoop
 TokenizerAtCompilationEof:
 .endif
             LD   A,L
             OR   A
+.if NativeStreamingSource
+            JR   NZ,TokenizerClearLineAndReturnNewline
+            CALL SourceStreamFinishUnit
+            XOR  A
+            RET
+.else
             RET  Z
+.endif
 TokenizerClearLineAndReturnNewline:
             XOR  A
             LD   (SourceLineHasToken),A

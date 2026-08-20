@@ -37,7 +37,7 @@ The value in A is live compiler state, not an event tag.
 | Low port | Event                    | Host observation                                                          |
 | -------: | ------------------------ | ------------------------------------------------------------------------- |
 |    `$D8` | source mark              | source part, token offset, line, column, semantic write key               |
-|    `$D9` | declaration-name mark    | retained source pointer, name length, semantic write key                  |
+|    `$D9` | declaration-name mark    | retained-name word, name length, semantic write key                       |
 |    `$DA` | construct push           | push the current source context                                           |
 |    `$DB` | enclosing-context resume | restore and pop one source context                                        |
 |    `$DC` | routine mark             | push routine context and retain its source name for a symbol anchor       |
@@ -61,8 +61,8 @@ static data do not acquire an invented Nucleus line.
 
 `$DA`, `$DB`, and `$DC` let closing operations return to the construct or
 routine header that owns them. A successful parse must leave this host-side
-stack empty. Underflow, an unbalanced successful parse, invalid name pointers,
-or inconsistent semantic keys invalidates D8 publication. A failed parse may
+stack empty. Underflow, an unbalanced successful parse, invalid pointers or
+handles, or inconsistent semantic keys invalidates D8 publication. A failed parse may
 abandon its tentative stack; the next compilation always receives a new
 collector.
 
@@ -92,9 +92,10 @@ The collector also fixes one source-provider mode when the compilation starts:
 In streaming mode the collector resolves each handle through the active source
 generation to its stable part identity, offset, length, and exact spelling. It
 never guesses pointer or handle mode from the numeric word. An unknown, stale,
-or spelling-mismatched handle invalidates D8 publication. The collector copies
-or resolves every required name correlation after compiler commit and before
-the host releases that source and retained-name generation.
+or spelling-mismatched handle invalidates D8 publication. The collector resolves
+each name when its event arrives and completes trace validation before NOBJ
+commit. The host releases the source and retained-name generation only after
+that preflight finishes.
 
 ## Validation and publication
 
@@ -113,8 +114,8 @@ commit, while the source generation remains live. The collector checks that:
   streaming mode;
 - the construct stack is balanced on successful parsing; and
 - the ordered `$DF` stream exactly matches every compiler-adapter `IMAGE` byte;
-- every observed bank, address, and byte belongs to an original committed
-  NOBJ `IMAGE` record.
+- every observed bank, address, and byte matches the tentative compiler
+  `IMAGE` stream selected for the same NOBJ commit.
 
 The compiler-adapter comparison deliberately excludes provider-owned runtime
 and initialization images. Those records are added by the host after the Z80

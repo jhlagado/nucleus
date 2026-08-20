@@ -22,11 +22,11 @@ NativeHostAbortPort             .equ $CD
             .db "NH",0,1,8,14,0,0
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 HostSourceNextChunk:           JP NativeHostSourceNextChunk
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 HostRetainCurrentName:         JP NativeHostRetainCurrentName
 .routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 HostCompareCurrentName:        JP NativeHostCompareCurrentName
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,DE
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
 HostMaterializeName:           JP NativeHostMaterializeName
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkBegin:               JP NativeHostTargetBegin
@@ -52,20 +52,24 @@ TargetSinkAbort:               JP NativeHostAbort
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 NativeHostSourceNextChunk:     OUT (NativeHostSourceNextChunkPort),A
                                RET
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 NativeHostRetainCurrentName:   OUT (NativeHostRetainNamePort),A
                                RET
 .routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NativeHostCompareCurrentName:  OUT (NativeHostCompareNamePort),A
                                RET
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry,C,DE
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
 NativeHostMaterializeName:     OUT (NativeHostMaterializeNamePort),A
                                RET
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeHostTargetBegin:         OUT (NativeHostTargetBeginPort),A
                                RET
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-NativeHostTargetImageByte:     OUT (NativeHostTargetImageBytePort),A
+NativeHostTargetImageByte:
+.if DebugHooks
+                               OUT (DebugTraceImageBytePort),A
+.endif
+                               OUT (NativeHostTargetImageBytePort),A
                                RET
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeHostRuntimeImage:        OUT (NativeHostRuntimeImagePort),A
@@ -91,4 +95,6 @@ NativeHostCommit:              OUT (NativeHostCommitPort),A
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeHostAbort:               OUT (NativeHostAbortPort),A
                                RET
+
+            .include "native-source-host.asm"
 HostVectorEnd:

@@ -36,16 +36,27 @@ const result = await compiler.build({
 D8 renders its path separators as `/`. When D8 is requested, these portable
 names must be unique, so `a\\b.nu` and `a/b.nu` conflict. `source` accepts a
 string or `Uint8Array`. The host preserves source bytes, CRLF handling and
-synthesized final-newline behaviour defined by Nucleus 0.1.
+synthesized final-newline behaviour defined by Nucleus 0.1. Each source part
+may contain up to 65,535 raw bytes. The native compiler host supplies those
+bytes through a 768-byte refill window and retains a token in a separate
+1,280-byte cache when it crosses a refill boundary. The complete compilation
+unit is not copied into Z80 memory.
+
+Names needed after their token has expired are retained by the Node host. One
+compilation generation admits 1,024 retained names and 65,535 total spelling
+bytes. Handles and copied spellings are discarded on success, source failure,
+host failure, cancellation, or output abort. These limits are reported by
+`compiler.info()` separately from the compiler's symbol capacities.
 
 `artifacts.hex` requests a flat Intel HEX launch image. `artifacts.d8` requests
 one D8 artifact for a flat target or one artifact for every physical bank. NOBJ
 is always present after a successful build and remains the canonical compiler
 result.
 
-`compileNucleus()` remains available as the low-level compatibility API. New
-tool integrations should use the compiler object because its result classifies
-all supported failure kinds.
+`compileNucleus()` remains available as the resident-source compatibility API.
+It retains its 2,048-byte source window for differential tests and older
+integrations. New integrations should use the compiler object or
+`compileNucleusTo()`.
 
 `compileNucleusTo(parts, target, output)` is the low-memory object path. It
 writes to a transactional `NobjSequentialOutput` and returns validated BEGIN,
@@ -54,8 +65,11 @@ a complete NOBJ or materialized bank arrays. This path runs the compiler
 against the fixed native Z80 host vector; IMAGE, runtime, PATCH, MAP, COMMIT,
 and ABORT calls go directly to Node-backed sequential spools. It does not use
 the proof-only resident `AdapterLog`. `NodeFileNobjOutput` supplies the
-standard atomic file implementation. D8, HEX, and launchable bank images still
-use the materializing API until their own streaming consumers are connected.
+standard atomic file implementation. Requesting D8 returns the validated
+mapping beside the commit metadata. HEX and launchable bank images require an
+NOBJ consumer to materialize target bytes. The stable compiler object performs
+that materialization because its result type promises those artifacts; the
+compiler and `compileNucleusTo()` do not.
 By default, `compileNucleusTo` uses in-memory IMAGE and PATCH spools. A bounded
 file-host build supplies `nodeFileNobjSpoolFactory(tempDirectory)` and sets
 `lowMemoryPatchValidation: true`; this moves both spools and the overlap rescan
@@ -166,7 +180,9 @@ CLI and Debug80 read sources in the declared order.
 - host source, execution and target limits;
 - flat and banked target capabilities.
 
-Release builds contain compiler images generated from the checked AZM source.
+The reported fingerprints identify the native normal and D8 compiler-host
+images used by the stable API. Release builds contain those images and the
+resident compatibility images generated from the checked AZM source.
 `npm run check:compiler-images` assembles both layouts afresh and rejects stale
 embedded bytes or symbol maps. AZM remains the build-time authority; the Node
 package and Debug80 execute the generated Z80 images directly.

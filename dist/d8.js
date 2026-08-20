@@ -80,6 +80,7 @@ export class NucleusDebugCollector {
     #memory;
     #parts;
     #symbols;
+    #resolveRetainedName;
     #marks = [];
     #declarations = [];
     #contexts = [];
@@ -93,10 +94,11 @@ export class NucleusDebugCollector {
     #generationStarted = false;
     #semanticEndCount = 0;
     #semanticEndKey;
-    constructor(memory, parts, symbols) {
+    constructor(memory, parts, symbols, resolveRetainedName) {
         this.#memory = memory;
         this.#parts = parts;
         this.#symbols = symbols;
+        this.#resolveRetainedName = resolveRetainedName;
     }
     collect(port, cpu) {
         switch (port & 0xff) {
@@ -134,6 +136,22 @@ export class NucleusDebugCollector {
         }
     }
     finish(parsed, begin, expectedImages) {
+        this.#validateTrace(expectedImages);
+        this.#validateCommittedImages(parsed);
+        if (this.#errors.length > 0) {
+            throw new Error(`invalid Nucleus debug trace\n${this.#errors.join("\n")}`);
+        }
+        return this.#mapping(begin);
+    }
+    /** Validate and resolve a streaming trace before its NOBJ generation commits. */
+    finishStreaming(begin, expectedImages) {
+        this.#validateTrace(expectedImages);
+        if (this.#errors.length > 0) {
+            throw new Error(`invalid Nucleus debug trace\n${this.#errors.join("\n")}`);
+        }
+        return this.#mapping(begin);
+    }
+    #validateTrace(expectedImages) {
         if (this.#contexts.length !== 0) {
             this.#errors.push(`successful parse left ${this.#contexts.length} source contexts active`);
         }
@@ -152,10 +170,9 @@ export class NucleusDebugCollector {
         catch (error) {
             this.#errors.push(error instanceof Error ? error.message : String(error));
         }
-        this.#validateImages(parsed, expectedImages);
-        if (this.#errors.length > 0) {
-            throw new Error(`invalid Nucleus debug trace\n${this.#errors.join("\n")}`);
-        }
+        this.#validateImageSequence(expectedImages);
+    }
+    #mapping(begin) {
         return {
             maps: Array.from({ length: begin.bankCount }, (_, bank) => ({
                 bank,
@@ -194,21 +211,47 @@ export class NucleusDebugCollector {
         }
         return { part, offset, line, column };
     }
-    #locationFromPointer(pointer, length) {
-        const part = this.#parts.find((candidate) => pointer >= candidate.start && pointer + length <= candidate.end);
+    #locationFromName(word, length) {
+        if (this.#resolveRetainedName !== undefined) {
+            const retained = this.#resolveRetainedName(word, length);
+            const part = retained === undefined ? undefined : this.#partById(retained.part);
+            if (retained === undefined ||
+                part === undefined ||
+                length < 1 ||
+                retained.bytes.length !== length ||
+                retained.offset < 0 ||
+                retained.offset + length > part.bytes.length) {
+                this.#errors.push(`name handle ${word} is unknown or stale`);
+                return undefined;
+            }
+            const original = part.bytes.slice(retained.offset, retained.offset + length);
+            if (!retained.bytes.every((byte, index) => byte === original[index])) {
+                this.#errors.push(`name handle ${word} does not retain the original source spelling`);
+                return undefined;
+            }
+            const { line, column } = positionAtOffset(part, retained.offset);
+            return {
+                location: { part, offset: retained.offset, line, column },
+                spelling: retained.bytes.slice(),
+            };
+        }
+        const part = this.#parts.find((candidate) => word >= candidate.start && word + length <= candidate.end);
         if (part === undefined || length < 1) {
-            this.#errors.push(`name pointer ${pointer.toString(16)} length ${length} is outside loaded source`);
+            this.#errors.push(`name pointer ${word.toString(16)} length ${length} is outside loaded source`);
             return undefined;
         }
-        const offset = pointer - part.start;
-        const retained = this.#memory.slice(pointer, pointer + length);
+        const offset = word - part.start;
+        const retained = this.#memory.slice(word, word + length);
         const original = part.bytes.slice(offset, offset + length);
         if (!retained.every((byte, index) => byte === original[index])) {
-            this.#errors.push(`name pointer ${pointer.toString(16)} does not retain the original source spelling`);
+            this.#errors.push(`name pointer ${word.toString(16)} does not retain the original source spelling`);
             return undefined;
         }
         const { line, column } = positionAtOffset(part, offset);
-        return { part, offset, line, column };
+        return {
+            location: { part, offset, line, column },
+            spelling: retained,
+        };
     }
     #appendMark(context) {
         const previous = this.#marks.at(-1);
@@ -230,10 +273,10 @@ export class NucleusDebugCollector {
     #recordDeclaration() {
         const pointer = readWord(this.#memory, this.#symbols.declarationNamePointer);
         const length = this.#memory[this.#symbols.declarationNameLength] ?? 0;
-        const location = this.#locationFromPointer(pointer, length);
-        if (location !== undefined) {
+        const retained = this.#locationFromName(pointer, length);
+        if (retained !== undefined) {
             this.#declarations.push({
-                ...location,
+                ...retained.location,
                 key: this.#semanticKey(this.#symbols.sinkCursor),
             });
         }
@@ -252,12 +295,12 @@ export class NucleusDebugCollector {
             pointer = readWord(this.#memory, entry);
             length = this.#memory[entry + 2] ?? 0;
         }
-        const location = this.#locationFromPointer(pointer, length);
-        if (location === undefined)
+        const retained = this.#locationFromName(pointer, length);
+        if (retained === undefined)
             return;
-        const name = decode(this.#memory.slice(pointer, pointer + length));
+        const name = decode(retained.spelling);
         const context = {
-            ...location,
+            ...retained.location,
             key: this.#semanticKey(this.#symbols.sinkCursor),
             routineName: name,
         };
@@ -313,9 +356,6 @@ export class NucleusDebugCollector {
         }
     }
     #recordImageByte(cpu) {
-        if (this.#semanticEndCount !== 0) {
-            this.#errors.push("IMAGE byte was emitted after semantic end");
-        }
         const observation = {
             bank: cpu.c & 0xff,
             address: ((cpu.h << 8) | cpu.l) & 0xffff,
@@ -339,7 +379,7 @@ export class NucleusDebugCollector {
             }
         }
     }
-    #validateImages(parsed, expectedImages) {
+    #validateImageSequence(expectedImages) {
         if (this.#images.length !== expectedImages.length) {
             this.#errors.push(`IMAGE trace count ${this.#images.length} differs from ${expectedImages.length} compiler-adapter IMAGE bytes`);
         }
@@ -355,6 +395,8 @@ export class NucleusDebugCollector {
                 this.#errors.push(`IMAGE trace ${index} is ${event.bank}:${event.address.toString(16)}=${event.value}, expected compiler-adapter byte ${expected.bank}:${expected.address.toString(16)}=${expected.value}`);
             }
         }
+    }
+    #validateCommittedImages(parsed) {
         for (const event of this.#images) {
             const record = parsed.images.find((candidate) => candidate.bank === event.bank &&
                 event.address >= candidate.address &&

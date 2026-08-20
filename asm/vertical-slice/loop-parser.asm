@@ -222,10 +222,15 @@ ParserExpectResult:
 .routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserCurrentNameIsForward:
             PUSH DE
+.if NativeStreamingSource
+            LD   HL,ForwardNamePointer
+            CALL TokenNameRecordEquals
+.else
             LD   HL,(ForwardNamePointer)
             LD   A,(ForwardNameLength)
             LD   B,A
             CALL TokenNameEquals
+.endif
             POP  DE
             JR   NC,ParserCurrentNameNotForward
             OR   A
@@ -246,19 +251,33 @@ ParserExpectForwardName:
 ; Retain the current name token as the one complete forward signature.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 ParserRetainForwardName:
+.if NativeStreamingSource
+            PUSH BC
+            LD   HL,ForwardNamePointer
+            CALL TokenRetainNameAtHL
+            POP  BC
+.else
             LD   HL,(TokenLexemePointer)
             LD   (ForwardNamePointer),HL
             LD   A,(TokenLength)
             LD   (ForwardNameLength),A
+.endif
             OR   A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 ParserRetainForwardParameter:
+.if NativeStreamingSource
+            PUSH BC
+            LD   HL,ForwardParameterPointer
+            CALL TokenRetainNameAtHL
+            POP  BC
+.else
             LD   HL,(TokenLexemePointer)
             LD   (ForwardParameterPointer),HL
             LD   A,(TokenLength)
             LD   (ForwardParameterLength),A
+.endif
             OR   A
             RET
 .endif

@@ -2,11 +2,17 @@ import { type MaterializedNobj, type NobjCommitMetadata, type NobjSequentialOutp
 import { type NucleusDebugMapping } from "./d8.js";
 export declare const nucleusCompilerCapacities: {
     readonly sourceParts: 8;
-    readonly sourceWindowBytes: number;
+    readonly sourcePartBytes: 65535;
+    /** Compatibility resident-source adapter only; native compilation streams. */
+    readonly compatibilitySourceWindowBytes: number;
+    readonly nativeSourceChunkBytes: number;
+    readonly nativeTokenCacheBytes: number;
+    readonly nativeRetainedNameEntries: 1024;
+    readonly nativeRetainedNameBytes: 65535;
     readonly sourceDescriptorBytesPerPart: 5;
     readonly targetBanks: 4;
-    readonly instructionLimit: 5000000;
-    readonly cycleLimit: 50000000;
+    readonly instructionLimit: 10000000;
+    readonly cycleLimit: 100000000;
 };
 export declare const defaultNucleusServices: RuntimeServiceAddresses;
 export interface NucleusSourcePart {
@@ -33,6 +39,7 @@ export interface NucleusCompileOptions {
     readonly compilerIoWrite?: (port: number, value: number) => void;
 }
 export interface NucleusStreamingCompileOptions {
+    readonly debugMap?: boolean;
     readonly compilerIoWrite?: (port: number, value: number) => void;
     readonly spoolFactory?: NobjSpoolFactory;
     readonly lowMemoryPatchValidation?: boolean;
@@ -63,6 +70,7 @@ export type NucleusCompileResult = NucleusCompileSuccess | NucleusCompileFailure
 export interface NucleusStreamingCompileSuccess extends CompileMetrics {
     readonly success: true;
     readonly object: NobjCommitMetadata;
+    readonly debugMapping?: NucleusDebugMapping;
 }
 export type NucleusStreamingCompileResult = NucleusStreamingCompileSuccess | NucleusCompileFailure;
 /** Convert a successful flat-target compile into a Debug80-loadable Intel HEX image. */

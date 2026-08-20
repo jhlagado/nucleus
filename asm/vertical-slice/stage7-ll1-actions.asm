@@ -2083,6 +2083,9 @@ HybridLL1BeginFor:
             ; action. Convert its retained source pointer through the current
             ; multipart descriptor; parser lookahead may advance part-local
             ; cursor metadata beyond the token whose action is now running.
+.if NativeStreamingSource
+            LD   HL,(TokenStartOffset)
+.else
 .if TargetStreamingOutput
             LD   HL,(SourcePartDescriptorCursor)
             LD   DE,-4                  ; current descriptor's source start
@@ -2095,6 +2098,7 @@ HybridLL1BeginFor:
             SBC  HL,DE
 .else
             LD   HL,(TokenStartOffset)
+.endif
 .endif
             LD   (Stage7ForOffset),HL
             CALL HybridLL1LookupDeclaration

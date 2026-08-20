@@ -309,18 +309,30 @@ cancellation, and abnormal termination release it. Entry count and byte
 capacity are published host capacities and do not reduce compiler symbol
 capacities.
 
+The Node reference binding admits 1,024 retained entries and 65,535 total
+spelling bytes per generation. It preflights both limits before allocating a
+handle. Another host may choose different published limits, but it must still
+fail atomically before truncating a spelling, wrapping a handle, or reusing a
+handle from the active generation.
+
 The reference register binding is:
 
 | Entry                    | Inputs                                               | Success result           | Clobbers      |
 | ------------------------ | ---------------------------------------------------- | ------------------------ | ------------- |
-| `HostRetainCurrentName`  | `HL = bytes, B = length, C = part, DE = part offset` | `HL = handle`            | `AF,BC,DE,HL` |
+| `HostRetainCurrentName`  | `HL = bytes, B = length, C = part, DE = part offset` | `HL = handle`            | `AF,HL`       |
 | `HostCompareCurrentName` | `HL = handle, IX = bytes, B = length`                | `Z = 1` iff equal        | `AF,BC,DE,HL` |
-| `HostMaterializeName`    | `HL = handle`                                        | `HL = bytes, B = length` | `AF,BC,DE,HL` |
+| `HostMaterializeName`    | `HL = handle`                                        | `HL = bytes, B = length` | `AF,B,HL`     |
 
 All three preserve `IX` except that `HostCompareCurrentName` consumes its value
 as a read-only input; they preserve `IY`, `SP`, and the selected target bank.
 `HostCompareCurrentName` returns carry clear for either equal or unequal. It
 sets carry only for an invalid handle or host failure.
+
+The compiler calls these raw entries through checked source adapters. A raw
+carry-set result is not a Nucleus diagnostic: the adapter records the host
+status, restores the launch boundary stack, returns carry set to the launch
+host, and prevents further parsing or target output. This translation is used
+immediately after source refill, retain, compare, and materialize calls.
 
 ### 4.4 Resident compatibility provider
 

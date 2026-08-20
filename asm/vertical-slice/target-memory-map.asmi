@@ -23,6 +23,13 @@ CompilerWorkBase    .equ $6000
 CompilerWorkLimit   .equ $7000
 SourceBase          .equ $7000
 SourceLimit         .equ $7800
+; The native source provider reuses the old resident-source window as two
+; bounded host buffers. Token scratch admits the longest raw string token;
+; the following chunk window is refilled without retaining the complete unit.
+NativeSourceTokenBase  .equ SourceBase
+NativeSourceTokenLimit .equ SourceBase+$0500
+NativeSourceChunkBase  .equ NativeSourceTokenLimit
+NativeSourceChunkLimit .equ SourceLimit
 
 ReleasedGeneratedStagingBase  .equ SourceLimit
 ReleasedGeneratedStagingLimit .equ SourceLimit

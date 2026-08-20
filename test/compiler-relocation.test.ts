@@ -48,6 +48,7 @@ const assembleAt = async (origin: number): Promise<RelocatedImage> => {
       sourcePath,
       [
         "DebugHooks .equ 0",
+        "NativeStreamingSource .equ 0",
         `.include ${JSON.stringify(relativeMemoryMap)}`,
         `.include ${JSON.stringify(relativeRuntimeIdentity)}`,
         "TargetSinkImageByte .equ $5F00",

@@ -78,14 +78,30 @@ Stage7CallFrameFlags        .equ 7
 
 Stage7CompilerWorkspaceEnd  .equ Stage7CallFrameLimit
 
-; The memory-backed multipart adapter retains only the next external
-; descriptor and one packed multipart byte. Bit 7 records a pending boundary
-; newline, bits 3..5 retain the current manifest ordinal, and bits 0..2 retain
-; the number of later parts. SourcePartCapacity=8 makes every field exact.
-; Source bytes and the descriptor table remain outside compiler workspace.
+; The multipart adapter retains one packed byte. Bit 7 records a pending
+; boundary newline, bit 6 records a consumed streaming end-part event, bits
+; 3..5 retain the current manifest ordinal, and bits 0..2 retain the number of
+; later parts. SourcePartCapacity=8 makes every field exact.
+.if NativeStreamingSource
+; Zero means no token needs pinning, one means an active token remains wholly
+; in the current chunk, and a value at NativeSourceTokenBase or above is the
+; next token-scratch byte. SegmentStart is the first uncopied byte in the live
+; chunk after pinning begins.
+SourcePinSegmentStart       .equ Stage7CompilerWorkspaceEnd ; word
+SourcePinScratchCursor      .equ SourcePinSegmentStart+2 ; word
+SourceProviderPartId        .equ SourcePinScratchCursor+2
+SourcePartsRemaining        .equ SourceProviderPartId+1
+SourceHostStatus            .equ SourcePartsRemaining+1
+.else
+; The resident compatibility adapter retains the next external descriptor.
 SourcePartDescriptorCursor  .equ Stage7CompilerWorkspaceEnd
 SourcePartsRemaining        .equ SourcePartDescriptorCursor+2
+.endif
+.if NativeStreamingSource
+SourceMultipartWorkspaceEnd .equ SourceHostStatus+1
+.else
 SourceMultipartWorkspaceEnd .equ SourcePartsRemaining+1
+.endif
 SourcePartDescriptorSize    .equ 5
 SourcePartCapacity          .equ 8
 SourcePartsRemainingMask    .equ $07
@@ -93,6 +109,7 @@ SourcePartOrdinalShift      .equ 3
 SourcePartOrdinalStep       .equ 8
 SourcePartOrdinalMask       .equ $38
 SourcePartPendingNewline    .equ $80
+SourcePartEnded             .equ $40
 
 ; Emission begins only after parsing has published the semantic transcript, so
 ; its consecutive call fields overlay the no-longer-live declaration prefix.

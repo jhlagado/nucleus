@@ -274,6 +274,8 @@ The new path must prove:
 - a unit larger than 2 KiB;
 - a token, string literal, comment, and CRLF split at every cache boundary;
 - a maximum decoded string written entirely with four-byte `\xNN` escapes;
+- the tokenizer's exact 1,022-byte raw-token boundary, independently of the
+  bounded-string value limit;
 - retained-name lookup after the containing source page has been replaced,
   including two different 255-byte names;
 - restored declaration, forward-routine, and forward-parameter names after
@@ -860,6 +862,11 @@ materialization and D8 remain on their existing adapters by design.
 - prove flat and banked objects without resident output arrays.
 
 ### Milestone 5: windowed source provider
+
+Status: implemented in the native Node/Debug80 host, adversarially reviewed,
+and verified. Compiler-private retained-name and materialization logic remains
+inside the measured core; raw provider storage and transport remain in the
+separate host account.
 
 - implement the specification's source-part and byte-chunk events;
 - introduce generation-scoped exact retained-name handles;

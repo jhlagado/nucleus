@@ -42,6 +42,11 @@ import {
   type NucleusDebugTraceSymbols,
   type NucleusLoadedSourcePart,
 } from "./d8.js";
+import {
+  NativeRetainedNameStore,
+  nativeRetainedNameByteCapacity,
+  nativeRetainedNameEntryCapacity,
+} from "./native-retained-names.js";
 
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
@@ -53,12 +58,22 @@ const RUNTIME_IDENTITY = 9;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
-const DEFAULT_INSTRUCTION_LIMIT = 5_000_000;
-const DEFAULT_CYCLE_LIMIT = 50_000_000;
+const DEFAULT_INSTRUCTION_LIMIT = 10_000_000;
+const DEFAULT_CYCLE_LIMIT = 100_000_000;
 
 export const nucleusCompilerCapacities = {
   sourceParts: MAX_SOURCE_PARTS,
-  sourceWindowBytes: SOURCE_LIMIT - SOURCE_BASE,
+  sourcePartBytes: 0xffff,
+  /** Compatibility resident-source adapter only; native compilation streams. */
+  compatibilitySourceWindowBytes: SOURCE_LIMIT - SOURCE_BASE,
+  nativeSourceChunkBytes:
+    (nativeCompilerSymbols.NativeSourceChunkLimit ?? 0x7800) -
+    (nativeCompilerSymbols.NativeSourceChunkBase ?? 0x7500),
+  nativeTokenCacheBytes:
+    (nativeCompilerSymbols.NativeSourceTokenLimit ?? 0x7500) -
+    (nativeCompilerSymbols.NativeSourceTokenBase ?? 0x7000),
+  nativeRetainedNameEntries: nativeRetainedNameEntryCapacity,
+  nativeRetainedNameBytes: nativeRetainedNameByteCapacity,
   sourceDescriptorBytesPerPart: 5,
   targetBanks: 4,
   instructionLimit: DEFAULT_INSTRUCTION_LIMIT,
@@ -109,6 +124,7 @@ export interface NucleusCompileOptions {
 }
 
 export interface NucleusStreamingCompileOptions {
+  readonly debugMap?: boolean;
   readonly compilerIoWrite?: (port: number, value: number) => void;
   readonly spoolFactory?: NobjSpoolFactory;
   readonly lowMemoryPatchValidation?: boolean;
@@ -146,6 +162,7 @@ export type NucleusCompileResult =
 export interface NucleusStreamingCompileSuccess extends CompileMetrics {
   readonly success: true;
   readonly object: NobjCommitMetadata;
+  readonly debugMapping?: NucleusDebugMapping;
 }
 
 export type NucleusStreamingCompileResult =
@@ -294,8 +311,8 @@ export const nucleusCompilerInfo = async (): Promise<{
   };
 }> => {
   const [normal, debug] = await Promise.all([
-    loadCompilerImage(false),
-    loadCompilerImage(true),
+    loadNativeCompilerImage(false),
+    loadNativeCompilerImage(true),
   ]);
   return {
     hostApiVersion: 1,
@@ -370,6 +387,49 @@ const prepareSource = (
   }
   return { partBanks, loaded };
 };
+
+const prepareNativeSource = (
+  parts: readonly NucleusSourcePart[],
+  requestedBanks?: readonly number[],
+): {
+  bytes: Uint8Array[];
+  loaded: NucleusLoadedSourcePart[];
+  partBanks: number[];
+} => {
+  if (parts.length < 1 || parts.length > MAX_SOURCE_PARTS) {
+    throw new RangeError(
+      `Nucleus source requires 1..${MAX_SOURCE_PARTS} parts`,
+    );
+  }
+  const bytes = parts.map(sourcePartBytes);
+  const partBanks = requestedBanks?.slice() ?? bytes.map(() => 0);
+  if (partBanks.length !== bytes.length) {
+    throw new RangeError("Nucleus target partBanks must match source parts");
+  }
+  const loaded = bytes.map((partBytes, index) => ({
+    id: index + 1,
+    name: parts[index]?.name ?? `part-${index + 1}.nu`,
+    start: 0,
+    end: 0,
+    bytes: partBytes,
+  }));
+  return { bytes, loaded, partBanks };
+};
+
+const debugTraceSymbols = (image: CompilerImage): NucleusDebugTraceSymbols => ({
+  sourcePartId: symbol(image.symbols, "SourcePartId"),
+  tokenStartOffset: symbol(image.symbols, "TokenStartOffset"),
+  tokenStartLine: symbol(image.symbols, "TokenStartLine"),
+  tokenStartColumn: symbol(image.symbols, "TokenStartColumn"),
+  sinkCursor: symbol(image.symbols, "SinkCursor"),
+  semanticPayloadBase: symbol(image.symbols, "SemanticPayloadBase"),
+  semanticReadCursor: symbol(image.symbols, "SemanticReadCursor"),
+  declarationNamePointer: symbol(image.symbols, "DeclarationNamePointer"),
+  declarationNameLength: symbol(image.symbols, "DeclarationNameLength"),
+  stage7CurrentRoutine: symbol(image.symbols, "Stage7CurrentRoutine"),
+  stage7RoutineTableBase: symbol(image.symbols, "Stage7RoutineTableBase"),
+  stage7RoutineEntrySize: symbol(image.symbols, "Stage7RoutineEntrySize"),
+});
 
 const isBankedTarget = (target: NucleusTarget): target is NucleusBankedTarget =>
   Object.prototype.hasOwnProperty.call(target, "bankCount");
@@ -585,10 +645,7 @@ const capturedBankedMap = (
   };
 };
 
-const nativeMapRequest = (
-  memory: Uint8Array,
-  request: number,
-): NobjMap => {
+const nativeMapRequest = (memory: Uint8Array, request: number): NobjMap => {
   const byte = (offset: number): number => memory[request + offset] ?? 0;
   const word = (offset: number): number => readWord(memory, request + offset);
   if (byte(0) !== 1) throw new Error("native MAP request revision is invalid");
@@ -632,10 +689,8 @@ const nativeMapRequest = (
     const readOnlyBase = isEntry ? afterRuntime + startupLength : afterRuntime;
     const entryInitializedLength =
       isEntry && romMode ? initializedRunLength : 0;
-    const readOnlyLength =
-      entryInitializedLength + aggregateConstantLength;
-    const aggregateConstantBase =
-      readOnlyBase + entryInitializedLength;
+    const readOnlyLength = entryInitializedLength + aggregateConstantLength;
+    const aggregateConstantBase = readOnlyBase + entryInitializedLength;
     return {
       usedLength,
       readOnlyBase: readOnlyLength === 0 ? 0 : readOnlyBase,
@@ -695,12 +750,9 @@ const validateNativeTargetDescriptor = (
     readWord(memory, pointer) !== begin.runtimeIdentity ||
     readWord(memory, pointer + 2) !== begin.imageBase ||
     readWord(memory, pointer + 4) !== begin.imageCapacity ||
-    readWord(memory, pointer + 6) !==
-      (target.writableBase ?? 0x4000) ||
-    readWord(memory, pointer + 8) !==
-      (target.writableCapacity ?? 0x1000) ||
-    (memory[pointer + 10] ?? 0) !==
-      (target.establishStack === false ? 0 : 1) ||
+    readWord(memory, pointer + 6) !== (target.writableBase ?? 0x4000) ||
+    readWord(memory, pointer + 8) !== (target.writableCapacity ?? 0x1000) ||
+    (memory[pointer + 10] ?? 0) !== (target.establishStack === false ? 0 : 1) ||
     (memory[pointer + 11] ?? 0) !== begin.bankCount ||
     (memory[pointer + 12] ?? 0) !==
       (isBankedTarget(target) ? target.entryBank : 0)
@@ -724,13 +776,26 @@ const runNucleusCompilerNativeTo = async (
   output: NobjSequentialOutput,
   options: NucleusStreamingCompileOptions,
 ): Promise<NucleusStreamingCompileResult> => {
-  const image = await loadNativeCompilerImage(false);
+  const debugHooks = options.debugMap === true;
+  const image = await loadNativeCompilerImage(debugHooks);
+  const prepared = prepareNativeSource(
+    parts,
+    isBankedTarget(target) ? target.partBanks : undefined,
+  );
+  let sourcePartIndex = 0;
+  let sourceOffset = 0;
+  let sourcePhase: "begin" | "bytes" | "end" | "unit" | "finished" = "begin";
+  const retainedNames = new NativeRetainedNameStore();
+  let materializedNameHandle: number | undefined;
+  let nativeHostFailure: Error | undefined;
   let pendingHostWork: Promise<void> | undefined;
   let sink: NobjGenerationSink | undefined;
   let metadata: NobjCommitMetadata | undefined;
+  let debugMapping: NucleusDebugMapping | undefined;
+  const adapterImages: NobjAdapterImageByte[] = [];
+  let collector: NucleusDebugCollector | undefined;
   let activeProvider:
-    | Awaited<ReturnType<typeof loadCanonicalRuntimeProvider>>
-    | undefined;
+    Awaited<ReturnType<typeof loadCanonicalRuntimeProvider>> | undefined;
   const provider = {
     get: (identity: number, context: RuntimeLinkContext) =>
       activeProvider?.get(identity, context),
@@ -754,7 +819,162 @@ const runNucleusCompilerNativeTo = async (
           cpu.flags.C = 1;
         };
         try {
-          if (selectedPort === symbol(image.symbols, "NativeHostTargetBeginPort")) {
+          if (debugHooks && isNucleusDebugPort(selectedPort)) {
+            collector?.collect(selectedPort, cpu);
+            return;
+          } else if (
+            selectedPort ===
+            symbol(image.symbols, "NativeHostSourceNextChunkPort")
+          ) {
+            materializedNameHandle = undefined;
+            const part = prepared.bytes[sourcePartIndex];
+            if (sourcePhase === "unit") {
+              cpu.a = 3;
+              sourcePhase = "finished";
+              succeed();
+              return;
+            }
+            if (sourcePhase === "finished") {
+              throw new Error(
+                "native source provider requested end unit twice",
+              );
+            }
+            if (part === undefined) {
+              throw new Error("native source provider advanced past its unit");
+            }
+            cpu.c = sourcePartIndex + 1;
+            if (sourcePhase === "begin") {
+              cpu.a = 1;
+              sourcePhase = part.length === 0 ? "end" : "bytes";
+              succeed();
+              return;
+            }
+            if (sourcePhase === "end") {
+              cpu.a = 2;
+              sourcePartIndex += 1;
+              sourceOffset = 0;
+              sourcePhase =
+                sourcePartIndex === prepared.bytes.length ? "unit" : "begin";
+              succeed();
+              return;
+            }
+            const chunkBase = symbol(image.symbols, "NativeSourceChunkBase");
+            const chunkLimit = symbol(image.symbols, "NativeSourceChunkLimit");
+            const chunkLength = Math.min(
+              chunkLimit - chunkBase,
+              part.length - sourceOffset,
+            );
+            if (chunkLength <= 0) {
+              throw new Error("native source provider produced an empty chunk");
+            }
+            memory.set(
+              part.subarray(sourceOffset, sourceOffset + chunkLength),
+              chunkBase,
+            );
+            sourceOffset += chunkLength;
+            if (sourceOffset === part.length) sourcePhase = "end";
+            cpu.a = 0;
+            cpu.h = chunkBase >>> 8;
+            cpu.l = chunkBase & 0xff;
+            cpu.d = chunkLength >>> 8;
+            cpu.e = chunkLength & 0xff;
+            succeed();
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostRetainNamePort")
+          ) {
+            const length = cpu.b;
+            const partIndex = cpu.c - 1;
+            const source = prepared.bytes[partIndex];
+            const materialized =
+              materializedNameHandle === undefined
+                ? undefined
+                : retainedNames.get(materializedNameHandle);
+            const scratchBase = symbol(image.symbols, "NativeSourceTokenBase");
+            if (
+              materialized !== undefined &&
+              hl === scratchBase &&
+              length === materialized.bytes.length
+            ) {
+              let equal = true;
+              for (let index = 0; equal && index < length; index += 1) {
+                equal = memory[hl + index] === materialized.bytes[index];
+              }
+              if (equal) {
+                cpu.h = materializedNameHandle! >>> 8;
+                cpu.l = materializedNameHandle! & 0xff;
+                cpu.a = 0;
+                succeed();
+                return;
+              }
+            }
+            if (
+              length === 0 ||
+              source === undefined ||
+              de + length > source.length ||
+              hl + length > memory.length ||
+              length > nativeRetainedNameByteCapacity
+            ) {
+              throw new Error(
+                `native retained-name request is invalid (part=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, source=${source?.length ?? -1})`,
+              );
+            }
+            for (let index = 0; index < length; index += 1) {
+              if (memory[hl + index] !== source[de + index]) {
+                throw new Error(
+                  `native retained name differs from source (part=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, index=${index}, actual=${memory[hl + index]}, expected=${source[de + index]})`,
+                );
+              }
+            }
+            const handle = retainedNames.retain({
+              bytes: source.slice(de, de + length),
+              part: cpu.c,
+              offset: de,
+            });
+            cpu.h = handle >>> 8;
+            cpu.l = handle & 0xff;
+            cpu.a = 0;
+            succeed();
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostCompareNamePort")
+          ) {
+            const length = cpu.b;
+            const bytes =
+              cpu.ix + length <= memory.length
+                ? memory.subarray(cpu.ix, cpu.ix + length)
+                : new Uint8Array();
+            const comparison = retainedNames.compare(hl, bytes);
+            if (comparison === "invalid" || bytes.length !== length) {
+              throw new Error("native retained-name handle is invalid");
+            }
+            cpu.a = 0;
+            cpu.flags.Z = comparison === "equal" ? 1 : 0;
+            succeed();
+          } else if (
+            selectedPort ===
+            symbol(image.symbols, "NativeHostMaterializeNamePort")
+          ) {
+            const retained = retainedNames.get(hl);
+            const scratchBase = symbol(image.symbols, "NativeSourceTokenBase");
+            const scratchLimit = symbol(
+              image.symbols,
+              "NativeSourceTokenLimit",
+            );
+            if (
+              retained === undefined ||
+              retained.bytes.length > scratchLimit - scratchBase
+            ) {
+              throw new Error("native retained-name handle is invalid");
+            }
+            memory.set(retained.bytes, scratchBase);
+            materializedNameHandle = hl;
+            cpu.h = scratchBase >>> 8;
+            cpu.l = scratchBase & 0xff;
+            cpu.b = retained.bytes.length;
+            cpu.a = 0;
+            succeed();
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostTargetBeginPort")
+          ) {
             try {
               validateNativeTargetDescriptor(
                 memory,
@@ -775,12 +995,20 @@ const runNucleusCompilerNativeTo = async (
             );
             sink.begin(begin);
             succeed();
-          } else if (selectedPort === symbol(image.symbols, "NativeHostTargetImageBytePort")) {
+          } else if (
+            selectedPort ===
+            symbol(image.symbols, "NativeHostTargetImageBytePort")
+          ) {
             sink?.image(cpu.c, hl, Uint8Array.of(value));
+            if (collector !== undefined) {
+              adapterImages.push({ bank: cpu.c, address: hl, value });
+            }
             succeed();
           } else if (
-            selectedPort === symbol(image.symbols, "NativeHostRuntimeImagePort") ||
-            selectedPort === symbol(image.symbols, "NativeHostRuntimeInitialPort")
+            selectedPort ===
+              symbol(image.symbols, "NativeHostRuntimeImagePort") ||
+            selectedPort ===
+              symbol(image.symbols, "NativeHostRuntimeInitialPort")
           ) {
             const context = nativeRuntimeContext(
               memory,
@@ -789,11 +1017,14 @@ const runNucleusCompilerNativeTo = async (
             );
             const bank = value;
             const initial =
-              selectedPort === symbol(image.symbols, "NativeHostRuntimeInitialPort");
+              selectedPort ===
+              symbol(image.symbols, "NativeHostRuntimeInitialPort");
             pendingHostWork = (async () => {
               try {
                 if (activeProvider?.get(de, context) === undefined) {
-                  activeProvider = await loadCanonicalRuntimeProvider([context]);
+                  activeProvider = await loadCanonicalRuntimeProvider([
+                    context,
+                  ]);
                 }
                 if (initial) {
                   sink?.runtimeInitialImage(bank, hl, de, context, bc);
@@ -805,10 +1036,14 @@ const runNucleusCompilerNativeTo = async (
                 fail(95);
               }
             })();
-          } else if (selectedPort === symbol(image.symbols, "NativeHostPatchBytePort")) {
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostPatchBytePort")
+          ) {
             sink?.patch(cpu.c, hl, Uint8Array.of(value));
             succeed();
-          } else if (selectedPort === symbol(image.symbols, "NativeHostPatchWordPort")) {
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostPatchWordPort")
+          ) {
             sink?.patch(cpu.c, de, Uint8Array.of(cpu.l, cpu.h));
             succeed();
           } else if (
@@ -817,39 +1052,72 @@ const runNucleusCompilerNativeTo = async (
           ) {
             sink?.map(nativeMapRequest(memory, cpu.ix));
             succeed();
-          } else if (selectedPort === symbol(image.symbols, "NativeHostCommitPort")) {
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostCommitPort")
+          ) {
+            if (collector !== undefined) {
+              try {
+                debugMapping = collector.finishStreaming(begin, adapterImages);
+              } catch (error) {
+                nativeHostFailure =
+                  error instanceof Error ? error : new Error(String(error));
+                cpu.halted = true;
+                return;
+              }
+            }
             metadata = sink?.commitTo(output);
             succeed();
-          } else if (selectedPort === symbol(image.symbols, "NativeHostAbortPort")) {
+          } else if (
+            selectedPort === symbol(image.symbols, "NativeHostAbortPort")
+          ) {
             sink?.abort();
             succeed();
           } else {
             options.compilerIoWrite?.(selectedPort, value);
           }
-        } catch {
-          fail();
+        } catch (error) {
+          const sourcePort = symbol(
+            image.symbols,
+            "NativeHostSourceNextChunkPort",
+          );
+          const materializePort = symbol(
+            image.symbols,
+            "NativeHostMaterializeNamePort",
+          );
+          if (selectedPort >= sourcePort && selectedPort <= materializePort) {
+            nativeHostFailure =
+              error instanceof Error ? error : new Error(String(error));
+            cpu.a = 5;
+            cpu.flags.C = 1;
+          } else {
+            fail();
+          }
         }
       },
     },
   );
   const memory = runtime.hardware.memory;
-  const sourceBase = symbol(image.symbols, "SourceBase");
-  const sourceLimit = symbol(image.symbols, "SourceLimit");
-  const prepared = prepareSource(
-    memory,
-    parts,
-    sourceBase,
-    sourceLimit,
-    isBankedTarget(target) ? target.partBanks : undefined,
-  );
   const begin = prepareTarget(memory, prepared.partBanks, target);
+  if (debugHooks) {
+    collector = new NucleusDebugCollector(
+      memory,
+      prepared.loaded,
+      debugTraceSymbols(image),
+      (handle, length) => {
+        const retained = retainedNames.get(handle);
+        return retained === undefined || retained.bytes.length !== length
+          ? undefined
+          : retained;
+      },
+    );
+  }
   memory[RETURN_SENTINEL] = 0x76;
   writeWord(memory, STACK_TOP, RETURN_SENTINEL);
   runtime.cpu.sp = STACK_TOP;
   runtime.cpu.pc = symbol(image.symbols, "CompileTargetAggregateCallParts");
   runtime.cpu.a = parts.length;
-  runtime.cpu.h = sourceBase >>> 8;
-  runtime.cpu.l = sourceBase & 0xff;
+  runtime.cpu.h = 0;
+  runtime.cpu.l = 0;
   runtime.cpu.ix = TARGET_DESCRIPTOR;
   runtime.cpu.halted = false;
   let instructions = 0;
@@ -871,6 +1139,14 @@ const runNucleusCompilerNativeTo = async (
         await pending;
       }
     }
+    if (nativeHostFailure !== undefined) throw nativeHostFailure;
+    const nativeHostStatus =
+      memory[symbol(image.symbols, "SourceHostStatus")] ?? 0;
+    if (nativeHostStatus !== 0) {
+      throw new Error(
+        `native Nucleus host failed with status ${nativeHostStatus}`,
+      );
+    }
     if (runtime.cpu.flags.C !== 0) {
       const part = memory[symbol(image.symbols, "DiagnosticPartId")] ?? 0;
       return {
@@ -890,9 +1166,16 @@ const runNucleusCompilerNativeTo = async (
     if (metadata === undefined) {
       throw new Error("native Nucleus host returned without committing output");
     }
-    return { success: true, object: metadata, instructions, cycles };
+    return {
+      success: true,
+      object: metadata,
+      ...(debugMapping === undefined ? {} : { debugMapping }),
+      instructions,
+      cycles,
+    };
   } finally {
     if (metadata === undefined) sink?.abort();
+    retainedNames.clear();
   }
 };
 
@@ -936,24 +1219,10 @@ const runNucleusCompiler = async (
   const partBanks = prepared.partBanks;
   const begin = prepareTarget(memory, partBanks, target);
   if (debugHooks) {
-    const traceSymbols: NucleusDebugTraceSymbols = {
-      sourcePartId: symbol(image.symbols, "SourcePartId"),
-      tokenStartOffset: symbol(image.symbols, "TokenStartOffset"),
-      tokenStartLine: symbol(image.symbols, "TokenStartLine"),
-      tokenStartColumn: symbol(image.symbols, "TokenStartColumn"),
-      sinkCursor: symbol(image.symbols, "SinkCursor"),
-      semanticPayloadBase: symbol(image.symbols, "SemanticPayloadBase"),
-      semanticReadCursor: symbol(image.symbols, "SemanticReadCursor"),
-      declarationNamePointer: symbol(image.symbols, "DeclarationNamePointer"),
-      declarationNameLength: symbol(image.symbols, "DeclarationNameLength"),
-      stage7CurrentRoutine: symbol(image.symbols, "Stage7CurrentRoutine"),
-      stage7RoutineTableBase: symbol(image.symbols, "Stage7RoutineTableBase"),
-      stage7RoutineEntrySize: symbol(image.symbols, "Stage7RoutineEntrySize"),
-    };
     collector = new NucleusDebugCollector(
       memory,
       prepared.loaded,
-      traceSymbols,
+      debugTraceSymbols(image),
     );
   }
   const adapterBase = symbol(image.symbols, "AdapterLogBase");

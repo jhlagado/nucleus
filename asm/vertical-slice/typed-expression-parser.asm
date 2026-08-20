@@ -62,13 +62,17 @@ Stage7CurrentNameIsRoutineOrPredefined:
 .endif
 
 ; Restore the retained declaration spelling as the current name token.
-.routine out A,HL
+.routine out A,HL clobbers carry,zero,sign,parity,halfCarry
 TypedRestoreDeclarationToken:
             LD   HL,(DeclarationNamePointer)
+.if NativeStreamingSource
+            JP   SourceHostRestoreToken
+.else
             LD   (TokenLexemePointer),HL
             LD   A,(DeclarationNameLength)
             LD   (TokenLength),A
             RET
+.endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedPrepareCurrentWord:
@@ -2351,10 +2355,15 @@ TypedParseForwardAfterTake:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
+.if NativeStreamingSource
+            LD   HL,ForwardNamePointer
+            CALL TokenNameRecordEquals
+.else
             LD   HL,(ForwardNamePointer)
             LD   A,(ForwardNameLength)
             LD   B,A
             CALL TokenNameEquals
+.endif
             JP   C,TypedDuplicateNameFailure
             CALL TypedRejectCurrentOrdinaryName
 .if CompilerDiagnosticReturns
@@ -2900,9 +2909,13 @@ TypedParseForwardCompletion:
             XOR  A
             LD   (NextLocalSlot),A
             LD   HL,(ForwardParameterPointer)
+.if NativeStreamingSource
+            CALL SourceHostMaterializeToken
+.else
             LD   (TokenLexemePointer),HL
             LD   A,(ForwardParameterLength)
             LD   (TokenLength),A
+.endif
             LD   A,(ForwardParameterType)
             OR   SymbolClassParameter
             LD   D,A

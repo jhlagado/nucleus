@@ -24,6 +24,33 @@ const expectValidIntelHexChecksums = (hex: string): void => {
   }
 };
 
+const compileNucleusToBytes = async (
+  parts: Parameters<typeof compileNucleusTo>[0],
+): Promise<Uint8Array> => {
+  const chunks: Uint8Array[] = [];
+  let committed = false;
+  const result = await compileNucleusTo(
+    parts,
+    {},
+    {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => {
+        committed = true;
+      },
+      abort: () => {
+        throw new Error("unexpected streaming abort");
+      },
+    },
+  );
+  if (!result.success) {
+    throw new Error(
+      `streaming compile failed: ${JSON.stringify(result.diagnostic)}`,
+    );
+  }
+  expect(committed).toBe(true);
+  return Uint8Array.from(chunks.flatMap((chunk) => [...chunk]));
+};
+
 describe("emulator-backed compiler host", () => {
   it("distinguishes every keyword from a longer identifier", async () => {
     const keywords = [
@@ -255,23 +282,332 @@ describe("emulator-backed compiler host", () => {
     expect("materialized" in streamed).toBe(false);
   }, 30_000);
 
+  it("streams source larger than the former resident-source window", async () => {
+    const program =
+      "var value as u16 = 3\nsub main()\nvalue = value * 2\nend\n";
+    const largeSource = `//${"x".repeat(3_000)}\n${program}`;
+    const baseline = await compileNucleus([
+      { name: "main.nu", source: `// compact\n${program}` },
+    ]);
+    expect(baseline.success).toBe(true);
+    if (!baseline.success) return;
+    const streamed = await compileNucleusToBytes([
+      { name: "main.nu", source: largeSource },
+    ]);
+    expect(streamed).toEqual(baseline.nobj);
+
+    const debugChunks: Uint8Array[] = [];
+    const traced = await compileNucleusTo(
+      [{ name: "main.nu", source: largeSource }],
+      {},
+      {
+        write: (bytes) => debugChunks.push(bytes.slice()),
+        commit: () => undefined,
+        abort: () => {
+          throw new Error("unexpected large-source debug abort");
+        },
+      },
+      { debugMap: true },
+    );
+    expect(traced.success).toBe(true);
+    if (!traced.success) return;
+    expect(Uint8Array.from(debugChunks.flatMap((chunk) => [...chunk]))).toEqual(
+      baseline.nobj,
+    );
+    expect(
+      traced.debugMapping?.maps[0]?.map.files["main.nu"]?.symbols,
+    ).toContainEqual(expect.objectContaining({ name: "main", line: 3 }));
+  }, 30_000);
+
+  it("pins identifiers that cross or end exactly at a source-chunk boundary", async () => {
+    const program = "var boundary as u8\nsub main()\nboundary = 7\nend\n";
+    const baseline = await compileNucleus([
+      { name: "main.nu", source: `// compact\n${program}` },
+    ]);
+    expect(baseline.success).toBe(true);
+    if (!baseline.success) return;
+    const prefix = (length: number): string => `//${"x".repeat(length - 3)}\n`;
+    const endsAtBoundary = await compileNucleusToBytes([
+      { name: "main.nu", source: `${prefix(756)}${program}` },
+    ]);
+    const crossesBoundary = await compileNucleusToBytes([
+      { name: "main.nu", source: `${prefix(760)}${program}` },
+    ]);
+    expect(endsAtBoundary).toEqual(baseline.nobj);
+    expect(crossesBoundary).toEqual(baseline.nobj);
+  }, 30_000);
+
+  it("pins the maximum accepted bounded-string token across source chunks", async () => {
+    const plain = "A".repeat(253);
+    const escaped = "\\x41".repeat(253);
+    const suffix = "\nsub main()\nend\n";
+    const baseline = await compileNucleus([
+      {
+        name: "main.nu",
+        source: `const text as string[253] = "${plain}"${suffix}`,
+      },
+    ]);
+    expect(baseline.success).toBe(true);
+    if (!baseline.success) return;
+    const streamed = await compileNucleusToBytes([
+      {
+        name: "main.nu",
+        source: `const text as string[253] = "${escaped}"${suffix}`,
+      },
+    ]);
+    expect(streamed).toEqual(baseline.nobj);
+  }, 30_000);
+
+  it("pins the exact 1022-byte raw string-token boundary before diagnosing its value", async () => {
+    const escaped = "\\x41".repeat(255);
+    const source = `const text as string[253] = "${escaped}"\nsub main()\nend\n`;
+    expect(`"${escaped}"`.length).toBe(1_022);
+
+    const resident = await compileNucleus([{ name: "maximum.nu", source }]);
+    expect(resident.success).toBe(false);
+    if (resident.success) return;
+
+    let committed = false;
+    const streamed = await compileNucleusTo(
+      [{ name: "maximum.nu", source }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => {
+          committed = true;
+        },
+        abort: () => undefined,
+      },
+    );
+    expect(streamed).toMatchObject({
+      success: false,
+      diagnostic: resident.diagnostic,
+    });
+    expect(committed).toBe(false);
+  }, 30_000);
+
+  it("requests the native end-unit event only once after a synthesized final newline", async () => {
+    const source = "sub main()\nend";
+    const resident = await compileNucleus([{ name: "main.nu", source }]);
+    expect(resident.success).toBe(true);
+    if (!resident.success) return;
+
+    expect(
+      await compileNucleusToBytes([{ name: "main.nu", source }]),
+    ).toEqual(resident.nobj);
+  }, 30_000);
+
+  it("keeps comments and CRLF boundaries transparent across source refills", async () => {
+    const program = "sub main()\r\nend\r\n";
+    const baseline = await compileNucleus([
+      { name: "main.nu", source: `// short\r\n${program}` },
+    ]);
+    expect(baseline.success).toBe(true);
+    if (!baseline.success) return;
+
+    const splitCrLf = `//${"x".repeat(765)}\r\n${program}`;
+    const splitComment = `//${"x".repeat(1_200)}\r\n${program}`;
+    expect(splitCrLf.charCodeAt(767)).toBe(13);
+    expect(splitCrLf.charCodeAt(768)).toBe(10);
+    expect(
+      await compileNucleusToBytes([{ name: "main.nu", source: splitCrLf }]),
+    ).toEqual(baseline.nobj);
+    expect(
+      await compileNucleusToBytes([
+        { name: "main.nu", source: splitComment },
+      ]),
+    ).toEqual(baseline.nobj);
+  }, 30_000);
+
+  it("retains two distinct 255-byte names after their source pages are replaced", async () => {
+    const shared = "n".repeat(254);
+    const first = `${shared}a`;
+    const second = `${shared}b`;
+    const padding = `//${"x".repeat(900)}`;
+    const source = [
+      `var ${first} as u8`,
+      padding,
+      `var ${second} as u8`,
+      padding,
+      "sub main()",
+      `${first} = 1`,
+      `${second} = 2`,
+      "end",
+      "",
+    ].join("\n");
+
+    const result = await compileNucleusTo(
+      [{ name: "names.nu", source }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => undefined,
+        abort: () => undefined,
+      },
+    );
+    expect(result.success).toBe(true);
+  }, 30_000);
+
+  it("restores declaration, forward-routine, and parameter names after refills", async () => {
+    const padding = `//${"x".repeat(900)}`;
+    const source = [
+      "var delayed as u8 = (",
+      padding,
+      "7)",
+      "forward sub worker(value as u8) as u8",
+      padding,
+      "sub worker",
+      "return value",
+      "end",
+      "sub main()",
+      "delayed = worker(delayed)",
+      "end",
+      "",
+    ].join("\n");
+
+    const result = await compileNucleusTo(
+      [{ name: "restore.nu", source }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => undefined,
+        abort: () => undefined,
+      },
+    );
+    expect(result.success).toBe(true);
+  }, 30_000);
+
+  it("keeps an exact multipart diagnostic after several native refills", async () => {
+    const padding = `//${"x".repeat(1_600)}\n`;
+    const source = `${padding}missing = 1\n`;
+    const result = await compileNucleusTo(
+      [
+        { name: "library.nu", source: `${padding}var present as u8\n` },
+        { name: "main.nu", source },
+      ],
+      {},
+      {
+        write: () => undefined,
+        commit: () => undefined,
+        abort: () => undefined,
+      },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      diagnostic: {
+        sourcePart: 2,
+        sourceName: "main.nu",
+        offset: padding.length,
+        line: 2,
+        column: 1,
+      },
+    });
+  }, 30_000);
+
+  it("diagnoses the first unrepresentable streaming source column", async () => {
+    const result = await compileNucleusTo(
+      [{ name: "wide.nu", source: `//${"x".repeat(65_533)}` }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => {
+          throw new Error("source-position overflow must not commit");
+        },
+        abort: () => undefined,
+      },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      diagnostic: {
+        code: 101,
+        sourcePart: 1,
+        sourceName: "wide.nu",
+        offset: 65_534,
+        line: 1,
+        column: 65_535,
+      },
+    });
+  }, 30_000);
+
+  it("admits an exact 65535-byte part and rejects the next offset", async () => {
+    const program = "sub main()\nend\n";
+    let exact = program;
+    while (exact.length + 511 <= 65_535) {
+      exact += `//${"x".repeat(508)}\n`;
+    }
+    const remainder = 65_535 - exact.length;
+    if (remainder > 0) exact += `//${"x".repeat(remainder - 2)}`;
+    expect(exact.length).toBe(65_535);
+    const baseline = await compileNucleus([
+      { name: "main.nu", source: program },
+    ]);
+    expect(baseline.success).toBe(true);
+    if (!baseline.success) return;
+    expect(
+      await compileNucleusToBytes([{ name: "main.nu", source: exact }]),
+    ).toEqual(baseline.nobj);
+
+    const lines = exact.split("\n");
+    const overflow = await compileNucleusTo(
+      [{ name: "main.nu", source: `${exact}x` }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => undefined,
+        abort: () => undefined,
+      },
+    );
+    expect(overflow).toMatchObject({
+      success: false,
+      diagnostic: {
+        code: 101,
+        offset: 65_535,
+        line: lines.length,
+        column: (lines.at(-1)?.length ?? 0) + 1,
+      },
+    });
+  }, 30_000);
+
+  it("diagnoses the first unrepresentable streaming source line", async () => {
+    const result = await compileNucleusTo(
+      [{ name: "lines.nu", source: "\n".repeat(65_535) }],
+      {},
+      {
+        write: () => undefined,
+        commit: () => undefined,
+        abort: () => undefined,
+      },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      diagnostic: {
+        code: 101,
+        sourcePart: 1,
+        sourceName: "lines.nu",
+        offset: 65_534,
+        line: 65_535,
+        column: 1,
+      },
+    });
+  }, 30_000);
+
   it("aborts native sequential publication after an output failure", async () => {
     let aborted = false;
     const failed = await compileNucleusTo(
-        [{ name: "main.nu", source: "sub main()\nend\n" }],
-        {},
-        {
-          write: () => {
-            throw new Error("storage failed");
-          },
-          commit: () => {
-            throw new Error("failed output must not commit");
-          },
-          abort: () => {
-            aborted = true;
-          },
+      [{ name: "main.nu", source: "sub main()\nend\n" }],
+      {},
+      {
+        write: () => {
+          throw new Error("storage failed");
         },
-      );
+        commit: () => {
+          throw new Error("failed output must not commit");
+        },
+        abort: () => {
+          aborted = true;
+        },
+      },
+    );
     expect(failed).toMatchObject({
       success: false,
       diagnostic: { code: 97 },
@@ -298,17 +634,32 @@ describe("emulator-backed compiler host", () => {
     expect(conventional.success).toBe(true);
     if (!conventional.success) return;
     const chunks: Uint8Array[] = [];
-    const streamed = await compileNucleusTo(parts, target, {
-      write: (bytes) => chunks.push(bytes.slice()),
-      commit: () => undefined,
-      abort: () => {
-        throw new Error("unexpected loaded-layout streaming abort");
+    const streamed = await compileNucleusTo(
+      parts,
+      target,
+      {
+        write: (bytes) => chunks.push(bytes.slice()),
+        commit: () => undefined,
+        abort: () => {
+          throw new Error("unexpected loaded-layout streaming abort");
+        },
       },
-    });
+      { debugMap: true },
+    );
     expect(streamed.success).toBe(true);
+    if (!streamed.success) return;
     expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
       conventional.nobj,
     );
+    const executableSegments = Object.values(
+      streamed.debugMapping?.maps[0]?.map.files ?? {},
+    ).flatMap((file) => file.segments ?? []);
+    expect(
+      executableSegments.every(
+        ({ start, end }) =>
+          start < target.writableBase && end <= target.writableBase,
+      ),
+    ).toBe(true);
   }, 30_000);
 
   it("streams exact flat and banked images ending at $10000", async () => {
@@ -361,17 +712,13 @@ describe("emulator-backed compiler host", () => {
         ) + boundaryTarget.imageBase,
       ).toBe(0x10000);
       const chunks: Uint8Array[] = [];
-      const streamed = await compileNucleusTo(
-        fixture.parts,
-        boundaryTarget,
-        {
-          write: (bytes) => chunks.push(bytes.slice()),
-          commit: () => undefined,
-          abort: () => {
-            throw new Error("unexpected top-of-memory streaming abort");
-          },
+      const streamed = await compileNucleusTo(fixture.parts, boundaryTarget, {
+        write: (bytes) => chunks.push(bytes.slice()),
+        commit: () => undefined,
+        abort: () => {
+          throw new Error("unexpected top-of-memory streaming abort");
         },
-      );
+      });
       expect(streamed.success).toBe(true);
       expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
         conventional.nobj,
@@ -422,24 +769,24 @@ describe("emulator-backed compiler host", () => {
       { name: "main.nu", source: main },
     ];
     const target = {
-        bankCount: 2,
-        entryBank: 0,
-        partBanks: [1, 0],
-        services: {
-          readInputByte: 0x70c0,
-          writeOutputByte: 0x70c1,
-          readStorageByte: 0x70c2,
-          rewindStorageInput: 0x70c3,
-          writeStorageByte: 0x70c4,
-          seekStorageOutput: 0x70c5,
-          success: 0x70a0,
-          unhandledFailure: 0x70a1,
-          trap: 0x70a2,
-          farCall: 0x7000,
-          farJump: 0x7080,
-          packetService: 0x70c6,
-        },
-      } as const;
+      bankCount: 2,
+      entryBank: 0,
+      partBanks: [1, 0],
+      services: {
+        readInputByte: 0x70c0,
+        writeOutputByte: 0x70c1,
+        readStorageByte: 0x70c2,
+        rewindStorageInput: 0x70c3,
+        writeStorageByte: 0x70c4,
+        seekStorageOutput: 0x70c5,
+        success: 0x70a0,
+        unhandledFailure: 0x70a1,
+        trap: 0x70a2,
+        farCall: 0x7000,
+        farJump: 0x7080,
+        packetService: 0x70c6,
+      },
+    } as const;
     const result = await compileNucleus(parts, target);
     expect(result.success).toBe(true);
     if (!result.success) return;
@@ -497,17 +844,25 @@ describe("emulator-backed compiler host", () => {
     expect(ordinary.nobj).toEqual(baseline.nobj?.serialized);
     expect(traced.nobj).toEqual(ordinary.nobj);
     const nativeChunks: Uint8Array[] = [];
-    const streamed = await compileNucleusTo(parts, target, {
-      write: (bytes) => nativeChunks.push(bytes.slice()),
-      commit: () => undefined,
-      abort: () => {
-        throw new Error("unexpected entry-bank-one streaming abort");
+    const streamed = await compileNucleusTo(
+      parts,
+      target,
+      {
+        write: (bytes) => nativeChunks.push(bytes.slice()),
+        commit: () => undefined,
+        abort: () => {
+          throw new Error("unexpected entry-bank-one streaming abort");
+        },
       },
-    });
+      { debugMap: true },
+    );
     expect(streamed.success).toBe(true);
     expect(
       Uint8Array.from(nativeChunks.flatMap((chunk) => [...chunk])),
     ).toEqual(ordinary.nobj);
+    expect(streamed.success && streamed.debugMapping).toEqual(
+      traced.debugMapping,
+    );
     expect(
       traced.debugMapping?.maps[1]?.map.files["main.nu"]?.symbols?.[0],
     ).toMatchObject({ name: "main" });
@@ -732,6 +1087,26 @@ describe("emulator-backed compiler host", () => {
     expect(
       map?.files["main.nu"]?.segments?.some(({ line }) => line === 2),
     ).toBe(true);
+
+    const streamedChunks: Uint8Array[] = [];
+    const streamed = await compileNucleusTo(
+      parts,
+      {},
+      {
+        write: (bytes) => streamedChunks.push(bytes.slice()),
+        commit: () => undefined,
+        abort: () => {
+          throw new Error("unexpected multipart D8 streaming abort");
+        },
+      },
+      { debugMap: true },
+    );
+    expect(streamed.success).toBe(true);
+    if (!streamed.success) return;
+    expect(
+      Uint8Array.from(streamedChunks.flatMap((chunk) => [...chunk])),
+    ).toEqual(ordinary.nobj);
+    expect(streamed.debugMapping).toEqual(traced.debugMapping);
   }, 30_000);
 
   it("balances nested source contexts across the complete structured surface", async () => {

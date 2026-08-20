@@ -3272,6 +3272,51 @@ two-workspace-byte trade. The account is below the hard limit but leaves little
 reserve; further compiler-core growth requires a new measured compression or
 replacement.
 
+### Native windowed source and D8 handle mode
+
+The production host now supplies source through begin-part, byte-chunk,
+end-part, and end-unit events. A 768-byte source window is refilled as the
+tokenizer advances. If a token survives a refill, the Z80 host copies its raw
+spelling into a separate 1,280-byte cache before the old window is reused. The
+cache admits the tokenizer's maximum escaped string token. Source parts are no
+longer constrained by the resident compatibility window; the published
+per-part limit is the 65,535-byte source-position range.
+
+Names retained beyond the current token are generation-scoped host handles.
+The compiler compares a current token with a handle through the native host and
+materializes a retained spelling into bounded scratch only for parser actions
+that require a readable pointer. D8 uses the same handles to recover routine
+names and declaration positions. Its trace preflight completes before NOBJ
+commit, so an invalid or stale handle cannot publish either the object or its
+sidecar correlation.
+
+The stable Node compiler and command line use this native path for ordinary and
+D8 builds. `compileNucleus()` retains the 2,048-byte resident-source adapter as
+an explicit compatibility API. Tests cover a 3,000-byte source with D8, tokens
+ending at and crossing a refill boundary, a 1,014-byte maximum accepted
+bounded-string token, the tokenizer's exact 1,022-byte raw string-token
+boundary, exact 65,535-byte parts, the first overflowing offset, line and column, and
+flat and banked NOBJ/D8 identity.
+
+The resident compatibility layout remains 15,844 code plus 437 immutable
+bytes, or 16,281 core bytes. The production native-source layout is 15,877 code
+plus 437 immutable, or 16,314 core bytes, leaving 70 bytes below the 16 KiB
+gate. Its compiler workspace is 3,922 bytes. The separately accounted native
+host vector and source adapter occupy 491 bytes. The instrumented native layout
+is 15,943 code plus 437 immutable, or 16,380 core bytes, leaving four bytes; its
+host image is 493 bytes.
+
+The final account keeps retained-name record decoding and the materialization
+that publishes parser token cells inside compiler core. Raw source pinning,
+retained-name storage, and output-provider operations live in the separately
+reported host image. The feature-local size pass merged the two retained-token
+materialization paths, shared their length publication, shortened native name
+comparison, and removed a redundant source-provider state test. Against the
+cleared native correctness build, it reduced the honestly accounted compiler
+core by 16 bytes without changing the host image. Workspace, generated
+programs, selected runtime, semantic transcript, NOBJ bytes, and compatibility
+proof timings are unchanged.
+
 ## Capacity ledger
 
 The first implementation fixes a numeric limit before each bounded structure is
@@ -3280,7 +3325,12 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | Resource                                |      Limit | Representation                                                                        | Excess diagnostic or trap                                                        | Evidence                                                                                                         |
 | --------------------------------------- | ---------: | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | source part count                       |          8 | external five-byte descriptors plus three compiler-workspace bytes                    | capacity diagnostic                                                              | accepted 1- and 8-part units; rejected ninth part                                                                |
-| host source window bytes                |      2,048 | complete retained source plus five descriptor bytes for each part                     | packaging diagnostic                                                             | exact published Host API capacity and first-overflow test                                                        |
+| source-part raw bytes                    |     65,535 | native host stream with word offset, line, and column counters                         | source-position-capacity diagnostic before any counter wraps                      | exact 65,535-byte part; first overflowing offset, line, and column                                                |
+| native source chunk bytes               |        768 | refillable host window; old bytes are dead after token pinning                         | host source failure                                                               | exact-boundary and cross-boundary identifier proofs                                                               |
+| native raw-token cache bytes            |      1,280 | pinned token spelling outside the refillable source window                             | host source failure before overwrite                                              | accepted 1,014-byte bounded-string token and exact 1,022-byte tokenizer boundary across refills                  |
+| native retained-name entries            |      1,024 | generation-scoped exact handles in host storage                                        | host capacity failure before handle allocation                                    | exact entry capacity, first excess, and reset to an empty generation                                             |
+| native retained-name spelling bytes     |     65,535 | exact copied bytes in host storage                                                     | host capacity failure before copying or publishing a handle                       | exact byte capacity, first excess, and atomic retained usage                                                     |
+| compatibility source window bytes       |      2,048 | complete source retained only by the compatibility API                                 | compatibility packaging error                                                     | differential resident-source fixtures                                                                            |
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                                                           |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                                               |
 | ordinary binding symbols                |         16 | one shared table of six-byte source-backed scalar and aggregate entries               | capacity diagnostic                                                              | accepted sixteen aggregate variables; rejected seventeenth binding                                               |

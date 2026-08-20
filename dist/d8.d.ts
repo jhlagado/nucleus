@@ -105,11 +105,19 @@ export interface NucleusDebugTraceSymbols {
     readonly stage7RoutineTableBase: number;
     readonly stage7RoutineEntrySize: number;
 }
+export interface NucleusRetainedName {
+    readonly part: number;
+    readonly offset: number;
+    readonly bytes: Uint8Array;
+}
+export type NucleusRetainedNameResolver = (handle: number, length: number) => NucleusRetainedName | undefined;
 export declare class NucleusDebugCollector {
     #private;
-    constructor(memory: Uint8Array, parts: readonly NucleusLoadedSourcePart[], symbols: NucleusDebugTraceSymbols);
+    constructor(memory: Uint8Array, parts: readonly NucleusLoadedSourcePart[], symbols: NucleusDebugTraceSymbols, resolveRetainedName?: NucleusRetainedNameResolver);
     collect(port: number, cpu: CompilerCpu): void;
     finish(parsed: ParsedNobj, begin: NobjBegin, expectedImages: readonly NobjAdapterImageByte[]): NucleusDebugMapping;
+    /** Validate and resolve a streaming trace before its NOBJ generation commits. */
+    finishStreaming(begin: NobjBegin, expectedImages: readonly NobjAdapterImageByte[]): NucleusDebugMapping;
 }
 export declare const sourcePartBytes: (part: NucleusSourcePart) => Uint8Array;
 export {};

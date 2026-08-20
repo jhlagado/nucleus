@@ -1,8 +1,8 @@
-import { compileNucleus, nucleusCompilerCapacities, nucleusCompilerInfo, writeNucleusIntelHex, } from "./compiler.js";
+import { compileNucleusTo, nucleusCompilerCapacities, nucleusCompilerInfo, writeNucleusIntelHex, } from "./compiler.js";
+import { materializeNobj, parseNobj } from "./nobj.js";
 import { validateNucleusTarget, } from "./configuration.js";
 import { nucleusD8SourceName } from "./d8-internal.js";
 import { nucleusDiagnosticMessage } from "./diagnostics.js";
-import { sourcePartBytes } from "./d8.js";
 export const NUCLEUS_HOST_API_VERSION = 1;
 const configurationFailure = (issues) => ({
     success: false,
@@ -34,7 +34,6 @@ export class NucleusCompiler {
                 message: `must contain at most ${nucleusCompilerCapacities.sourceParts} source parts`,
             });
         }
-        let sourceWindowUse = request.sources.length * 5;
         const d8SourceNames = new Map();
         request.sources.forEach((part, index) => {
             if (typeof part.name !== "string" || part.name.length === 0) {
@@ -48,9 +47,6 @@ export class NucleusCompiler {
                     path: `$.sources[${index}].source`,
                     message: "must be a string or Uint8Array",
                 });
-            }
-            else {
-                sourceWindowUse += sourcePartBytes(part).length;
             }
             if (request.artifacts?.d8 === true &&
                 typeof part.name === "string" &&
@@ -68,12 +64,6 @@ export class NucleusCompiler {
                 }
             }
         });
-        if (sourceWindowUse > nucleusCompilerCapacities.sourceWindowBytes) {
-            issues.push({
-                path: "$.sources",
-                message: `requires ${sourceWindowUse} bytes in the ${nucleusCompilerCapacities.sourceWindowBytes}-byte host source window`,
-            });
-        }
         if (request.artifacts?.hex === true &&
             "bankCount" in target &&
             target.bankCount > 1) {
@@ -85,9 +75,17 @@ export class NucleusCompiler {
         if (issues.length > 0)
             return configurationFailure(issues);
         try {
-            const compiled = await compileNucleus(request.sources, target, {
-                debugMap: request.artifacts?.d8 === true,
-            });
+            const chunks = [];
+            let committed = false;
+            const compiled = await compileNucleusTo(request.sources, target, {
+                write: (bytes) => chunks.push(bytes.slice()),
+                commit: () => {
+                    committed = true;
+                },
+                abort: () => {
+                    chunks.length = 0;
+                },
+            }, { debugMap: request.artifacts?.d8 === true });
             if (!compiled.success) {
                 if (compiled.diagnostic.code === 95 ||
                     compiled.diagnostic.code === 96) {
@@ -114,21 +112,42 @@ export class NucleusCompiler {
                     cycles: compiled.cycles,
                 };
             }
+            if (!committed) {
+                throw new Error("Nucleus compiler returned without committing NOBJ");
+            }
+            const byteLength = chunks.reduce((total, chunk) => total + chunk.length, 0);
+            const nobj = new Uint8Array(byteLength);
+            let cursor = 0;
+            for (const chunk of chunks) {
+                nobj.set(chunk, cursor);
+                cursor += chunk.length;
+            }
+            const materialized = materializeNobj(parseNobj(nobj));
             const d8 = compiled.debugMapping?.maps.map(({ bank, map }) => ({
                 bank,
                 map,
                 json: `${JSON.stringify(map, null, 2)}\n`,
             }));
+            const compatibilityResult = {
+                success: true,
+                nobj,
+                materialized,
+                ...(compiled.debugMapping === undefined
+                    ? {}
+                    : { debugMapping: compiled.debugMapping }),
+                instructions: compiled.instructions,
+                cycles: compiled.cycles,
+            };
             return {
                 success: true,
                 artifacts: {
-                    nobj: compiled.nobj,
+                    nobj,
                     ...(request.artifacts?.hex === true
-                        ? { hex: writeNucleusIntelHex(compiled) }
+                        ? { hex: writeNucleusIntelHex(compatibilityResult) }
                         : {}),
                     ...(d8 === undefined ? {} : { d8 }),
                 },
-                materialized: compiled.materialized,
+                materialized,
                 instructions: compiled.instructions,
                 cycles: compiled.cycles,
             };

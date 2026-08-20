@@ -441,10 +441,15 @@ Stage7SignatureParameter:
             RET  C
 .endif
             PUSH HL
+.if NativeStreamingSource
+            LD   HL,DeclarationNamePointer
+            CALL TokenRetainNameAtHL
+.else
             LD   HL,(TokenLexemePointer)
             LD   (DeclarationNamePointer),HL
             LD   A,(TokenLength)
             LD   (DeclarationNameLength),A
+.endif
             POP  HL
             CALL ParserExpectAs
 .if CompilerDiagnosticReturns
@@ -515,9 +520,15 @@ Stage7InstallParameter:
             INC  HL
             LD   A,(HL)
             LD   (Stage7PathType),A
+.if NativeStreamingSource
+            LD   H,D
+            LD   L,E
+            CALL SourceHostMaterializeToken
+.else
             LD   (TokenLexemePointer),DE
             LD   A,B
             LD   (TokenLength),A
+.endif
             LD   A,(NextLocalSlot)
             LD   (Stage7PathOffset),A
             LD   C,A

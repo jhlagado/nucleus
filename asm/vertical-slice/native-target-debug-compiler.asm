@@ -1,6 +1,7 @@
 ; Host-instrumented compiler linked to the native host vector.
 
 DebugHooks .equ 1
+NativeStreamingSource .equ 1
             .include "target-memory-map.asmi"
             .include "nucleus-runtime-identity.asmi"
             .org CompilerCoreBase

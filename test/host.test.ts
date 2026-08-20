@@ -116,7 +116,7 @@ describe("the stable in-process Nucleus host API", () => {
     expect(result).toMatchObject({ success: false, kind: "configuration" });
   }, 30_000);
 
-  it("classifies host source-capacity failures as configuration failures", async () => {
+  it("classifies source-part count failures without imposing a resident-byte window", async () => {
     const tooMany = await createNucleusCompiler().build({
       sources: Array.from({ length: 9 }, (_, index) => ({
         name: `part-${index}.nu`,
@@ -128,14 +128,16 @@ describe("the stable in-process Nucleus host API", () => {
       kind: "configuration",
     });
 
-    const tooLarge = await createNucleusCompiler().build({
-      sources: [{ name: "main.nu", source: " ".repeat(2044) }],
+    const large = await createNucleusCompiler().build({
+      sources: [
+        {
+          name: "main.nu",
+          source: `//${"x".repeat(3_000)}\nsub main()\nend\n`,
+        },
+      ],
     });
-    expect(tooLarge).toMatchObject({
-      success: false,
-      kind: "configuration",
-    });
-  });
+    expect(large.success).toBe(true);
+  }, 30_000);
 
   it("retains exact source diagnostics in the result union", async () => {
     const result = await createNucleusCompiler().build({
@@ -154,7 +156,12 @@ describe("the stable in-process Nucleus host API", () => {
       hostApiVersion: 1,
       languageVersion: "0.1",
       runtimeIdentity: 9,
-      capacities: { sourceParts: 8, sourceWindowBytes: 2048, targetBanks: 4 },
+      capacities: {
+        sourceParts: 8,
+        sourcePartBytes: 65_535,
+        compatibilitySourceWindowBytes: 2048,
+        targetBanks: 4,
+      },
       targets: { flat: true, banked: true, maxBanks: 4 },
     });
     expect(info.normalImageSha256).toMatch(/^[0-9a-f]{64}$/);

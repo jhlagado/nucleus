@@ -3,6 +3,10 @@
 ; Every end symbol is exclusive. The map keeps the 16 KiB compiler-core gate
 ; visible while giving every other account a distinct, bounded proof region.
 
+; Historical module proofs use the resident source adapter. Native target
+; compositions select the streaming adapter before including their own map.
+NativeStreamingSource .equ 0
+
 CompilerCoreBase    .equ $0000
 CompilerCoreLimit   .equ $4000
 
