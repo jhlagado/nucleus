@@ -1,7 +1,15 @@
-; Reference Debug80/Node binding of the native compiler-host vector. The
-; vector is fixed Z80 ABI; OUT merely yields each call to the outer host.
+; Reference bindings of the native compiler-host vector. The vector is fixed
+; Z80 ABI. The direct build yields through private proof ports; the MON3 build
+; adapts the same entries to RST 10h expansion services.
 
+.if Mon3HostTransport
+HostVectorBase .equ $4000
+NativeHostMon3ServiceBase .equ $70
+NativeHostMon3NodePort .equ $E0
+NativeHostMon3RstVector .equ $0010
+.else
 HostVectorBase .equ $B000
+.endif
 
 NativeHostSourceNextChunkPort   .equ $C0
 NativeHostRetainNamePort        .equ $C1
@@ -51,6 +59,46 @@ TargetSinkCommit:              JP NativeHostCommit
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkAbort:               JP NativeHostAbort
 
+.if Mon3HostTransport
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+NativeHostSourceNextChunk:     LD   C,NativeHostMon3ServiceBase+0
+                               RST  $10
+                               RET
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+NativeHostRetainCurrentName:   LD   (NativeHostMon3InputBC),BC
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+1
+                               RST  $10
+                               POP  BC
+                               RET
+.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NativeHostCompareCurrentName:  LD   C,NativeHostMon3ServiceBase+2
+                               RST  $10
+                               RET
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+NativeHostMaterializeName:     PUSH DE
+                               LD   E,C
+                               LD   C,NativeHostMon3ServiceBase+3
+                               RST  $10
+                               LD   C,E
+                               POP  DE
+                               RET
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NativeHostTargetBegin:         LD   C,NativeHostMon3ServiceBase+4
+                               RST  $10
+                               RET
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NativeHostTargetImageByte:
+.if DebugHooks
+                               OUT  (DebugTraceImageBytePort),A
+.endif
+                               LD   (NativeHostMon3InputBC),BC
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+5
+                               RST  $10
+                               POP  BC
+                               RET
+.else
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 NativeHostSourceNextChunk:     OUT (NativeHostSourceNextChunkPort),A
                                RET
@@ -69,46 +117,125 @@ NativeHostTargetBegin:         OUT (NativeHostTargetBeginPort),A
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 NativeHostTargetImageByte:
 .if DebugHooks
-                               OUT (DebugTraceImageBytePort),A
+                               OUT  (DebugTraceImageBytePort),A
 .endif
                                OUT (NativeHostTargetImageBytePort),A
                                RET
+.endif
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeHostRuntimeImage:        LD   (NativeHostRuntimeBank),A
                                XOR  A
                                LD   (NativeHostRuntimeOperation),A
                                CALL NativeHostPrepareRuntimeRequest
+.if Mon3HostTransport
+                               LD   (NativeHostMon3InputBC),BC
+                               LD   C,NativeHostMon3ServiceBase+6
+                               RST  $10
+.else
                                OUT  (NativeHostRuntimeImagePort),A
+.endif
                                JP   NativeHostResumeRuntimeRequest
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeHostRuntimeInitialImage: LD   (NativeHostRuntimeBank),A
                                LD   A,1
                                LD   (NativeHostRuntimeOperation),A
                                CALL NativeHostPrepareRuntimeRequest
+.if Mon3HostTransport
+                               LD   (NativeHostMon3InputBC),BC
+                               LD   C,NativeHostMon3ServiceBase+7
+                               RST  $10
+.else
                                OUT  (NativeHostRuntimeInitialPort),A
+.endif
                                JP   NativeHostResumeRuntimeRequest
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-NativeHostPatchByte:           OUT (NativeHostPatchBytePort),A
+NativeHostPatchByte:
+.if Mon3HostTransport
+                               LD   (NativeHostMon3InputBC),BC
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+8
+                               RST  $10
+                               POP  BC
                                RET
+.else
+                               OUT  (NativeHostPatchBytePort),A
+                               RET
+.endif
 .routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
-NativeHostPatchWord:           OUT (NativeHostPatchWordPort),A
+NativeHostPatchWord:
+.if Mon3HostTransport
+                               LD   (NativeHostMon3InputBC),BC
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+9
+                               RST  $10
+                               POP  BC
                                RET
+.else
+                               OUT  (NativeHostPatchWordPort),A
+                               RET
+.endif
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeHostMapFlat:             OUT (NativeHostMapFlatPort),A
+NativeHostMapFlat:
+.if Mon3HostTransport
+                               LD   C,NativeHostMon3ServiceBase+10
+                               RST  $10
                                RET
+.else
+                               OUT  (NativeHostMapFlatPort),A
+                               RET
+.endif
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeHostMapBanked:           OUT (NativeHostMapBankedPort),A
+NativeHostMapBanked:
+.if Mon3HostTransport
+                               LD   C,NativeHostMon3ServiceBase+11
+                               RST  $10
                                RET
+.else
+                               OUT  (NativeHostMapBankedPort),A
+                               RET
+.endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeHostCommit:              OUT (NativeHostCommitPort),A
+NativeHostCommit:
+.if Mon3HostTransport
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+12
+                               RST  $10
+                               POP  BC
+.else
+                               OUT  (NativeHostCommitPort),A
+.endif
                                RET  C
                                LD   A,1
                                LD   (NativeHostLaunchCommitted),A
                                OR   A
                                RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeHostAbort:               OUT (NativeHostAbortPort),A
+NativeHostAbort:
+.if Mon3HostTransport
+                               PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+13
+                               RST  $10
+                               POP  BC
                                RET
+.else
+                               OUT  (NativeHostAbortPort),A
+                               RET
+.endif
+
+.if Mon3HostTransport
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+NativeHostLaunchBegin:         PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+14
+                               RST  $10
+                               POP  BC
+                               RET
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+NativeHostLaunchEnd:           PUSH BC
+                               LD   C,NativeHostMon3ServiceBase+15
+                               RST  $10
+                               POP  BC
+                               RET
+.endif
 
             .include "native-source-host.asm"
             .include "native-host-shell.asm"

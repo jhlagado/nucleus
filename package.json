@@ -23,6 +23,7 @@
     "./host": "./dist/host.js",
     "./nobj": "./dist/nobj.js",
     "./nobj-file": "./dist/nobj-file.js",
+    "./project-host": "./dist/project-host.js",
     "./publication": "./dist/publication.js"
   },
   "files": [
@@ -30,6 +31,7 @@
     "dist/",
     "docs/",
     "grammar/",
+    "library/",
     "README.md"
   ],
   "scripts": {

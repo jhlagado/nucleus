@@ -1,6 +1,6 @@
 # Nucleus Native Z80 Host Contract 0.1
 
-- Status: proposed implementation contract
+- Status: implemented reference contract
 - Date: 2026-08-20
 - Applies to: Nucleus compiler hosts and NOBJ consumers
 
@@ -538,15 +538,15 @@ hardware meaning until its deployment mapping succeeds.
 
 The host calls `NobjConsumerRun` with `IX` pointing to this ten-byte descriptor:
 
-| Offset | Field                      | Type  | Meaning                                  |
-| -----: | -------------------------- | ----- | ---------------------------------------- |
-|      0 | `descriptorSize`           | `u8`  | exactly 10                               |
-|      1 | `consumerAbiMajor`         | `u8`  | 0                                        |
-|      2 | `consumerAbiMinor`         | `u8`  | 1                                        |
+| Offset | Field                      | Type  | Meaning                                     |
+| -----: | -------------------------- | ----- | ------------------------------------------- |
+|      0 | `descriptorSize`           | `u8`  | exactly 10                                  |
+|      1 | `consumerAbiMajor`         | `u8`  | 0                                           |
+|      2 | `consumerAbiMinor`         | `u8`  | 1                                           |
 |      3 | `strategy`                 | `u8`  | 0 direct single-read; other values reserved |
-|      4 | `objectSelector`           | `u16` | platform object selector                 |
-|      6 | `deploymentProfilePointer` | `u16` | stable validated profile                 |
-|      8 | `resultPointer`            | `u16` | stable four-byte result block            |
+|      4 | `objectSelector`           | `u16` | platform object selector                    |
+|      6 | `deploymentProfilePointer` | `u16` | stable validated profile                    |
+|      8 | `resultPointer`            | `u16` | stable four-byte result block               |
 
 The result block is `outcome:u8`, `status:u8`, `recordOrdinal:u16`. Outcome
 zero is reserved and is not observable from a successful runnable load, because
@@ -624,7 +624,7 @@ Validation failures use these stable status values:
 |    11 | `commit`            | invalid COMMIT entry pair or record count          |
 |    12 | `crc`               | CRC-16/CCITT-FALSE mismatch                        |
 |    13 | `trailingData`      | byte present after COMMIT                          |
-|    14 | reserved            | reserved; strategy zero performs one read           |
+|    14 | reserved            | reserved; strategy zero performs one read          |
 |    15 | `protectedMemory`   | target write would overlap consumer state or input |
 
 `recordOrdinal` is one for `BEGIN` and advances for every record header. It is
@@ -639,16 +639,16 @@ entries in the table order below. Its total size is 32 bytes. The deployment
 linker fixes its base, and `NobjConsumerRun` validates the header before opening
 the object.
 
-| Operation          | Required behavior                                              |
-| ------------------ | -------------------------------------------------------------- |
-| `objectOpen`       | open one committed generation and return a stable handle       |
-| `objectReadByte`   | return the next byte, clean EOF, or storage failure            |
-| `objectRewind`     | reserved compatibility entry; not called by strategy zero       |
-| `objectLock`       | reserved compatibility entry; not called by strategy zero       |
-| `selectTargetBank` | select a physical bank while loader code remains visible       |
-| `publishTarget`    | publish the validated map and entry pair atomically            |
-| `enterTarget`      | enter the published bank/address under its entry ABI           |
-| `objectClose`      | release the object without changing target publication         |
+| Operation          | Required behavior                                         |
+| ------------------ | --------------------------------------------------------- |
+| `objectOpen`       | open one committed generation and return a stable handle  |
+| `objectReadByte`   | return the next byte, clean EOF, or storage failure       |
+| `objectRewind`     | reserved compatibility entry; not called by strategy zero |
+| `objectLock`       | reserved compatibility entry; not called by strategy zero |
+| `selectTargetBank` | select a physical bank while loader code remains visible  |
+| `publishTarget`    | publish the validated map and entry pair atomically       |
+| `enterTarget`      | enter the published bank/address under its entry ABI      |
+| `objectClose`      | release the object without changing target publication    |
 
 `objectReadByte` must distinguish all 256 byte values from EOF. Each concrete
 binding states its byte/EOF discriminator; no byte value is reserved as EOF.
@@ -666,8 +666,8 @@ consumer-platform adapter:
 | ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `ObjectOpen`       | `HL = platform object selector`                                                      | opened generation becomes current                                    | `AF,BC,DE,HL`                                              |
 | `ObjectReadByte`   | current generation                                                                   | `A = byte`                                                           | `AF`                                                       |
-| `ObjectRewind`     | reserved                                                                              | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
-| `ObjectLock`       | reserved                                                                              | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
+| `ObjectRewind`     | reserved                                                                             | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
+| `ObjectLock`       | reserved                                                                             | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
 | `SelectTargetBank` | `A = logical NOBJ bank ordinal, IX = deployment profile`                             | mapped physical bank selected                                        | `AF,BC,DE,HL`                                              |
 | `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length, DE = deployment profile` | new target generation published                                      | `AF,BC,DE,HL,IX`                                           |
 | `EnterTarget`      | `A = entry bank, HL = entry, IX = deployment profile`                                | no return on success; carry set and `A = platform status` on failure | `AF,BC,DE,HL,IX` on failure; target entry state on success |
@@ -785,10 +785,19 @@ account. The native shipping compiler remains 16,314 core bytes.
 
 ### 8.3 MON3 and TECM8
 
-The native binding implements the same calls through a Z80 layer over monitor
-and filesystem services. MON3 service numbers are private to that layer.
+The reference native binding implements the same calls through a Z80 layer over
+monitor and filesystem services. The compiler calls the fixed vector with
+ordinary `CALL` instructions; its entries use `RST 10h` with a selector in `C`.
 Changing the monitor does not change compiler code, Nucleus source, the
 generated-program runtime vector, or NOBJ.
+
+The checked reference reserves provisional selectors `$70..$7F`, relocates the
+compiler core to `$8000..$C000`, and leaves the low restart vectors and
+`$C000..$10000` monitor ROM untouched. Node can run this exact gateway instead
+of the direct proof-port transport. Loaded, ROM, banked, diagnostic, D8, and
+sequential-reuse proofs require byte-identical results between the two paths.
+The complete map, selector table, and measured accounts are in the
+[MON3-compatible compiler host](mon3-host-binding.md).
 
 An early fixed target may select a prelinked runtime catalog. General
 target-derived runtime linking requires a native assembler/linker provider and

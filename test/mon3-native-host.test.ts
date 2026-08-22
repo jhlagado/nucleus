@@ -1,0 +1,118 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  compileNucleusTo,
+  type NucleusSourcePart,
+  type NucleusTarget,
+} from "../src/compiler.js";
+import {
+  mon3CompilerHex,
+  mon3CompilerSymbols,
+  mon3DebugCompilerSymbols,
+} from "../src/generated-compiler-images.js";
+import { parseIntelHex } from "@jhlagado/debug80-runtime";
+
+const compile = async (
+  hostTransport: "direct" | "mon3",
+  parts: readonly NucleusSourcePart[],
+  target: NucleusTarget,
+  debugMap = false,
+) => {
+  const chunks: Uint8Array[] = [];
+  let commits = 0;
+  let aborts = 0;
+  const result = await compileNucleusTo(
+    parts,
+    target,
+    {
+      write: (bytes) => chunks.push(bytes.slice()),
+      commit: () => {
+        commits += 1;
+      },
+      abort: () => {
+        aborts += 1;
+      },
+    },
+    { debugMap, hostTransport },
+  );
+  return {
+    result,
+    bytes: Uint8Array.from(chunks.flatMap((chunk) => [...chunk])),
+    commits,
+    aborts,
+  };
+};
+
+const expectSameCompile = async (
+  parts: readonly NucleusSourcePart[],
+  target: NucleusTarget,
+  debugMap = false,
+): Promise<void> => {
+  const [direct, mon3] = await Promise.all([
+    compile("direct", parts, target, debugMap),
+    compile("mon3", parts, target, debugMap),
+  ]);
+  expect(mon3.result).toEqual(
+    expect.objectContaining({ success: direct.result.success }),
+  );
+  expect(mon3.bytes).toEqual(direct.bytes);
+  expect(mon3.commits).toBe(direct.commits);
+  expect(mon3.aborts).toBe(direct.aborts);
+  if (direct.result.success && mon3.result.success) {
+    expect(mon3.result.object).toEqual(direct.result.object);
+    expect(mon3.result.debugMapping).toEqual(direct.result.debugMapping);
+  } else if (!direct.result.success && !mon3.result.success) {
+    expect(mon3.result.diagnostic).toEqual(direct.result.diagnostic);
+  }
+};
+
+describe("the MON3-compatible native compiler host", () => {
+  it("keeps the normal and debug compiler images inside the 16 KiB bank", () => {
+    expect(mon3CompilerSymbols.CompilerCoreBase).toBe(0x8000);
+    expect(mon3CompilerSymbols.CompilerCoreEnd).toBeLessThanOrEqual(0xc000);
+    expect(mon3CompilerSymbols.CompilerCoreEnd).toBe(0xbfba);
+    expect(mon3DebugCompilerSymbols.CompilerCoreBase).toBe(0x8000);
+    expect(mon3DebugCompilerSymbols.CompilerCoreEnd).toBeLessThanOrEqual(
+      0xc000,
+    );
+    expect(mon3DebugCompilerSymbols.CompilerCoreEnd).toBe(0xbffc);
+    expect(mon3CompilerSymbols.HostVectorBase).toBe(0x4000);
+    expect(mon3CompilerSymbols.HostVectorEnd).toBe(0x43d5);
+    expect(mon3CompilerSymbols.NativeHostWorkspaceEnd).toBe(
+      mon3CompilerSymbols.NativeHostWorkspaceBase + 24,
+    );
+
+    const image = parseIntelHex(mon3CompilerHex).memory;
+    expect([...image.slice(0x10, 0x13)]).toEqual([0, 0, 0]);
+  });
+
+  it("matches direct-host NOBJ for ROM, loaded, and banked targets", async () => {
+    const parts = [
+      {
+        name: "main.nu",
+        source: "var result as u8 = 3\nsub main()\nresult = result + 4\nend\n",
+      },
+    ];
+    await expectSameCompile(parts, {});
+    await expectSameCompile(parts, {
+      imageBase: 0x4000,
+      imageCapacity: 0x3000,
+      writableBase: 0x6000,
+      writableCapacity: 0x1000,
+    });
+    await expectSameCompile(
+      parts,
+      { bankCount: 2, entryBank: 1, partBanks: [1] },
+      true,
+    );
+  }, 30_000);
+
+  it("returns the same diagnostic and starts clean after a failed compile", async () => {
+    await expectSameCompile([{ name: "bad.nu", source: "broken\n" }], {});
+    await expectSameCompile(
+      [{ name: "main.nu", source: "sub main()\nend\n" }],
+      {},
+      true,
+    );
+  }, 30_000);
+});

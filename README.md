@@ -15,6 +15,7 @@ package does not govern Nucleus.
 | `grammar/`  | machine-readable production grammar, generator, and packed LL(1) tables |
 | `asm/`      | direct-Z80 compiler, runtime, and executable AZM proof fixtures         |
 | `examples/` | small source programs, including a TEC-1-style console                  |
+| `library/`  | importable console and integer-output routines written in Nucleus       |
 | `proofs/`   | bounded memory profiles and proof-harness manifests                     |
 | `src/`      | Node compiler, CLI, target validation, NOBJ, D8, and publication        |
 | `test/`     | grammar, contract, measurement, and direct-Z80 proof gates              |
@@ -22,18 +23,8 @@ package does not govern Nucleus.
 ## Host compiler
 
 The Node interface runs the same Z80 compiler used on a small machine. It
-loads source parts into an emulated compiler address space, executes the public
-target entry, then validates and materializes the committed NOBJ stream.
-
-```ts
-import { compileNucleus } from "@jhlagado/nucleus";
-
-const result = await compileNucleus([
-  { name: "main.nu", source: "sub main()\nend\n" },
-]);
-```
-
-Tool integrations should use the classified Host API 1 result:
+streams ordered source parts through the native compiler-host ABI, receives a
+committed NOBJ stream, and materializes launch artifacts only when requested.
 
 ```ts
 import { createNucleusCompiler } from "@jhlagado/nucleus";
@@ -46,6 +37,11 @@ const result = await compiler.build({
 });
 ```
 
+`compileNucleusTo()` exposes the same streaming path to a caller-owned
+transactional NOBJ destination. `compileNucleus()` remains as a
+resident-source compatibility API for older integrations and differential
+proofs.
+
 [Nucleus Host API 1](docs/host-api.md) defines target and project schemas,
 classified failures, compiler identity, capabilities and artifact publication.
 
@@ -55,6 +51,7 @@ canonical result:
 
 ```bash
 nucleus build -o program.nobj src/main.nu
+nucleus build --host-transport mon3 -o program.nobj src/main.nu
 nucleus build -o program.nobj --hex-output program.hex \
   --target-profile nucleus-target.json src/main.nu
 nucleus build -o program.nobj --hex-output program.hex \
@@ -86,8 +83,10 @@ The current authorities are:
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
 - [Nucleus Host API 1](docs/host-api.md)
+- [Nucleus standard library](docs/standard-library.md)
 - [Nucleus D8 Source Maps](docs/d8-source-maps.md)
 - [Nucleus host and Debug80 integration](docs/host-integration.md)
+- [MON3-compatible compiler host](docs/mon3-host-binding.md)
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
 - [Nucleus reviewer's charter](docs/reviewers-charter.md)
 

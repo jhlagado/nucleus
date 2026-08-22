@@ -1,6 +1,12 @@
 import { NucleusConfigurationError } from "./configuration.js";
+import {
+  isNucleusSourceIdentity,
+  NUCLEUS_SOURCE_IDENTITY_REQUIREMENT,
+} from "./source-identity.js";
 
-export const NUCLEUS_PROJECT_SCHEMA = "nucleus-project/v1";
+export const NUCLEUS_PROJECT_V1_SCHEMA = "nucleus-project/v1";
+export const NUCLEUS_PROJECT_V2_SCHEMA = "nucleus-project/v2";
+export const NUCLEUS_PROJECT_SCHEMA = NUCLEUS_PROJECT_V1_SCHEMA;
 
 export interface NucleusProjectOutputs {
   readonly nobj: string;
@@ -8,13 +14,24 @@ export interface NucleusProjectOutputs {
   readonly d8?: string;
 }
 
-export interface NucleusProject {
-  readonly schema: typeof NUCLEUS_PROJECT_SCHEMA;
+interface NucleusProjectBase {
   readonly root?: string;
-  readonly sources: readonly string[];
   readonly target: string;
   readonly outputs: NucleusProjectOutputs;
 }
+
+export interface NucleusProjectV1 extends NucleusProjectBase {
+  readonly schema: typeof NUCLEUS_PROJECT_V1_SCHEMA;
+  readonly sources: readonly string[];
+}
+
+export interface NucleusProjectV2 extends NucleusProjectBase {
+  readonly schema: typeof NUCLEUS_PROJECT_V2_SCHEMA;
+  readonly entry: string;
+  readonly sourceBanks?: Readonly<Record<string, number>>;
+}
+
+export type NucleusProject = NucleusProjectV1 | NucleusProjectV2;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,27 +51,68 @@ export const parseNucleusProject = (text: string): NucleusProject => {
       },
     ]);
   }
-  const issues: { path: string; message: string }[] = [];
   if (!isObject(value)) {
     throw new NucleusConfigurationError("Invalid Nucleus project", [
       { path: "$", message: "must be a JSON object" },
     ]);
   }
-  const allowed = new Set(["schema", "root", "sources", "target", "outputs"]);
+
+  const issues: { path: string; message: string }[] = [];
+  const v2 = value.schema === NUCLEUS_PROJECT_V2_SCHEMA;
+  const allowed = new Set(
+    v2
+      ? ["schema", "root", "entry", "sourceBanks", "target", "outputs"]
+      : ["schema", "root", "sources", "target", "outputs"],
+  );
   for (const key of Object.keys(value)) {
     if (!allowed.has(key))
       issues.push({ path: `$.${key}`, message: "is not recognised" });
   }
-  if (value.schema !== NUCLEUS_PROJECT_SCHEMA) {
+  if (
+    value.schema !== NUCLEUS_PROJECT_V1_SCHEMA &&
+    value.schema !== NUCLEUS_PROJECT_V2_SCHEMA
+  ) {
     issues.push({
       path: "$.schema",
-      message: `must be ${JSON.stringify(NUCLEUS_PROJECT_SCHEMA)}`,
+      message: `must be ${JSON.stringify(NUCLEUS_PROJECT_V1_SCHEMA)} or ${JSON.stringify(NUCLEUS_PROJECT_V2_SCHEMA)}`,
     });
   }
   if (value.root !== undefined && !nonemptyString(value.root)) {
     issues.push({ path: "$.root", message: "must be a nonempty path" });
   }
-  if (!Array.isArray(value.sources) || value.sources.length === 0) {
+  if (v2) {
+    if (!isNucleusSourceIdentity(value.entry)) {
+      issues.push({
+        path: "$.entry",
+        message: NUCLEUS_SOURCE_IDENTITY_REQUIREMENT,
+      });
+    }
+    if (value.sourceBanks !== undefined) {
+      if (!isObject(value.sourceBanks)) {
+        issues.push({ path: "$.sourceBanks", message: "must be an object" });
+      } else {
+        for (const [source, bank] of Object.entries(value.sourceBanks)) {
+          if (!isNucleusSourceIdentity(source)) {
+            issues.push({
+              path: `$.sourceBanks.${source}`,
+              message: `key ${NUCLEUS_SOURCE_IDENTITY_REQUIREMENT}`,
+            });
+          }
+          if (
+            typeof bank !== "number" ||
+            !Number.isInteger(bank) ||
+            bank < 0 ||
+            bank > 0xff
+          ) {
+            issues.push({
+              path: `$.sourceBanks.${source}`,
+              message: "must be an integer in the range 0..255",
+            });
+          }
+        }
+      }
+    }
+  } else if (!Array.isArray(value.sources) || value.sources.length === 0) {
     issues.push({
       path: "$.sources",
       message: "must contain at least one source path",

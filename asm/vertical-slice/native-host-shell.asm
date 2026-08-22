@@ -3,7 +3,11 @@
 ; compiler entry, classifies compiler diagnostics separately from host
 ; failures, and publishes the nine-byte launch result.
 
+.if Mon3HostTransport
+NativeHostWorkspaceBase            .equ $5800
+.else
 NativeHostWorkspaceBase            .equ $A800
+.endif
 NativeHostLaunchActive             .equ NativeHostWorkspaceBase
 NativeHostLaunchCommitted          .equ NativeHostLaunchActive+1
 NativeHostLaunchDescriptorPointer  .equ NativeHostLaunchCommitted+1
@@ -19,7 +23,14 @@ NativeHostRuntimeContext           .equ NativeHostRuntimeAddress+2
 NativeHostRuntimeStatus            .equ NativeHostRuntimeContext+2
 NativeHostRuntimePending           .equ NativeHostRuntimeStatus+1
 NativeHostAsyncStatus              .equ NativeHostRuntimePending+1
+.if Mon3HostTransport
+NativeHostMon3InputBC              .equ NativeHostAsyncStatus+1
+NativeHostMon3InputC               .equ NativeHostMon3InputBC
+NativeHostMon3InputB               .equ NativeHostMon3InputBC+1
+NativeHostWorkspaceEnd             .equ NativeHostMon3InputBC+2
+.else
 NativeHostWorkspaceEnd             .equ NativeHostAsyncStatus+1
+.endif
 
 NativeHostLaunchDescriptorSize     .equ 14
 NativeHostLaunchAbiMajor           .equ 0
@@ -119,7 +130,11 @@ NucleusHostCompile:
             ; retained target context before the compiler can request source or
             ; output. This call is beneath the fixed compiler-host vector.
             XOR  A
+.if Mon3HostTransport
+            CALL NativeHostLaunchBegin
+.else
             OUT  (NativeHostLaunchBeginPort),A
+.endif
             JP   C,NHLaunchHostFailure
             LD   A,1
             LD   (NativeHostLaunchActive),A
@@ -192,7 +207,11 @@ NHLaunchNoResult:
 ; not manufacture a failure that cannot roll it back.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry
 NativeHostFinishLaunch:
+.if Mon3HostTransport
+            CALL NativeHostLaunchEnd
+.else
             OUT  (NativeHostLaunchEndPort),A
+.endif
             XOR  A
             LD   (NativeHostLaunchActive),A
             RET

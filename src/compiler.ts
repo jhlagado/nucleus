@@ -9,6 +9,10 @@ import {
   nativeCompilerSymbols,
   nativeDebugCompilerHex,
   nativeDebugCompilerSymbols,
+  mon3CompilerHex,
+  mon3CompilerSymbols,
+  mon3DebugCompilerHex,
+  mon3DebugCompilerSymbols,
   normalCompilerHex,
   normalCompilerSymbols,
 } from "./generated-compiler-images.js";
@@ -51,7 +55,6 @@ import {
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
-const PART_BANKS = TARGET_DESCRIPTOR + 0x10;
 const NATIVE_LAUNCH_DESCRIPTOR = TARGET_DESCRIPTOR + 0x20;
 const NATIVE_LAUNCH_RESULT = TARGET_DESCRIPTOR + 0x30;
 const RETURN_SENTINEL = 0x9fff;
@@ -62,6 +65,8 @@ const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
 const DEFAULT_INSTRUCTION_LIMIT = 10_000_000;
 const DEFAULT_CYCLE_LIMIT = 100_000_000;
+const MON3_SAVED_C_SERVICES =
+  (1 << 1) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9);
 
 export const nucleusCompilerCapacities = {
   sourceParts: MAX_SOURCE_PARTS,
@@ -128,6 +133,8 @@ export interface NucleusCompileOptions {
 export interface NucleusStreamingCompileOptions {
   readonly debugMap?: boolean;
   readonly compilerIoWrite?: (port: number, value: number) => void;
+  /** Select the Z80-to-host transport used by the authoritative compiler. */
+  readonly hostTransport?: "direct" | "mon3";
   readonly spoolFactory?: NobjSpoolFactory;
   readonly lowMemoryPatchValidation?: boolean;
   readonly signal?: AbortSignal;
@@ -217,7 +224,7 @@ interface CompilerImage {
 }
 
 const compilerImages = new Map<boolean, Promise<CompilerImage>>();
-const nativeCompilerImages = new Map<boolean, Promise<CompilerImage>>();
+const nativeCompilerImages = new Map<string, Promise<CompilerImage>>();
 
 const symbol = (
   symbols: Readonly<Record<string, number>>,
@@ -267,22 +274,35 @@ const validateNativeHostVector = (image: CompilerImage): void => {
 
 const loadNativeCompilerImage = async (
   debugHooks: boolean,
+  hostTransport: "direct" | "mon3" = "direct",
 ): Promise<CompilerImage> => {
-  let pending = nativeCompilerImages.get(debugHooks);
+  const cacheKey = `${hostTransport}:${debugHooks ? "debug" : "normal"}`;
+  let pending = nativeCompilerImages.get(cacheKey);
   if (pending === undefined) {
     pending = Promise.resolve().then(() => {
+      const mon3 = hostTransport === "mon3";
       const image = {
         program: parseIntelHex(
-          debugHooks ? nativeDebugCompilerHex : nativeCompilerHex,
+          mon3
+            ? debugHooks
+              ? mon3DebugCompilerHex
+              : mon3CompilerHex
+            : debugHooks
+              ? nativeDebugCompilerHex
+              : nativeCompilerHex,
         ),
-        symbols: debugHooks
-          ? nativeDebugCompilerSymbols
-          : nativeCompilerSymbols,
+        symbols: mon3
+          ? debugHooks
+            ? mon3DebugCompilerSymbols
+            : mon3CompilerSymbols
+          : debugHooks
+            ? nativeDebugCompilerSymbols
+            : nativeCompilerSymbols,
       };
       validateNativeHostVector(image);
       return image;
     });
-    nativeCompilerImages.set(debugHooks, pending);
+    nativeCompilerImages.set(cacheKey, pending);
   }
   return pending;
 };
@@ -306,16 +326,21 @@ export const nucleusCompilerInfo = async (): Promise<{
   readonly runtimeIdentity: 9;
   readonly normalImageSha256: string;
   readonly debugImageSha256: string;
+  readonly mon3ImageSha256: string;
+  readonly mon3DebugImageSha256: string;
   readonly capacities: typeof nucleusCompilerCapacities;
+  readonly hostTransports: readonly ["direct", "mon3"];
   readonly targets: {
     readonly flat: true;
     readonly banked: true;
     readonly maxBanks: 4;
   };
 }> => {
-  const [normal, debug] = await Promise.all([
+  const [normal, debug, mon3, mon3Debug] = await Promise.all([
     loadNativeCompilerImage(false),
     loadNativeCompilerImage(true),
+    loadNativeCompilerImage(false, "mon3"),
+    loadNativeCompilerImage(true, "mon3"),
   ]);
   return {
     hostApiVersion: 1,
@@ -323,7 +348,10 @@ export const nucleusCompilerInfo = async (): Promise<{
     runtimeIdentity: RUNTIME_IDENTITY,
     normalImageSha256: compilerImageFingerprint(normal),
     debugImageSha256: compilerImageFingerprint(debug),
+    mon3ImageSha256: compilerImageFingerprint(mon3),
+    mon3DebugImageSha256: compilerImageFingerprint(mon3Debug),
     capacities: nucleusCompilerCapacities,
+    hostTransports: ["direct", "mon3"],
     targets: { flat: true, banked: true, maxBanks: 4 },
   };
 };
@@ -449,6 +477,7 @@ const prepareTarget = (
   memory: Uint8Array,
   partBanks: readonly number[],
   target: NucleusTarget,
+  descriptorBase = TARGET_DESCRIPTOR,
 ): NobjBegin => {
   const imageBase = target.imageBase ?? 0x8000;
   const imageCapacity = target.imageCapacity ?? 0x1000;
@@ -466,13 +495,14 @@ const prepareTarget = (
   if (!Number.isInteger(imageFill) || imageFill < 0 || imageFill > 0xff) {
     throw new RangeError("Nucleus target image fill is outside 0..255");
   }
-  memory.fill(0, TARGET_DESCRIPTOR, TARGET_DESCRIPTOR + TARGET_DESCRIPTOR_SIZE);
-  writeWord(memory, TARGET_DESCRIPTOR, RUNTIME_IDENTITY);
-  writeWord(memory, TARGET_DESCRIPTOR + 2, imageBase);
-  writeWord(memory, TARGET_DESCRIPTOR + 4, imageCapacity);
-  writeWord(memory, TARGET_DESCRIPTOR + 6, writableBase);
-  writeWord(memory, TARGET_DESCRIPTOR + 8, writableCapacity);
-  memory[TARGET_DESCRIPTOR + 10] = target.establishStack === false ? 0 : 1;
+  const partBanksBase = descriptorBase + 0x10;
+  memory.fill(0, descriptorBase, descriptorBase + TARGET_DESCRIPTOR_SIZE);
+  writeWord(memory, descriptorBase, RUNTIME_IDENTITY);
+  writeWord(memory, descriptorBase + 2, imageBase);
+  writeWord(memory, descriptorBase + 4, imageCapacity);
+  writeWord(memory, descriptorBase + 6, writableBase);
+  writeWord(memory, descriptorBase + 8, writableCapacity);
+  memory[descriptorBase + 10] = target.establishStack === false ? 0 : 1;
   const bankCount = isBankedTarget(target) ? target.bankCount : 1;
   const entryBank = isBankedTarget(target) ? target.entryBank : 0;
   if (
@@ -494,10 +524,10 @@ const prepareTarget = (
       );
     }
   }
-  memory[TARGET_DESCRIPTOR + 11] = bankCount;
-  memory[TARGET_DESCRIPTOR + 12] = entryBank;
-  writeWord(memory, TARGET_DESCRIPTOR + 13, PART_BANKS);
-  memory.set(partBanks, PART_BANKS);
+  memory[descriptorBase + 11] = bankCount;
+  memory[descriptorBase + 12] = entryBank;
+  writeWord(memory, descriptorBase + 13, partBanksBase);
+  memory.set(partBanks, partBanksBase);
   return {
     banked: bankCount > 1,
     runtimeIdentity: RUNTIME_IDENTITY,
@@ -780,7 +810,16 @@ const runNucleusCompilerNativeTo = async (
   options: NucleusStreamingCompileOptions,
 ): Promise<NucleusStreamingCompileResult> => {
   const debugHooks = options.debugMap === true;
-  const image = await loadNativeCompilerImage(debugHooks);
+  const hostTransport = options.hostTransport ?? "direct";
+  const mon3Transport = hostTransport === "mon3";
+  const image = await loadNativeCompilerImage(debugHooks, hostTransport);
+  const targetDescriptor =
+    image.symbols.NativeHostTargetDescriptorBase ?? TARGET_DESCRIPTOR;
+  const nativeLaunchDescriptor = targetDescriptor + 0x20;
+  const nativeLaunchResult = targetDescriptor + 0x30;
+  const returnSentinel =
+    image.symbols.NativeHostReturnSentinel ?? RETURN_SENTINEL;
+  const stackTop = image.symbols.StackTop ?? STACK_TOP;
   const prepared = prepareNativeSource(
     parts,
     isBankedTarget(target) ? target.partBanks : undefined,
@@ -810,9 +849,24 @@ const runNucleusCompilerNativeTo = async (
     symbol(image.symbols, "CompileTargetAggregateCallParts"),
     {
       write: (port, value) => {
-        const selectedPort = port & 0xff;
+        let selectedPort = port & 0xff;
         const cpu = runtime.cpu;
         const memory = runtime.hardware.memory;
+        if (
+          mon3Transport &&
+          selectedPort === symbol(image.symbols, "NativeHostMon3NodePort")
+        ) {
+          const service =
+            cpu.c - symbol(image.symbols, "NativeHostMon3ServiceBase");
+          if (service < 0 || service > 15) {
+            throw new Error(`unknown Nucleus MON3 host service ${cpu.c}`);
+          }
+          if ((MON3_SAVED_C_SERVICES & (1 << service)) !== 0) {
+            cpu.c = memory[symbol(image.symbols, "NativeHostMon3InputC")] ?? 0;
+          }
+          selectedPort =
+            symbol(image.symbols, "NativeHostSourceNextChunkPort") + service;
+        }
         const bc = (cpu.b << 8) | cpu.c;
         const de = (cpu.d << 8) | cpu.e;
         const hl = (cpu.h << 8) | cpu.l;
@@ -837,14 +891,14 @@ const runNucleusCompilerNativeTo = async (
             }
             if (
               launchActive ||
-              cpu.ix !== NATIVE_LAUNCH_DESCRIPTOR ||
+              cpu.ix !== nativeLaunchDescriptor ||
               (memory[cpu.ix] ?? 0) !== 14 ||
               (memory[cpu.ix + 1] ?? 0) !== 0 ||
               (memory[cpu.ix + 2] ?? 0) !== 1 ||
               (memory[cpu.ix + 3] ?? 0) !== parts.length ||
               readWord(memory, cpu.ix + 4) !== 1 ||
-              readWord(memory, cpu.ix + 6) !== TARGET_DESCRIPTOR ||
-              readWord(memory, cpu.ix + 8) !== NATIVE_LAUNCH_RESULT ||
+              readWord(memory, cpu.ix + 6) !== targetDescriptor ||
+              readWord(memory, cpu.ix + 8) !== nativeLaunchResult ||
               readWord(memory, cpu.ix + 10) !== 1 ||
               (memory[cpu.ix + 12] ?? 0) !== (debugHooks ? 2 : 0) ||
               (memory[cpu.ix + 13] ?? 0) !== 0
@@ -856,7 +910,7 @@ const runNucleusCompilerNativeTo = async (
             try {
               validateNativeTargetDescriptor(
                 memory,
-                TARGET_DESCRIPTOR,
+                targetDescriptor,
                 begin,
                 target,
                 prepared.partBanks,
@@ -1219,7 +1273,20 @@ const runNucleusCompilerNativeTo = async (
     },
   );
   const memory = runtime.hardware.memory;
-  const begin = prepareTarget(memory, prepared.partBanks, target);
+  if (mon3Transport) {
+    memory[symbol(image.symbols, "NativeHostMon3RstVector")] = 0xd3;
+    memory[symbol(image.symbols, "NativeHostMon3RstVector") + 1] = symbol(
+      image.symbols,
+      "NativeHostMon3NodePort",
+    );
+    memory[symbol(image.symbols, "NativeHostMon3RstVector") + 2] = 0xc9;
+  }
+  const begin = prepareTarget(
+    memory,
+    prepared.partBanks,
+    target,
+    targetDescriptor,
+  );
   if (debugHooks) {
     collector = new NucleusDebugCollector(
       memory,
@@ -1233,23 +1300,23 @@ const runNucleusCompilerNativeTo = async (
       },
     );
   }
-  memory[RETURN_SENTINEL] = 0x76;
-  writeWord(memory, STACK_TOP, RETURN_SENTINEL);
-  memory.fill(0, NATIVE_LAUNCH_DESCRIPTOR, NATIVE_LAUNCH_DESCRIPTOR + 14);
-  memory[NATIVE_LAUNCH_DESCRIPTOR] = 14;
-  memory[NATIVE_LAUNCH_DESCRIPTOR + 1] = 0;
-  memory[NATIVE_LAUNCH_DESCRIPTOR + 2] = 1;
-  memory[NATIVE_LAUNCH_DESCRIPTOR + 3] = parts.length;
-  writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 4, 1);
-  writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 6, TARGET_DESCRIPTOR);
-  writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 8, NATIVE_LAUNCH_RESULT);
-  writeWord(memory, NATIVE_LAUNCH_DESCRIPTOR + 10, 1);
-  memory[NATIVE_LAUNCH_DESCRIPTOR + 12] = debugHooks ? 2 : 0;
-  memory[NATIVE_LAUNCH_DESCRIPTOR + 13] = 0;
-  memory.fill(0xa5, NATIVE_LAUNCH_RESULT, NATIVE_LAUNCH_RESULT + 9);
+  memory[returnSentinel] = 0x76;
+  writeWord(memory, stackTop, returnSentinel);
+  memory.fill(0, nativeLaunchDescriptor, nativeLaunchDescriptor + 14);
+  memory[nativeLaunchDescriptor] = 14;
+  memory[nativeLaunchDescriptor + 1] = 0;
+  memory[nativeLaunchDescriptor + 2] = 1;
+  memory[nativeLaunchDescriptor + 3] = parts.length;
+  writeWord(memory, nativeLaunchDescriptor + 4, 1);
+  writeWord(memory, nativeLaunchDescriptor + 6, targetDescriptor);
+  writeWord(memory, nativeLaunchDescriptor + 8, nativeLaunchResult);
+  writeWord(memory, nativeLaunchDescriptor + 10, 1);
+  memory[nativeLaunchDescriptor + 12] = debugHooks ? 2 : 0;
+  memory[nativeLaunchDescriptor + 13] = 0;
+  memory.fill(0xa5, nativeLaunchResult, nativeLaunchResult + 9);
   let instructions = 0;
   let cycles = 0;
-  runtime.cpu.sp = STACK_TOP;
+  runtime.cpu.sp = stackTop;
   runtime.cpu.pc = symbol(image.symbols, "NucleusHostInitialize");
   runtime.cpu.halted = false;
   try {
@@ -1266,10 +1333,10 @@ const runNucleusCompilerNativeTo = async (
       instructions += 1;
       cycles += step.cycles ?? 0;
     }
-    writeWord(memory, STACK_TOP, RETURN_SENTINEL);
-    runtime.cpu.sp = STACK_TOP;
+    writeWord(memory, stackTop, returnSentinel);
+    runtime.cpu.sp = stackTop;
     runtime.cpu.pc = symbol(image.symbols, "NucleusHostCompile");
-    runtime.cpu.ix = NATIVE_LAUNCH_DESCRIPTOR;
+    runtime.cpu.ix = nativeLaunchDescriptor;
     runtime.cpu.halted = false;
     while (!runtime.isHalted()) {
       if (
@@ -1309,8 +1376,8 @@ const runNucleusCompilerNativeTo = async (
       }
     }
     if (nativeHostFailure !== undefined) throw nativeHostFailure;
-    const outcome = memory[NATIVE_LAUNCH_RESULT] ?? 0xff;
-    const resultCode = memory[NATIVE_LAUNCH_RESULT + 1] ?? 0;
+    const outcome = memory[nativeLaunchResult] ?? 0xff;
+    const resultCode = memory[nativeLaunchResult + 1] ?? 0;
     if (
       runtime.cpu.a !== outcome ||
       runtime.cpu.flags.C !== (outcome === 0 ? 0 : 1)
@@ -1323,16 +1390,16 @@ const runNucleusCompilerNativeTo = async (
       throw new Error(`native Nucleus host failed with status ${resultCode}`);
     }
     if (outcome === 1) {
-      const part = memory[NATIVE_LAUNCH_RESULT + 2] ?? 0;
+      const part = memory[nativeLaunchResult + 2] ?? 0;
       return {
         success: false,
         diagnostic: {
           code: resultCode,
           sourcePart: part,
           sourceName: parts[part - 1]?.name,
-          offset: readWord(memory, NATIVE_LAUNCH_RESULT + 3),
-          line: readWord(memory, NATIVE_LAUNCH_RESULT + 5),
-          column: readWord(memory, NATIVE_LAUNCH_RESULT + 7),
+          offset: readWord(memory, nativeLaunchResult + 3),
+          line: readWord(memory, nativeLaunchResult + 5),
+          column: readWord(memory, nativeLaunchResult + 7),
         },
         instructions,
         cycles,

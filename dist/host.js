@@ -22,6 +22,14 @@ export class NucleusCompiler {
                 sourcePartCount: request.sources.length,
             }),
         ];
+        if (request.hostTransport !== undefined &&
+            request.hostTransport !== "direct" &&
+            request.hostTransport !== "mon3") {
+            issues.push({
+                path: "$.hostTransport",
+                message: "must be direct or mon3",
+            });
+        }
         if (request.sources.length === 0) {
             issues.push({
                 path: "$.sources",
@@ -47,6 +55,17 @@ export class NucleusCompiler {
                     path: `$.sources[${index}].source`,
                     message: "must be a string or Uint8Array",
                 });
+            }
+            else {
+                const byteLength = typeof part.source === "string"
+                    ? new TextEncoder().encode(part.source).length
+                    : part.source.length;
+                if (byteLength > nucleusCompilerCapacities.sourcePartBytes) {
+                    issues.push({
+                        path: `$.sources[${index}].source`,
+                        message: `contains ${byteLength} bytes; capacity is ${nucleusCompilerCapacities.sourcePartBytes}`,
+                    });
+                }
             }
             if (request.artifacts?.d8 === true &&
                 typeof part.name === "string" &&
@@ -85,7 +104,10 @@ export class NucleusCompiler {
                 abort: () => {
                     chunks.length = 0;
                 },
-            }, { debugMap: request.artifacts?.d8 === true });
+            }, {
+                debugMap: request.artifacts?.d8 === true,
+                hostTransport: request.hostTransport,
+            });
             if (!compiled.success) {
                 if (compiled.diagnostic.code === 95 ||
                     compiled.diagnostic.code === 96) {

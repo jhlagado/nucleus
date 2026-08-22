@@ -28,6 +28,8 @@ export interface NucleusBuildRequest {
   readonly sources: readonly NucleusSourcePart[];
   readonly target?: NucleusTarget;
   readonly artifacts?: NucleusBuildArtifactRequest;
+  /** Exercise the compiler through direct pseudo-ports or the MON3 RST gateway. */
+  readonly hostTransport?: "direct" | "mon3";
 }
 
 export interface NucleusD8Artifact {
@@ -106,6 +108,16 @@ export class NucleusCompiler {
         sourcePartCount: request.sources.length,
       }),
     ];
+    if (
+      request.hostTransport !== undefined &&
+      request.hostTransport !== "direct" &&
+      request.hostTransport !== "mon3"
+    ) {
+      issues.push({
+        path: "$.hostTransport",
+        message: "must be direct or mon3",
+      });
+    }
     if (request.sources.length === 0) {
       issues.push({
         path: "$.sources",
@@ -125,13 +137,24 @@ export class NucleusCompiler {
           message: "must be a nonempty source identity",
         });
       }
-      if (
-        !(typeof part.source === "string" || part.source instanceof Uint8Array)
-      ) {
+      if (!(
+        typeof part.source === "string" || part.source instanceof Uint8Array
+      )) {
         issues.push({
           path: `$.sources[${index}].source`,
           message: "must be a string or Uint8Array",
         });
+      } else {
+        const byteLength =
+          typeof part.source === "string"
+            ? new TextEncoder().encode(part.source).length
+            : part.source.length;
+        if (byteLength > nucleusCompilerCapacities.sourcePartBytes) {
+          issues.push({
+            path: `$.sources[${index}].source`,
+            message: `contains ${byteLength} bytes; capacity is ${nucleusCompilerCapacities.sourcePartBytes}`,
+          });
+        }
       }
       if (
         request.artifacts?.d8 === true &&
@@ -177,7 +200,10 @@ export class NucleusCompiler {
             chunks.length = 0;
           },
         },
-        { debugMap: request.artifacts?.d8 === true },
+        {
+          debugMap: request.artifacts?.d8 === true,
+          hostTransport: request.hostTransport,
+        },
       );
       if (!compiled.success) {
         if (

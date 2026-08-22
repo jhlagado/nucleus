@@ -516,97 +516,23 @@ been implemented and measured. It is not part of this plan.
 
 ## 11. Shared standard library
 
-### 11.1 Routine-capacity prerequisite
-
-The current compiler admits four non-main routines. The library below defines
-twelve before any user routine, so it cannot be implemented against that
-capacity. Splitting source files does not help because all parts share one
-program scope.
-
-Before adding library source, run an independently measured capacity change
-with these minimum goals:
-
-- sixteen ordinary routine entries, preserving four user routines after the
-  twelve initial library routines;
-- twenty-six retained parameter entries, preserving the current sixteen user
-  parameter entries after the library's ten parameters; and
-- at least sixty-four generated label slots.
-
-The existing three-byte fixup entry cannot represent this change. It combines a
-five-bit label, two-bit site bank, and far marker in one byte, and source calls
-use that entry as well as structured control. Milestone 2 replaces it with a
-four-byte entry:
-
-```text
-label       : u8, valid range 0..63
-flags       : bits 0..1 site bank, bit 7 far; other bits zero
-siteAddress : u16 little-endian
-```
-
-Fixup capacity remains 32. Structured-control labels remain below 31, `main`
-uses label 31, and ordinary routines use labels 32 through 47. Source routine
-labels therefore extend above 31 without being truncated into bank metadata. Definition,
-local resolution, far resolution, range checking, and reset must all consume
-the new fields explicitly.
-
-The projected workspace cost is about 264 bytes: 96 for twelve additional
-eight-byte routine entries, 40 for ten additional parameter entries, 96 for
-expanding the generated label table from 32 to 64, and 32 for widening the 32
-fixup entries by one byte. This is a hypothesis until assembly and execution
-reproduce it. Core cost must fit the 251-byte headroom in Section 13 without
-reducing control-label, fixup, symbol, source-part, or semantic capacities.
-Proofs must discriminate labels 31, 32, 43, and 47 in local and cross-bank calls,
-fill all sixteen routine entries and all twenty-six parameter entries, and
-reject the next entry at its source position.
-
-Routine capacity is not the only gate. All imported library bodies occupy the
-single 511-byte semantic transcript. The experiment must measure payload use
-for the console module alone, the formatting module with its console
-dependency, and each combined with a representative user program and the
-complete accepted Chapter 18 program. It must report remaining transcript
-bytes and retain the existing exact-fill and first-overflow behavior. If the
-initial library cannot leave useful program capacity, the work stops for a
-separate transcript-streaming or library-scope design; it does not quietly
-raise a memory constant or call the library practical because it fits by
-itself.
-
-The Milestone 2 draft measurements validate the modular split and also expose
-the remaining boundary. With the 511-byte payload unchanged:
-
-- `console/output.nu` uses 140 bytes and leaves 371;
-- `console/input.nu` uses 157 bytes and leaves 354;
-- output plus unsigned formatting uses 275 bytes and leaves 236;
-- output plus unsigned and signed formatting uses 329 bytes and leaves 182;
-- output plus hexadecimal formatting uses 199 bytes and leaves 312;
-- output plus a representative user program uses 156 bytes and leaves 355;
-- output plus unsigned formatting and that user program uses 364 bytes and
-  leaves 147; and
-- output plus the complete Section 18.1 program uses 397 bytes and leaves 114.
-
-Adding unsigned formatting to the complete Section 18.1 program exceeds the
-payload at source part 3, offset 482, with the existing semantic-capacity
-diagnostic. These are measured test-only draft bodies, not a claim that the
-finished formatting algorithms are smaller. The result permits the routine and
-parameter expansion to stand, but it does not clear the complete standard
-library for implementation. Before the finished library is retained, the
-semantic transcript needs a separately reviewed streaming, external-spool, or
-library-scope solution. The fixed 511-byte capacity is not raised silently.
-
-### 11.2 Ownership
+### 11.1 Ownership and module surface
 
 There is one Nucleus standard library, written in Nucleus source. Node and Z80
 hosts do not provide different source libraries. They implement the same
 standard byte-service vectors beneath it.
 
-The initial console library is deliberately split so a program pays only for
-the direction it uses. `console/input.nu` supplies:
+The implemented console library is split by use because Nucleus emits every
+imported routine and does not perform dead-code elimination. `console/input.nu`
+supplies:
 
 ```text
-getChar() as u8 fails
+readChar() as u8 fails
 readLine(destination as string[]) fails
 ```
 
-`console/output.nu` supplies:
+`console/char.nu` contains only `printChar`. `console/output.nu` imports it and
+supplies the text operations:
 
 ```text
 printChar(value as u8) fails
@@ -615,7 +541,7 @@ printLine(text as string[]) fails
 printNewline() fails
 ```
 
-`getChar` and `printChar` are readable wrappers over `readInputByte` and
+`readChar` and `printChar` are readable wrappers over `readInputByte` and
 `writeOutputByte`. `printString` writes exactly the logical string bytes and no
 line ending. `printLine` writes the string followed by one LF. `printNewline`
 writes one LF.
@@ -628,38 +554,25 @@ other selected standard-input stream retains its defined bytes unless its own
 adapter contract says otherwise.
 
 The full names are intentional. `printString` names the accepted value type;
-`printLine` names the added line-ending behavior. `println` and abbreviated
-`printStr` aliases are not added.
+`printLine` names the added line-ending behavior. There are no `println` or
+`printStr` aliases.
 
-Formatting is split for the same reason. `format/unsigned.nu` supplies
-`printU8` and `printU16`; `format/signed.nu` adds `printI8` and `printI16` and
-imports the unsigned module; `format/hex.nu` supplies `printHex8` and
-`printHex16`. Importing every formatting family still provides the original
-twelve-routine library surface, but ordinary programs need not spend transcript
-or generated bytes on unused conversions.
-
-Together the formatting modules supply the routines needed by programs and the
-introductory documentation:
+Decimal output is also split by source type. `console/u8.nu`,
+`console/i8.nu`, `console/u16.nu`, and `console/i16.nu` provide:
 
 ```text
 printU8(value as u8) fails
 printU16(value as u16) fails
 printI8(value as i8) fails
 printI16(value as i16) fails
-printHex8(value as u8) fails
-printHex16(value as u16) fails
 ```
 
-They write directly through `printChar` and allocate no hidden string. Decimal
-output has no leading zeroes except for the value zero. Signed output writes a
-leading minus only for a negative value and must handle the minimum signed
-value without first negating it in its original width. Hexadecimal output uses
-uppercase `A` through `F` and fixed width: two digits for `u8`, four for `u16`.
-These are library routines, so they add source bytes, semantic-transcript
-bytes, and generated-program bytes but no compiler-core or selected-runtime
-bytes.
+Each numeric module imports only the smaller dependency it needs. The routines
+write through `printChar`, allocate no hidden string, use no leading zeroes,
+and handle `-128` and `-32768`. They add source, semantic-transcript, and target
+program bytes but no compiler-core, compiler-workspace, or runtime bytes.
 
-### 11.3 `readLine`
+### 11.2 `readLine`
 
 The settled interface is:
 
@@ -692,7 +605,7 @@ const lineTooLong = 5
 ```
 
 Physical console adapters normalize Enter, CRLF, or platform-specific key
-events to one LF byte before `getChar` sees them. The library does not contain a
+events to one LF byte before `readChar` sees them. The library does not contain a
 second CRLF policy.
 
 The destination must be backed by writable storage. The language's open-string
@@ -702,7 +615,7 @@ therefore permitted by the type system but does not satisfy the library
 contract: mutation can disappear in ROM and take effect in RAM. Documentation
 and examples always pass a mutable program variable or an alias rooted in one.
 
-### 11.4 Packaging
+### 11.3 Packaging and measured capacity
 
 The host import resolver places standard-library parts before their users in
 the ordinary ordered source stream. The tokenizer treats the import directive
@@ -735,12 +648,17 @@ among siblings. Stable source identities are assigned only after final order.
 The exact raw bytes, including directive comments and original line endings,
 reach the compiler unchanged.
 
-Node CLI and API support and the native file resolver are both implementation
-work in this plan; neither is assumed to exist. The two standard-library files
-consume two of the current eight source parts, and all twelve routines are
-emitted because Nucleus performs no dead-code elimination. Those effects are
-measured explicitly. Increasing source-part capacity or adding library linking
-would be a separate change rather than hidden in packaging.
+The Node CLI and API resolver are implemented. It first tries a path relative
+to the importing file, then the bundled standard-library root. Bundled parts
+use stable `@nucleus/` identities. The compiler remains unaware of imports and
+filesystems. A native resolver over TEC-FS remains machine-integration work.
+
+The fixed 511-byte semantic transcript is unchanged. Finished executable
+proofs measure 188 bytes for text output, 263 for `u8` plus `i8`, 291 for
+`u16` plus `i16`, 341 for a successful `readLine` caller, and 367 for the
+introductory `Total: 42` program. The last case leaves 144 bytes. Exact fill
+and first overflow remain separately proved. These are regression measurements,
+not projections.
 
 ## 12. Documentation and examples
 
@@ -770,10 +688,11 @@ check their output bytes, not only their acceptance.
 
 ## 13. Resource accounting
 
-The measured production baseline at `886cd95` is 15,696 code bytes plus 437
-immutable bytes, or 16,133 bytes of compiler core. It has 251 bytes of headroom
-below 16 KiB and uses 3,613 workspace bytes. The selected target runtime is 899
-bytes. These are current measurements, not the older figures in the historical
+The current production native-source layout is 15,877 code bytes plus 437
+immutable bytes, or 16,314 bytes of compiler core. It leaves 70 bytes below
+16 KiB and uses 3,922 workspace bytes. The selected proof runtime is 921 bytes.
+The conditionally instrumented D8 layout is 16,380 core bytes and leaves four
+bytes. These are measured accounts, not the older figures in the historical
 startup plan.
 
 The narrow margin changes the implementation strategy. Production source and
@@ -869,7 +788,7 @@ separate host account.
 
 ### Milestone 6: Z80 NOBJ consumer
 
-Status: direct replacement implemented; adversarial review pending.
+Status: implemented, adversarially reviewed, and verified.
 
 - implement the stored flat loader first;
 - add bank selection and banked materialization;
@@ -896,7 +815,7 @@ These accounts are separate from the 16 KiB compiler gate.
 
 ### Milestone 7a: native launch shell under Debug80
 
-Status: implemented and under final review.
+Status: implemented, adversarially reviewed, and verified.
 
 - implement the stable Nucleus host vectors and `NucleusHostCompile` entry in
   Z80;
@@ -914,6 +833,8 @@ ports as device traps; it is not the MON3 deployment gateway.
 
 ### Milestone 7b: MON3-compatible service gateway
 
+Status: implemented in the Nucleus reference binding and proved under Node.
+
 - place the compiler and host so the monitor RST vector remains available;
 - implement the bounded MON3-compatible RST gateway beneath the stable host
   calls;
@@ -921,7 +842,17 @@ ports as device traps; it is not the MON3 deployment gateway.
 - test stack, bank, failure, reset, and sequential-run behavior; and
 - document the later MON3/TECM8 service-number and filesystem bindings.
 
+The compiler occupies `$8000..$C000`; the normal core remains 16,314 bytes and
+the D8 core remains 16,380. The external MON3 host image is 981 code bytes with
+24 workspace bytes. Direct and RST transports produce identical loaded, ROM,
+banked, diagnostic, NOBJ, and D8 results. Formal monitor selector allocation
+and real TEC-FS providers remain machine-integration work.
+
 ### Milestone 8: import resolver, standard library, and documentation
+
+Status: Node resolver, bundled library, CLI/API integration, and executable
+repository examples are implemented; native TEC-FS resolution and the external
+book revision remain.
 
 - implement `//% import` discovery in the Node host and native file resolver;
 - add console source modules and executable tests;

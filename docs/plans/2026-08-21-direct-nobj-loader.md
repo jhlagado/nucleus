@@ -131,9 +131,9 @@ For those reasons NOBJ remains the executable object stream. A Nucleus-specific
 HEX stream could be a transport for a flat target, while an ordinary exported
 HEX artifact should normally be produced from the completed materialized image.
 
-## 8. Implementation changes
+## 8. Implemented changes
 
-The next consumer increment will:
+The completed consumer increment:
 
 1. make direct loading the native consumer's ordinary strategy;
 2. remove mandatory object lock, rewind, and second-pass machinery;
@@ -145,8 +145,8 @@ The next consumer increment will:
    the execution loader;
 8. update the NOBJ and target authorities so PATCH stream-order semantics and
    the two validation policies cannot be confused again; and
-9. replace the stale Milestone 6 statement that calls direct loading a future
-   extension.
+9. replaced the stale Milestone 6 statement that called direct loading a
+   future extension.
 
 No compiler, language, generated-program, runtime, or NOBJ record encoding
 change is required.
@@ -171,5 +171,5 @@ The direct strategy must prove:
 - byte identity with the existing materializer for every valid fixture.
 
 The implementation reports consumer code, workspace, instruction count, and
-T-states separately from the 16 KiB compiler account. An adversarial review
-must clear correctness before any size pass or commit.
+T-states separately from the 16 KiB compiler account. Its correctness and size
+reviews were completed before the implementation was committed.

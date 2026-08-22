@@ -41,6 +41,8 @@ export interface NucleusCompileOptions {
 export interface NucleusStreamingCompileOptions {
     readonly debugMap?: boolean;
     readonly compilerIoWrite?: (port: number, value: number) => void;
+    /** Select the Z80-to-host transport used by the authoritative compiler. */
+    readonly hostTransport?: "direct" | "mon3";
     readonly spoolFactory?: NobjSpoolFactory;
     readonly lowMemoryPatchValidation?: boolean;
     readonly signal?: AbortSignal;
@@ -82,7 +84,10 @@ export declare const nucleusCompilerInfo: () => Promise<{
     readonly runtimeIdentity: 9;
     readonly normalImageSha256: string;
     readonly debugImageSha256: string;
+    readonly mon3ImageSha256: string;
+    readonly mon3DebugImageSha256: string;
     readonly capacities: typeof nucleusCompilerCapacities;
+    readonly hostTransports: readonly ["direct", "mon3"];
     readonly targets: {
         readonly flat: true;
         readonly banked: true;

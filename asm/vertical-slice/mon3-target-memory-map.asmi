@@ -1,0 +1,48 @@
+; Native compiler deployment for a TEC-1G-style machine with MON3 fixed ROM.
+; The compiler occupies the 8000h-BFFFh expansion window, leaving the low RST
+; vectors and C000h-FFFFh monitor ROM untouched. Target output is streamed and
+; is not materialized over the compiler while compilation is active.
+
+CompilerCoreBase    .equ $8000
+CompilerCoreLimit   .equ $C000
+
+CompilerWorkBase    .equ $6000
+CompilerWorkLimit   .equ $7000
+SourceBase          .equ $7000
+SourceLimit         .equ $7800
+NativeSourceTokenBase  .equ SourceBase
+NativeSourceTokenLimit .equ SourceBase+$0500
+NativeSourceChunkBase  .equ NativeSourceTokenLimit
+NativeSourceChunkLimit .equ SourceLimit
+
+ReleasedGeneratedStagingBase  .equ SourceLimit
+ReleasedGeneratedStagingLimit .equ SourceLimit
+ProofSourceCorpusBase  .equ $7800
+ProofSourceCorpusLimit .equ $7B00
+TargetRuntimeBase      .equ $7B00
+TargetRuntimeLimit     .equ $7C00
+ExecutionBase          .equ $7C00
+ExecutionLimit         .equ $7D00
+ProgramDataBase           .equ ExecutionBase
+ProgramDataLimit          .equ ExecutionBase
+ProgramBssBase            .equ ExecutionBase
+ProgramBssLimit           .equ ExecutionBase
+ProgramDataRegionLimit    .equ ExecutionBase
+ProgramDataRegionCapacity .equ 0
+GeneratedRoDataCapacity   .equ $0400
+ServiceBase         .equ $7D00
+ServiceLimit        .equ $7E00
+ProofBase           .equ $7E00
+ProofLimit          .equ $7E00
+SpareBase           .equ $7E00
+ReleasedRollbackStagingBase  .equ $7E00
+ReleasedRollbackStagingLimit .equ $7E00
+SpareLimit          .equ $7E00
+
+StackFloor          .equ $7E00
+StackTop            .equ $7F00
+HighReservedBase    .equ $C000
+AddressSpaceLimit   .equ $10000
+
+NativeHostTargetDescriptorBase .equ $5900
+NativeHostReturnSentinel        .equ $5FFF

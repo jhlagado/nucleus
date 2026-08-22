@@ -3367,8 +3367,12 @@ stack restoration.
 The measured non-D8 host is 913 code bytes; the D8 host is 915. Both use 22
 bytes of host workspace. This is an external-host account: the native shipping
 compiler remains 15,877 code plus 437 immutable bytes, or 16,314 core bytes.
-The MON3-compatible RST gateway is the next deployment increment and is not
-claimed by this checkpoint.
+The MON3-compatible deployment keeps the same compiler cores, relocates them to
+the `$8000..$C000` bank window, and places the external host at
+`$4000..$43D5`. That host measures 981 code bytes with 24 workspace bytes. Its
+provisional `$70..$7F` services run under Node through a real `RST 10h` path.
+Loaded, ROM, banked, diagnostic, NOBJ, D8, and sequential-reuse results are
+byte- or value-identical to the direct transport.
 
 A final branch experiment tried the apparently in-range transfers in the new
 shell as `JR`. AZM's current forward/local resolution rejected even the nearby
@@ -3391,6 +3395,8 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | native retained-name spelling bytes     |     65,535 | exact copied bytes in host storage                                                    | host capacity failure before copying or publishing a handle                      | exact byte capacity, first excess, and atomic retained usage                                                     |
 | native launch-shell code bytes          |    913/915 | always-visible external Z80 host image without/with D8                                | deployment memory-map rejection                                                  | generated-symbol locks; compiler core remains 16,314 bytes                                                       |
 | native launch-shell workspace bytes     |         22 | launch lifecycle, result pointers, and one bounded runtime-request mailbox            | deployment memory-map rejection                                                  | cold initialization, interrupted reset, suspended request, and same-image reuse proofs                           |
+| MON3-compatible host code bytes         |        981 | external vector, RST wrappers, source adapter, and launch shell                       | deployment memory-map rejection                                                  | strict service contracts and direct-versus-RST NOBJ/D8 identity                                                  |
+| MON3-compatible host workspace bytes    |         24 | launch workspace plus retained original `BC` for selector adaptation                  | deployment memory-map rejection                                                  | exact symbol extent, failure reset, and sequential reuse                                                         |
 | compatibility source window bytes       |      2,048 | complete source retained only by the compatibility API                                | compatibility packaging error                                                    | differential resident-source fixtures                                                                            |
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                                                           |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                                               |

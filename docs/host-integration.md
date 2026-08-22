@@ -31,8 +31,16 @@ each physical bank. The trace protocol and publication rules are defined in
 [Nucleus D8 source maps](d8-source-maps.md).
 
 A launch adapter supplies a target profile with real implementations of all
-eleven vector destinations. The library's default addresses describe the
+twelve vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
+
+The native package contains a direct Node transport and a MON3-compatible
+transport beneath the same compiler-host vector. The latter relocates the
+compiler to the `$8000..$C000` bank window, preserves monitor vectors and fixed
+ROM, and calls sixteen bounded expansion services through `RST 10h`. Node runs
+this real Z80 gateway during proof builds. A hardware host replaces only the
+provider below it. See the
+[MON3-compatible compiler host](mon3-host-binding.md).
 
 Debug80 loads either an explicit Nucleus project or its conventional project
 layout, reads every source part in manifest order, and calls the standalone
@@ -64,7 +72,7 @@ unpublished registry package.
 - Nucleus project discovery and configuration without treating source as
   assembly;
 - an in-process build backend beside the AZM and Glimmer backends;
-- ordered multipart source loading;
+- explicit ordered multipart loading and import-directed source discovery;
 - NOBJ and flat launch-artifact publication;
 - D8 validation, storage, source breakpoints, and PC lookup; and
 - generated documentation reading editions pinned to standalone revisions.

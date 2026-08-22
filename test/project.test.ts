@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { NucleusConfigurationError } from "../src/configuration.js";
-import { NUCLEUS_PROJECT_SCHEMA, parseNucleusProject } from "../src/project.js";
+import {
+  NUCLEUS_PROJECT_SCHEMA,
+  NUCLEUS_PROJECT_V2_SCHEMA,
+  parseNucleusProject,
+} from "../src/project.js";
 
 describe("Nucleus project files", () => {
   it("preserves ordered multipart source paths", () => {
@@ -18,6 +22,8 @@ describe("Nucleus project files", () => {
         },
       }),
     );
+    expect(project.schema).toBe(NUCLEUS_PROJECT_SCHEMA);
+    if (project.schema !== NUCLEUS_PROJECT_SCHEMA) return;
     expect(project.sources).toEqual(["src/model.nu", "src/main.nu"]);
   });
 
@@ -25,5 +31,22 @@ describe("Nucleus project files", () => {
     expect(() =>
       parseNucleusProject(JSON.stringify({ sources: [], outputs: {} })),
     ).toThrowError(NucleusConfigurationError);
+  });
+
+  it("accepts an import-directed entry and logical bank assignments", () => {
+    const project = parseNucleusProject(
+      JSON.stringify({
+        schema: NUCLEUS_PROJECT_V2_SCHEMA,
+        root: ".",
+        entry: "src/main.nu",
+        sourceBanks: { "src/library.nu": 1 },
+        target: "nucleus-target.json",
+        outputs: { nobj: "build/program.nobj" },
+      }),
+    );
+    expect(project).toMatchObject({
+      entry: "src/main.nu",
+      sourceBanks: { "src/library.nu": 1 },
+    });
   });
 });

@@ -1,0 +1,91 @@
+service rst $10 C $70 NUCLEUS_HOST_SOURCE_NEXT
+in C
+out A,C,D,E,H,L,carry,zero
+clobbers B,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $71 NUCLEUS_HOST_RETAIN_NAME
+in C,H,L,B,D,E
+out A,H,L,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $72 NUCLEUS_HOST_COMPARE_NAME
+in C,H,L,IX,B
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $73 NUCLEUS_HOST_MATERIALIZE_NAME
+in C,H,L
+out A,B,H,L,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $74 NUCLEUS_HOST_TARGET_BEGIN
+in C,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $75 NUCLEUS_HOST_IMAGE_BYTE
+in A,C,H,L
+out A,carry,zero
+clobbers D,E,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $76 NUCLEUS_HOST_RUNTIME_IMAGE
+in A,B,C,D,E,H,L,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $77 NUCLEUS_HOST_RUNTIME_INITIAL
+in A,B,C,D,E,H,L,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $78 NUCLEUS_HOST_PATCH_BYTE
+in A,C,H,L
+out A,carry,zero
+clobbers D,E,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $79 NUCLEUS_HOST_PATCH_WORD
+in C,D,E,H,L
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $7A NUCLEUS_HOST_MAP_FLAT
+in C,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $7B NUCLEUS_HOST_MAP_BANKED
+in C,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $7C NUCLEUS_HOST_COMMIT
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $7D NUCLEUS_HOST_ABORT
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $7E NUCLEUS_HOST_LAUNCH_BEGIN
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $7F NUCLEUS_HOST_LAUNCH_END
+in A,C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves IX,IY
+end

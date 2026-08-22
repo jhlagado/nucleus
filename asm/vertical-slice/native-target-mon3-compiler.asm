@@ -1,0 +1,10 @@
+; Shipping compiler relocated for a MON3-compatible RST 10h host transport.
+
+DebugHooks .equ 0
+NativeStreamingSource .equ 1
+Mon3HostTransport .equ 1
+            .include "mon3-target-memory-map.asmi"
+            .include "nucleus-runtime-identity.asmi"
+            .org CompilerCoreBase
+            .include "flat-target-compiler-image.asmi"
+            .include "native-host-vector.asmi"

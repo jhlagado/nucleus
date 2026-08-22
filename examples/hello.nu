@@ -1,12 +1,17 @@
-const Greeting as string[2] = "Hi"
+//% import "console/output.nu"
+//% import "console/u16.nu"
 
-sub output(text as string[]) fails
-    var index as u8
-    for index = 0 until text.length
-        writeOutputByte(text[index]) else fail
-    end
+const Label as string[8] = "Total: "
+
+sub total(price as u16, quantity as u16) as u16
+    return price * quantity
 end
 
 sub main() fails
-    output(Greeting) else fail
+    var result as u16
+
+    result = total(7, 6)
+    printString(Label) else fail
+    printU16(result) else fail
+    printNewline() else fail
 end

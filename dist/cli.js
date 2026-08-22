@@ -4,9 +4,10 @@ import path from "node:path";
 import { NucleusConfigurationError, parseNucleusTargetProfile, } from "./configuration.js";
 import { formatNucleusDiagnostic } from "./diagnostics.js";
 import { createNucleusCompiler } from "./host.js";
-import { parseNucleusProject } from "./project.js";
+import { prepareNucleusProject } from "./project-host.js";
 import { publishNucleusBuildOutputs, } from "./publication.js";
-const PACKAGE_VERSION = "0.1.0";
+import { resolveNucleusImports } from "./source-imports.js";
+const PACKAGE_VERSION = "0.2.0";
 const help = `Nucleus ${PACKAGE_VERSION}
 
 Usage:
@@ -22,6 +23,7 @@ Build options:
       --target-profile <path>     target profile JSON
       --project <path>            versioned project JSON
       --root <path>               root for source identities
+      --host-transport <kind>     direct or mon3 (default: direct)
       --diagnostic-format <kind>  text or json
       --json                      alias for --diagnostic-format json
       --quiet                     suppress successful output messages
@@ -61,6 +63,13 @@ const parseBuildArguments = (args) => {
         }
         else if (argument === "--root") {
             parsed.root = valueAfter(args, argument);
+        }
+        else if (argument === "--host-transport") {
+            const transport = valueAfter(args, argument);
+            if (transport !== "direct" && transport !== "mon3") {
+                throw new CliUsageError("--host-transport must be direct or mon3");
+            }
+            parsed.hostTransport = transport;
         }
         else if (argument === "--diagnostic-format") {
             const format = valueAfter(args, argument);
@@ -140,34 +149,26 @@ const build = async (args) => {
         throw new CliUsageError("--project contains its own root, target and output paths");
     }
     let root;
-    let sourceNames;
+    let sources;
+    let target;
     let targetProfilePath;
     let outputPaths;
     if (parsed.project !== undefined) {
-        const projectPath = path.resolve(parsed.project);
-        const project = parseNucleusProject(await readFile(projectPath, "utf8"));
-        root = path.resolve(path.dirname(projectPath), project.root ?? ".");
-        sourceNames = project.sources;
-        targetProfilePath = path.resolve(root, project.target);
-        outputPaths = {
-            nobj: path.resolve(root, project.outputs.nobj),
-            ...(project.outputs.hex === undefined
-                ? {}
-                : { hex: path.resolve(root, project.outputs.hex) }),
-            ...(project.outputs.d8 === undefined
-                ? {}
-                : { d8: path.resolve(root, project.outputs.d8) }),
-        };
+        const prepared = await prepareNucleusProject(parsed.project);
+        root = prepared.root;
+        sources = prepared.sources;
+        target = prepared.target;
+        targetProfilePath = prepared.targetProfilePath;
+        outputPaths = prepared.outputs;
     }
     else {
         if (parsed.sources.length === 0)
             throw new CliUsageError("build requires a source file");
         root = path.resolve(parsed.root ?? process.cwd());
-        sourceNames = parsed.sources;
         targetProfilePath =
             parsed.targetProfile === undefined
                 ? undefined
-                : path.resolve(parsed.targetProfile);
+                : path.resolve(root, parsed.targetProfile);
         const defaultOutput = `${parsed.sources[0]?.replace(/\.nu$/i, "") ?? "program"}.nobj`;
         outputPaths = {
             nobj: path.resolve(parsed.output ?? defaultOutput),
@@ -178,6 +179,26 @@ const build = async (args) => {
                 ? {}
                 : { d8: path.resolve(parsed.d8Output) }),
         };
+        if (parsed.sources.length === 1) {
+            sources = await resolveNucleusImports({
+                root,
+                entry: parsed.sources[0],
+            });
+        }
+        else {
+            const sourcePaths = parsed.sources.map((name) => path.resolve(root, name));
+            sources = await Promise.all(sourcePaths.map(async (sourcePath) => ({
+                name: sourceIdentity(root, sourcePath),
+                source: await readFile(sourcePath),
+            })));
+        }
+        target =
+            targetProfilePath === undefined
+                ? undefined
+                : parseNucleusTargetProfile(await readFile(targetProfilePath, "utf8"), {
+                    requireServices: outputPaths.hex !== undefined,
+                    sourcePartCount: sources.length,
+                });
     }
     if (outputPaths.hex !== undefined && targetProfilePath === undefined) {
         throw new NucleusConfigurationError("Intel HEX output requires a target profile", [
@@ -187,21 +208,13 @@ const build = async (args) => {
             },
         ]);
     }
-    const sourcePaths = sourceNames.map((name) => path.resolve(root, name));
-    const sources = await Promise.all(sourcePaths.map(async (sourcePath) => ({
-        name: sourceIdentity(root, sourcePath),
-        source: await readFile(sourcePath),
-    })));
-    const target = targetProfilePath === undefined
-        ? undefined
-        : parseNucleusTargetProfile(await readFile(targetProfilePath, "utf8"), {
-            requireServices: outputPaths.hex !== undefined,
-            sourcePartCount: sources.length,
-        });
     const compiler = createNucleusCompiler();
     const result = await compiler.build({
         sources,
         ...(target === undefined ? {} : { target }),
+        ...(parsed.hostTransport === undefined
+            ? {}
+            : { hostTransport: parsed.hostTransport }),
         artifacts: {
             hex: outputPaths.hex !== undefined,
             d8: outputPaths.d8 !== undefined,

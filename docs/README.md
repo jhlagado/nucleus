@@ -19,6 +19,9 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`native-z80-host-contract.md`](native-z80-host-contract.md) defines the
   compiler-host ABI, streaming source and object boundaries, and the separate
   Z80 NOBJ consumer-platform ABI.
+- [`mon3-host-binding.md`](mon3-host-binding.md) records the implemented
+  `RST 10h` deployment, memory map, service selectors, measurements, and the
+  remaining machine-specific provider work.
 - [`implementation-plan.md`](implementation-plan.md) records the non-normative construction order, measurement accounts, capacity ledger, and readiness gates for the first Z80 implementation.
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
 - [`oddities.md`](oddities.md) records deliberate first-time surprises and the
@@ -29,13 +32,12 @@ Implementation records, deferred proposals, and active plans live in
 grammar sources and generated LL(1) tables live in [`../grammar/`](../grammar/)
 rather than under documentation.
 
-The active [native Z80 host and standard-library
-plan](plans/2026-08-20-native-z80-host-and-standard-library.md) defines the
-current work to replace resident-source and materialized-output assumptions
-with native streaming adapters and a shared console library.
+The [native Z80 host and standard-library
+plan](plans/2026-08-20-native-z80-host-and-standard-library.md) records the
+streaming host, import resolver, console library, and MON3 gateway increments,
+plus the remaining native filesystem integration.
 
-The proposed [direct NOBJ loader
-correction](plans/2026-08-21-direct-nobj-loader.md) restores the approved
-one-read loader model: IMAGE bytes are deposited into their destination,
-PATCH records overwrite them in stream order, and only valid COMMIT permits
-entry. It is the restart document for the next loader increment.
+The implemented [direct NOBJ loader
+design](plans/2026-08-21-direct-nobj-loader.md) records the one-read loader
+model: IMAGE bytes are deposited into their destination, PATCH records
+overwrite them in stream order, and only valid COMMIT permits entry.

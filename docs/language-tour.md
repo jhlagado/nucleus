@@ -4,19 +4,39 @@ Nucleus is a small statically typed language for direct Z80 compilation. The
 [language specification](specification.md) defines every source rule; this page
 shows the main forms together.
 
-Programs declare storage and routines at top level. A routine declares all of
-its scalar locals before its first statement:
+Programs declare storage and routines at top level. This first program imports
+two small console modules, calculates a value in a function, stores the result,
+and prints it:
 
 ```nucleus
-var direction as u8 = 2
+//% import "console/output.nu"
+//% import "console/u16.nu"
+
+const Label as string[8] = "Total: "
+
+sub total(price as u16, quantity as u16) as u16
+    return price * quantity
+end
 
 sub main() fails
-    var result as u8
+    var result as u16
 
-    result = direction + 1
-    writeOutputByte(result) else fail
+    result = total(7, 6)
+    printString(Label) else fail
+    printU16(result) else fail
+    printNewline() else fail
 end
 ```
+
+It writes `Total: 42` followed by LF. `//% import` is a host directive kept as
+an ordinary comment in the source seen by the compiler. The host resolves each
+dependency once and places library parts before this file in the source stream.
+The routines are ordinary Nucleus code; only the byte-oriented console service
+comes from the target. The explicit `else fail` propagates an output failure
+from `main`.
+
+A routine declares its scalar locals before its first statement. Programs use
+`main` as their entry routine.
 
 The integer types are `u8`, `u16`, `i8`, and `i16`. Boolean values have the
 separate type `boolean`. Records, fixed arrays, bounded strings, `string[]`,

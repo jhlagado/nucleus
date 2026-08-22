@@ -32,6 +32,23 @@ describe("the stable in-process Nucleus host API", () => {
     expect(result.artifacts.d8?.[0]?.map.format).toBe("d8-debug-map");
   }, 30_000);
 
+  it("can run the same build through the MON3 Z80 service gateway", async () => {
+    const compiler = createNucleusCompiler();
+    const request = {
+      sources: [{ name: "src/main.nu", source: "sub main()\nend\n" }],
+      artifacts: { d8: true },
+    } as const;
+    const [direct, mon3] = await Promise.all([
+      compiler.build(request),
+      compiler.build({ ...request, hostTransport: "mon3" }),
+    ]);
+    expect(direct.success).toBe(true);
+    expect(mon3.success).toBe(true);
+    if (!direct.success || !mon3.success) return;
+    expect(mon3.artifacts.nobj).toEqual(direct.artifacts.nobj);
+    expect(mon3.artifacts.d8).toEqual(direct.artifacts.d8);
+  }, 30_000);
+
   it("returns target configuration failures instead of throwing", async () => {
     const result = await createNucleusCompiler().build({
       sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
@@ -39,6 +56,18 @@ describe("the stable in-process Nucleus host API", () => {
       artifacts: { hex: true },
     });
     expect(result).toMatchObject({ success: false, kind: "configuration" });
+  });
+
+  it("classifies an invalid host transport as configuration", async () => {
+    const result = await createNucleusCompiler().build({
+      sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
+      hostTransport: "serial" as "direct",
+    });
+    expect(result).toMatchObject({
+      success: false,
+      kind: "configuration",
+      issues: [{ path: "$.hostTransport", message: "must be direct or mon3" }],
+    });
   });
 
   it("publishes NOBJ, HEX and D8 for a loaded flat target", async () => {
@@ -137,6 +166,20 @@ describe("the stable in-process Nucleus host API", () => {
       ],
     });
     expect(large.success).toBe(true);
+
+    const tooLarge = await createNucleusCompiler().build({
+      sources: [{ name: "main.nu", source: new Uint8Array(65_536).fill(0x20) }],
+    });
+    expect(tooLarge).toMatchObject({
+      success: false,
+      kind: "configuration",
+      issues: [
+        {
+          path: "$.sources[0].source",
+          message: "contains 65536 bytes; capacity is 65535",
+        },
+      ],
+    });
   }, 30_000);
 
   it("retains exact source diagnostics in the result union", async () => {
@@ -156,6 +199,7 @@ describe("the stable in-process Nucleus host API", () => {
       hostApiVersion: 1,
       languageVersion: "0.1",
       runtimeIdentity: 9,
+      hostTransports: ["direct", "mon3"],
       capacities: {
         sourceParts: 8,
         sourcePartBytes: 65_535,
@@ -167,5 +211,8 @@ describe("the stable in-process Nucleus host API", () => {
     expect(info.normalImageSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(info.debugImageSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(info.normalImageSha256).not.toBe(info.debugImageSha256);
+    expect(info.mon3ImageSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(info.mon3DebugImageSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(info.mon3ImageSha256).not.toBe(info.mon3DebugImageSha256);
   }, 30_000);
 });

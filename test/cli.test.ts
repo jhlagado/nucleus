@@ -14,6 +14,39 @@ const runCli = (cwd: string, args: readonly string[]) =>
   });
 
 describe("Nucleus CLI diagnostics", () => {
+  it("discovers imports from one entry source and preserves both D8 identities", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-import-"));
+    await writeFile(
+      path.join(directory, "value.nu"),
+      "sub value() as u8\nreturn 7\nend\n",
+    );
+    await writeFile(
+      path.join(directory, "main.nu"),
+      '//% import "value.nu"\nvar result as u8\nsub main()\nresult = value()\nend\n',
+    );
+    const result = runCli(directory, [
+      "build",
+      "--json",
+      "-o",
+      "build/program.nobj",
+      "--d8-output",
+      "build/program.d8.json",
+      "main.nu",
+    ]);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ success: true });
+    const d8 = JSON.parse(
+      await readFile(path.join(directory, "build/program.d8.json"), "utf8"),
+    );
+    expect(Object.keys(d8.files)).toEqual(["value.nu", "main.nu"]);
+    expect(d8.files["value.nu"].symbols).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "value" })]),
+    );
+    expect(d8.files["main.nu"].symbols).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "main" })]),
+    );
+  });
+
   it("writes canonical NOBJ and a substantive D8 sidecar", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-"));
     await writeFile(
@@ -50,6 +83,32 @@ describe("Nucleus CLI diagnostics", () => {
         },
       },
     });
+  });
+
+  it("can route the authoritative compiler through MON3 services", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-mon3-"));
+    await writeFile(path.join(directory, "main.nu"), "sub main()\nend\n");
+    const direct = runCli(directory, [
+      "build",
+      "--quiet",
+      "-o",
+      "direct.nobj",
+      "main.nu",
+    ]);
+    const mon3 = runCli(directory, [
+      "build",
+      "--quiet",
+      "--host-transport",
+      "mon3",
+      "-o",
+      "mon3.nobj",
+      "main.nu",
+    ]);
+    expect(direct.status).toBe(0);
+    expect(mon3.status).toBe(0);
+    expect(await readFile(path.join(directory, "mon3.nobj"))).toEqual(
+      await readFile(path.join(directory, "direct.nobj")),
+    );
   });
 
   it("keeps JSON format for target-profile parse failures", async () => {
@@ -91,7 +150,7 @@ describe("Nucleus CLI diagnostics", () => {
     expect(missingSource.status).toBe(2);
     expect(JSON.parse(missingSource.stderr)).toMatchObject({
       success: false,
-      kind: "execution",
+      kind: "configuration",
     });
   });
 
