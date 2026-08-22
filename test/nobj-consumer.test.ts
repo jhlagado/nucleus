@@ -5,7 +5,7 @@ import {
 } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { crc16CcittFalse } from "../src/nobj.js";
+import { crc16CcittFalse, materializeNobjChunks } from "../src/nobj.js";
 
 interface ConsumerImage {
   readonly memory: Uint8Array;
@@ -15,6 +15,7 @@ interface ConsumerImage {
 interface ConsumerOutcome {
   readonly memory: Uint8Array;
   readonly instructions: number;
+  readonly tStates: number;
   readonly pc: number;
   readonly result: readonly number[];
 }
@@ -97,8 +98,9 @@ const run = (
     symbol(start),
   );
   let instructions = 0;
+  let tStates = 0;
   while (!runtime.isHalted() && instructions < 3_000_000) {
-    runtime.step();
+    tStates += runtime.step().cycles ?? 0;
     instructions += 1;
   }
   expect(runtime.isHalted(), `consumer stopped at $${runtime.getPC().toString(16)}`).toBe(
@@ -108,6 +110,7 @@ const run = (
   return {
     memory: runtime.hardware.memory,
     instructions,
+    tStates,
     pc: runtime.getPC(),
     result: [...runtime.hardware.memory.slice(resultAt, resultAt + 4)],
   };
@@ -122,7 +125,10 @@ const committedBankedObject = (): Uint8Array =>
     bankedSymbol("NobjObjectEnd"),
   );
 
-const runBanked = (object?: Uint8Array): ConsumerOutcome => {
+const runBanked = (
+  object?: Uint8Array,
+  mutate?: (memory: Uint8Array) => void,
+): ConsumerOutcome => {
   const memory = bankedImage.memory.slice();
   if (object !== undefined) {
     memory.set(object, bankedSymbol("NobjObject"));
@@ -132,13 +138,15 @@ const runBanked = (object?: Uint8Array): ConsumerOutcome => {
       bankedSymbol("NobjObject") + object.length,
     );
   }
+  mutate?.(memory);
   const runtime = createZ80Runtime(
     { memory, startAddress: bankedSymbol("ProofStart") },
     bankedSymbol("ProofStart"),
   );
   let instructions = 0;
+  let tStates = 0;
   while (!runtime.isHalted() && instructions < 3_000_000) {
-    runtime.step();
+    tStates += runtime.step().cycles ?? 0;
     instructions += 1;
   }
   expect(runtime.isHalted()).toBe(true);
@@ -146,6 +154,7 @@ const runBanked = (object?: Uint8Array): ConsumerOutcome => {
   return {
     memory: runtime.hardware.memory,
     instructions,
+    tStates,
     pc: runtime.getPC(),
     result: [...runtime.hardware.memory.slice(resultAt, resultAt + 4)],
   };
@@ -184,8 +193,10 @@ const withSecondPatchAt = (address: number): Uint8Array => {
 
 const withDescendingOverlappingPatch = (): Uint8Array => {
   const original = committedObject();
+  const originalPatch = recordOf(original, 3);
+  writeWord(original, originalPatch.payload + 1, 0x8071);
   const mapOffset = recordOf(original, 4).offset;
-  const extraPatch = Uint8Array.of(3, 5, 0, 0, 0, 0x80, 0xa5, 0xa6);
+  const extraPatch = Uint8Array.of(3, 5, 0, 0, 0x70, 0x80, 0xa5, 0xa6);
   const bytes = new Uint8Array(original.length + extraPatch.length);
   bytes.set(original.slice(0, mapOffset));
   bytes.set(extraPatch, mapOffset);
@@ -239,6 +250,13 @@ const flatObjectWithPatchAtEnd = (address: number): Uint8Array => {
     writeWord(bytes, map.payload + 31, 0x0100);
     writeWord(bytes, map.payload + 35, 0x0080);
   }
+  return refreshCrc(bytes);
+};
+
+const flatObjectWithPatchOverFill = (): Uint8Array => {
+  const bytes = committedObject();
+  const patch = recordOf(bytes, 3);
+  writeWord(bytes, patch.payload + 1, 0x8070);
   return refreshCrc(bytes);
 };
 
@@ -298,7 +316,7 @@ beforeAll(async () => {
 });
 
 describe("the standalone Z80 NOBJ consumer", () => {
-  it("validates twice, materializes the flat image, publishes, and enters", () => {
+  it("materializes the flat image in one read, publishes, and enters", () => {
     const outcome = run();
     expect(outcome.result).toEqual([0, 0, 0, 0]);
     expect(outcome.pc).toBe(0x8006);
@@ -307,40 +325,49 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(outcome.memory[0x8001]).toBe(0x5a);
     expect(outcome.memory[0x8070]).toBe(0xee);
     expect(outcome.memory[0x8081]).toBe(0x5a);
-    expect(outcome.instructions).toBe(22_876);
+    expect(outcome.memory[symbol("ProofLockCount")]).toBe(0);
+    expect(outcome.instructions).toBe(12_646);
+    expect(outcome.tStates).toBe(108_132);
     expect(symbol("NobjConsumerCodeEnd") - symbol("NobjConsumerCodeStart")).toBe(
-      2_887,
+      2_430,
     );
     expect(
       symbol("NobjConsumerWorkspaceEnd") - symbol("NobjConsumerWorkspaceBase"),
-    ).toBe(399);
+    ).toBe(381);
   });
 
   it.each([
-    ["truncated header", 2, 4, 1],
-    ["truncated BEGIN", 10, 4, 1],
-    ["truncated IMAGE", 25, 4, 2],
-    ["truncated PATCH", 43, 4, 4],
-    ["truncated MAP", 70, 4, 5],
-    ["truncated COMMIT", 95, 4, 6],
-  ] as const)("rejects a %s without touching the target", (_name, length, status, ordinal) => {
+    ["truncated header", 2, 4, 1, 0x7c],
+    ["truncated BEGIN", 10, 4, 1, 0x7c],
+    ["truncated IMAGE", 25, 4, 2, 0x3e],
+    ["truncated PATCH", 43, 4, 4, 0x3e],
+    ["truncated MAP", 70, 4, 5, 0x3e],
+    ["truncated COMMIT", 95, 4, 6, 0x3e],
+  ] as const)("rejects a %s without publication", (_name, length, status, ordinal, targetByte) => {
     const source = committedObject().slice(0, length);
     const outcome = run((memory) => {
       memory[0x8000] = 0x7c;
     }, source);
     expect(outcome.result).toEqual([1, status, ordinal, 0]);
     expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
-    expect(outcome.memory[0x8000]).toBe(0x7c);
+    expect(outcome.memory[0x8000]).toBe(targetByte);
   });
 
-  it("rejects a corrupt CRC before any target write", () => {
+  it("reports ordinal zero for an empty object", () => {
+    const outcome = run(undefined, new Uint8Array());
+    expect(outcome.result).toEqual([1, 4, 0, 0]);
+    expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
+  });
+
+  it("rejects a corrupt CRC after direct writes without publishing", () => {
     const bytes = committedObject();
     bytes[bytes.length - 1] ^= 0x80;
     const outcome = run((memory) => {
       memory[0x8000] = 0x7c;
     }, bytes);
     expect(outcome.result).toEqual([1, 12, 6, 0]);
-    expect(outcome.memory[0x8000]).toBe(0x7c);
+    expect(outcome.memory[0x8000]).toBe(0x3e);
+    expect(outcome.memory[0x8001]).toBe(0x5a);
     expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
   });
 
@@ -352,16 +379,27 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(run(undefined, bytes).result).toEqual([1, 13, 6, 0]);
   });
 
-  it("rescans and rejects overlapping PATCH records with bounded workspace", () => {
-    const outcome = run(undefined, withSecondOverlappingPatch());
-    expect(outcome.result).toEqual([1, 9, 7, 0]);
+  it("rejects EOF immediately after MAP as a missing COMMIT", () => {
+    const bytes = committedObject();
+    const commit = recordOf(bytes, 5);
+    const outcome = run(undefined, bytes.slice(0, commit.offset));
+    expect(outcome.result).toEqual([1, 4, 5, 0]);
     expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
   });
 
-  it("rejects overlapping PATCH records in descending address order", () => {
+  it("applies overlapping PATCH records in stream order", () => {
+    const outcome = run(undefined, withSecondOverlappingPatch());
+    expect(outcome.result).toEqual([0, 0, 0, 0]);
+    expect(outcome.memory[0x8001]).toBe(0xa5);
+    expect(outcome.memory[symbol("ProofPublished")]).toBe(1);
+  });
+
+  it("uses the last write for descending overlapping PATCH records", () => {
     const outcome = run(undefined, withDescendingOverlappingPatch());
-    expect(outcome.result).toEqual([1, 9, 7, 0]);
-    expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
+    expect(outcome.result).toEqual([0, 0, 0, 0]);
+    expect(outcome.memory[0x8070]).toBe(0xa5);
+    expect(outcome.memory[0x8071]).toBe(0xa6);
+    expect(outcome.memory[symbol("ProofPublished")]).toBe(1);
   });
 
   it("accepts two nonoverlapping PATCH records in resolution order", () => {
@@ -372,10 +410,7 @@ describe("the standalone Z80 NOBJ consumer", () => {
   });
 
   it("applies a PATCH over an implicit image-fill byte", () => {
-    const bytes = committedObject();
-    const patch = recordOf(bytes, 3);
-    writeWord(bytes, patch.payload + 1, 0x8070);
-    const outcome = run(undefined, refreshCrc(bytes));
+    const outcome = run(undefined, flatObjectWithPatchOverFill());
     expect(outcome.pc).toBe(0x8006);
     expect(outcome.memory[0x8070]).toBe(0x5a);
   });
@@ -394,23 +429,24 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
   });
 
-  it("rejects a changed locked generation between validation and loading", () => {
+  it("does not require object locking", () => {
     const outcome = run((memory) => {
-      memory[symbol("ProofChangeIdentity")] = 1;
+      memory[symbol("ProofFailureOperation")] = 4;
     });
-    expect(outcome.result).toEqual([1, 14, 6, 0]);
-    expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
+    expect(outcome.result).toEqual([0, 0, 0, 0]);
+    expect(outcome.memory[symbol("ProofLockCount")]).toBe(0);
+    expect(outcome.memory[symbol("ProofPublished")]).toBe(1);
   });
 
-  it("rejects a generation changed during the materializing pass", () => {
+  it("does not require object rewind", () => {
     const outcome = run((memory) => {
-      memory[symbol("ProofChangeIdentity")] = 2;
+      memory[symbol("ProofFailureOperation")] = 3;
     });
-    expect(outcome.result).toEqual([1, 14, 6, 0]);
-    expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
+    expect(outcome.result).toEqual([0, 0, 0, 0]);
+    expect(outcome.memory[symbol("ProofPublished")]).toBe(1);
   });
 
-  it("rejects the reserved isolated strategy until a one-pass binding exists", () => {
+  it("rejects a strategy other than direct single-read", () => {
     const outcome = run((memory) => {
       memory[symbol("NobjRunDescriptor") + 3] = 1;
     });
@@ -502,7 +538,7 @@ describe("the standalone Z80 NOBJ consumer", () => {
 
   it.each([
     ["ends at", 0x5f00],
-    ["starts at", 0x6100],
+    ["starts at", 0x6400],
   ] as const)("does not treat an image that %s a protected extent as overlapping", (_name, base) => {
     const outcome = run((memory) => {
       writeWord(memory, symbol("NobjDeploymentProfile") + 7, base);
@@ -600,7 +636,7 @@ describe("the standalone Z80 NOBJ consumer", () => {
     const outcome = run((memory) => {
       memory[symbol("ProofFailureOperation")] = 2;
     });
-    expect(outcome.result).toEqual([2, 0x42, 1, 0]);
+    expect(outcome.result).toEqual([2, 0x42, 0, 0]);
     expect(outcome.memory[symbol("ProofCloseCount")]).toBe(1);
     expect(outcome.memory[symbol("ProofPublished")]).toBe(0);
   });
@@ -651,6 +687,45 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(outcome.memory[symbol("ProofPublished")]).toBe(1);
   });
 
+  it("matches Node materialization for every valid flat fixture", () => {
+    const cases: readonly [
+      string,
+      () => Uint8Array,
+      ((memory: Uint8Array) => void)?,
+    ][] = [
+      ["baseline", committedObject],
+      ["ascending overlap", withSecondOverlappingPatch],
+      ["descending overlap", withDescendingOverlappingPatch],
+      ["nonoverlapping resolution order", () => withSecondPatchAt(0x8070)],
+      ["implicit fill", flatObjectWithPatchOverFill],
+      ["ROM", flatRomObject, (memory) => {
+        writeWord(memory, symbol("NobjDeploymentProfile") + 11, 0x4000);
+      }],
+      ["patch at capacity", () => flatObjectWithPatchAtEnd(0x80ff), (memory) => {
+        writeWord(memory, symbol("NobjDeploymentProfile") + 11, 0x4000);
+      }],
+      ["mathematical $10000 end", flatObjectAtTopOfMemory, (memory) => {
+        writeWord(memory, symbol("NobjDeploymentProfile") + 7, 0xff00);
+        writeWord(memory, symbol("NobjDeploymentProfile") + 11, 0xff80);
+      }],
+    ];
+    for (const [name, makeObject, mutate] of cases) {
+      const object = makeObject();
+      const expected = materializeNobjChunks([object]).banks[0]!;
+      const begin = recordOf(object, 1);
+      const imageBase = object[begin.payload + 11]! | (object[begin.payload + 12]! << 8);
+      const outcome = run((memory) => {
+        mutate?.(memory);
+        memory[symbol("ProofFailureOperation")] = 6;
+      }, object);
+      expect(outcome.result, name).toEqual([2, 0x42, recordsOf(object).length, 0]);
+      expect(
+        outcome.memory.slice(imageBase, imageBase + expected.length),
+        name,
+      ).toEqual(expected);
+    }
+  });
+
   it("materializes two physical banks and enters the selected entry bank", () => {
     const outcome = runBanked();
     expect(outcome.pc).toBe(0x8006);
@@ -665,7 +740,8 @@ describe("the standalone Z80 NOBJ consumer", () => {
         bankedSymbol("ProofBank1") + 0x12,
       )],
     ).toEqual([0xaa, 0xcc]);
-    expect(outcome.instructions).toBe(26_416);
+    expect(outcome.instructions).toBe(15_532);
+    expect(outcome.tStates).toBe(187_389);
   });
 
   it("accepts IMAGE records that alternate between physical banks", () => {
@@ -673,5 +749,24 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(outcome.pc).toBe(0x8006);
     expect(outcome.memory[0x8006]).toBe(0x99);
     expect(outcome.memory[bankedSymbol("ProofPublished")]).toBe(1);
+  });
+
+  it("matches Node materialization for every valid banked fixture", () => {
+    for (const object of [committedBankedObject(), bankedObjectWithAlternatingImages()]) {
+      const expected = materializeNobjChunks([object]).banks;
+      const outcome = runBanked(object, (memory) => {
+        memory[bankedSymbol("ProofFailureOperation")] = 6;
+      });
+      expect(outcome.result).toEqual([2, 0x42, recordsOf(object).length, 0]);
+      expect(
+        outcome.memory.slice(
+          bankedSymbol("ProofBank0"),
+          bankedSymbol("ProofBank0") + expected[0]!.length,
+        ),
+      ).toEqual(expected[0]);
+      expect(outcome.memory.slice(0x8000, 0x8000 + expected[1]!.length)).toEqual(
+        expected[1],
+      );
+    }
   });
 });

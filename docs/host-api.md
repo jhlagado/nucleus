@@ -71,9 +71,10 @@ NOBJ consumer to materialize target bytes. The stable compiler object performs
 that materialization because its result type promises those artifacts; the
 compiler and `compileNucleusTo()` do not.
 By default, `compileNucleusTo` uses in-memory IMAGE and PATCH spools. A bounded
-file-host build supplies `nodeFileNobjSpoolFactory(tempDirectory)` and sets
-`lowMemoryPatchValidation: true`; this moves both spools and the overlap rescan
-out of proportional resident memory.
+file-host build supplies `nodeFileNobjSpoolFactory(tempDirectory)` to move both
+spools out of proportional resident memory. The retained
+`lowMemoryPatchValidation` option is a compatibility no-op: PATCH records are
+applied in serialized order, so no overlap index or rescan is required.
 
 ## Results and failures
 

@@ -130,7 +130,7 @@ export interface NobjStreamReaderOptions {
     readonly onBegin?: (begin: NobjBegin) => void;
     readonly onImage?: (record: NobjImageRecord) => void;
     readonly onPatch?: (record: NobjImageRecord) => void;
-    /** Defer patch-overlap checking to a rewindable external rescan. */
+    /** @deprecated PATCH overlap is valid and this option has no effect. */
     readonly deferPatchOverlap?: boolean;
 }
 export interface MaterializedNobjStream {
@@ -139,7 +139,7 @@ export interface MaterializedNobjStream {
     readonly flatImage?: Uint8Array;
 }
 export interface NobjGenerationSinkOptions {
-    /** Retain no patch interval table; rescan the patch spool before COMMIT. */
+    /** @deprecated PATCH overlap is valid and this option has no effect. */
     readonly lowMemoryPatchValidation?: boolean;
 }
 export type NobjSpoolFactory = () => NobjSpool;
@@ -183,7 +183,7 @@ export declare class NobjStreamReader {
     finish(): NobjCommitMetadata;
 }
 export declare const validateNobjChunks: (chunks: Iterable<Uint8Array>, options?: NobjStreamReaderOptions) => NobjCommitMetadata;
-/** Validate a rewindable object without retaining a patch interval table. */
+/** Validate a rewindable object using the ordinary stream-order PATCH rules. */
 export declare const validateRewindableNobjChunks: (chunks: () => Iterable<Uint8Array>) => NobjCommitMetadata;
 export declare const materializeNobjChunks: (chunks: Iterable<Uint8Array>) => MaterializedNobjStream;
 export declare const parseNobj: (serialized: Uint8Array) => ParsedNobj;

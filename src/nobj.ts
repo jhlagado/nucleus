@@ -147,7 +147,7 @@ export interface NobjStreamReaderOptions {
   readonly onBegin?: (begin: NobjBegin) => void;
   readonly onImage?: (record: NobjImageRecord) => void;
   readonly onPatch?: (record: NobjImageRecord) => void;
-  /** Defer patch-overlap checking to a rewindable external rescan. */
+  /** @deprecated PATCH overlap is valid and this option has no effect. */
   readonly deferPatchOverlap?: boolean;
 }
 
@@ -158,7 +158,7 @@ export interface MaterializedNobjStream {
 }
 
 export interface NobjGenerationSinkOptions {
-  /** Retain no patch interval table; rescan the patch spool before COMMIT. */
+  /** @deprecated PATCH overlap is valid and this option has no effect. */
   readonly lowMemoryPatchValidation?: boolean;
 }
 
@@ -438,27 +438,6 @@ const patchInterval = (
   return { bank, start, end: start + payloadLength - 3 };
 };
 
-const validatePatchSpoolWithoutIndex = (spool: NobjSpool): void => {
-  let outerIndex = 0;
-  for (const outerRecord of spoolRecords(spool)) {
-    const outer = patchInterval(outerRecord);
-    let innerIndex = 0;
-    for (const innerRecord of spoolRecords(spool)) {
-      if (innerIndex >= outerIndex) break;
-      const inner = patchInterval(innerRecord);
-      if (
-        inner.bank === outer.bank &&
-        outer.start < inner.end &&
-        inner.start < outer.end
-      ) {
-        fail("PATCH records overlap");
-      }
-      innerIndex += 1;
-    }
-    outerIndex += 1;
-  }
-};
-
 const patchHighEnds = (spool: NobjSpool): ReadonlyMap<number, number> => {
   const ends = new Map<number, number>();
   for (const recordBytes of spoolRecords(spool)) {
@@ -475,7 +454,6 @@ export class NobjGenerationSink {
   readonly #store: NobjGenerationStore;
   readonly #provider: RuntimeImageProvider;
   readonly #spoolFactory: NobjSpoolFactory;
-  readonly #lowMemoryPatchValidation: boolean;
   #imageSpool: NobjSpool;
   #patchSpool: NobjSpool;
   #begin: NobjBegin | undefined;
@@ -485,7 +463,6 @@ export class NobjGenerationSink {
   #imageHighWater = 0;
   #patchHighWater = 0;
   readonly #imageEnds = new Map<number, number>();
-  readonly #patchIntervals = new Map<number, Interval[]>();
 
   constructor(
     store: NobjGenerationStore,
@@ -496,7 +473,7 @@ export class NobjGenerationSink {
     this.#store = store;
     this.#provider = provider;
     this.#spoolFactory = spoolFactory;
-    this.#lowMemoryPatchValidation = options.lowMemoryPatchValidation === true;
+    void options;
     this.#imageSpool = spoolFactory();
     this.#patchSpool = spoolFactory();
   }
@@ -673,11 +650,6 @@ export class NobjGenerationSink {
       encodeImageLike(NobjKind.patch, { bank, address, bytes }),
     );
     this.#patchCount += 1;
-    if (!this.#lowMemoryPatchValidation) {
-      const intervals = this.#patchIntervals.get(bank) ?? [];
-      intervals.push({ start: address, end: address + bytes.length });
-      this.#patchIntervals.set(bank, intervals);
-    }
     this.#patchHighWater = Math.max(
       this.#patchHighWater,
       this.#patchSpool.byteLength,
@@ -730,10 +702,6 @@ export class NobjGenerationSink {
     const recordCount = 1 + this.#imageCount + this.#patchCount + 1 + 1;
     if (recordCount > NOBJ_MAX_RECORDS)
       fail("NOBJ record count exceeds 65,535");
-    if (this.#lowMemoryPatchValidation) {
-      validatePatchSpoolWithoutIndex(this.#patchSpool);
-    }
-
     validateMapFromEnds(
       begin,
       committedMap,
@@ -855,18 +823,13 @@ export class NobjGenerationSink {
     }
     requireU8("PATCH bank", bank);
     if (bank >= begin.bankCount) fail("PATCH bank is outside BEGIN.bankCount");
-    const end = requireRegion(
+    requireRegion(
       "PATCH",
       address,
       bytes.length,
       begin.imageBase,
       begin.imageCapacity,
     );
-    for (const interval of this.#patchIntervals.get(bank) ?? []) {
-      if (address < interval.end && interval.start < end) {
-        fail("PATCH records overlap");
-      }
-    }
   }
 
   #resetTentative(): void {
@@ -879,7 +842,6 @@ export class NobjGenerationSink {
     this.#imageHighWater = 0;
     this.#patchHighWater = 0;
     this.#imageEnds.clear();
-    this.#patchIntervals.clear();
   }
 }
 
@@ -1223,7 +1185,6 @@ export class NobjStreamReader {
   #byteLength = 0;
   readonly #imageEnds = new Map<number, number>();
   readonly #patchEnds = new Map<number, number>();
-  readonly #patchIntervals = new Map<number, Interval[]>();
 
   constructor(options: NobjStreamReaderOptions = {}) {
     this.#options = options;
@@ -1377,16 +1338,6 @@ export class NobjStreamReader {
       begin.imageBase,
       begin.imageCapacity,
     );
-    if (this.#options.deferPatchOverlap !== true) {
-      const intervals = this.#patchIntervals.get(item.bank) ?? [];
-      for (const interval of intervals) {
-        if (item.address < interval.end && interval.start < end) {
-          fail("PATCH records overlap");
-        }
-      }
-      intervals.push({ start: item.address, end });
-      this.#patchIntervals.set(item.bank, intervals);
-    }
     this.#patchEnds.set(
       item.bank,
       Math.max(this.#patchEnds.get(item.bank) ?? 0, end),
@@ -1423,56 +1374,10 @@ export const validateNobjChunks = (
   return reader.finish();
 };
 
-/** Validate a rewindable object without retaining a patch interval table. */
+/** Validate a rewindable object using the ordinary stream-order PATCH rules. */
 export const validateRewindableNobjChunks = (
   chunks: () => Iterable<Uint8Array>,
-): NobjCommitMetadata => {
-  let patchCount = 0;
-  const initial = new NobjStreamReader({
-    deferPatchOverlap: true,
-    onPatch: () => {
-      patchCount += 1;
-    },
-  });
-  for (const chunk of chunks()) initial.push(chunk);
-  const metadata = initial.finish();
-
-  const scan = (onPatch: (record: NobjImageRecord, index: number) => void) => {
-    let index = 0;
-    const reader = new NobjStreamReader({
-      deferPatchOverlap: true,
-      onPatch: (record) => {
-        onPatch(record, index);
-        index += 1;
-      },
-    });
-    for (const chunk of chunks()) reader.push(chunk);
-    reader.finish();
-  };
-
-  for (let outerIndex = 0; outerIndex < patchCount; outerIndex += 1) {
-    let outer: (Interval & { readonly bank: number }) | undefined;
-    scan((record, index) => {
-      if (index === outerIndex) {
-        outer = {
-          bank: record.bank,
-          start: record.address,
-          end: record.address + record.bytes.length,
-        };
-      }
-    });
-    if (outer === undefined) fail("PATCH rescan count changed");
-    const activeOuter = outer as Interval & { readonly bank: number };
-    scan((record, index) => {
-      if (index >= outerIndex || record.bank !== activeOuter.bank) return;
-      const end = record.address + record.bytes.length;
-      if (activeOuter.start < end && record.address < activeOuter.end) {
-        fail("PATCH records overlap");
-      }
-    });
-  }
-  return metadata;
-};
+): NobjCommitMetadata => validateNobjChunks(chunks());
 
 export const materializeNobjChunks = (
   chunks: Iterable<Uint8Array>,
@@ -1543,7 +1448,6 @@ export const parseNobj = (serialized: Uint8Array): ParsedNobj => {
   const images: NobjImageRecord[] = [];
   const patches: NobjImageRecord[] = [];
   const imageEnds = new Map<number, number>();
-  const patchIntervals = new Map<number, Interval[]>();
 
   for (const [index, recordValue] of records.entries()) {
     switch (recordValue.kind) {
@@ -1585,21 +1489,13 @@ export const parseNobj = (serialized: Uint8Array): ParsedNobj => {
         const item = decodeImageLike(serialized, recordValue, "PATCH");
         if (item.bank >= activeBegin.bankCount)
           fail("PATCH bank is out of range");
-        const end = requireRegion(
+        requireRegion(
           "PATCH",
           item.address,
           item.bytes.length,
           activeBegin.imageBase,
           activeBegin.imageCapacity,
         );
-        const intervals = patchIntervals.get(item.bank) ?? [];
-        for (const interval of intervals) {
-          if (item.address < interval.end && interval.start < end) {
-            fail("PATCH records overlap");
-          }
-        }
-        intervals.push({ start: item.address, end });
-        patchIntervals.set(item.bank, intervals);
         patches.push(item);
         break;
       }

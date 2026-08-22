@@ -479,10 +479,9 @@ fixed target may use a prelinked catalog. Another context returns
 ### 5.4 Commit validation
 
 Before commit, the sink validates framing, target extents, monotonic
-nonoverlapping IMAGE ranges, nonoverlapping PATCH ranges, MAP used lengths,
-record count, and CRC. A low-memory sink may rescan its patch spool instead of
-retaining all intervals in RAM. This is object validation, not a second
-compiler pass.
+nonoverlapping IMAGE ranges, each PATCH range, MAP used lengths, record count,
+and CRC. PATCH ranges may overlap; serialized order defines their result, so
+the sink retains no pairwise interval index and performs no overlap rescan.
 
 Only COMMIT publishes the generation. Failure after earlier output calls
 leaves the preceding committed object and D8 sidecar current.
@@ -529,12 +528,13 @@ The consumer starts with a platform deployment profile supplied by its caller
 or fixed in its build. It contains the admitted runtime identity, image base
 and capacity, writable regions, stack and entry ABI, and the mapping from NOBJ
 bank ordinals to physical selector values and device offsets. This profile is
-outside NOBJ. Before any non-isolated target write or publication, the consumer
-cross-checks `BEGIN`, the complete `MAP`, runtime identity, used extents, bank
-count, and entry pair against it. An isolated backing area may receive IMAGE
-and PATCH bytes before MAP arrives, but remains unreachable and unpublished
-until the same cross-check succeeds. An ordinal has no hardware meaning until
-its deployment mapping succeeds.
+outside NOBJ. Before any target write, the consumer validates the deployment
+profile, every protected extent, and `BEGIN`. IMAGE and PATCH bytes may then be
+written into the selected non-runnable destination. Before publication or
+entry, the consumer cross-checks the complete `MAP`, runtime identity, used
+extents, bank count, and entry pair. A late failure may leave destination bytes
+changed, but the loader does not publish or enter them. An ordinal has no
+hardware meaning until its deployment mapping succeeds.
 
 The host calls `NobjConsumerRun` with `IX` pointing to this ten-byte descriptor:
 
@@ -543,15 +543,15 @@ The host calls `NobjConsumerRun` with `IX` pointing to this ten-byte descriptor:
 |      0 | `descriptorSize`           | `u8`  | exactly 10                               |
 |      1 | `consumerAbiMajor`         | `u8`  | 0                                        |
 |      2 | `consumerAbiMinor`         | `u8`  | 1                                        |
-|      3 | `strategy`                 | `u8`  | 0 locked two-pass; other values reserved |
+|      3 | `strategy`                 | `u8`  | 0 direct single-read; other values reserved |
 |      4 | `objectSelector`           | `u16` | platform object selector                 |
 |      6 | `deploymentProfilePointer` | `u16` | stable validated profile                 |
 |      8 | `resultPointer`            | `u16` | stable four-byte result block            |
 
 The result block is `outcome:u8`, `status:u8`, `recordOrdinal:u16`. Outcome
-zero is used only by a validation-only proof binding; the runnable loader does
-not return after success. Outcome one is an NOBJ validation failure and outcome
-two is a platform failure. `status` is the exact validator or platform code.
+zero is reserved and is not observable from a successful runnable load, because
+entry does not return. Outcome one is an NOBJ validation failure and outcome two
+is a platform failure. `status` is the exact validator or platform code.
 
 The deployment profile pointer addresses this exact 18-byte revision-one
 record:
@@ -586,10 +586,11 @@ The consumer validates every binding's reserved byte and uses 32-bit device
 offsets; this ABI revision does not impose a 64 KiB ceiling on the physical
 device image.
 
-The revision-one reference consumer accepts strategy zero only. An isolated
-one-pass strategy remains a compatible future extension, but it is not
-advertised until its platform contract can validate arbitrarily ordered,
-nonoverlapping PATCH extents without requiring rewindable input.
+The revision-one reference consumer accepts strategy zero only. It reads the
+object once, writes IMAGE bytes into the selected non-runnable destination, and
+applies PATCH bytes there in serialized order. Repeated or overlapping patches
+are valid; the last serialized write wins. The destination may be final target
+memory, an inactive bank, or private backing according to the deployment.
 
 For a flat profile, the consumer derives loaded or ROM mode from the two
 mathematical half-open extents. Writable storage wholly inside the image is
@@ -618,12 +619,12 @@ Validation failures use these stable status values:
 |     6 | `recordOrder`       | invalid record phase or record count               |
 |     7 | `targetExtent`      | invalid bank, address, region, or used extent      |
 |     8 | `imageOrder`        | descending or overlapping IMAGE extent             |
-|     9 | `patchOverlap`      | overlapping PATCH extents                          |
+|     9 | reserved            | reserved; PATCH overlap is valid                   |
 |    10 | `map`               | invalid MAP length, field, or cross-field relation |
 |    11 | `commit`            | invalid COMMIT entry pair or record count          |
 |    12 | `crc`               | CRC-16/CCITT-FALSE mismatch                        |
 |    13 | `trailingData`      | byte present after COMMIT                          |
-|    14 | `generationChanged` | locked identity changed between passes             |
+|    14 | reserved            | reserved; strategy zero performs one read           |
 |    15 | `protectedMemory`   | target write would overlap consumer state or input |
 
 `recordOrdinal` is one for `BEGIN` and advances for every record header. It is
@@ -642,8 +643,8 @@ the object.
 | ------------------ | -------------------------------------------------------------- |
 | `objectOpen`       | open one committed generation and return a stable handle       |
 | `objectReadByte`   | return the next byte, clean EOF, or storage failure            |
-| `objectRewind`     | return to the first byte of the same generation                |
-| `objectLock`       | prevent replacement, or provide detectable generation identity |
+| `objectRewind`     | reserved compatibility entry; not called by strategy zero       |
+| `objectLock`       | reserved compatibility entry; not called by strategy zero       |
 | `selectTargetBank` | select a physical bank while loader code remains visible       |
 | `publishTarget`    | publish the validated map and entry pair atomically            |
 | `enterTarget`      | enter the published bank/address under its entry ABI           |
@@ -654,8 +655,9 @@ binding states its byte/EOF discriminator; no byte value is reserved as EOF.
 
 `selectTargetBank` preserves the loader stack, object cursor, CRC state, and
 record state. Loader code, workspace, and stack remain always visible.
-`enterTarget` is unreachable until validation, materialization, MAP, COMMIT,
-and immediate EOF all succeed.
+`enterTarget` is unreachable until direct materialization, MAP, COMMIT, and
+immediate EOF all succeed. A late failure may leave destination bytes changed,
+but neither `publishTarget` nor `enterTarget` is called.
 
 The reference register binding keeps one opened object implicit in the
 consumer-platform adapter:
@@ -664,8 +666,8 @@ consumer-platform adapter:
 | ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `ObjectOpen`       | `HL = platform object selector`                                                      | opened generation becomes current                                    | `AF,BC,DE,HL`                                              |
 | `ObjectReadByte`   | current generation                                                                   | `A = byte`                                                           | `AF`                                                       |
-| `ObjectRewind`     | current generation                                                                   | cursor at first byte                                                 | `AF,BC,DE,HL`                                              |
-| `ObjectLock`       | current generation                                                                   | `DE:HL = generation identity`                                        | `AF,BC,DE,HL`                                              |
+| `ObjectRewind`     | reserved                                                                              | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
+| `ObjectLock`       | reserved                                                                              | not called by strategy zero                                          | `AF,BC,DE,HL`                                              |
 | `SelectTargetBank` | `A = logical NOBJ bank ordinal, IX = deployment profile`                             | mapped physical bank selected                                        | `AF,BC,DE,HL`                                              |
 | `PublishTarget`    | `A = entry bank, HL = entry, IX = MAP payload, BC = length, DE = deployment profile` | new target generation published                                      | `AF,BC,DE,HL,IX`                                           |
 | `EnterTarget`      | `A = entry bank, HL = entry, IX = deployment profile`                                | no return on success; carry set and `A = platform status` on failure | `AF,BC,DE,HL,IX` on failure; target entry state on success |
@@ -674,8 +676,9 @@ consumer-platform adapter:
 `ObjectReadByte` uses carry clear for a byte. Carry set with `A = end` means
 clean EOF; carry set with another status means failure. This entry is the
 exception to the ordinary success rule in Section 2.1 because all 256 values
-of `A` are valid input bytes. `ObjectLock` returns an exact identity spanning
-two register pairs; a platform with a shorter native identity zero-extends it.
+of `A` are valid input bytes. The rewind and lock slots remain in version 0.1
+so an existing platform vector keeps its layout, but the direct consumer does
+not invoke them.
 
 All consumer calls preserve `IY` and the consumer stack. They preserve `IX`
 except where it is an explicit input. `SelectTargetBank`, `PublishTarget`, and
@@ -698,23 +701,17 @@ returning; it does not retain either consumer buffer pointer.
 
 ### 7.3 Loading strategies
 
-An isolated target or private backing can permit one pass in a later consumer
-revision: records are validated while writes go only to storage that cannot run
-or replace the current program, followed by publication after COMMIT and EOF.
-NOBJ permits PATCH records in resolution order, so such a consumer still needs
-a bounded or external way to prove pairwise non-overlap. Strategy one remains
-reserved until that operation is part of the platform contract.
+Strategy zero performs one sequential read of one committed object. After
+validating the profile, protected memory, and `BEGIN`, it fills the selected
+destination, writes each IMAGE payload there, and applies each PATCH payload in
+serialized order. It retains no PATCH interval table and does not call
+`ObjectRewind` or `ObjectLock`.
 
-Otherwise the consumer uses a locked stored object:
-
-1. pass one validates it without target writes;
-2. it rewinds the same generation;
-3. pass two materializes it; and
-4. it rechecks framing, record count, CRC, COMMIT, and EOF before entry.
-
-If the store cannot lock, pass two detects a changed generation. Partial target
-writes remain non-runnable. Direct wire loading is legal only with isolated
-backing for the complete received target.
+The destination remains non-runnable until MAP, COMMIT, CRC, record count, and
+immediate EOF all pass. A late failure may leave it partly written. A deployment
+that must preserve a previous program supplies an inactive bank, another slot,
+or private backing; ordinary direct loading may use final target memory when it
+cannot execute before publication. Other strategy values remain reserved.
 
 ### 7.4 Consumer memory map
 
@@ -823,9 +820,9 @@ Conformance requires at least:
 - flat and four-bank streamed output;
 - provider suspension, failure, cancellation, and sequential reset;
 - late output failure preserving a previous object;
-- low-memory overlapping-patch rejection;
-- two-pass locked consumer proofs, plus rejection of every unimplemented
-  strategy; and
+- stream-ordered overlapping PATCH records with the last write winning;
+- one sequential consumer read with no lock or rewind call, plus rejection of
+  every reserved strategy value; and
 - exact stack, register, flag, bank, CRC, count, MAP, COMMIT, and EOF behavior.
 
 Compiler-core, compiler-workspace, host-code, host-workspace, consumer-code,

@@ -9,7 +9,7 @@ NobjConsumerObjectBase    .equ $5000
 NobjConsumerObjectLimit   .equ $5800
 NobjConsumerPlatformBase  .equ $6000
 NobjConsumerPlatformCodeBase  .equ $6000
-NobjConsumerPlatformCodeLimit .equ $6100
+NobjConsumerPlatformCodeLimit .equ $6400
 NobjConsumerControlBase   .equ $4800
 NobjConsumerControlLimit  .equ $4900
 
@@ -61,6 +61,8 @@ ProofObjectCursor:
             .dw  0
 ProofObjectActiveEnd:
             .dw  NobjObjectEnd
+ProofFailureOperation:
+            .db  0
 
             .org NobjConsumerObjectBase
 NobjObject:
@@ -168,6 +170,11 @@ ProofBankSelected:
 
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 ProofPublishTarget:
+            LD   C,A
+            LD   A,(ProofFailureOperation)
+            CP   6
+            JP   Z,ProofRequestedFailure
+            LD   A,C
             OR   A
             JP   NZ,ProofPlatformInvalid
             LD   HL,NobjDeploymentProfile
@@ -193,6 +200,11 @@ ProofEnterTarget:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 ProofObjectClose:
             XOR  A
+            RET
+
+ProofRequestedFailure:
+            LD   A,$42
+            SCF
             RET
 
 ProofPlatformInvalid:

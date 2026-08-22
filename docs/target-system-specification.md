@@ -579,25 +579,27 @@ A materializer validates the complete committed stream, creates each bank or
 flat image with the target profile's fill byte, applies image records, applies
 patch records in stream order, and publishes the resulting image only after all
 records pass their checks. It must reject an out-of-range bank, address, extent,
-descending or overlapping image record, overlapping patch, patch outside the
-committed used extent, duplicate commit, record after commit, or incomplete
-stream. Patch addresses need not increase because nested targets and completed
-forward bodies can resolve in a different order from their sites.
+descending or overlapping image record, patch outside the committed used
+extent, duplicate commit, record after commit, or incomplete stream. Patch
+addresses need not increase or be disjoint because nested targets and completed
+forward bodies can resolve in a different order from their sites. If patches
+touch the same byte, the later serialized patch wins.
 
-A RAM program loader may perform the same work directly into a private or
-otherwise non-runnable load area, then transfer control through the committed
-entry pair. It must not expose or enter partially patched code. A loader that
-cannot isolate partial writes first materializes elsewhere and copies the
-validated result into place.
+A RAM program loader may perform the same work directly in final target memory,
+an inactive bank, or another non-runnable load area, then transfer control
+through the committed entry pair. It must not expose or enter partially patched
+code. A late failure may leave the selected destination dirty. Preserving a
+previous program requires a separate destination or another deployment-specific
+publication scheme; it is not a requirement of the object format.
 
 A direct one-pass wire loader can materialize a banked object only when the
 machine provides isolated writable backing for every selected physical bank
 and prevents execution before commit. An ordinary flat 64 KiB Z80 address
 space cannot privately hold several complete bank images alongside the loader.
 Without isolated bank backing, the receiver must spool the NOBJ to sequential
-storage, validate the committed object, and materialize its banks during a
-later read. Flat objects still permit direct wire loading when one isolated
-load extent fits available RAM.
+storage and load it later, or use another non-runnable destination. Flat objects
+permit direct loading whenever the target extent cannot execute before commit
+and does not overwrite the loader or its live state.
 
 ROM production is deliberately host-side in Nucleus 0.1. A utility on CP/M or
 another development system materializes the bank images, applies the patches,

@@ -364,7 +364,7 @@ The streaming path must prove:
 - IMAGE and PATCH records interleaved in production time but serialized in
   required NOBJ order;
 - CRC and record count across spool boundaries;
-- overlapping PATCH records rejected through the low-memory validation path;
+- overlapping PATCH records retained in order and materialized last-write-wins;
 - a late failure preserving an older committed generation;
 - successful publication after that failure;
 - provider failure after earlier IMAGE records;
@@ -376,23 +376,19 @@ The streaming path must prove:
 The compiler does not apply patches. A separate Z80 consumer reads NOBJ and
 does so.
 
-The consumer supports two distinct strategies.
-
-With isolated private backing, a one-pass consumer:
+The consumer performs one sequential read:
 
 1. validates `BEGIN` and the target profile;
-2. writes monotonic IMAGE records into an isolated or non-runnable target
-   extent;
+2. writes monotonic IMAGE records into the selected non-runnable destination;
 3. applies PATCH records in stream order;
 4. validates MAP, including used lengths and entry;
 5. validates record count, CRC, COMMIT, and immediate EOF; and
 6. only then publishes the image or enters the committed entry pair.
 
-Without isolated backing, a stored-object consumer performs no target write in
-pass one. It validates the complete locked or stable object, rewinds, then
-materializes and revalidates it in pass two before entry. This is not a second
-compiler pass. A direct wire load is permitted only under the first strategy,
-where partial target bytes remain isolated and unrunnable until commit.
+The destination may be final target memory, an inactive bank, or private
+backing. A late failure may leave its bytes changed, but no code can enter them
+and no target is published before the final checks pass. A deployment that must
+preserve a previous program supplies a separate destination.
 
 A banked loader selects physical backing for each bank while processing its
 records. If the machine cannot isolate every bank during a direct receive, it
@@ -413,8 +409,6 @@ the generated-program runtime vector. Its minimum logical operations are:
 
 - open the selected committed object generation;
 - read the next byte and distinguish EOF from storage failure;
-- rewind to the first byte;
-- lock or otherwise verify that the generation cannot change between passes;
 - select one physical bank while preserving fixed-memory loader state;
 - publish the validated entry pair and map;
 - enter that pair; and
@@ -442,12 +436,10 @@ Banked consumer code and state stay outside the switched window. A flat target
 whose final image would cover the loader requires a relocated loader or private
 backing and is rejected otherwise.
 
-An in-place stored load first validates the complete object, then materializes
-from a locked immutable generation. If the storage layer cannot lock a
-generation, the second pass recomputes framing, record count, and CRC before
-entry and rejects any difference; the partly written image remains
-non-runnable. Direct-wire loading still requires isolated backing for the whole
-target being received.
+An in-place stored load validates `BEGIN` before writing IMAGE and PATCH bytes.
+It validates MAP, record count, CRC, COMMIT, and EOF before publication or
+entry. The partly written destination remains non-runnable after any late
+failure.
 
 ## 9. Runtime provider and native service layering
 
@@ -839,11 +831,11 @@ depends on it.
 
 ### Milestone 3: streaming NOBJ in Node
 
-Status: implemented, adversarially reviewed, and verified.
+Status: implemented and revised for stream-ordered PATCH replacement.
 
 - make spool finalization incremental;
 - add a streaming NOBJ reader and validator;
-- add the low-memory patch-overlap rescan;
+- retain no PATCH interval table or overlap rescan;
 - make materialization optional in the public compile result;
 - retain explicit compatibility helpers; and
 - prove byte identity and atomic publication.
@@ -877,30 +869,30 @@ separate host account.
 
 ### Milestone 6: Z80 NOBJ consumer
 
-Status: implemented, adversarially reviewed, and verified.
+Status: direct replacement implemented; adversarial review pending.
 
 - implement the stored flat loader first;
 - add bank selection and banked materialization;
-- enforce the consumer memory map and locked two-pass input;
-- verify CRC, record order, overlaps, MAP, and COMMIT;
+- enforce the consumer memory map with one sequential input read;
+- verify CRC, record order, IMAGE ordering, MAP, and COMMIT;
 - keep partial output non-runnable; and
 - test it beneath Debug80 before binding storage operations to TEC-FS.
 
-The revision-one consumer accepts the locked stored-object strategy. It first
-validates the complete object, rewinds the same locked generation, and only
-then materializes it. NOBJ PATCH records occur in resolution order, so the
-consumer proves pairwise non-overlap by bounded rescans rather than retaining a
-patch table. A direct isolated one-pass strategy remains reserved until its
-platform contract supplies an equally bounded way to validate arbitrary patch
-order.
+The first implementation used a locked two-pass strategy and rescanned PATCH
+records for pairwise overlap. That restriction has been retired. The
+replacement follows
+[the direct-loader correction](2026-08-21-direct-nobj-loader.md): it writes
+IMAGE records and applies PATCH records during one sequential read, with the
+last serialized PATCH write winning.
 
-The standalone consumer occupies 2,887 code bytes and 399 workspace bytes.
-The successful flat proof executes 22,876 instructions; the two-bank proof
-executes 26,416. Fifty-five executable cases cover loaded, ROM, and banked
-objects; CRC and framing; record order and overlap; MAP and COMMIT consistency;
-the mathematical `$10000` boundary; protected image and writable regions;
-platform failures; atomic publication; and sequential reuse. These accounts
-are separate from the 16 KiB compiler gate.
+The direct consumer occupies 2,430 code bytes and 381 workspace bytes. The
+successful flat proof executes 12,646 instructions in 108,132 T-states; the
+two-bank proof executes 15,532 instructions in 187,389 T-states. Executable
+cases cover loaded, ROM, and banked objects; CRC and framing; record order,
+IMAGE ordering, and PATCH last-write-wins; MAP and COMMIT consistency; the
+mathematical `$10000` boundary; protected image and writable regions; platform
+failures; publication; Node materialization identity; and sequential reuse.
+These accounts are separate from the 16 KiB compiler gate.
 
 ### Milestone 7a: native launch shell under Debug80
 

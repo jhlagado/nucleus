@@ -242,25 +242,6 @@ const patchInterval = (recordBytes) => {
     const start = readU16(recordBytes, 4);
     return { bank, start, end: start + payloadLength - 3 };
 };
-const validatePatchSpoolWithoutIndex = (spool) => {
-    let outerIndex = 0;
-    for (const outerRecord of spoolRecords(spool)) {
-        const outer = patchInterval(outerRecord);
-        let innerIndex = 0;
-        for (const innerRecord of spoolRecords(spool)) {
-            if (innerIndex >= outerIndex)
-                break;
-            const inner = patchInterval(innerRecord);
-            if (inner.bank === outer.bank &&
-                outer.start < inner.end &&
-                inner.start < outer.end) {
-                fail("PATCH records overlap");
-            }
-            innerIndex += 1;
-        }
-        outerIndex += 1;
-    }
-};
 const patchHighEnds = (spool) => {
     const ends = new Map();
     for (const recordBytes of spoolRecords(spool)) {
@@ -273,7 +254,6 @@ export class NobjGenerationSink {
     #store;
     #provider;
     #spoolFactory;
-    #lowMemoryPatchValidation;
     #imageSpool;
     #patchSpool;
     #begin;
@@ -283,12 +263,11 @@ export class NobjGenerationSink {
     #imageHighWater = 0;
     #patchHighWater = 0;
     #imageEnds = new Map();
-    #patchIntervals = new Map();
     constructor(store, provider, spoolFactory = () => new MemoryNobjSpool(), options = {}) {
         this.#store = store;
         this.#provider = provider;
         this.#spoolFactory = spoolFactory;
-        this.#lowMemoryPatchValidation = options.lowMemoryPatchValidation === true;
+        void options;
         this.#imageSpool = spoolFactory();
         this.#patchSpool = spoolFactory();
     }
@@ -410,11 +389,6 @@ export class NobjGenerationSink {
         this.#validatePatch(begin, bank, address, bytes);
         this.#patchSpool.append(encodeImageLike(NobjKind.patch, { bank, address, bytes }));
         this.#patchCount += 1;
-        if (!this.#lowMemoryPatchValidation) {
-            const intervals = this.#patchIntervals.get(bank) ?? [];
-            intervals.push({ start: address, end: address + bytes.length });
-            this.#patchIntervals.set(bank, intervals);
-        }
         this.#patchHighWater = Math.max(this.#patchHighWater, this.#patchSpool.byteLength);
     }
     map(map) {
@@ -464,9 +438,6 @@ export class NobjGenerationSink {
         const recordCount = 1 + this.#imageCount + this.#patchCount + 1 + 1;
         if (recordCount > NOBJ_MAX_RECORDS)
             fail("NOBJ record count exceeds 65,535");
-        if (this.#lowMemoryPatchValidation) {
-            validatePatchSpoolWithoutIndex(this.#patchSpool);
-        }
         validateMapFromEnds(begin, committedMap, this.#imageEnds, patchHighEnds(this.#patchSpool));
         const commitPrefix = [NobjKind.commit, 7, 0];
         appendU16(commitPrefix, recordCount);
@@ -558,12 +529,7 @@ export class NobjGenerationSink {
         requireU8("PATCH bank", bank);
         if (bank >= begin.bankCount)
             fail("PATCH bank is outside BEGIN.bankCount");
-        const end = requireRegion("PATCH", address, bytes.length, begin.imageBase, begin.imageCapacity);
-        for (const interval of this.#patchIntervals.get(bank) ?? []) {
-            if (address < interval.end && interval.start < end) {
-                fail("PATCH records overlap");
-            }
-        }
+        requireRegion("PATCH", address, bytes.length, begin.imageBase, begin.imageCapacity);
     }
     #resetTentative() {
         this.#imageSpool.clear();
@@ -575,7 +541,6 @@ export class NobjGenerationSink {
         this.#imageHighWater = 0;
         this.#patchHighWater = 0;
         this.#imageEnds.clear();
-        this.#patchIntervals.clear();
     }
 }
 const cloneMap = (map) => ({
@@ -844,7 +809,6 @@ export class NobjStreamReader {
     #byteLength = 0;
     #imageEnds = new Map();
     #patchEnds = new Map();
-    #patchIntervals = new Map();
     constructor(options = {}) {
         this.#options = options;
     }
@@ -979,16 +943,6 @@ export class NobjStreamReader {
         if (item.bank >= begin.bankCount)
             fail("PATCH bank is out of range");
         const end = requireRegion("PATCH", item.address, item.bytes.length, begin.imageBase, begin.imageCapacity);
-        if (this.#options.deferPatchOverlap !== true) {
-            const intervals = this.#patchIntervals.get(item.bank) ?? [];
-            for (const interval of intervals) {
-                if (item.address < interval.end && interval.start < end) {
-                    fail("PATCH records overlap");
-                }
-            }
-            intervals.push({ start: item.address, end });
-            this.#patchIntervals.set(item.bank, intervals);
-        }
         this.#patchEnds.set(item.bank, Math.max(this.#patchEnds.get(item.bank) ?? 0, end));
         this.#options.onPatch?.(item);
     }
@@ -1018,56 +972,8 @@ export const validateNobjChunks = (chunks, options = {}) => {
         reader.push(chunk);
     return reader.finish();
 };
-/** Validate a rewindable object without retaining a patch interval table. */
-export const validateRewindableNobjChunks = (chunks) => {
-    let patchCount = 0;
-    const initial = new NobjStreamReader({
-        deferPatchOverlap: true,
-        onPatch: () => {
-            patchCount += 1;
-        },
-    });
-    for (const chunk of chunks())
-        initial.push(chunk);
-    const metadata = initial.finish();
-    const scan = (onPatch) => {
-        let index = 0;
-        const reader = new NobjStreamReader({
-            deferPatchOverlap: true,
-            onPatch: (record) => {
-                onPatch(record, index);
-                index += 1;
-            },
-        });
-        for (const chunk of chunks())
-            reader.push(chunk);
-        reader.finish();
-    };
-    for (let outerIndex = 0; outerIndex < patchCount; outerIndex += 1) {
-        let outer;
-        scan((record, index) => {
-            if (index === outerIndex) {
-                outer = {
-                    bank: record.bank,
-                    start: record.address,
-                    end: record.address + record.bytes.length,
-                };
-            }
-        });
-        if (outer === undefined)
-            fail("PATCH rescan count changed");
-        const activeOuter = outer;
-        scan((record, index) => {
-            if (index >= outerIndex || record.bank !== activeOuter.bank)
-                return;
-            const end = record.address + record.bytes.length;
-            if (activeOuter.start < end && record.address < activeOuter.end) {
-                fail("PATCH records overlap");
-            }
-        });
-    }
-    return metadata;
-};
+/** Validate a rewindable object using the ordinary stream-order PATCH rules. */
+export const validateRewindableNobjChunks = (chunks) => validateNobjChunks(chunks());
 export const materializeNobjChunks = (chunks) => {
     let begin;
     let banks = [];
@@ -1135,7 +1041,6 @@ export const parseNobj = (serialized) => {
     const images = [];
     const patches = [];
     const imageEnds = new Map();
-    const patchIntervals = new Map();
     for (const [index, recordValue] of records.entries()) {
         switch (recordValue.kind) {
             case NobjKind.begin:
@@ -1174,15 +1079,7 @@ export const parseNobj = (serialized) => {
                 const item = decodeImageLike(serialized, recordValue, "PATCH");
                 if (item.bank >= activeBegin.bankCount)
                     fail("PATCH bank is out of range");
-                const end = requireRegion("PATCH", item.address, item.bytes.length, activeBegin.imageBase, activeBegin.imageCapacity);
-                const intervals = patchIntervals.get(item.bank) ?? [];
-                for (const interval of intervals) {
-                    if (item.address < interval.end && interval.start < end) {
-                        fail("PATCH records overlap");
-                    }
-                }
-                intervals.push({ start: item.address, end });
-                patchIntervals.set(item.bank, intervals);
+                requireRegion("PATCH", item.address, item.bytes.length, activeBegin.imageBase, activeBegin.imageCapacity);
                 patches.push(item);
                 break;
             }

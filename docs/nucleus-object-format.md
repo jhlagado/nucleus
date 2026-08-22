@@ -164,19 +164,21 @@ Its valid payload and replacement lengths are also 4 through 65,535 and 1
 through 65,532.
 
 `bank` must be less than `BEGIN.bankCount`. The consumer applies every patch
-after all image records. A patch may replace an image byte or the implicit fill
-byte at a gap. Patch records retain resolution order, so their target addresses
-need not increase. Patch extents must not overlap, records for different banks
-may be interleaved, and every patch must remain inside the selected image
-region. Because `MAP` follows the patch phase, the consumer checks every patch
-against that bank's committed used length after it reads `MAP`.
+after all image records. A patch may replace an image byte, an earlier patch,
+or the implicit fill byte at a gap. Patch records retain resolution order, so
+their target addresses need not increase and their extents may overlap. When
+two records write the same byte, the later serialized record wins. Records for
+different banks may be interleaved, and every patch must remain inside the
+selected image region. Because `MAP` follows the patch phase, the consumer
+checks every patch against that bank's committed used length after it reads
+`MAP`.
 
 The lack of address ordering permits nested branches and later routine bodies
-to submit patches as soon as their targets become known. A low-memory validator
-may rescan the stored patch phase to detect overlap instead of retaining a
-bitmap. The compiler must still create a placeholder or otherwise reserve the
-target location, resolve the value once, and range-check every replacement byte
-before `COMMIT`.
+to submit patches as soon as their targets become known. Applying patches in
+stream order defines the result without an interval table, sort, or rescan. The
+compiler must still create a placeholder or otherwise reserve the target
+location, resolve the value, and range-check every replacement byte before
+`COMMIT`.
 
 ## 8. `MAP` record
 
@@ -291,12 +293,12 @@ container or trusted delivery path.
 A conforming reader performs these operations:
 
 1. Read and validate the exact `BEGIN` record.
-2. Allocate or select one private image area per bank and fill it with
-   `imageFill`.
+2. Select one non-runnable destination per bank and fill it with `imageFill`.
+   This may be final target memory, an inactive bank, or private backing.
 3. Read `IMAGE` records, checking framing, bank, monotonic non-overlap, and
    target extent before writing each payload.
-4. Read `PATCH` records, checking framing, bank, non-overlap, and the `BEGIN`
-   image-region extent before writing each replacement payload.
+4. Read `PATCH` records, checking framing, bank, and the `BEGIN` image-region
+   extent before writing each replacement payload in serialized order.
 5. Read and validate the exact `MAP`, including every cross-field relationship
    in Section 8, then check every image and patch extent against its bank's
    committed `usedLength`.
@@ -306,14 +308,11 @@ A conforming reader performs these operations:
 
 The reader rejects the complete object on the first failed check. It does not
 run code, publish bank images, or replace a current artifact after partial
-validation. A RAM loader writes to a private or otherwise non-runnable area
-until step 6 succeeds. A ROM utility finishes validation before it invokes a
-programmer.
-
-A reader with insufficient private memory may validate the stored object before
-materializing it during another read. It may rescan the patch phase to check
-pairwise non-overlap without a compiler-resident or loader-resident patch table.
-These are loader strategies, not additional compiler source passes.
+validation. A direct RAM loader may leave its non-runnable destination partly
+written after a late failure; it does not need to restore the preceding bytes.
+A platform that must preserve a previous program loads into an inactive bank,
+another slot, or private backing. A ROM utility finishes validation before it
+invokes a programmer.
 
 A direct one-pass wire receiver can materialize a flat object when it has an
 isolated writable extent for the complete image. It can materialize a banked
@@ -364,19 +363,18 @@ The Node reference implementation exposes the same boundary directly.
 `NobjGenerationSink.commitTo()` drains the two spools into a transactional
 sequential destination while calculating the record count and CRC. It does not
 join them into a complete resident object. `NobjStreamReader` validates records
-as chunks arrive. Its ordinary Node path indexes PATCH extents;
-`validateRewindableNobjChunks()` instead rescans a rewindable source and retains
-at most two framed records plus fixed layout metadata.
+as chunks arrive and reports PATCH callbacks in their serialized order.
+`validateRewindableNobjChunks()` provides the same format validation for a
+rewindable source without changing PATCH semantics.
 `materializeNobjChunks()` is the optional convenience path for callers that do
 want complete bank images. `NodeFileNobjOutput` writes a private temporary file
 and replaces the named object only after the terminal commit is complete.
 Reader callbacks are tentative: a consumer must not publish their effects until
 `finish()` has accepted MAP, COMMIT, record count, and CRC.
 
-The low-memory producer mode retains no patch interval table. Before writing
-`COMMIT`, it rescans the patch spool to reject overlap. This can take more time
-than the indexed Node path, but its resident memory does not grow with the
-number of patches.
+The producer retains no PATCH interval table. Serialized order defines repeated
+or overlapping replacement writes, so finalization does not rescan the patch
+spool for pairwise overlap.
 
 TECM8 and TEC-FS need two sequential temporary spools plus an atomic
 current-generation update. They do not need random writes or in-place patching
@@ -413,8 +411,9 @@ Conformance evidence must include:
 - nested forward sites whose patches resolve in descending target-address
   order but serialize after all image records;
 - the nearest accepted and first rejected image-region end;
-- duplicate, descending, and overlapping image records, plus overlapping
-  patches in either address order;
+- duplicate, descending, and overlapping image records;
+- overlapping patches in both address orders, proving that the last serialized
+  write wins;
 - an invalid bank ordinal and reserved flag or record kind;
 - a malformed `MAP` length or inconsistent entry pair;
 - an incorrect record count and CRC;

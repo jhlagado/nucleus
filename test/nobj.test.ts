@@ -357,7 +357,7 @@ describe("NOBJ 0.1", () => {
     }
   });
 
-  it("rejects overlapping patches in either address order", () => {
+  it("accepts overlapping patches in either address order", () => {
     for (const pair of [
       [0x8001, 0x8002],
       [0x8002, 0x8001],
@@ -369,9 +369,12 @@ describe("NOBJ 0.1", () => {
       sink.begin(flatRomBegin());
       sink.image(0, 0x8000, Uint8Array.of(1, 2, 3, 4));
       sink.patch(0, pair[0] ?? 0, Uint8Array.of(7, 8));
-      expect(() => sink.patch(0, pair[1] ?? 0, Uint8Array.of(9, 10))).toThrow(
-        "PATCH records overlap",
-      );
+      expect(() =>
+        sink.patch(0, pair[1] ?? 0, Uint8Array.of(9, 10)),
+      ).not.toThrow();
+      sink.map(flatRomMap(4));
+      const image = materializeNobj(parseNobj(sink.commit())).banks[0]!;
+      expect(image[(pair[1] ?? 0) - 0x8000]).toBe(9);
     }
   });
 
@@ -804,7 +807,7 @@ describe("NOBJ 0.1", () => {
     expect(streamed.banks).toEqual(materializeNobj(parseNobj(object)).banks);
   });
 
-  it("rescans a rewindable object without a patch interval table", () => {
+  it("validates a rewindable object without a patch interval table", () => {
     const object = build({
       images: [{ bank: 0, address: 0x8000, bytes: Uint8Array.of(1, 2, 3, 4) }],
       patches: [
@@ -825,12 +828,13 @@ describe("NOBJ 0.1", () => {
     overlapping[secondAddress] = 1;
     overlapping[secondAddress + 1] = 0x80;
     const corrected = withCrc(overlapping);
-    expect(() => validateRewindableNobjChunks(() => [corrected])).toThrow(
-      "PATCH records overlap",
+    expect(validateRewindableNobjChunks(() => [corrected]).commit).toEqual(
+      parseNobj(corrected).commit,
     );
+    expect(materializeNobj(parseNobj(corrected)).banks[0]?.[1]).toBe(9);
   });
 
-  it("rescans patch storage in low-memory mode before writing COMMIT", () => {
+  it("serializes overlapping patches without a low-memory rescan", () => {
     const store = new NobjGenerationStore();
     const previous = build({
       images: [{ bank: 0, address: 0x8000, bytes: Uint8Array.of(1) }],
@@ -847,21 +851,20 @@ describe("NOBJ 0.1", () => {
     sink.patch(0, 0x8001, Uint8Array.of(7, 8));
     expect(() => sink.patch(0, 0x8002, Uint8Array.of(9, 10))).not.toThrow();
     sink.map(flatRomMap(4));
-    let writes = 0;
-    expect(() =>
-      sink.commitTo({
-        write: () => {
-          writes += 1;
+    const chunks: Uint8Array[] = [];
+    expect(() => sink.commitTo({
+        write: (bytes) => {
+          chunks.push(bytes.slice());
         },
         commit: () => undefined,
         abort: () => undefined,
-      }),
-    ).toThrow("PATCH records overlap");
-    expect(writes).toBe(0);
+      })).not.toThrow();
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(materializeNobjChunks(chunks).banks[0]?.[2]).toBe(9);
     expect(store.current).toEqual(previous);
   });
 
-  it("wires low-memory patch validation through the adapter generation", async () => {
+  it("streams overlapping adapter patches in their original order", async () => {
     const operation = (
       kind: number,
       address: number,
@@ -880,7 +883,7 @@ describe("NOBJ 0.1", () => {
       ...operation(2, 0x8001, [7, 8]),
       ...operation(2, 0x8002, [9, 10]),
     ]);
-    let writes = 0;
+    const chunks: Uint8Array[] = [];
     await expect(
       commitNobjAdapterGenerationTo(
         {
@@ -894,15 +897,15 @@ describe("NOBJ 0.1", () => {
           lowMemoryPatchValidation: true,
         },
         {
-          write: () => {
-            writes += 1;
+          write: (bytes) => {
+            chunks.push(bytes.slice());
           },
           commit: () => undefined,
           abort: () => undefined,
         },
       ),
-    ).rejects.toThrow("PATCH records overlap");
-    expect(writes).toBe(0);
+    ).resolves.toBeDefined();
+    expect(materializeNobjChunks(chunks).banks[0]?.[2]).toBe(9);
   });
 
   it("aborts a sequential destination when output fails", () => {

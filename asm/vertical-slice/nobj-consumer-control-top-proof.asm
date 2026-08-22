@@ -9,7 +9,7 @@ NobjConsumerObjectBase        .equ 0
 NobjConsumerObjectLimit       .equ 0
 NobjConsumerPlatformBase      .equ $6000
 NobjConsumerPlatformCodeBase  .equ $6000
-NobjConsumerPlatformCodeLimit .equ $6100
+NobjConsumerPlatformCodeLimit .equ $6400
 NobjConsumerControlBase       .equ $F000
 NobjConsumerControlLimit      .equ 0
 

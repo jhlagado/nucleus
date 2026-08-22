@@ -1,6 +1,6 @@
 # Design: direct NOBJ loading and in-place patch application
 
-- Status: proposed correction
+- Status: implemented; correctness-cleared and size-reviewed
 - Date: 2026-08-21
 - Scope: NOBJ consumers and native Z80 loaders
 
@@ -64,8 +64,8 @@ The destination is tentative until step 7. On failure it may contain partial
 or patched bytes, but the loader does not enter it or advertise it as a valid
 program. A transient loader does not have to restore the preceding bytes.
 
-A platform that must preserve a running or previously loaded program chooses
-an inactive RAM bank, another slot, or private backing. Preservation is a
+To preserve a running or previously loaded program, the installer supplies an
+inactive RAM bank, another slot, or private backing. Preservation is a
 deployment feature, not a universal requirement imposed on every loader.
 
 ## 4. PATCH ordering
@@ -88,8 +88,8 @@ This is the authority correction that removes the false two-pass dependency.
 
 A flat loader writes directly into the declared Z80 destination when that
 extent is non-runnable during loading and does not cover the loader itself.
-Origin `$4000`, for example, means that IMAGE bytes addressed at `$4000` are
-written there and a later PATCH for `$4001` overwrites that operand there.
+With origin `$4000`, IMAGE bytes addressed at `$4000` are written there and a
+later PATCH for `$4001` overwrites that operand there.
 
 A banked loader maps the NOBJ bank ordinal through the deployment profile,
 selects the corresponding physical bank, and performs the same IMAGE or PATCH

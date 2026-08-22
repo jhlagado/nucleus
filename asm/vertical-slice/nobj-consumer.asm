@@ -2,8 +2,8 @@
 ;
 ; This module owns no filesystem or target device policy. It calls the fixed
 ; NC platform vector from native-z80-host-contract.md and keeps all tentative
-; target writes unpublished until two complete reads of one locked generation
-; have succeeded.
+; target writes unpublished until one complete sequential read has reached a
+; valid COMMIT and immediate EOF.
 
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 NobjConsumerRun:
@@ -15,56 +15,25 @@ NobjConsumerRun:
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NobjConsumerRunBody:
             LD   (NobjStateDescriptorPointer),IX
-            XOR  A
-            LD   (NobjStateObjectOpen),A
-            LD   (NobjStateFailureOutcome),A
-            LD   (NobjStateFailureStatus),A
-            LD   (NobjStateRecordOrdinal),A
-            LD   (NobjStateRecordOrdinal+1),A
+            LD   HL,0
+            LD   (NobjStateRecordOrdinal),HL
             CALL NobjValidateRunDescriptor
-            JP   C,NobjConsumerReturnFailure
+            JR   C,NobjConsumerReturnFailure
             CALL NobjValidatePlatformVector
-            JP   C,NobjConsumerReturnFailure
+            JR   C,NobjConsumerReturnFailure
             CALL NobjValidateDeploymentProfile
-            JP   C,NobjConsumerReturnFailure
+            JR   C,NobjConsumerReturnFailure
 
             LD   IX,(NobjStateDescriptorPointer)
             LD   L,(IX+4)
             LD   H,(IX+5)
             CALL NobjPlatformObjectOpen
-            JP   C,NobjConsumerPlatformFailure
-            LD   A,1
-            LD   (NobjStateObjectOpen),A
-            CALL NobjPlatformObjectLock
-            JP   C,NobjConsumerPlatformFailure
-            LD   (NobjStateIdentityLow),HL
-            LD   (NobjStateIdentityHigh),DE
-
-            XOR  A
-            LD   (NobjStateMaterialize),A
+            JR   C,NobjConsumerPlatformFailureAfterClose
             CALL NobjValidatePass
-            JR   C,NobjConsumerOpenedFailure
-            CALL NobjValidatePatchOverlaps
-            JR   C,NobjConsumerOpenedFailure
-
-            CALL NobjPlatformObjectRewind
-            JR   C,NobjConsumerPlatformFailure
-            CALL NobjVerifyGenerationIdentity
-            JR   C,NobjConsumerOpenedFailure
-
-            CALL NobjFillTarget
-            JR   C,NobjConsumerOpenedFailure
-            LD   A,1
-            LD   (NobjStateMaterialize),A
-            CALL NobjValidatePass
-            JR   C,NobjConsumerOpenedFailure
-            CALL NobjVerifyGenerationIdentity
             JR   C,NobjConsumerOpenedFailure
 
             CALL NobjPlatformObjectClose
             JR   C,NobjConsumerPlatformFailureAfterClose
-            XOR  A
-            LD   (NobjStateObjectOpen),A
 
             LD   A,(NobjStateEntryBank)
             LD   HL,(NobjStateImageBase)
@@ -81,36 +50,8 @@ NobjConsumerRunBody:
             ; A successful entry never returns.
             JR   NobjConsumerPlatformFailureAfterClose
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjVerifyGenerationIdentity:
-            CALL NobjPlatformObjectLock
-            JR   C,NobjVerifyGenerationPlatformFailure
-            LD   BC,(NobjStateIdentityLow)
-            OR   A
-            SBC  HL,BC
-            JR   NZ,NobjVerifyGenerationChanged
-            LD   BC,(NobjStateIdentityHigh)
-            EX   DE,HL
-            OR   A
-            SBC  HL,BC
-            JR   NZ,NobjVerifyGenerationChanged
-            OR   A
-            RET
-NobjVerifyGenerationChanged:
-            LD   A,NobjStatusGenerationChanged
-            JP   NobjSetValidatorFailure
-NobjVerifyGenerationPlatformFailure:
-            JP   NobjSetPlatformFailure
-
-NobjConsumerPlatformFailure:
-            CALL NobjSetPlatformFailure
 NobjConsumerOpenedFailure:
-            LD   A,(NobjStateObjectOpen)
-            OR   A
-            JR   Z,NobjConsumerReturnFailure
             CALL NobjPlatformObjectClose
-            XOR  A
-            LD   (NobjStateObjectOpen),A
             JR   NobjConsumerReturnFailure
 
 NobjConsumerPlatformFailureAfterClose:
@@ -200,12 +141,11 @@ NobjValidateRunDescriptor:
             OR   A
             RET
 NobjDescriptorInvalidBare:
-            XOR  A
-            LD   (NobjStateResultPointer),A
-            LD   (NobjStateResultPointer+1),A
+            LD   HL,0
+            LD   (NobjStateResultPointer),HL
 NobjDescriptorInvalid:
             LD   A,NobjStatusDescriptor
-            JP   NobjSetValidatorFailure
+            JR   NobjSetValidatorFailure
 
 ; HL=start, DE=length. Carry means the complete extent is not inside the
 ; caller-owned control region that remains live until target entry.
@@ -294,9 +234,9 @@ NobjValidateDeploymentProfile:
             LD   (NobjStateImageCapacity),DE
             LD   A,D
             OR   E
-            JP   Z,NobjDeploymentInvalid
+            JR   Z,NobjDeploymentInvalid
             CALL NobjExtentEndValid
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
             LD   L,(IX+11)
             LD   H,(IX+12)
             LD   (NobjStateWritableBase),HL
@@ -305,9 +245,9 @@ NobjValidateDeploymentProfile:
             LD   (NobjStateWritableCapacity),DE
             LD   A,D
             OR   E
-            JP   Z,NobjDeploymentInvalid
+            JR   Z,NobjDeploymentInvalid
             CALL NobjExtentEndValid
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
             LD   A,(IX+15)
             LD   (NobjStateEntryBank),A
 
@@ -318,15 +258,15 @@ NobjValidateDeploymentProfile:
             LD   B,A
             LD   A,B
             CP   1
-            JP   NZ,NobjDeploymentInvalid
+            JR   NZ,NobjDeploymentInvalid
             LD   A,(NobjStateEntryBank)
             OR   A
-            JP   NZ,NobjDeploymentInvalid
+            JR   NZ,NobjDeploymentInvalid
             LD   A,(IX+16)
             OR   (IX+17)
-            JP   NZ,NobjDeploymentInvalid
+            JR   NZ,NobjDeploymentInvalid
             CALL NobjDeriveFlatMode
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
             JR   NobjValidateProfileProtection
 
 NobjValidateBankedProfile:
@@ -334,21 +274,21 @@ NobjValidateBankedProfile:
             LD   B,A
             LD   A,B
             CP   2
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
             CP   5
-            JP   NC,NobjDeploymentInvalid
+            JR   NC,NobjDeploymentInvalid
             LD   A,(NobjStateEntryBank)
             CP   B
-            JP   NC,NobjDeploymentInvalid
+            JR   NC,NobjDeploymentInvalid
             LD   A,(IX+16)
             OR   (IX+17)
-            JP   Z,NobjDeploymentInvalid
+            JR   Z,NobjDeploymentInvalid
             CALL NobjRequireWritableOutsideImage
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
             LD   A,1
             LD   (NobjStateRomMode),A
             CALL NobjValidateBankBindings
-            JP   C,NobjDeploymentInvalid
+            JR   C,NobjDeploymentInvalid
 
 NobjValidateProfileProtection:
             CALL NobjImageAvoidsProtectedMemory
@@ -489,7 +429,6 @@ NobjImageAvoidsProtectedMemory:
             OR   D
             OR   E
             RET  Z
-            JP   NobjTargetRegionsIntersectFixed
 
 ; BC=fixed start, DE=fixed limit. Carry means image or writable intersects it.
 .routine in BC,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
@@ -504,7 +443,6 @@ NobjTargetRegionsIntersectFixed:
             RET  C
             LD   HL,(NobjStateWritableBase)
             LD   IX,(NobjStateWritableCapacity)
-            JP   NobjRegionIntersectsFixed
 
 ; HL=target base, IX=capacity, BC=fixed start, DE=fixed exclusive limit.
 ; Both inputs are valid half-open extents; a zero fixed limit means $10000.
@@ -539,16 +477,11 @@ NobjValidatePass:
             XOR  A
             LD   (NobjStatePhase),A
             LD   (NobjStateImageSeen),A
-            LD   (NobjStatePatchCount),A
-            LD   (NobjStatePatchCount+1),A
-            LD   (NobjStateRecordOrdinal),A
-            LD   (NobjStateRecordOrdinal+1),A
             LD   HL,$FFFF
             LD   (NobjStateCrc),HL
             LD   DE,NobjStateImageEnds
             LD   B,16
 NobjResetEndsLoop:
-            XOR  A
             LD   (DE),A
             INC  DE
             DJNZ NobjResetEndsLoop
@@ -558,7 +491,7 @@ NobjValidateRecordLoop:
             RET  C
             LD   A,(NobjStateRecordKind)
             CP   NobjKindBegin
-            JP   Z,NobjAcceptBegin
+            JR   Z,NobjAcceptBegin
             CP   NobjKindImage
             JP   Z,NobjAcceptImage
             CP   NobjKindPatch
@@ -572,15 +505,15 @@ NobjValidateRecordLoop:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NobjReadRecordHeader:
+            CALL NobjReadCrcByte
+            RET  C
+            LD   (NobjStateRecordKind),A
             LD   HL,(NobjStateRecordOrdinal)
             INC  HL
             LD   A,H
             OR   L
             JR   Z,NobjRecordCountInvalid
             LD   (NobjStateRecordOrdinal),HL
-            CALL NobjReadCrcByte
-            RET  C
-            LD   (NobjStateRecordKind),A
             CALL NobjReadCrcWord
             RET  C
             LD   (NobjStatePayloadLength),HL
@@ -659,7 +592,7 @@ NobjAcceptBeginSignature:
             EX   DE,HL
             CP   (HL)
             EX   DE,HL
-            JR   NZ,NobjFramingInvalid
+            JP   NZ,NobjFramingInvalid
             INC  DE
             DJNZ NobjAcceptBeginSignature
             CALL NobjReadCrcByte          ; BEGIN flags
@@ -704,6 +637,8 @@ NobjAcceptBeginSignature:
             AND  1
             CP   B
             JR   NZ,NobjDeploymentMismatch
+            CALL NobjFillTarget
+            RET  C
             LD   A,NobjPhaseImage
             LD   (NobjStatePhase),A
             JP   NobjValidateRecordLoop
@@ -807,12 +742,6 @@ NobjPatchPhaseReady:
             INC  HL
             LD   (HL),D
 NobjPatchEndRetained:
-            LD   HL,(NobjStatePatchCount)
-            INC  HL
-            LD   A,H
-            OR   L
-            JP   Z,NobjRecordCountInvalid
-            LD   (NobjStatePatchCount),HL
             CALL NobjConsumeImageLikeBytes
             RET  C
             JP   NobjValidateRecordLoop
@@ -872,14 +801,10 @@ NobjBankWordPointer:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 NobjConsumeImageLikeBytes:
-            LD   A,(NobjStateMaterialize)
-            OR   A
-            JR   Z,NobjConsumeImageLikeReady
             LD   A,(NobjStateCurrentBank)
             LD   IX,(NobjStateProfilePointer)
             CALL NobjPlatformSelectTargetBank
             JR   C,NobjConsumeImagePlatformFailure
-NobjConsumeImageLikeReady:
             LD   HL,(NobjStateCurrentAddress)
             LD   BC,(NobjStatePayloadLength)
             DEC  BC
@@ -892,13 +817,7 @@ NobjConsumeImageLikeLoop:
             POP  HL
             POP  BC
             RET  C
-            LD   D,A
-            LD   A,(NobjStateMaterialize)
-            OR   A
-            LD   A,D
-            JR   Z,NobjConsumeImageLikeNext
             LD   (HL),A
-NobjConsumeImageLikeNext:
             INC  HL
             DEC  BC
             LD   A,B
@@ -912,7 +831,7 @@ NobjConsumeImagePlatformFailure:
 NobjAcceptMap:
             LD   A,(NobjStatePhase)
             CP   NobjPhaseImage
-            JP   Z,NobjMapPhaseReady
+            JR   Z,NobjMapPhaseReady
             CP   NobjPhasePatch
             JP   NZ,NobjRecordOrderInvalid
 NobjMapPhaseReady:
@@ -959,50 +878,50 @@ NobjValidateMap:
             LD   IX,NobjStateMapBuffer
             LD   A,(IX+0)
             CP   1
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   A,(IX+NobjMapFlags)
             AND  $FC
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   A,(IX+NobjMapFlags)
             AND  1
             LD   B,A
             LD   A,(NobjStateRomMode)
             CP   B
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   A,(IX+NobjMapFlags)
             AND  2
             LD   B,A
             LD   A,(NobjStateProfileFlags)
             AND  2
             CP   B
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   A,(IX+NobjMapEntryBank)
             LD   B,A
             LD   A,(NobjStateEntryBank)
             CP   B
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   L,(IX+NobjMapEntryAddress)
             LD   H,(IX+NobjMapEntryAddress+1)
             LD   DE,(NobjStateImageBase)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   L,(IX+NobjMapWritableBase)
             LD   H,(IX+NobjMapWritableBase+1)
             LD   DE,(NobjStateWritableBase)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
             LD   L,(IX+NobjMapWritableCapacity)
             LD   H,(IX+NobjMapWritableCapacity+1)
             LD   DE,(NobjStateWritableCapacity)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JR   NZ,NobjMapInvalid
 
             LD   A,(IX+NobjMapPartCount)
             OR   A
-            JP   Z,NobjMapInvalid
+            JR   Z,NobjMapInvalid
             LD   C,A
             LD   B,0
             LD   HL,NobjStateMapBuffer+29
@@ -1012,7 +931,7 @@ NobjValidatePartBanksLoop:
             LD   A,(NobjStateBankCount)
             DEC  A
             CP   D
-            JP   C,NobjMapInvalid
+            JR   C,NobjMapInvalid
             INC  HL
             DEC  BC
             LD   A,B
@@ -1250,7 +1169,7 @@ NobjMapAggregateReady:
             LD   A,(NobjStateRomMode)
             OR   A
             JR   NZ,NobjValidateRomMapLoadExtent
-            JP   NobjValidateLoadedMapEnd
+            JR   NobjValidateLoadedMapEnd
 NobjValidateRomMapLoadExtent:
             JP   NobjValidateRomLoadExtent
 
@@ -1487,8 +1406,8 @@ NobjTrailingDataInvalid:
 NobjEofPlatformFailure:
             JP   NobjSetPlatformFailure
 
-; Fill every selected bank before the second materializing pass. The filled
-; target remains unpublished until the second COMMIT and EOF have passed.
+; Fill every selected bank before the one materializing read. The destination
+; remains unpublished until COMMIT and immediate EOF have passed.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 NobjFillTarget:
             XOR  A
@@ -1521,167 +1440,3 @@ NobjFillTargetByte:
             RET
 NobjFillPlatformFailure:
             JP   NobjSetPlatformFailure
-
-; Pairwise PATCH validation uses repeated rewindable scans and retains only
-; two interval descriptors. It deliberately trades time for bounded memory.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjValidatePatchOverlaps:
-            LD   HL,(NobjStatePatchCount)
-            LD   A,H
-            OR   A
-            JR   NZ,NobjPatchOverlapOuterStart
-            LD   A,L
-            CP   2
-            JR   NC,NobjPatchOverlapOuterStart
-            OR   A
-            RET
-NobjPatchOverlapOuterStart:
-            LD   HL,2
-            LD   (NobjStateOuterPatch),HL
-NobjPatchOverlapOuterLoop:
-            LD   BC,(NobjStateOuterPatch)
-            CALL NobjLocatePatch
-            RET  C
-            LD   (NobjStateCurrentBank),A
-            LD   (NobjStatePatchStart),HL
-            LD   (NobjStatePatchEnd),DE
-            LD   HL,1
-            LD   (NobjStateScanPatch),HL
-NobjPatchOverlapInnerLoop:
-            LD   BC,(NobjStateScanPatch)
-            CALL NobjLocatePatch
-            RET  C
-            LD   B,A
-            LD   A,(NobjStateCurrentBank)
-            CP   B
-            JR   NZ,NobjPatchPairReady
-            ; outerStart < innerEnd
-            PUSH HL                      ; inner start
-            LD   BC,(NobjStatePatchStart)
-            EX   DE,HL                   ; HL=inner end, DE=inner start
-            OR   A
-            SBC  HL,BC
-            POP  HL                      ; HL=inner start
-            JR   C,NobjPatchPairReady
-            JR   Z,NobjPatchPairReady
-            ; innerStart < outerEnd
-            LD   DE,(NobjStatePatchEnd)
-            OR   A
-            SBC  HL,DE
-            JR   C,NobjPatchOverlapInvalid
-NobjPatchPairReady:
-            LD   HL,(NobjStateScanPatch)
-            INC  HL
-            LD   (NobjStateScanPatch),HL
-            LD   DE,(NobjStateOuterPatch)
-            OR   A
-            SBC  HL,DE
-            JR   C,NobjPatchOverlapInnerLoop
-            LD   HL,(NobjStateOuterPatch)
-            INC  HL
-            LD   (NobjStateOuterPatch),HL
-            LD   DE,(NobjStatePatchCount)
-            OR   A
-            SBC  HL,DE
-            JR   C,NobjPatchOverlapOuterLoop
-            JR   Z,NobjPatchOverlapOuterLoop
-            OR   A
-            RET
-NobjPatchOverlapInvalid:
-            LD   A,NobjStatusPatchOverlap
-            JP   NobjSetValidatorFailure
-
-; BC is the one-based PATCH ordinal. Returns A=bank, HL=start offset,
-; DE=end offset. The already validated object is rescanned without CRC state.
-.routine in BC out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,BC
-NobjLocatePatch:
-            LD   (NobjStateLocatePatch),BC
-            CALL NobjPlatformObjectRewind
-            JR   C,NobjLocatePatchPlatformFailure
-            XOR  A
-            LD   (NobjStateScanPatch),A
-            LD   (NobjStateScanPatch+1),A
-NobjLocatePatchRecord:
-            CALL NobjReadRawHeader
-            RET  C
-            LD   A,(NobjStateRecordKind)
-            CP   NobjKindPatch
-            JR   NZ,NobjLocatePatchSkip
-            LD   HL,(NobjStateScanPatch)
-            INC  HL
-            LD   (NobjStateScanPatch),HL
-            LD   DE,(NobjStateLocatePatch)
-            OR   A
-            SBC  HL,DE
-            JR   NZ,NobjLocatePatchSkip
-            CALL NobjRequireByte
-            RET  C
-            LD   (NobjStateCurrentBank),A
-            CALL NobjReadRawWord
-            RET  C
-            LD   BC,(NobjStateImageBase)
-            OR   A
-            SBC  HL,BC
-            JR   C,NobjLocatePatchChanged
-            PUSH HL
-            LD   DE,(NobjStatePayloadLength)
-            DEC  DE
-            DEC  DE
-            DEC  DE
-            ADD  HL,DE
-            EX   DE,HL
-            POP  HL
-            LD   A,(NobjStateCurrentBank)
-            OR   A
-            RET
-NobjLocatePatchSkip:
-            LD   BC,(NobjStatePayloadLength)
-            CALL NobjSkipRawBytes
-            RET  C
-            JR   NobjLocatePatchRecord
-NobjLocatePatchChanged:
-            LD   A,NobjStatusGenerationChanged
-            JP   NobjSetValidatorFailure
-NobjLocatePatchPlatformFailure:
-            JP   NobjSetPlatformFailure
-
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,HL
-NobjReadRawHeader:
-            CALL NobjRequireByte
-            RET  C
-            LD   (NobjStateRecordKind),A
-            CALL NobjReadRawWord
-            RET  C
-            LD   (NobjStatePayloadLength),HL
-            RET
-
-.routine out A,HL,carry,zero,sign,parity,halfCarry clobbers BC,DE,IX,IY
-NobjReadRawWord:
-            CALL NobjRequireByte
-            RET  C
-            PUSH AF
-            CALL NobjRequireByte
-            JR   C,NobjReadRawWordFailure
-            LD   H,A
-            POP  AF
-            LD   L,A
-            OR   A
-            RET
-NobjReadRawWordFailure:
-            POP  HL
-            SCF
-            RET
-
-.routine in BC out A,carry,zero clobbers sign,parity,halfCarry,BC
-NobjSkipRawBytes:
-            LD   A,B
-            OR   C
-            RET  Z
-NobjSkipRawByteLoop:
-            CALL NobjRequireByte
-            RET  C
-            DEC  BC
-            LD   A,B
-            OR   C
-            JR   NZ,NobjSkipRawByteLoop
-            RET

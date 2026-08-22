@@ -3225,11 +3225,11 @@ reader accepts arbitrary chunk boundaries, including one byte at a time, and
 the optional chunk materializer reproduces the compatibility bank images. The
 file destination publishes by temporary-file rename only after COMMIT.
 
-The low-memory producer and rewindable-reader paths rescan stored PATCH records
-pairwise. They retain at most two framed records rather than an interval table
-proportional to the number of patches. Tests distinguish an overlap detected before the first
-committed-output byte, storage failure with abort, late preflight failure with
-the previous file unchanged, and successful publication after validation. The
+The producer and incremental reader retain no PATCH interval table. PATCH
+records remain serialized in resolution order, and consumers apply them in
+that order; the last write to a byte wins. Tests distinguish ordered overlap,
+storage failure with abort, late preflight failure with the previous file
+unchanged, and successful publication after validation. The
 compatibility encoder and `compileNucleusTo` produce byte-identical NOBJ,
 including record count and CRC. This host-only increment changes no compiler
 code, immutable data, workspace, semantic transcript, generated program,
@@ -3312,7 +3312,7 @@ retained-name storage, and output-provider operations live in the separately
 reported host image. The feature-local size pass merged the two retained-token
 materialization paths, shared their length publication, shortened native name
 comparison, and removed a redundant source-provider state test. Against the
-cleared native correctness build, it reduced the honestly accounted compiler
+cleared native correctness build, it reduced the fully accounted compiler
 core by 16 bytes without changing the host image. Workspace, generated
 programs, selected runtime, semantic transcript, NOBJ bytes, and compatibility
 proof timings are unchanged.
@@ -3320,27 +3320,27 @@ proof timings are unchanged.
 ### Native Z80 NOBJ consumer
 
 The native consumer is a standalone Z80 component rather than compiler core.
-It accepts a stored, rewindable NOBJ generation, validates it completely, then
-rewinds and materializes the same locked generation. IMAGE and PATCH bytes do
-not become runnable until CRC, MAP, COMMIT, terminal EOF, deployment-profile,
-and protected-memory checks have all passed. PATCH overlap is proved by bounded
-rescans, so the consumer does not retain a patch table proportional to the
-object.
+The first implementation accepted a stored, rewindable generation, validated
+it completely, then rewound and materialized it. The approved
+[direct loader](plans/2026-08-21-direct-nobj-loader.md) now writes
+IMAGE bytes and applies PATCH bytes during one sequential read. Destination
+bytes remain non-runnable until CRC, MAP, COMMIT, terminal EOF,
+deployment-profile, and protected-memory checks pass. PATCH writes use
+serialized order; the last write to a byte wins.
 
-The reference consumer supports flat loaded, flat ROM, and banked objects. Its
-consumer-platform vector separates object access, target-bank selection,
-publication, and entry from the object parser. The revision-one implementation
-accepts only the locked two-pass strategy. A direct isolated one-pass strategy
-is reserved because resolution-ordered PATCH records cannot yet be checked for
-arbitrary overlap through the fixed platform interface.
+The consumer-platform vector continues to separate object access, target-bank
+selection, publication, and entry from the object parser. The rewind and lock
+slots remain in the version 0.1 table for layout compatibility, but the direct
+strategy does not call them.
 
-The measured consumer is 2,887 code bytes with 399 workspace bytes, including
-a 325-byte maximum MAP payload buffer. The flat proof executes 22,876
-instructions and the two-bank proof executes 26,416. Fifty-five executable
-cases cover framing, truncation, CRC, record order, IMAGE and PATCH overlap,
-loaded and ROM layout, banking, mathematical `$10000` ends, protected memory,
-platform failure, publication, and sequential reset. Compiler code, compiler
-workspace, generated program, and target runtime are unchanged.
+The direct consumer measures 2,430 code bytes with 381 workspace bytes,
+including a 325-byte maximum MAP payload buffer. The flat proof executes 12,646
+instructions in 108,132 T-states. The two-bank proof executes 15,532
+instructions in 187,389 T-states. Executable cases cover framing, truncation,
+CRC, record order, IMAGE ordering, PATCH last-write-wins, loaded and ROM layout,
+banking, mathematical `$10000` ends, protected memory, platform failure,
+publication, Node materialization identity, and sequential reset. Compiler
+code, compiler workspace, generated program, and target runtime are unchanged.
 
 ### Native Z80 launch shell under Debug80
 

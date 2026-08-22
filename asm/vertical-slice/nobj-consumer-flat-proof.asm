@@ -9,7 +9,7 @@ NobjConsumerObjectBase    .equ $5000
 NobjConsumerObjectLimit   .equ $5800
 NobjConsumerPlatformBase  .equ $6000
 NobjConsumerPlatformCodeBase  .equ $6000
-NobjConsumerPlatformCodeLimit .equ $6100
+NobjConsumerPlatformCodeLimit .equ $6400
 NobjConsumerControlBase   .equ $4800
 NobjConsumerControlLimit  .equ $4900
 
