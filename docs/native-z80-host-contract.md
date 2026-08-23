@@ -1,14 +1,16 @@
-# Nucleus Native Z80 Host Contract 0.1
+# Nucleus Native Z80 Adapter Contract 0.1
 
-- Status: implemented reference contract
+- Status: compiler and loader adapters implemented; common platform convergence settled
 - Date: 2026-08-20
-- Applies to: Nucleus compiler hosts and NOBJ consumers
+- Applies to: Nucleus compiler and NOBJ-loader adapters
 
 ## 1. Purpose and authority
 
-This document defines how the Z80 Nucleus compiler calls its operating host,
-and how a separate Z80 program consumes a committed Nucleus object. It does not
-define Nucleus source syntax or generated-program services.
+This document defines the client adapters used by the Z80 Nucleus compiler and
+the Z80 NOBJ loader. Both adapters terminate at the one platform-services layer
+defined by the
+[Z80 Platform Services Architecture](z80-platform-services.md). This document
+does not define Nucleus source syntax or generated-program services.
 
 The [language specification](specification.md) governs source meaning. The
 [runtime and backend contract](z80-runtime-contract.md) governs generated code
@@ -17,15 +19,22 @@ governs placement and entry. The [NOBJ specification](nucleus-object-format.md)
 governs stored object bytes. This document governs the Z80 calls used to supply
 those facilities.
 
-There are three distinct interfaces:
+There are three client interfaces:
 
 1. the **compiler-host ABI**, called while the compiler is running;
 2. the **generated-program runtime vector**, called by a compiled program; and
-3. the **NOBJ consumer-platform ABI**, called by a validator or loader.
+3. the **NOBJ consumer adapter ABI**, called by a validator or loader.
 
-An implementation may bind all three to one monitor, but it must not merge
-their contracts. A compiler source read is not a Nucleus `readInputByte()`
-call, and a loader bank selection is not a source-language service.
+These interfaces retain distinct register, flag, stack, and failure contracts,
+but they are not separate service layers. Their adapters call one platform
+dispatcher. A compiler source read is still not a Nucleus
+`readInputByte()` call, and a loader bank selection is still not a
+source-language service: the adapter translates each operation to the relevant
+platform capability.
+
+The complete development profile is a capability superset of the execution
+profile. The compiler-host vector is not a register-level superset of the
+generated-program runtime vector.
 
 ## 2. Common call rules
 
@@ -60,7 +69,7 @@ launch and are reported through the launch result.
 The compiler-facing target adapter has a different `A` convention inherited
 from the current compiler: carry set returns an existing compiler diagnostic.
 It translates target-spool failure to `DiagnosticTargetOutput` and an invalid
-or unavailable runtime identity or link context to
+or unavailable runtime identity or runtime placement context to
 `DiagnosticTargetConfiguration`. Successful sink calls may preserve an input
 value in `A`; callers use carry, not `A = 0`, to recognize success.
 
@@ -81,7 +90,7 @@ set as stated by that entry. Other nonzero platform statuses return carry set.
 
 Every call is synchronous from the compiler or consumer's point of view. A
 native monitor may finish it directly. A Debug80-backed host may suspend when
-Node must perform asynchronous file or linker work.
+Node must perform asynchronous file or runtime-catalog work.
 
 Suspension uses a host-owned mailbox and a distinguished yield address:
 
@@ -140,8 +149,8 @@ returns.
 
 The target context binds the tentative output generation to the complete host
 profile information omitted from the compact descriptor: `imageFill`, device
-and bank mappings, service destinations, runtime link context, and publication
-destination. Before any source or output operation, the host cross-checks its
+and bank mappings, service destinations, runtime placement context, and
+publication destination. Before any source or output operation, the host cross-checks its
 runtime identity, bases, capacities, bank count, entry bank, stack policy, and
 part-bank mapping against the compact descriptor. A handle mismatch is a host
 `invalid` outcome, not a partially opened compilation.
@@ -189,7 +198,7 @@ terminated unexpectedly and was followed by `NucleusHostReset`.
 
 The reference binding exposes a versioned eight-byte header followed by
 fourteen consecutive three-byte `JP` entries in always-visible host memory.
-The deployment linker supplies `HostVectorBase`; it is not a source or
+The deployment build fixes `HostVectorBase`; it is not a source or
 target-profile address. A compatible replacement keeps that base unchanged, so
 the compiler image does not change when monitor service numbers or host
 implementations change.
@@ -402,7 +411,7 @@ The production adapter preserves the current logical calls and contracts:
 | ------------------------------- | ---------------------------------------------------------------------------------------- | ------------------- |
 | `TargetSinkBegin`               | `IX = 15-byte target descriptor`                                                         | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkImageByte`           | `A = byte, C = bank, HL = target address`                                                | flags, `DE`         |
-| `TargetSinkRuntimeImage`        | `A = bank, BC = length, DE = identity, HL = address, IX = 18-byte compiler link context` | `AF,BC,DE,HL,IX,IY` |
+| `TargetSinkRuntimeImage`        | `A = bank, BC = length, DE = identity, HL = address, IX = 18-byte runtime placement context` | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkRuntimeInitialImage` | same as runtime image                                                                    | `AF,BC,DE,HL,IX,IY` |
 | `TargetSinkPatchByte`           | `A = byte, C = bank, HL = target address`                                                | flags, `DE`         |
 | `TargetSinkPatchWord`           | `C = bank, DE = address, HL = replacement`                                               | flags               |
@@ -460,21 +469,23 @@ The request and both pointed arrays remain valid until the call returns.
 adjacent calls without changing bank, address, or order. `TargetSinkPatchWord`
 appends low then high byte as one atomic logical patch.
 
-### 5.3 Runtime requests
+### 5.3 Runtime-image selection
 
-Runtime-image calls request provider work; they do not pass a pointer to linked
-bytes. The compiler passes its source-dependent portion of the link context in
-the existing 18-byte `TargetRuntimeContext`: runtime base, writable base and
+Runtime-image calls request one exact pre-resolved catalog entry; they do not
+pass a pointer to resident runtime bytes. The compiler passes the source-
+dependent portion of the placement context in the existing 18-byte
+`TargetRuntimeContext`: runtime base, writable base and
 capacity, state base, vector base, program-data base and capacity, and
 read-only-data base and capacity, all as little-endian words in that order.
 The provider combines it with the retained target context's service
-destinations, verifies identity,
-exact length, and helper offsets, then appends resolved bytes to IMAGE at the
-supplied bank and address.
+destinations and requires an exact catalog match. It verifies identity, exact
+length, helper offsets, vector layout, and initial-state layout, then appends
+the resolved bytes to IMAGE at the supplied bank and address.
 
-Node may suspend the Z80 host while AZM links the canonical runtime. A native
-fixed target may use a prelinked catalog. Another context returns
-`unavailable`; it is not silently linked with wrong addresses.
+Compilation does not invoke an assembler or linker. A fixed target may ship one
+catalog entry; another host may ship several exact entries. An unsupported
+context returns `unavailable`. An offline release build may use AZM to produce
+catalog entries, but that build is outside this ABI.
 
 ### 5.4 Commit validation
 
@@ -514,7 +525,7 @@ a compiler diagnostic returned through the ordinary sink convention. The host
 aborts the tentative sink generation and unwinds the compiler call without
 changing the accepted source set or any diagnostic code or position.
 
-## 7. NOBJ consumer-platform ABI
+## 7. NOBJ consumer adapter ABI
 
 ### 7.1 Separation
 
@@ -633,10 +644,10 @@ the platform status returned in `A`, sets outcome two, and retains the current
 record ordinal. Validator statuses never masquerade as platform statuses
 because the outcome byte distinguishes the two domains.
 
-The consumer-platform vector has an eight-byte `NC`, version 0.1 header with
+The consumer adapter vector has an eight-byte `NC`, version 0.1 header with
 the same header layout as Section 3.3, followed by eight three-byte `JP`
 entries in the table order below. Its total size is 32 bytes. The deployment
-linker fixes its base, and `NobjConsumerRun` validates the header before opening
+build fixes its base, and `NobjConsumerRun` validates the header before opening
 the object.
 
 | Operation          | Required behavior                                         |
@@ -660,7 +671,7 @@ immediate EOF all succeed. A late failure may leave destination bytes changed,
 but neither `publishTarget` nor `enterTarget` is called.
 
 The reference register binding keeps one opened object implicit in the
-consumer-platform adapter:
+consumer adapter:
 
 | Entry              | Inputs                                                                               | Success result                                                       | Clobbers                                                   |
 | ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -720,7 +731,7 @@ Every deployment publishes half-open extents for:
 - consumer code and immutable tables;
 - consumer workspace and record buffer;
 - consumer stack;
-- the consumer-platform vector, adapter code, and immutable tables;
+- the consumer vector, adapter code, and immutable tables;
 - the live run descriptor, result block, deployment profile, and bank bindings;
 - mapped or buffered object bytes; and
 - every visible target write region.
@@ -764,18 +775,18 @@ together.
 ### 8.2 Debug80-backed host
 
 The first reference binding runs the real Z80 host and compiler under Debug80.
-Node supplies files, spools, AZM runtime linking, and publication beneath the
-Z80 calls. It may inspect the explicit mailbox and yield state; it does not
-parse Nucleus or replay compiler work.
+Node supplies files, spools, runtime-image catalog access, and publication
+beneath the Z80 calls. It may inspect the explicit mailbox and yield state; it
+does not parse Nucleus or replay compiler work.
 
 This binding proves asynchronous provider success, failure, cancellation, and
 a following clean launch. Its output is compared byte for byte with the
 resident-source and AdapterLog compatibility path.
 
 The first completed binding uses the public `NucleusHostCompile` entry and its
-nine-byte result block. Runtime linking suspends at a bounded 13-byte request
-mailbox and resumes the original Z80 call frame. Compiler diagnostics remain
-outcome 1; source-provider, cancellation, and D8-preflight failures remain host
+nine-byte result block. A runtime-image request may suspend at a bounded
+13-byte request mailbox and resume the original Z80 call frame. Compiler
+diagnostics remain outcome 1; source-provider, cancellation, and D8-preflight failures remain host
 outcome 2. `NucleusHostInitialize` and `NucleusHostReset` make the same image
 reusable after ordinary and interrupted launches.
 
@@ -797,11 +808,11 @@ compiler core to `$8000..$C000`, and leaves the low restart vectors and
 of the direct proof-port transport. Loaded, ROM, banked, diagnostic, D8, and
 sequential-reuse proofs require byte-identical results between the two paths.
 The complete map, selector table, and measured accounts are in the
-[MON3-compatible compiler host](mon3-host-binding.md).
+[MON3-compatible platform binding](mon3-host-binding.md).
 
-An early fixed target may select a prelinked runtime catalog. General
-target-derived runtime linking requires a native assembler/linker provider and
-is not presumed here.
+A native target selects an exact pre-resolved runtime catalog entry. General
+target-derived runtime assembly is outside the compiler host, loader, and
+platform ABI. A target context absent from the catalog is unavailable.
 
 ## 9. Capacity and conformance
 
@@ -814,7 +825,7 @@ The host publishes and boundary-tests these separate capacities:
 - mailbox and record buffer;
 - IMAGE and PATCH spool storage;
 - consumer record buffer and stack; and
-- prelinked runtime-catalog entries, when present.
+- pre-resolved runtime-catalog entries, when present.
 
 None is compiler workspace. None silently reduces the semantic transcript,
 symbol, routine, parameter, control-label, fixup, bank, or generated-program

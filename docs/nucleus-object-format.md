@@ -19,6 +19,8 @@ meaning. The [Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md)
 governs generated Z80 representation and execution. This document governs the
 stored object when either authority refers to an image, patch, map, or commit
 record.
+The [Z80 Platform Services Architecture](z80-platform-services.md) governs the
+provider beneath the producer and loader adapters.
 
 The format changes no Nucleus source syntax or source meaning. It does not
 belong to the language specification.
@@ -36,13 +38,13 @@ name resolution. Combining several objects or resolving symbols between them
 requires a different format and is outside Nucleus 0.1.
 
 The compiler submits generated image bytes and resolved patches in compilation
-order. The operating-layer runtime provider deterministically links the
-selected canonical runtime source for the validated target context and submits
-the fully resolved helper-image bytes at compiler-supplied target locations. The storage sink appends all image
-bytes and patches to separate sequential spools; no participant seeks to an
-earlier byte. When compilation finishes, the sink serializes or chains the
-image spool before the patch spool and then writes the map and commit. A
-consumer may materialize the object later without access to compiler state.
+order. The runtime-image provider selects an exact pre-resolved catalog entry
+for the validated target context and submits those helper-image bytes at
+compiler-supplied target locations. The storage sink appends all image bytes
+and patches to separate sequential spools; no participant seeks to an earlier
+byte. When compilation finishes, the sink serializes or chains the image spool
+before the patch spool and then writes the map and commit. A consumer may
+materialize the object later without access to compiler state.
 
 ## 3. Integer and address conventions
 
@@ -327,10 +329,10 @@ same in each case.
 The compiler-facing sink supports `begin`, `image`, `runtimeImage`,
 `runtimeInitialImage`, `patch`, `map`, `commit`, and `abort`. During
 compilation, `image` appends to an image
-spool and `patch` appends to a patch spool. `runtimeImage` selects the canonical
-runtime source and deterministic link rules by runtime identity, links them for
-the complete validated context, and appends the fully resolved result to the
-image spool as ordinary `IMAGE` records at the supplied bank and address. It
+spool and `patch` appends to a patch spool. `runtimeImage` selects an exact
+pre-resolved catalog entry by runtime identity and complete validated placement
+context, then appends it to the image spool as ordinary `IMAGE` records at the
+supplied bank and address. It
 must emit the declared runtime length and helper layout exactly. The compiler
 retains the identity and expected layout, not the runtime bytes;
 `runtimeInitialImage` selects the matching vector and fixed-state initial bytes
@@ -381,12 +383,13 @@ current-generation update. They do not need random writes or in-place patching
 during compilation. A CP/M or host tool may use temporary files, form the final
 NOBJ sequentially, and rename it after validation.
 
-The runtime provider belongs to the operating layer. Its canonical source,
-linker or assembler, and provider implementation are external-service
-resources, not compiler core or compiler workspace. Every emitted linked copy is reported as selected-runtime bytes
-and as occupancy in its bank image. An implementation report must include any
-compiler-side call stub and the operating-layer provider separately rather than
-hiding either cost.
+The runtime catalog belongs to the platform-services layer. Catalog storage and
+provider code are external-service resources, not compiler core or compiler
+workspace. Every emitted copy is reported as selected-runtime bytes and as
+occupancy in its bank image. An implementation report must include any
+compiler-side call stub, catalog storage, and provider code separately rather
+than hiding any cost. An offline release process may assemble catalog entries;
+compilation, loading, and execution do not invoke that process.
 
 ## 12. Materialized outputs
 
@@ -419,7 +422,7 @@ Conformance evidence must include:
 - an incorrect record count and CRC;
 - truncation in every record header and payload class;
 - a byte after `COMMIT`;
-- an unavailable source revision or unsupported runtime link context, and a
+- an unavailable runtime identity or unsupported runtime placement context, and a
   wrong-identity, wrong-helper-layout, or wrong-length runtime before commit;
 - direct wire loading of a flat image and stored materialization of a banked
   image without private backing for every bank;

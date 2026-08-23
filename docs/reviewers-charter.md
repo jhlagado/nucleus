@@ -34,15 +34,18 @@ Apply the following authority order:
 4. The [Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md)
    governs packed representation, direct-code integrity, runtime services,
    trap records, and direct Z80 execution.
-5. [Nucleus Host API 1](host-api.md) governs the public Node API, project and
+5. The [Nucleus Z80 Platform Services Architecture](z80-platform-services.md)
+   governs the one platform boundary beneath the compiler, loader, and
+   generated-program adapters.
+6. [Nucleus Host API 1](host-api.md) governs the public Node API, project and
    target configuration, result classification, and artifact publication.
-6. [Nucleus D8 Source Maps](d8-source-maps.md) governs the conditional trace
+7. [Nucleus D8 Source Maps](d8-source-maps.md) governs the conditional trace
    ABI, host validation, physical-bank identity, and tentative D8 publication.
-7. Explicit project-owner decisions govern work that the authorities still
+8. Explicit project-owner decisions govern work that the authorities still
    mark as open.
-8. Executable tests, analyzers, and measurements provide evidence. They do not
+9. Executable tests, analyzers, and measurements provide evidence. They do not
    amend an authority when they disagree with it.
-9. Design notes, old reports, implementation sketches, and repository history
+10. Design notes, old reports, implementation sketches, and repository history
    are non-normative.
 
 Review the current revisions of all authorities. Do not reconstruct the
@@ -121,15 +124,14 @@ active target build must assemble against a memory map that defines none of
 those regions. Historical proof paths do not contribute to the production
 compiler extent or establish target-system conformance.
 
-The operating layer also deterministically links the canonical runtime source
-revision selected by the compiler's runtime identity. The compiler submits its
-bank, target address, identity, complete validated link context, and expected
-layout; the provider appends fully resolved ordinary image records and reports
-the exact length and helper offsets. NOBJ carries no runtime relocations.
-Runtime bytes remain outside compiler core and workspace. The source,
-linker or assembler, and provider implementation form an external-service
-account, while every emitted per-bank copy is reported as selected-runtime
-bytes and as occupancy in its bank image.
+The platform selects an exact pre-resolved runtime catalog entry for the
+compiler's runtime identity and complete validated placement context. The
+provider appends ordinary image records and verifies the exact length, vector
+layout, initial-state layout, and helper offsets. Compilation, loading, and
+execution invoke no runtime assembler or linker. Runtime bytes remain outside
+compiler core and workspace. Catalog storage and provider code form an
+external-service account, while every emitted per-bank copy is reported as
+selected-runtime bytes and as occupancy in its bank image.
 
 Patch records contain final bytes rather than symbols, branch kinds, or
 relocation expressions. Applying them is materialization, not linking. The
@@ -165,13 +167,18 @@ without adding bank identity to source types. Generated code uses the
 RAM-resident runtime vectors and never exposes a raw bank address to source.
 The entry bank contains the final mainline source part; library declarations
 precede it in the logical stream even when they occupy other banks. Every bank
-contains the complete selected, target-linked runtime helper image so one
+contains the complete selected, pre-resolved runtime helper image so one
 runtime identity and one helper-offset layout apply throughout the program.
 Every bank reserves the same three-byte window-entry slot. The entry bank uses
 it for `JP startup`, so all runtime helper images begin at one uniform address.
 The same identity fixes the RAM-vector and writable-state layout. The provider
-links helper bytes against their complete target-derived context rather than
-selecting one canonical address-bound byte sequence.
+selects the catalog entry whose placement context exactly matches the target-
+derived addresses and service destinations.
+
+The compiler, NOBJ loader, and generated program use distinct client adapters
+over one Z80 platform-services layer. Their register contracts remain separate;
+their operating environment does not. The complete development profile is a
+capability superset of the execution profile.
 
 Nucleus defines no interrupt routine, interrupt or restart vector declaration,
 interrupt-reentrant activation model, or interrupt-safe service guarantee. The
@@ -480,9 +487,9 @@ Reviewers should test the following boundaries aggressively:
    changed meaning.
 8. Agreement between the prose, machine-readable trap and service assignments,
    generated-code proofs, grammar analyzer, and conformance examples.
-9. NOBJ record framing, monotonic image extents, arbitrary-order non-overlapping
-   patches, spool ordering, map consistency, CRC coverage, missing-commit
-   rejection, runtime-provider identity, link context, helper layout and
+9. NOBJ record framing, monotonic image extents, arbitrary-order and overlapping
+   patches with last-serialized-write semantics, spool ordering, map consistency,
+   CRC coverage, missing-commit rejection, runtime-catalog identity, placement context, helper layout and
    length, execution at distinct runtime/writable layouts, deferred used-length
    validation, wire-loader backing, and storage-generation atomicity.
 10. Evidence behind every Z80 byte and timing claim.

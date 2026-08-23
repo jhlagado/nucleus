@@ -1,5 +1,11 @@
 # Nucleus compiler size recovery
 
+> Superseded boundary, 2026-08-23: references below to a runtime linker or
+> runtime link context are historical implementation terminology. The
+> [Z80 Platform Services Architecture](../z80-platform-services.md) now requires
+> exact pre-resolved runtime-catalog selection through one platform layer.
+> Measurements remain part of the compiler-size record.
+
 ## Purpose
 
 This plan replaces the clean-sheet cutover strategy with a competitive hybrid

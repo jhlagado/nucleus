@@ -1,26 +1,38 @@
-# MON3-compatible compiler host
+# MON3-compatible platform binding
 
-## What this binding proves
+## Proven compiler path
 
-The Nucleus compiler does not need Node, an emulator trap convention, or a
-filesystem API built into the compiler. It calls a fixed Z80 host vector. The
-MON3-compatible build implements that vector through `RST 10h`, with the
-service selector in `C`.
+Nucleus uses the single platform boundary defined by the
+[Z80 Platform Services Architecture](z80-platform-services.md). The compiler,
+NOBJ loader, and generated programs retain separate client adapters because
+their register contracts differ. Each adapter ultimately reaches the same
+MON3-compatible `RST 10h` dispatcher, with the service selector in `C`.
+
+The implemented slice proves the compiler adapter. The NOBJ consumer already
+has a direct Z80 implementation, but its platform entries have not yet been
+routed through the common MON3 selector table. The generated-program runtime
+vector likewise still needs its common-platform binding.
 
 The Node package can run either host transport:
 
 ```text
-Nucleus compiler
-        -> fixed compiler-host vector
-        -> direct proof ports, or MON3-compatible RST 10h services
-        -> Node providers
+Nucleus compiler -> fixed compiler vector --\
+NOBJ loader -----> loader adapter -----------> MON3-compatible RST 10h
+generated code --> runtime vector ----------/             |
+                                                           +-- Node providers
+                                                           +-- TEC-FS and MON3
 ```
 
-Running the second path under Debug80 Runtime is deliberate. It exercises the
-same Z80 gateway that a native machine needs while Node still supplies source
-files, runtime linking, NOBJ spools, and publication. Replacing Node with real
-monitor and filesystem implementations does not change compiler code, source
-semantics, generated code, or NOBJ.
+Running the compiler path under Debug80 Runtime exercises the same Z80 gateway
+that a native machine needs while Node supplies source files, pre-resolved
+runtime images, NOBJ spools, and publication. Replacing Node with TEC-FS and
+MON3 providers does not change compiler code, source semantics, generated code,
+or NOBJ.
+
+At the recorded implementation revision, the Node runtime-image provider still
+invokes AZM on demand. That mechanism predates the common-platform decision and
+is transitional. The settled contract selects an exact pre-resolved catalog
+entry; compilation, loading, and execution perform no runtime linking.
 
 Select the proof path from the command line with:
 
@@ -61,10 +73,12 @@ not pay their 66-byte cost. The MON3 gateway occupies 981 external Z80 code
 bytes and 24 host-workspace bytes. None of those external bytes is counted as
 compiler core.
 
-## Service selectors
+## Compiler-adapter selectors
 
-The current reference binding reserves expansion selectors `$70..$7F`. They
-are provisional until the monitor project assigns them formally.
+The current compiler proof reserves expansion selectors `$70..$7F`. These are
+compiler-adapter operations, not the complete platform table. They remain
+provisional until the monitor project allocates the execution, storage, target-
+control, and development groups together.
 
 |   `C` | Operation                                                |
 | ----: | -------------------------------------------------------- |
@@ -74,7 +88,7 @@ are provisional until the monitor project assigns them formally.
 | `$73` | materialize retained name                                |
 | `$74` | begin tentative target generation                        |
 | `$75` | append one IMAGE byte                                    |
-| `$76` | obtain and append a linked runtime image                 |
+| `$76` | select and append a pre-resolved runtime image           |
 | `$77` | obtain and append the entry bank's initial runtime image |
 | `$78` | append a one-byte PATCH                                  |
 | `$79` | append a two-byte PATCH                                  |
@@ -101,7 +115,7 @@ concurrent launches.
 
 The calls are synchronous from the compiler's point of view. A native service
 may block while a slow filesystem operation completes. The Node proof may
-suspend its outer execution loop while runtime bytes are linked, then resume
+suspend its outer execution loop while provider work completes, then resume
 the same Z80 call. Neither path replays parsing or backend generation.
 
 ## Object and loader boundary
@@ -128,8 +142,9 @@ launch proves generation reset. A bundled-library program is imported,
 compiled through the MON3 path, loaded from committed NOBJ, and executed with
 observable console output.
 
-What remains outside this repository is the machine-specific provider: formal
-MON3/TECM8 selector allocation, filesystem and console implementations, bank
-device access, and a native runtime-image provider. Those services sit below
-the contract above. Their absence does not justify adding filesystem knowledge
-or monitor calls to the compiler core.
+The remaining work is one machine-specific platform implementation: formal
+MON3/TECM8 selector allocation, TEC-FS source and object storage, console byte
+I/O, bank selection and entry, far control transfer, and a pre-resolved runtime
+catalog. The compiler, loader, and generated program reach those facilities
+through their existing adapters. Their absence does not justify adding
+filesystem knowledge or monitor calls to the compiler core.

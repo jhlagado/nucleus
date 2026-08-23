@@ -13,6 +13,14 @@ obligations. The [Nucleus Object Stream Format](nucleus-object-format.md)
 governs binary output framing, image and patch records, integrity, and commit.
 When this plan conflicts with an authority, the plan must be corrected.
 
+Architectural correction, 2026-08-23: the
+[Z80 Platform Services Architecture](z80-platform-services.md) supersedes every
+passage below that describes separate compiler, loader, and generated-program
+service layers or on-demand runtime linking. The three clients retain adapter
+contracts over one platform layer. Compilation selects a pre-resolved runtime
+catalog entry; any recorded on-demand AZM assembly is transitional historical
+evidence rather than the current implementation direction.
+
 The compiler and target runtime are handwritten Z80 assembly. Direct Z80 code
 generation is the sole active implementation path. The compiler's checked
 semantic-operation stream remains an internal boundary between analysis and

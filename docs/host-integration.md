@@ -19,6 +19,10 @@ the same ordered multipart source ABI and target descriptor as a native
 invocation and accepts only a terminally committed NOBJ generation. Host API 1
 classifies configuration, source, and execution failures. Exact compiler
 diagnostics retain source-part identity, byte offset, line, and byte column.
+The compiler adapter, NOBJ loader, and generated-program runtime vector sit
+over the one boundary defined by the
+[Z80 Platform Services Architecture](z80-platform-services.md). Node is one
+provider for that boundary; MON3 and TEC-FS provide the native implementation.
 
 The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the
@@ -35,12 +39,13 @@ twelve vector destinations. The library's default addresses describe the
 synthetic conformance target; they are not Debug80 or monitor entry points.
 
 The native package contains a direct Node transport and a MON3-compatible
-transport beneath the same compiler-host vector. The latter relocates the
+transport beneath the same compiler adapter. The latter relocates the
 compiler to the `$8000..$C000` bank window, preserves monitor vectors and fixed
-ROM, and calls sixteen bounded expansion services through `RST 10h`. Node runs
-this real Z80 gateway during proof builds. A hardware host replaces only the
-provider below it. See the
-[MON3-compatible compiler host](mon3-host-binding.md).
+ROM, and calls sixteen bounded compiler operations through `RST 10h`. Node runs
+this real Z80 gateway during proof builds. These provisional selectors are the
+implemented compiler group, not a second platform layer. A hardware deployment
+replaces only the provider below the common dispatcher. See the
+[MON3-compatible platform binding](mon3-host-binding.md).
 
 Debug80 loads either an explicit Nucleus project or its conventional project
 layout, reads every source part in manifest order, and calls the standalone

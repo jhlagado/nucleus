@@ -82,11 +82,12 @@ The current authorities are:
 - [Nucleus Target System Specification](docs/target-system-specification.md)
 - [Nucleus Object Stream Format](docs/nucleus-object-format.md)
 - [Nucleus Z80 Runtime and Backend Contract](docs/z80-runtime-contract.md)
+- [Nucleus Z80 Platform Services Architecture](docs/z80-platform-services.md)
 - [Nucleus Host API 1](docs/host-api.md)
 - [Nucleus standard library](docs/standard-library.md)
 - [Nucleus D8 Source Maps](docs/d8-source-maps.md)
 - [Nucleus host and Debug80 integration](docs/host-integration.md)
-- [MON3-compatible compiler host](docs/mon3-host-binding.md)
+- [MON3-compatible platform binding](docs/mon3-host-binding.md)
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
 - [Nucleus reviewer's charter](docs/reviewers-charter.md)
 

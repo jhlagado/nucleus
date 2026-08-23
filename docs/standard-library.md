@@ -1,9 +1,10 @@
 # Nucleus standard library
 
 The first Nucleus library covers console input and output. It is ordinary
-Nucleus source, not compiler machinery. A Node host, MON3 binding, CP/M adapter,
-or another environment supplies the same byte-oriented runtime services beneath
-it.
+Nucleus source, not compiler machinery. A Node provider, MON3 binding, CP/M
+adapter, or another environment supplies the same byte-oriented operations
+through the common
+[Z80 platform-services boundary](z80-platform-services.md).
 
 Library imports use the normal source header:
 

@@ -16,12 +16,14 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`nucleus-object-format.md`](nucleus-object-format.md) governs the binary
   append-only object stream, patch records, integrity check, and commit.
 - [`z80-runtime-contract.md`](z80-runtime-contract.md) governs packed representation, generated-code integrity, services, traps, and direct Z80 execution; the language specification remains authoritative for source-language meaning.
+- [`z80-platform-services.md`](z80-platform-services.md) governs the single Z80
+  platform-services boundary shared by the compiler adapter, NOBJ loader, and
+  generated-program runtime vector.
 - [`native-z80-host-contract.md`](native-z80-host-contract.md) defines the
-  compiler-host ABI, streaming source and object boundaries, and the separate
-  Z80 NOBJ consumer-platform ABI.
+  compiler and NOBJ-loader adapter ABIs over that common platform boundary.
 - [`mon3-host-binding.md`](mon3-host-binding.md) records the implemented
-  `RST 10h` deployment, memory map, service selectors, measurements, and the
-  remaining machine-specific provider work.
+  compiler-side `RST 10h` deployment, memory map, provisional selectors,
+  measurements, and the remaining common-platform work.
 - [`implementation-plan.md`](implementation-plan.md) records the non-normative construction order, measurement accounts, capacity ledger, and readiness gates for the first Z80 implementation.
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
 - [`oddities.md`](oddities.md) records deliberate first-time surprises and the
@@ -41,3 +43,8 @@ The implemented [direct NOBJ loader
 design](plans/2026-08-21-direct-nobj-loader.md) records the one-read loader
 model: IMAGE bytes are deposited into their destination, PATCH records
 overwrite them in stream order, and only valid COMMIT permits entry.
+
+The proposed [one-platform convergence
+plan](plans/2026-08-23-z80-platform-services-convergence.md) sequences runtime-
+catalog selection, common Node and MON3 dispatch, compiler and loader adapters,
+generated-program services, TEC-FS integration, and the native vertical slice.

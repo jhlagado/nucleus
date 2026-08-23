@@ -37,6 +37,10 @@ The [Nucleus Object Stream Format](nucleus-object-format.md) governs the binary
 record tags, framing, payloads, patch order, integrity check, and terminal
 commit used to publish that representation.
 
+The [Z80 Platform Services Architecture](z80-platform-services.md) governs the
+one platform layer beneath the generated-program runtime vector, compiler
+adapter, and NOBJ-loader adapter.
+
 The implementation plan and reviewer's charter are non-normative. Tests,
 proofs, and measurements provide evidence; they do not amend either authority.
 
@@ -116,7 +120,7 @@ this compact compiler descriptor:
 
 | Field              | Meaning                                                                                            |
 | ------------------ | -------------------------------------------------------------------------------------------------- |
-| `runtimeIdentity`  | Runtime source/ABI revision, link rules, linked length, vector layout, and helper-offset identity. |
+| `runtimeIdentity`  | Runtime source/ABI revision, image length, catalog format, vector layout, and helper-offset identity. |
 | `imageBase`        | First target address of startup, runtime, code, and image bytes.                                   |
 | `imageCapacity`    | Maximum byte extent of each selected image region.                                                 |
 | `writableBase`     | First target address of runtime vectors, fixed state, and program writable storage.                |
@@ -152,28 +156,27 @@ executed and that writable permits writes. Hardware attributes and device
 offsets remain external and add no source-visible property.
 
 The runtime identity must equal the constant carried by the compiler before
-publication. It identifies the canonical runtime source revision, private ABI,
-RAM-vector and helper layout, deterministic link rules, and expected linked
-length. It does not identify one address-bound byte sequence. A mismatch is a
+publication. It identifies the runtime source and private ABI revision,
+RAM-vector and helper layout, expected image length, and catalog format. It
+does not by itself identify one address-bound byte sequence. A mismatch is a
 target-configuration diagnostic, not a runnable artifact.
 
-The operating layer supplies fully linked helper bytes through a runtime
-provider keyed by that identity. Before it invokes the provider, the adapter
-derives the complete validated link context from the target profile and the
-compiler's checked full-width layout state: runtime base, writable/vector state
-addresses, service destinations, and every data or read-only-data bound
-consumed by the runtime.
-The provider deterministically assembles or links the canonical source for
-that context and verifies the resulting length and helper offsets against the
-identity. The compiler retains the identity, expected length, vector layout,
-and helper offsets; it does not retain the linked image. At each derived runtime
-base it submits the bank, target address, identity, and expected length. The
-adapter associates that bounded request with the validated link context; the
-private Z80 handoff need not serialize the context into every request. The
-provider appends fully resolved bytes to the image spool as ordinary NOBJ
-`IMAGE` records. NOBJ contains no runtime relocation records. An unavailable
-source revision, unsupported context, identity, length, or helper-layout
-mismatch, or output failure aborts the generation before commit.
+The platform supplies pre-resolved helper bytes through a runtime-image catalog
+keyed by that identity and the complete validated placement context. The
+adapter derives that context from the target profile and the compiler's checked
+full-width layout state: runtime base, writable/vector state addresses, service
+destinations, and every data or read-only-data bound embedded by the runtime.
+The provider requires an exact catalog match and verifies image length, vector
+layout, initial-state layout, and helper offsets against the identity. The
+compiler retains the identity, expected length, vector layout, and helper
+offsets; it does not retain the selected image. At each derived runtime base it
+submits the bank, target address, identity, and expected length. The private Z80
+handoff need not serialize the complete placement context into every request.
+The provider appends the selected bytes to the image spool as ordinary NOBJ
+`IMAGE` records. Compilation does not assemble, link, or relocate the runtime,
+and NOBJ contains no runtime relocation records. An unsupported context,
+identity, length, helper-layout, or output failure aborts the generation before
+commit.
 
 ### 2.4 Loaded and ROM mappings
 
@@ -422,9 +425,9 @@ entry bank, startup follows that runtime, generated read-only data follows
 startup, and generated code follows the read-only extent. In every other bank,
 read-only data follows the runtime and precedes code. Only the entry bank
 contains startup and the initialized-RAM load image. The runtime identity fixes
-the canonical source, link rules, linked length, helper offsets, and RAM vector
+the source and ABI revision, image length, helper offsets, and RAM vector
 layout; this version performs no helper subsetting. Banks with the same
-complete link context use byte-identical linked helper images.
+complete placement context use the same pre-resolved helper image.
 
 The initialized block begins with the adapter-selected runtime vector table,
 continues with the identity-fixed writable runtime state, and then contains
@@ -432,8 +435,8 @@ source-declared initialized variables. The adapter contributes the vector and
 runtime-state bytes at contract-defined offsets; they are not Nucleus
 initializers. BSS follows the complete used initialized length.
 
-The operating-layer runtime provider emits each complete, fully linked helper
-image at the derived runtime base. The compiler advances the corresponding
+The runtime catalog supplies each complete helper image at the derived runtime
+base. The compiler advances the corresponding
 target cursor by the identity's fixed length only after the provider accepts
 the operation. The helper bytes never occupy compiler workspace. The provider
 operation serializes as ordinary image records and adds no NOBJ record class or
@@ -713,6 +716,12 @@ original reason.
 
 ## 8. System-service boundary
 
+The runtime vector is the generated program's adapter to the one platform-
+services layer. The compiler and NOBJ loader use different client adapters, but
+all three reach the same platform implementation. The platform and deployment
+profiles are defined in the
+[Z80 Platform Services Architecture](z80-platform-services.md).
+
 ### 8.1 Stable services
 
 |   Code | Source routine              | Parameter | Success result |
@@ -904,9 +913,10 @@ target addresses and cannot cross a bank boundary.
 
 Patch records follow the last image record. A patch may replace an emitted byte
 or an implicit image-fill byte. Patch addresses may appear in resolution order
-rather than target-address order. Their extents must not overlap, must remain
-inside the committed used extent, and must contain only fully resolved and
-range-checked replacement bytes. Exactly one map record follows the patches.
+rather than target-address order. Their extents may overlap; the last
+serialized replacement wins. Every extent must remain inside the committed
+used extent and contain only fully resolved and range-checked replacement
+bytes. Exactly one map record follows the patches.
 Exactly one commit record comes last. No record may follow commit.
 
 The compiler retains bounded source symbols and currently unresolved fixup
@@ -927,8 +937,8 @@ than compiler output formats.
 
 The object sink accepts `begin`, `image`, `runtimeImage`,
 `runtimeInitialImage`, `patch`, `map`, `commit`, and `abort`. `runtimeImage`
-obtains fully linked helper bytes for the validated context from the
-operating-layer provider. `runtimeInitialImage` obtains that identity's
+obtains pre-resolved helper bytes for the validated placement context from the
+runtime catalog. `runtimeInitialImage` obtains that identity's
 resolved vector table and fixed initial writable-state bytes for the same
 context. Both append ordinary image records and have no distinct wire
 representation. The sink maintains separate sequential image
@@ -994,8 +1004,8 @@ program template for a claimed general compiler feature.
 
 Object-stream producer, materializer, and storage proofs cover the required
 cases in the NOBJ format separately from source-language execution.
-They include runtime-provider identity, link-context, helper-layout, and length
-mismatch, execution at two distinct linked layouts including runtime base
+They include runtime-catalog identity, placement-context, helper-layout, and
+length mismatch, execution at two distinct pre-resolved layouts including runtime base
 `$8003` with changed writable-state addresses, deferred `MAP.usedLength`
 validation, direct flat wire loading, and stored banked
 materialization without private backing for every bank.
@@ -1008,9 +1018,12 @@ data, peak workspace, generated program, target runtime, fixed runtime state,
 activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
-`test/nobj.test.ts` assembles runtime identity `$0009` under
-`defaultRuntimeLinkContext` and measures a 731-byte canonical linked helper
-image. This identity includes checked four-way integer conversion, signed
+At the recorded implementation revision, `test/nobj.test.ts` assembles runtime
+identity `$0009` under the legacy-named `defaultRuntimeLinkContext` and measures
+a 731-byte helper image. This on-demand assembly is transitional evidence, not
+the settled provider contract; the catalog increment must preserve its exact
+bytes and measurements for the same context. This identity includes checked
+four-way integer conversion, signed
 comparison, signed division and modulo, signed loop continuation, and mixed
 `u8`/`i8` promotion in addition to the existing unsigned and aggregate helpers.
 Its 36-byte vector appends the target-specific packet gateway, and its final

@@ -4,6 +4,14 @@
 - Date: 2026-08-20
 - Baseline: `886cd95`
 
+> Superseded boundary, 2026-08-23: the
+> [Z80 Platform Services Architecture](../z80-platform-services.md) replaces
+> this plan's separate-host and on-demand runtime-linking language. The
+> compiler, NOBJ loader, and generated program now use client adapters over one
+> platform layer, and compilation selects a pre-resolved runtime catalog entry.
+> The remaining measurements and implementation history are retained as a
+> record of the completed increment.
+
 ## 1. Purpose
 
 Nucleus already runs as Z80 machine code, but its normal development path still
