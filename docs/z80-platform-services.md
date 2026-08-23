@@ -1,6 +1,6 @@
 # Nucleus Z80 Platform Services Architecture 0.1
 
-- Status: settled architecture; concrete MON3 selector assignments remain provisional
+- Status: settled architecture; MON3 selector ABI allocated for Stage 1
 - Applies to: native and emulated Z80 deployments
 - Last reviewed: 2026-08-23
 
@@ -15,6 +15,10 @@ register-level interfaces presented to the compiler and NOBJ loader. The
 [runtime and backend contract](z80-runtime-contract.md) defines the vector
 presented to generated programs. This document defines the common platform
 boundary beneath those adapters.
+
+The [Z80 Platform Services ABI](z80-platform-services-abi.md) allocates the
+MON3 selectors and fixes the register, failure, bank, and stack contracts at
+that boundary.
 
 The reference call path is:
 
@@ -157,10 +161,10 @@ present the same adapter contract to the compiler.
 
 Three profiles define useful subsets of the one ABI.
 
-| Profile | Required capability groups | Purpose |
-| --- | --- | --- |
-| Execution | execution, plus target control for banked code | run a previously loaded Nucleus program |
-| Loader | sequential storage and target control | consume committed NOBJ and enter it |
+| Profile     | Required capability groups                                             | Purpose                                        |
+| ----------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| Execution   | execution, plus target control for banked code                         | run a previously loaded Nucleus program        |
+| Loader      | sequential storage and target control                                  | consume committed NOBJ and enter it            |
 | Development | execution, sequential storage, target control, and development support | resolve imports, compile, store, load, and run |
 
 The development profile is a capability superset of the execution profile.
@@ -172,7 +176,8 @@ terminate at the same platform dispatcher.
 
 ### 6.1 Compiler adapter
 
-The compiler continues to call its stable fourteen-entry vector. The adapter
+The compiler continues to call its stable fourteen compilation entries, plus
+the two launch-control entries owned by its native shell. The adapter
 implements source events, retained names, NOBJ construction, runtime-catalog
 selection, and publication by using the platform capability groups. The
 compiler remains unaware of paths, directories, filesystems, MON3 selectors,
@@ -198,9 +203,10 @@ to a defined unavailable-service result.
 
 ## 7. Common call discipline
 
-The concrete MON3 binding uses `RST 10h` with the selector in `C`. Selector
-numbers outside the already proved compiler range remain provisional until the
-MON3 and TECM8 projects allocate the complete table.
+The concrete MON3 binding uses `RST 10h` with the selector in `C`. Version 1
+selector numbers and capability bits are fixed by the
+[Z80 Platform Services ABI](z80-platform-services-abi.md). Future assignments
+must preserve that table or introduce a new reported ABI version.
 
 Every synchronous service must define:
 

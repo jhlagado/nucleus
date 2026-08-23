@@ -1,8 +1,9 @@
 # Plan: one Z80 platform-services layer
 
-- Status: proposed for implementation
+- Status: active; Stage 1 complete
 - Date: 2026-08-23
-- Baseline: `46978f408c2b39f041d776e1d8bddf16d9db5651`
+- Original implementation baseline: `46978f408c2b39f041d776e1d8bddf16d9db5651`
+- Stage 1 documentation baseline: `b725dbaa44b3eba4b7a5a714c3f86f916e3eedb6`
 - Authority: [Nucleus Z80 Platform Services Architecture](../z80-platform-services.md)
 
 ## 1. Outcome
@@ -74,6 +75,12 @@ otherwise cause an unnecessary API break, but mark it deprecated and use
 `RuntimePlacementContext` internally and in new APIs.
 
 ## 4. Stage 1: platform inventory and MON3 allocation
+
+Status: complete on 2026-08-23. The resulting allocation and audit are in the
+[Z80 Platform Services ABI](../z80-platform-services-abi.md), with the
+machine-readable constants and executable stub proof in
+`asm/vertical-slice/platform-services-abi.asmi` and
+`platform-services-abi-proof.asm`.
 
 Read the current MON3, TECM8, TEC-FS, Nucleus compiler-adapter, runtime-vector,
 and NOBJ-consumer contracts in full. Record:

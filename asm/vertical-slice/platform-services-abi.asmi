@@ -1,0 +1,34 @@
+NucleusPlatformAbiVersion       .equ 1
+NucleusCapabilityExecution     .equ $0001
+NucleusCapabilityStorage       .equ $0002
+NucleusCapabilityTargetControl .equ $0004
+NucleusCapabilityDevelopment   .equ $0008
+NucleusCapabilityOperatorBreak .equ $0010
+
+NucleusMonSysGet               .equ $50
+NucleusMonSysSet               .equ $51
+NucleusMonBankSelect           .equ $52
+NucleusMonBankCall             .equ $53
+NucleusMonFarJump              .equ $54
+
+NucleusServicePlatformInfo     .equ $65
+NucleusServiceReadInput        .equ $66
+NucleusServiceWriteOutput      .equ $67
+NucleusServiceReadStorage      .equ $68
+NucleusServiceRewindStorage    .equ $69
+NucleusServiceWriteStorage     .equ $6A
+NucleusServiceSeekStorage      .equ $6B
+NucleusServiceExitSuccess      .equ $6C
+NucleusServiceExitFailure      .equ $6D
+NucleusServiceExitTrap         .equ $6E
+NucleusServicePacket           .equ $6F
+
+NucleusServiceCompilerFirst    .equ $70
+NucleusServiceCompilerLast     .equ $7F
+NucleusServiceLoaderOpen       .equ $84
+NucleusServiceLoaderReadByte   .equ $85
+NucleusServiceLoaderRewind     .equ $86
+NucleusServiceLoaderLock       .equ $87
+NucleusServiceLoaderPublish    .equ $88
+NucleusServiceLoaderEnter      .equ $89
+NucleusServiceLoaderClose      .equ $8A

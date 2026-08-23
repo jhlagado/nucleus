@@ -41,6 +41,10 @@ The [Z80 Platform Services Architecture](z80-platform-services.md) governs the
 one platform layer beneath the generated-program runtime vector, compiler
 adapter, and NOBJ-loader adapter.
 
+The [Z80 Platform Services ABI](z80-platform-services-abi.md) governs the
+versioned MON3 selector allocation and its register, failure, bank, and stack
+contracts.
+
 The implementation plan and reviewer's charter are non-normative. Tests,
 proofs, and measurements provide evidence; they do not amend either authority.
 
@@ -118,14 +122,14 @@ selectors, device offsets, output-file choices, and other host information.
 The adapter validates those attributes and reduces the flat placement data to
 this compact compiler descriptor:
 
-| Field              | Meaning                                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Field              | Meaning                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
 | `runtimeIdentity`  | Runtime source/ABI revision, image length, catalog format, vector layout, and helper-offset identity. |
-| `imageBase`        | First target address of startup, runtime, code, and image bytes.                                   |
-| `imageCapacity`    | Maximum byte extent of each selected image region.                                                 |
-| `writableBase`     | First target address of runtime vectors, fixed state, and program writable storage.                |
-| `writableCapacity` | Combined vector, fixed state, data, BSS, free, and optional stack extent.                          |
-| `establishStack`   | Boolean; false inherits `SP`, true establishes it inside writable.                                 |
+| `imageBase`        | First target address of startup, runtime, code, and image bytes.                                      |
+| `imageCapacity`    | Maximum byte extent of each selected image region.                                                    |
+| `writableBase`     | First target address of runtime vectors, fixed state, and program writable storage.                   |
+| `writableCapacity` | Combined vector, fixed state, data, BSS, free, and optional stack extent.                             |
+| `establishStack`   | Boolean; false inherits `SP`, true establishes it inside writable.                                    |
 
 The identity, base, and capacity fields are unsigned 16-bit words;
 `establishStack` is one byte and must be zero or one. A base and capacity
