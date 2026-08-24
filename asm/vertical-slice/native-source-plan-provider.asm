@@ -3,7 +3,6 @@
 ; common named-object service and supplies the existing four-event compiler
 ; source ABI.
 
-NativeSourceProviderRequest       .equ $5A00
 NativeSourceProviderPlanHandle    .equ $5A10
 NativeSourceProviderSourceHandle  .equ $5A12
 NativeSourceProviderPlanCursor    .equ $5A14
@@ -41,116 +40,6 @@ NativeSourceProviderPlanNameLength .equ $-NativeSourceProviderPlanName
 NativeSourceProviderNamesName:
             .db ".nucleus/retained-names.work"
 NativeSourceProviderNamesNameLength .equ $-NativeSourceProviderNamesName
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderResetRequest:
-            LD   HL,NativeSourceProviderRequest
-            LD   DE,NativeSourceProviderRequest+1
-            LD   BC,NucleusObjectRequestSize-1
-            XOR  A
-            LD   (HL),A
-            LDIR
-            LD   A,NucleusObjectRequestSize
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestSizeField),A
-            LD   A,NucleusObjectAbiVersion
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestAbi),A
-            RET
-
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderCallObject:
-            LD   HL,NativeSourceProviderRequest
-            LD   C,NucleusServiceObject
-            RST  $10
-            RET
-
-; A is openRead or beginWrite, HL is the name, and B is its byte length.
-.routine in A,HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderOpen:
-            PUSH AF
-            PUSH HL
-            PUSH BC
-            CALL NativeSourceProviderResetRequest
-            POP  BC
-            POP  HL
-            POP  AF
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOperation),A
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestPointer),HL
-            LD   A,B
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestLength),A
-            CALL NativeSourceProviderCallObject
-            RET  C
-            LD   HL,(NativeSourceProviderRequest+NucleusObjectRequestHandle)
-            RET
-
-; HL is the object handle, DE the destination, and BC the requested count.
-.routine in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderRead:
-            PUSH HL
-            PUSH DE
-            PUSH BC
-            CALL NativeSourceProviderResetRequest
-            POP  BC
-            POP  DE
-            POP  HL
-            LD   A,NucleusObjectRead
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOperation),A
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestPointer),DE
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestLength),BC
-            CALL NativeSourceProviderCallObject
-            RET  C
-            LD   BC,(NativeSourceProviderRequest+NucleusObjectRequestResult)
-            RET
-
-; HL is the update handle, DE the source, and BC the exact write count.
-.routine in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderWrite:
-            PUSH HL
-            PUSH DE
-            PUSH BC
-            CALL NativeSourceProviderResetRequest
-            POP  BC
-            POP  DE
-            POP  HL
-            LD   A,NucleusObjectWrite
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOperation),A
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestPointer),DE
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestLength),BC
-            CALL NativeSourceProviderCallObject
-            RET  C
-            LD   HL,(NativeSourceProviderRequest+NucleusObjectRequestResult)
-            LD   DE,(NativeSourceProviderRequest+NucleusObjectRequestLength)
-            OR   A
-            SBC  HL,DE
-            JP   NZ,NativeSourceProviderInvalid
-            RET
-
-; HL is the update handle and DE is a 16-bit absolute offset.
-.routine in HL,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderSeek:
-            PUSH HL
-            PUSH DE
-            CALL NativeSourceProviderResetRequest
-            POP  DE
-            POP  HL
-            LD   A,NucleusObjectSeek
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOperation),A
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOffset),DE
-            JP   NativeSourceProviderCallObject
-
-; A is close or abort and HL is the object handle.
-.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderTerminal:
-            PUSH AF
-            PUSH HL
-            CALL NativeSourceProviderResetRequest
-            POP  HL
-            POP  AF
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestOperation),A
-            LD   (NativeSourceProviderRequest+NucleusObjectRequestHandle),HL
-            JP   NativeSourceProviderCallObject
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 NativeSourceProviderLaunchBegin:
@@ -267,12 +156,6 @@ NativeSourceProviderRefillPlan:
             ADD  HL,BC
             LD   (NativeSourceProviderPlanEnd),HL
             JP   NativeSourceProviderPlanByteBody
-
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderInvalid:
-            LD   A,NucleusStatusInvalid
-            SCF
-            RET
 
 ; HL points at an immutable literal and B is its length.
 .routine in HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry

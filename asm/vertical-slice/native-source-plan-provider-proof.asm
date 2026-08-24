@@ -28,5 +28,6 @@ ProofReturnSentinel:
 
             .org $4200
 NativeSourceProviderCodeStart:
+            .include "native-object-client.asm"
             .include "native-source-plan-provider.asm"
 NativeSourceProviderCodeEnd:

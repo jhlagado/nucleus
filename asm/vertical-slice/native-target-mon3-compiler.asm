@@ -8,6 +8,7 @@ Mon3HostTransport .equ 1
             .org $4400
 NativeSystemServicesBase:
             .include "platform-services-abi.asmi"
+            .include "native-object-client.asm"
             .include "native-source-plan-provider.asm"
             .include "native-system-services.asm"
             .org CompilerCoreBase

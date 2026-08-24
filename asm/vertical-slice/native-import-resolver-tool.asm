@@ -9,6 +9,7 @@ NativeSourceChunkLimit .equ $7800
 
             .org $8000
 NativeImportResolverCodeStart:
+            .include "native-object-client.asm"
             .include "native-source-plan-provider.asm"
             .include "native-import-resolver.asm"
 NativeImportResolverCodeEnd:
