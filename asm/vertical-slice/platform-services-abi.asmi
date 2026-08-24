@@ -36,6 +36,7 @@ NucleusServiceLoaderClose      .equ $8A
 ; Common named-object gateway. New Z80 development tools use this service
 ; directly instead of allocating one platform selector per object operation.
 NucleusServiceObject           .equ $91
+NucleusServiceRuntimeCatalog   .equ $92
 
 NucleusObjectAbiVersion        .equ 1
 NucleusObjectRequestSize       .equ 16
@@ -59,6 +60,23 @@ NucleusObjectSeek              .equ 5
 NucleusObjectClose             .equ 6
 NucleusObjectCommit            .equ 7
 NucleusObjectAbort             .equ 8
+
+NucleusRuntimeCatalogAbiVersion       .equ 1
+NucleusRuntimeCatalogRequestSize      .equ 22
+NucleusRuntimeCatalogRequestSizeField .equ 0
+NucleusRuntimeCatalogRequestAbi       .equ 1
+NucleusRuntimeCatalogRequestOperation .equ 2
+NucleusRuntimeCatalogRequestFlags     .equ 3
+NucleusRuntimeCatalogRequestBank      .equ 4
+NucleusRuntimeCatalogRequestIdentity  .equ 6
+NucleusRuntimeCatalogRequestLength    .equ 8
+NucleusRuntimeCatalogRequestContext   .equ 10
+NucleusRuntimeCatalogRequestOffset    .equ 12
+NucleusRuntimeCatalogRequestPointer   .equ 14
+NucleusRuntimeCatalogRequestCapacity  .equ 16
+NucleusRuntimeCatalogRequestResult    .equ 18
+NucleusRuntimeCatalogCode             .equ 0
+NucleusRuntimeCatalogInitial          .equ 1
 
 NucleusStatusInvalid           .equ 1
 NucleusStatusUnavailable       .equ 2

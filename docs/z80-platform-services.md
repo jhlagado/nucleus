@@ -152,6 +152,11 @@ tool. A CP/M installation may keep a catalogue file. A desktop package may
 embed several generated entries. The lookup and storage differ; the bytes and
 identity checks do not.
 
+The bounded Z80 request and chunk contract is defined by the
+[runtime-catalogue services ABI](z80-runtime-catalog-services-abi.md). The
+catalogue service returns resolved bytes; it does not own NOBJ framing or
+publication.
+
 ### 4.5 Target control
 
 The target-control group provides:
@@ -332,25 +337,27 @@ outside the published runtime module graph.
 The following paths are implemented:
 
 - Node import discovery and deterministic ordering;
+- common named-object services with a Node provider and Z80 client;
+- the standalone Z80 import resolver and bounded SP1 source streamer;
 - the streaming Z80 compiler and fourteen-entry compiler adapter;
 - the MON3-compatible compiler gateway exercised under Debug80;
 - sequential Node-backed IMAGE and PATCH spools;
-- pre-generated runtime-catalogue selection;
+- pre-generated runtime-catalogue selection and its bounded Z80 chunk gateway;
 - the Z80 NOBJ consumer; and
 - flat and banked generated-program execution under Node.
 
 The following native pieces remain incomplete:
 
 - common named-object and chunk-transfer services over TEC-FS;
-- the Z80 `//% import` resolver;
-- the TEC-FS source streamer and retained-name provider;
+- the TEC-FS binding beneath the Z80 resolver, source streamer, and retained-name provider;
 - TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
+- the Z80 NOBJ writer over the object and catalogue gateways;
 - the hardware NOBJ loader binding and generated-program adapter; and
 - a CP/M binding.
 
-The current Node resolver proves dependency rules, not the existence of the
-native resolver. The current MON3-compatible emulator path proves register and
-selector contracts, not the existence of the missing TEC-FS provider.
+The MON3-compatible emulator path proves the Z80 algorithms, register
+contracts, and service selectors. It does not prove the missing TEC-FS effect
+provider or hardware bank mapping.
 
 ## 10. Implementation order and acceptance
 

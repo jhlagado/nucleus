@@ -27,6 +27,7 @@
     "./project-host": "./dist/project-host.js",
     "./publication": "./dist/publication.js",
     "./runtime-catalog": "./dist/runtime-catalog.js",
+    "./runtime-catalog-services": "./dist/runtime-catalog-services.js",
     "./runner": "./dist/runner.js"
   },
   "files": [

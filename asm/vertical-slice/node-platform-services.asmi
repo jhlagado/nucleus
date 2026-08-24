@@ -113,3 +113,10 @@ out A,carry,zero
 clobbers B,C,D,E,H,L,sign,parity,halfCarry
 preserves IX,IY
 end
+
+service rst $10 C $92 NUCLEUS_RUNTIME_CATALOG
+in C,H,L
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
