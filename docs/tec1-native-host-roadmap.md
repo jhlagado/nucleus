@@ -56,6 +56,14 @@ library bank, and an empty bank. The TEC-FS binding for those calls is not yet
 implemented. The current resolver still writes bank zero into SP1; a native
 source-bank assignment input is the remaining packaging decision.
 
+The complete Node-backed discriminator now continues past object production:
+the standalone Z80 consumer reads the committed object, applies its patches,
+materializes three physical banks, enters the selected bank, and executes a
+cross-bank library call. Node provides the proved named-object, runtime-catalog,
+loader-target, and program-service effects. Replacing those effects with TEC-FS
+and MON3 bindings does not change the resolver, compiler, writer, object, or
+loader.
+
 `asm/vertical-slice/node-nobj-consumer.asm` is a Node reference image, not a
 ROM image to flash. Its loader and generated-program adapters use the native
 `RST 10h` selector ABI, but the file also installs a three-byte emulator shim

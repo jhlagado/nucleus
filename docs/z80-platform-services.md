@@ -345,9 +345,11 @@ The following paths are implemented:
 - pre-generated runtime-catalogue selection and its bounded Z80 chunk gateway;
 - the flat and banked Z80 NOBJ writer over those object and catalogue gateways;
 - the Z80 NOBJ consumer; and
-- flat and banked generated-program execution under Node.
+- flat and banked generated-program execution under Node; and
+- one end-to-end native proof from Z80 import resolution through cross-bank
+  generated-program execution.
 
-The following native pieces remain incomplete:
+The following hardware bindings and packaging inputs remain incomplete:
 
 - common named-object and chunk-transfer services over TEC-FS;
 - the TEC-FS binding beneath the Z80 resolver, source streamer, and retained-name provider;

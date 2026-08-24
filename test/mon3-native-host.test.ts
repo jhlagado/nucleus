@@ -10,6 +10,7 @@ import {
   mon3CompilerSymbols,
   mon3DebugCompilerSymbols,
 } from "../src/generated-compiler-images.js";
+import { runNucleusNobj } from "../src/runner.js";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 
 const compile = async (
@@ -155,10 +156,10 @@ describe("the MON3-compatible native compiler host", () => {
     for (const target of [
       { imageFill: 0xe5 },
       {
-        imageBase: 0x4000,
+        imageBase: 0x8000,
         imageCapacity: 0x3000,
         imageFill: 0,
-        writableBase: 0x6000,
+        writableBase: 0x9000,
         writableCapacity: 0x1000,
       },
     ]) {
@@ -172,6 +173,23 @@ describe("the MON3-compatible native compiler host", () => {
       expect(native.bytes).toEqual(compatibility.bytes);
       if (native.result.success && compatibility.result.success) {
         expect(native.result.object).toEqual(compatibility.result.object);
+        const executed = runNucleusNobj(native.bytes, target);
+        expect(
+          executed,
+          JSON.stringify({
+            outcome: executed.outcome,
+            ...(executed.outcome === "loaderFailure"
+              ? {
+                  loaderOutcome: executed.loaderOutcome,
+                  status: executed.status,
+                  recordOrdinal: executed.recordOrdinal,
+                }
+              : {}),
+          }),
+        ).toMatchObject({
+          success: true,
+          outcome: "success",
+        });
       }
     }
   }, 30_000);
@@ -181,12 +199,12 @@ describe("the MON3-compatible native compiler host", () => {
       {
         name: "library/value.nu",
         source:
-          "const lookup as u8[3] = [40, 41, 42]\nsub value() as u8\nreturn lookup[1]\nend\n",
+          "const lookup as u8[3] = [64, 65, 66]\nsub emit() fails\nwriteOutputByte(lookup[1]) else fail\nend\n",
       },
       {
         name: "main.nu",
         source:
-          '//% import "library/value.nu"\nvar answer as u8 = 1\nsub main()\nanswer = value() + answer\nend\n',
+          '//% import "library/value.nu"\nvar answer as u8 = 1\nsub main() fails\nemit() else fail\nend\n',
       },
     ];
     const target = {
@@ -207,6 +225,11 @@ describe("the MON3-compatible native compiler host", () => {
       expect(native.result.object).toEqual(compatibility.result.object);
       expect(native.result.object.begin.bankCount).toBe(3);
       expect(native.result.object.map.partBanks).toEqual([1, 2]);
+      const executed = runNucleusNobj(native.bytes, target);
+      expect(executed).toMatchObject({ success: true, outcome: "success" });
+      expect(new TextDecoder().decode(executed.output)).toBe("A");
+      expect(executed.loaderInstructions).toBeGreaterThan(0);
+      expect(executed.programInstructions).toBeGreaterThan(0);
     }
   }, 30_000);
 

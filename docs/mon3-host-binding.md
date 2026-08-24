@@ -93,6 +93,15 @@ selects the compiler bank second, and leaves only the committed SP1 object
 between those steps. Its copy of the shared object-client code belongs to that
 tool image and does not consume compiler-bank headroom.
 
+The end-to-end Node-hosted native proof runs the Z80 resolver, source streamer,
+compiler, banked NOBJ writer, standalone Z80 loader, and generated program in
+that order. Its three-bank discriminator commits a 4,697-byte object, uses
+451,643 compiler instructions and 3,981,816 compiler T-states, then uses 512,827
+loader instructions and 4,242,001 loader T-states. The generated program calls
+from entry bank 2 into a library in bank 1, returns, and writes `A`. Bank 0 has
+no source part and still contains its required entry slot and runtime image.
+These are measured proof values, not capacity limits.
+
 ## Compiler-adapter selectors
 
 Platform ABI 1 allocates compiler-adapter selectors `$70..$7F`. These are
