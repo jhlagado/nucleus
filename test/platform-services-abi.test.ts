@@ -40,5 +40,7 @@ describe("the Z80 platform-services ABI", () => {
     expect(finalMemory[symbols.ProofPacketBc]).toBe(0x34);
     expect(finalMemory[symbols.ProofPacketBc + 1]).toBe(0x12);
     expect(finalMemory[symbols.ProofSelectedBank]).toBe(1);
+    expect(finalMemory[symbols.ProofObjectRequest + 4]).toBe(0x12);
+    expect(finalMemory[symbols.ProofObjectRequest + 5]).toBe(0x34);
   });
 });

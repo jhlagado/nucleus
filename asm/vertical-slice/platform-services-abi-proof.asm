@@ -39,6 +39,21 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFail
+            LD   HL,ProofObjectRequest
+            CALL ProofObjectAdapter
+            JP   C,ProofFail
+            LD   HL,(ProofObjectRequest+NucleusObjectRequestHandle)
+            LD   DE,$3412
+            OR   A
+            SBC  HL,DE
+            JP   NZ,ProofFail
+            LD   A,2
+            LD   (ProofObjectRequest+NucleusObjectRequestAbi),A
+            LD   HL,ProofObjectRequest
+            CALL ProofObjectAdapter
+            JP   NC,ProofFail
+            CP   NucleusStatusInvalid
+            JP   NZ,ProofFail
             LD   A,1
             LD   (ProofSelectedBank),A
             CALL ProofNestedBankCall
@@ -63,7 +78,7 @@ ProofFail:
             LD   (ProofResult),A
             HALT
 
-.routine out A,DE,carry,zero clobbers sign,parity,halfCarry
+.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofPlatformInfoAdapter:
             PUSH BC
             LD   C,NucleusServicePlatformInfo
@@ -71,19 +86,26 @@ ProofPlatformInfoAdapter:
             POP  BC
             RET
 
-.routine in BC out A,BC,DE,carry,zero clobbers sign,parity,halfCarry
+.routine in BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofPacketAdapter:
             LD   (ProofSavedBc),BC
             LD   C,NucleusServicePacket
             JP   ProofExpansionDispatcher
 
-.routine in C out A,BC,DE,carry,zero clobbers sign,parity,halfCarry
+.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ProofObjectAdapter:
+            LD   C,NucleusServiceObject
+            JP   ProofExpansionDispatcher
+
+.routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofExpansionDispatcher:
             LD   A,C
             CP   NucleusServicePlatformInfo
             JR   Z,ProofPlatformInfo
             CP   NucleusServicePacket
             JR   Z,ProofPacketService
+            CP   NucleusServiceObject
+            JR   Z,ProofObjectService
             LD   A,$EE
             SCF
             RET
@@ -100,6 +122,34 @@ ProofPacketService:
             LD   BC,(ProofSavedBc)
             LD   (ProofPacketBc),BC
             XOR  A
+            RET
+
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ProofObjectService:
+            LD   A,(HL)
+            CP   NucleusObjectRequestSize
+            JR   NZ,ProofObjectInvalid
+            INC  HL
+            LD   A,(HL)
+            CP   NucleusObjectAbiVersion
+            JR   NZ,ProofObjectInvalid
+            INC  HL
+            LD   A,(HL)
+            CP   NucleusObjectOpenRead
+            JR   NZ,ProofObjectInvalid
+            INC  HL
+            LD   A,(HL)
+            OR   A
+            JR   NZ,ProofObjectInvalid
+            INC  HL
+            LD   (HL),$12
+            INC  HL
+            LD   (HL),$34
+            XOR  A
+            RET
+ProofObjectInvalid:
+            LD   A,NucleusStatusInvalid
+            SCF
             RET
 
 ; This models the fixed-ROM far-call property which Stage 7 must prove against
@@ -129,4 +179,9 @@ ProofSavedBc:      .dw 0
 ProofPacketBc:     .dw 0
 ProofSelectedBank: .db 0
 ProofResult:       .db $FF
+ProofObjectName:   .db "main"
+ProofObjectRequest:
+            .db NucleusObjectRequestSize,NucleusObjectAbiVersion
+            .db NucleusObjectOpenRead,0
+            .dw 0,ProofObjectName,4,0,0,0
 ProofEnd:

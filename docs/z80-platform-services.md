@@ -25,6 +25,8 @@ interfaces presented to the compiler and NOBJ loader. The
 [runtime contract](z80-runtime-contract.md) defines the interface presented to
 generated programs. The [MON3 binding](mon3-host-binding.md) maps the common
 services to TEC-1G firmware. A later CP/M binding maps them to BDOS.
+The [named-object ABI](z80-object-services-abi.md) fixes the request block and
+operation semantics used by native development tools.
 
 ## 2. Terms and boundaries
 

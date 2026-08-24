@@ -32,3 +32,40 @@ NucleusServiceLoaderLock       .equ $87
 NucleusServiceLoaderPublish    .equ $88
 NucleusServiceLoaderEnter      .equ $89
 NucleusServiceLoaderClose      .equ $8A
+
+; Common named-object gateway. New Z80 development tools use this service
+; directly instead of allocating one platform selector per object operation.
+NucleusServiceObject           .equ $91
+
+NucleusObjectAbiVersion        .equ 1
+NucleusObjectRequestSize       .equ 16
+
+NucleusObjectRequestSizeField  .equ 0
+NucleusObjectRequestAbi        .equ 1
+NucleusObjectRequestOperation  .equ 2
+NucleusObjectRequestFlags      .equ 3
+NucleusObjectRequestHandle     .equ 4
+NucleusObjectRequestPointer    .equ 6
+NucleusObjectRequestLength     .equ 8
+NucleusObjectRequestOffset     .equ 10
+NucleusObjectRequestResult     .equ 14
+
+NucleusObjectOpenRead          .equ 0
+NucleusObjectBeginWrite        .equ 1
+NucleusObjectRead              .equ 2
+NucleusObjectWrite             .equ 3
+NucleusObjectRewind            .equ 4
+NucleusObjectSeek              .equ 5
+NucleusObjectClose             .equ 6
+NucleusObjectCommit            .equ 7
+NucleusObjectAbort             .equ 8
+
+NucleusStatusInvalid           .equ 1
+NucleusStatusUnavailable       .equ 2
+NucleusStatusNotFound          .equ 3
+NucleusStatusCapacity          .equ 4
+NucleusStatusAccess            .equ 5
+NucleusStatusStorage           .equ 6
+NucleusStatusConflict          .equ 7
+NucleusStatusCancelled         .equ 8
+NucleusStatusUnsupported       .equ 9

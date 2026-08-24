@@ -23,6 +23,7 @@
     "./host": "./dist/host.js",
     "./nobj": "./dist/nobj.js",
     "./nobj-file": "./dist/nobj-file.js",
+    "./object-services": "./dist/object-services.js",
     "./project-host": "./dist/project-host.js",
     "./publication": "./dist/publication.js",
     "./runtime-catalog": "./dist/runtime-catalog.js",

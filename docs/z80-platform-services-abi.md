@@ -40,7 +40,8 @@ its own failure convention.
 | `$84..$8A` | Nucleus NOBJ loader                       | allocated below              |
 | `$8B..$8F` | expansion                                 | reserved                     |
 | `$90`      | TECM8 nested-call ABI proof               | occupied by proof builds     |
-| `$91..$FF` | expansion                                 | unallocated                  |
+| `$91`      | common Nucleus named-object gateway       | allocated below              |
+| `$92..$FF` | expansion                                 | unallocated                  |
 
 MON3 routes every selector at or above `$60` to the installed expansion
 dispatcher. Bank 0's registry therefore owns the concrete mapping for every
@@ -138,6 +139,19 @@ therefore requires the loader's code, object cursor, workspace, stack, and
 filesystem state to remain visible in every selected bank. A failed selection
 leaves the caller's bank unchanged. `ENTER` is the only loader operation
 permitted to abandon the caller's continuation on success.
+
+### 5.1 Common named-object entry
+
+Selector `$91`, `NUCLEUS_OBJECT`, accepts `HL` pointing to the 16-byte request
+defined by the [named-object ABI](z80-object-services-abi.md). The call
+preserves `IX` and `IY`, restores the caller's bank and stack, and otherwise
+clobbers `BC`, `DE`, `HL`, and the non-carry flags. Carry clear and `A=0`
+report success. Carry set and nonzero `A` report a canonical system-services
+status.
+
+The single entry covers open, chunk transfer, cursor movement, close, commit,
+and abort. MON3 and TEC-FS may use several internal calls to perform one
+operation, but those internal selectors are not part of the Nucleus ABI.
 
 ## 6. Fixed target-control entries
 

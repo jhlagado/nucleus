@@ -20,6 +20,8 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
   system-services architecture shared by the Z80 resolver, compiler adapter,
   NOBJ writer, loader, and generated program, with separate MON3, CP/M, and Node
   bindings.
+- [`z80-object-services-abi.md`](z80-object-services-abi.md) defines the common
+  request block and named-object operations used by Z80 development tools.
 - [`z80-platform-services-abi.md`](z80-platform-services-abi.md) records the
   current MON3 selector binding and its transition to the common object
   services.
