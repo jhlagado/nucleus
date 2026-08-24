@@ -10,6 +10,9 @@ NativeSystemServicesBase:
             .include "platform-services-abi.asmi"
             .include "native-object-client.asm"
             .include "native-source-plan-provider.asm"
+NativeNobjWriterCodeStart:
+            .include "native-nobj-writer.asm"
+NativeNobjWriterCodeEnd:
             .include "native-system-services.asm"
             .org CompilerCoreBase
             .include "flat-target-compiler-image.asmi"

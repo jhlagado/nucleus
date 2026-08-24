@@ -48,10 +48,12 @@ Nucleus already supplies:
 
 The Node package supplies both the ordinary desktop resolver and a native-path
 proof. The latter runs the generated Z80 resolver and source streamer while
-Node implements only named-object effects below selector `$91`. The TEC-FS
-binding for those object calls and the Z80 NOBJ writer are not yet implemented.
-The current resolver emits flat bank-zero plans; native source-bank policy is a
-later input to the banked build path.
+Node implements named-object effects below selector `$91` and runtime-catalogue
+chunks below `$92`. The same proof now runs the flat Z80 NOBJ writer and checks
+its complete object byte for byte against the established sink. The TEC-FS
+binding for those calls is not yet implemented. The current resolver and writer
+accept flat bank-zero output; native source-bank policy and banked MAP
+serialization are the next target-output increment.
 
 `asm/vertical-slice/node-nobj-consumer.asm` is a Node reference image, not a
 ROM image to flash. Its loader and generated-program adapters use the native
@@ -79,13 +81,13 @@ serialization.
 
 Use the already-proved loaded layout:
 
-| Extent | Owner during program execution |
-| --- | --- |
-| `$4000..$6000` | startup, runtime executable, read-only data, and generated code |
-| `$6000..$7000` | runtime vector, runtime state, initialized data, BSS, and established stack |
-| `$7000..$704B` | always-visible TEC-1 generated-program service adapter |
-| `$8000..$C000` | selected expansion-ROM tool bank; no longer needed after program entry |
-| `$C000..$10000` | fixed MON3 ROM |
+| Extent          | Owner during program execution                                              |
+| --------------- | --------------------------------------------------------------------------- |
+| `$4000..$6000`  | startup, runtime executable, read-only data, and generated code             |
+| `$6000..$7000`  | runtime vector, runtime state, initialized data, BSS, and established stack |
+| `$7000..$704B`  | always-visible TEC-1 generated-program service adapter                      |
+| `$8000..$C000`  | selected expansion-ROM tool bank; no longer needed after program entry      |
+| `$C000..$10000` | fixed MON3 ROM                                                              |
 
 The target descriptor is:
 

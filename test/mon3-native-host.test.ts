@@ -144,6 +144,38 @@ describe("the MON3-compatible native compiler host", () => {
     }
   }, 30_000);
 
+  it("writes byte-identical flat NOBJ in ROM and loaded modes", async () => {
+    const parts = [
+      {
+        name: "main.nu",
+        source:
+          "var answer as u8 = 3\nvar initialized as u8[3] = [5, 6, 7]\nvar cleared as u16[2]\nconst lookup as u8[4] = [8, 9, 10, 11]\nsub value() as u8\nreturn 39\nend\nsub main()\nif answer < 4\nanswer = value() + initialized[1] + lookup[2]\nend\ncleared[0] = answer\nend\n",
+      },
+    ];
+    for (const target of [
+      { imageFill: 0xe5 },
+      {
+        imageBase: 0x4000,
+        imageCapacity: 0x3000,
+        imageFill: 0,
+        writableBase: 0x6000,
+        writableCapacity: 0x1000,
+      },
+    ]) {
+      const [compatibility, native] = await Promise.all([
+        compile("mon3", parts, target),
+        compile("mon3", parts, target, false, true),
+      ]);
+      expect(native.result).toEqual(
+        expect.objectContaining({ success: compatibility.result.success }),
+      );
+      expect(native.bytes).toEqual(compatibility.bytes);
+      if (native.result.success && compatibility.result.success) {
+        expect(native.result.object).toEqual(compatibility.result.object);
+      }
+    }
+  }, 30_000);
+
   it("returns the same diagnostic and starts clean after a failed compile", async () => {
     await expectSameCompile([{ name: "bad.nu", source: "broken\n" }], {});
     await expectSameCompile(

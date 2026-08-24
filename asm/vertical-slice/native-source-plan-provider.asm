@@ -27,6 +27,11 @@ NativeSourceProviderPlanBuffer    .equ $5A40
 NativeSourceProviderPlanLimit     .equ $5B40
 NativeSourceProviderNameScratch   .equ $5B40
 NativeSourceProviderNameLimit     .equ $5C40
+; Comparison needs a second spelling buffer because the compiler may compare
+; a current token materialized in NameScratch. This region is phase-overlaid
+; by the NOBJ writer only after parsing has finished.
+NativeSourceProviderCompareScratch .equ $5D00
+NativeSourceProviderCompareLimit   .equ $5E00
 
 NativeSourceProviderPhasePart     .equ 0
 NativeSourceProviderPhaseBytes    .equ 1
@@ -450,6 +455,16 @@ NativeSourceProviderRetainNameBody:
             LD   A,(NativeSourceProviderMaterializedLength)
             CP   B
             JR   NZ,NativeSourceProviderRetainAppend
+            LD   A,(NativeSourceProviderNameHeader+1)
+            LD   C,A
+            LD   A,(NativeSourceProviderSavedPart)
+            CP   C
+            JR   NZ,NativeSourceProviderRetainAppend
+            LD   HL,(NativeSourceProviderSavedOffset)
+            LD   DE,(NativeSourceProviderNameHeader+2)
+            OR   A
+            SBC  HL,DE
+            JR   NZ,NativeSourceProviderRetainAppend
             LD   HL,(NativeSourceProviderSavedPointer)
             LD   DE,NativeSourceProviderNameScratch
             OR   A
@@ -525,7 +540,7 @@ NativeSourceProviderCompareName:
             LD   C,B
             LD   B,0
             LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,NativeSourceProviderNameScratch
+            LD   DE,NativeSourceProviderCompareScratch
             CALL NativeSourceProviderRead
             RET  C
             LD   A,B
@@ -537,7 +552,7 @@ NativeSourceProviderCompareName:
             LD   B,A
             PUSH IX
             POP  DE
-            LD   HL,NativeSourceProviderNameScratch
+            LD   HL,NativeSourceProviderCompareScratch
 NativeSourceProviderCompareNameLoop:
             LD   A,(DE)
             CP   (HL)

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync, } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
@@ -7,6 +7,7 @@ import { debugCompilerHex, debugCompilerSymbols, nativeCompilerHex, nativeCompil
 import { materializeNobj, MemoryNobjSpool, NobjGenerationSink, NobjGenerationStore, parseNobj, } from "./nobj.js";
 import { commitNobjAdapterGeneration, commitNobjAdapterGenerationTo, } from "./nobj-adapter.js";
 import { bundledRuntimeProvider } from "./runtime-catalog.js";
+import { NodeRuntimeCatalogServices } from "./runtime-catalog-services.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
 import { NativeRetainedNameStore, nativeRetainedNameByteCapacity, nativeRetainedNameEntryCapacity, } from "./native-retained-names.js";
 import { NodeNamedObjectServices, NucleusSystemStatus, } from "./object-services.js";
@@ -601,6 +602,7 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
     let collector;
     let nativeSourceObjects;
     const provider = options.runtimeProvider ?? bundledRuntimeProvider;
+    const runtimeCatalogServices = new NodeRuntimeCatalogServices(provider, target.services ?? defaultNucleusServices);
     const runtime = createZ80Runtime({ ...image.program, memory: image.program.memory.slice() }, symbol(image.symbols, "CompileTargetAggregateCallParts"), {
         write: (port, value) => {
             let selectedPort = port & 0xff;
@@ -610,9 +612,14 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                 mon3Transport &&
                 selectedPort === symbol(image.symbols, "NativeHostMon3NodePort") &&
                 cpu.c === symbol(image.symbols, "NucleusServiceObject");
+            const runtimeCatalogServiceCall = nativeObjectSource &&
+                mon3Transport &&
+                selectedPort === symbol(image.symbols, "NativeHostMon3NodePort") &&
+                cpu.c === symbol(image.symbols, "NucleusServiceRuntimeCatalog");
             if (mon3Transport &&
                 selectedPort === symbol(image.symbols, "NativeHostMon3NodePort") &&
-                !objectServiceCall) {
+                !objectServiceCall &&
+                !runtimeCatalogServiceCall) {
                 const service = cpu.c - symbol(image.symbols, "NativeHostMon3ServiceBase");
                 if (service < 0 || service > 15) {
                     throw new Error(`unknown Nucleus MON3 host service ${cpu.c}`);
@@ -639,9 +646,20 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                         throw new Error("native named-object source provider is unavailable");
                     }
                     const status = nativeSourceObjects.services.dispatch(memory, hl);
+                    if (status !== NucleusSystemStatus.success) {
+                        nativeHostFailure = new Error(`native named object failed with status ${status} (size=${memory[hl]}, abi=${memory[hl + 1]}, operation=${memory[hl + 2]}, flags=${memory[hl + 3]}, handle=${readWord(memory, hl + 4)}, pointer=${readWord(memory, hl + 6)}, length=${readWord(memory, hl + 8)}, offset=${readWord(memory, hl + 10)}:${readWord(memory, hl + 12)}, result=${readWord(memory, hl + 14)})`);
+                    }
                     cpu.a = status;
-                    cpu.flags.C =
-                        status === NucleusSystemStatus.success ? 0 : 1;
+                    cpu.flags.C = status === NucleusSystemStatus.success ? 0 : 1;
+                    return;
+                }
+                else if (runtimeCatalogServiceCall) {
+                    const status = runtimeCatalogServices.dispatch(memory, hl);
+                    if (status !== NucleusSystemStatus.success) {
+                        nativeHostFailure = new Error(`native runtime catalogue failed with status ${status} (operation=${memory[hl + 2]}, offset=${readWord(memory, hl + 12)}, capacity=${readWord(memory, hl + 16)})`);
+                    }
+                    cpu.a = status;
+                    cpu.flags.C = status === NucleusSystemStatus.success ? 0 : 1;
                     return;
                 }
                 else if (debugHooks && isNucleusDebugPort(selectedPort)) {
@@ -682,9 +700,27 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                     succeed();
                 }
                 else if (selectedPort === symbol(image.symbols, "NativeHostLaunchEndPort")) {
-                    if (!launchActive ||
-                        value > 2 ||
-                        (value === 0) !== (metadata !== undefined)) {
+                    if (!launchActive || value > 2) {
+                        nativeHostFailure = new Error("native Nucleus launch ended in an inconsistent state");
+                        cpu.halted = true;
+                        return;
+                    }
+                    if (value === 0 &&
+                        nativeObjectSource &&
+                        metadata === undefined &&
+                        nativeSourceObjects !== undefined) {
+                        const serialized = Uint8Array.from(readFileSync(path.join(nativeSourceObjects.root, ".nucleus/program.nobj")));
+                        const parsed = parseNobj(serialized);
+                        output.write(serialized);
+                        output.commit();
+                        metadata = {
+                            begin: parsed.begin,
+                            map: parsed.map,
+                            commit: parsed.commit,
+                            byteLength: serialized.length,
+                        };
+                    }
+                    if ((value === 0) !== (metadata !== undefined)) {
                         nativeHostFailure = new Error("native Nucleus launch ended in an inconsistent state");
                         cpu.halted = true;
                         return;
@@ -953,6 +989,9 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
         }
     }
     const begin = prepareTarget(memory, prepared.partBanks, target, targetDescriptor);
+    if (nativeObjectSource) {
+        memory[symbol(image.symbols, "NativeNobjImageFill")] = begin.imageFill;
+    }
     if (debugHooks) {
         collector = new NucleusDebugCollector(memory, prepared.loaded, debugTraceSymbols(image), (handle, length) => {
             const retained = retainedNames.get(handle);

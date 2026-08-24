@@ -39,17 +39,17 @@ that normally means always-visible RAM.
 
 Every request is exactly 16 bytes. Words and the double word are little-endian.
 
-| Offset | Size | Field | Meaning |
-| ---: | ---: | --- | --- |
-| 0 | 1 | `size` | must be 16 |
-| 1 | 1 | `abi` | must be 1 |
-| 2 | 1 | `operation` | operation number from Section 4 |
-| 3 | 1 | `flags` | must be zero in ABI 1 |
-| 4 | 2 | `handle` | input or returned opaque handle |
-| 6 | 2 | `pointer` | name or transfer-buffer address |
-| 8 | 2 | `length` | name length or requested transfer length |
-| 10 | 4 | `offset` | absolute byte offset for `seek`; otherwise zero |
-| 14 | 2 | `result` | transferred byte count; otherwise zero |
+| Offset | Size | Field       | Meaning                                         |
+| -----: | ---: | ----------- | ----------------------------------------------- |
+|      0 |    1 | `size`      | must be 16                                      |
+|      1 |    1 | `abi`       | must be 1                                       |
+|      2 |    1 | `operation` | operation number from Section 4                 |
+|      3 |    1 | `flags`     | must be zero in ABI 1                           |
+|      4 |    2 | `handle`    | input or returned opaque handle                 |
+|      6 |    2 | `pointer`   | name or transfer-buffer address                 |
+|      8 |    2 | `length`    | name length or requested transfer length        |
+|     10 |    4 | `offset`    | absolute byte offset for `seek`; otherwise zero |
+|     14 |    2 | `result`    | transferred byte count; otherwise zero          |
 
 Before every call, the client writes every field required by the operation and
 zeros fields described as unused. The provider sets `result` to zero before
@@ -59,8 +59,8 @@ size, a wrong ABI revision, or nonzero unused fields produce `invalid`.
 Object names are nonempty byte strings and are not zero-terminated. ABI 1
 accepts 1 through 255 bytes, so the high byte of `length` is zero on open
 operations. Names use the logical syntax defined by the source-packaging or
-deployment contract; the platform binding decides how to represent them in its
-filesystem.
+deployment contract. Their physical filesystem representation is
+platform-specific.
 
 Handles are opaque 16-bit values. A client may compare a handle only with a
 handle returned by the same provider generation. Zero is reserved and is never
@@ -68,17 +68,17 @@ returned as a valid handle.
 
 ## 4. Operations
 
-| Number | Operation | Inputs | Success result |
-| ---: | --- | --- | --- |
-| 0 | `openRead` | `pointer`, name `length` | readable `handle` at offset zero |
-| 1 | `beginWrite` | `pointer`, name `length` | tentative update `handle` at offset zero |
-| 2 | `read` | readable or update `handle`, buffer `pointer`, requested `length` | `result` bytes copied |
-| 3 | `write` | writable `handle`, buffer `pointer`, requested `length` | `result == length` |
-| 4 | `rewind` | readable or writable `handle` | cursor becomes zero |
-| 5 | `seek` | readable or writable `handle`, 32-bit `offset` | cursor becomes `offset` |
-| 6 | `close` | readable `handle` | handle released |
-| 7 | `commit` | writable `handle` | tentative generation published; handle released |
-| 8 | `abort` | writable `handle` | tentative generation discarded; handle released |
+| Number | Operation    | Inputs                                                            | Success result                                  |
+| -----: | ------------ | ----------------------------------------------------------------- | ----------------------------------------------- |
+|      0 | `openRead`   | `pointer`, name `length`                                          | readable `handle` at offset zero                |
+|      1 | `beginWrite` | `pointer`, name `length`                                          | tentative update `handle` at offset zero        |
+|      2 | `read`       | readable or update `handle`, buffer `pointer`, requested `length` | `result` bytes copied                           |
+|      3 | `write`      | writable `handle`, buffer `pointer`, requested `length`           | `result == length`                              |
+|      4 | `rewind`     | readable or writable `handle`                                     | cursor becomes zero                             |
+|      5 | `seek`       | readable or writable `handle`, 32-bit `offset`                    | cursor becomes `offset`                         |
+|      6 | `close`      | readable `handle`                                                 | handle released                                 |
+|      7 | `commit`     | writable `handle`                                                 | tentative generation published; handle released |
+|      8 | `abort`      | writable `handle`                                                 | tentative generation discarded; handle released |
 
 A zero-length `read` or `write` succeeds without transferring data. A nonzero
 `read` may return fewer bytes than requested. `result == 0` on a nonzero read
@@ -105,17 +105,17 @@ invalidate the handle.
 
 Canonical status values are:
 
-| Value | Name | Meaning |
-| ---: | --- | --- |
-| 1 | `invalid` | malformed request, field, or handle use |
-| 2 | `unavailable` | required service or capability is absent |
-| 3 | `notFound` | named committed object does not exist |
-| 4 | `capacity` | handle, storage, name, or deployment capacity is exhausted |
-| 5 | `access` | operation is not permitted for this object or deployment |
-| 6 | `storage` | underlying storage failed |
-| 7 | `conflict` | another live generation prevents the requested operation |
-| 8 | `cancelled` | operator or outer host cancelled the operation |
-| 9 | `unsupported` | valid ABI operation is not supported for this object |
+| Value | Name          | Meaning                                                    |
+| ----: | ------------- | ---------------------------------------------------------- |
+|     1 | `invalid`     | malformed request, field, or handle use                    |
+|     2 | `unavailable` | required service or capability is absent                   |
+|     3 | `notFound`    | named committed object does not exist                      |
+|     4 | `capacity`    | handle, storage, name, or deployment capacity is exhausted |
+|     5 | `access`      | operation is not permitted for this object or deployment   |
+|     6 | `storage`     | underlying storage failed                                  |
+|     7 | `conflict`    | another live generation prevents the requested operation   |
+|     8 | `cancelled`   | operator or outer host cancelled the operation             |
+|     9 | `unsupported` | valid ABI operation is not supported for this object       |
 
 Failure never changes a committed object. A failed open allocates no handle. A
 failed read leaves its cursor unchanged; the destination buffer is unspecified.
@@ -132,8 +132,10 @@ a Z80 shell recover its bounded handle table after an I/O failure.
 
 The native import resolver and source streamer require `openRead`, `read`,
 `rewind`, and `close`. The NOBJ writer additionally requires `beginWrite`,
-`write`, `commit`, and `abort`. `seek` is required only by a client whose own
-algorithm needs random access; the streaming compiler and NOBJ writer do not.
+`read`, `write`, `rewind`, `commit`, and `abort`. It rewinds and reads its
+sequential IMAGE and PATCH work spools when it forms the final object. `seek`
+is required only by a client whose own algorithm needs random access; the
+streaming compiler and NOBJ writer do not.
 
 The Node provider, TEC-FS binding, and later CP/M binding must pass the same
 operation tests. Those tests cover chunk boundaries, short reads, EOF, failed

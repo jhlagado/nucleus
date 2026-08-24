@@ -112,6 +112,18 @@ NativeSourceProviderSeek:
             LD   (NativeObjectRequest+NucleusObjectRequestOffset),DE
             JP   NativeObjectCall
 
+; HL is the object handle. Rewind is the sequential spool operation; it does
+; not expose or require random positioning.
+.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+NativeObjectRewind:
+            PUSH HL
+            CALL NativeObjectResetRequest
+            POP  HL
+            LD   A,NucleusObjectRewind
+            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
+            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
+            JP   NativeObjectCall
+
 ; A is close, commit, or abort and HL is the object handle.
 .routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 NativeObjectTerminal:

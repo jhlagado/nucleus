@@ -209,15 +209,15 @@ its request block, registers, status, buffering, and partial-effect rules.
 The components share primitive services while retaining private algorithms and
 state:
 
-| Common facility | Resolver | Compiler adapter | NOBJ writer | Loader | Generated program |
-| --- | --- | --- | --- | --- | --- |
-| console bytes | optional diagnostics | no | no | optional diagnostics | standard input/output |
-| named-object open | source discovery | through source streamer | work-object creation | NOBJ open | unavailable |
-| chunk read | import headers and source | next-source callback | spool serialization | NOBJ records | selected storage only |
-| chunk write | optional plan | no direct call | IMAGE, PATCH, and NOBJ | no | selected storage only |
-| commit and abort | optional plan | generation callbacks | NOBJ publication | target publication | unavailable |
-| runtime catalogue | no | exact runtime request | serializes returned bytes | validates identity | unavailable |
-| target control | no | records target map | no | select, publish, enter | far control only |
+| Common facility   | Resolver                  | Compiler adapter        | NOBJ writer               | Loader                 | Generated program     |
+| ----------------- | ------------------------- | ----------------------- | ------------------------- | ---------------------- | --------------------- |
+| console bytes     | optional diagnostics      | no                      | no                        | optional diagnostics   | standard input/output |
+| named-object open | source discovery          | through source streamer | work-object creation      | NOBJ open              | unavailable           |
+| chunk read        | import headers and source | next-source callback    | spool serialization       | NOBJ records           | selected storage only |
+| chunk write       | optional plan             | no direct call          | IMAGE, PATCH, and NOBJ    | no                     | selected storage only |
+| commit and abort  | optional plan             | generation callbacks    | NOBJ publication          | target publication     | unavailable           |
+| runtime catalogue | no                        | exact runtime request   | serializes returned bytes | validates identity     | unavailable           |
+| target control    | no                        | records target map      | no                        | select, publish, enter | far control only      |
 
 The table describes capability use, not permission inheritance. A generated
 program cannot open a source file, and a resolver cannot publish a target,
@@ -343,6 +343,7 @@ The following paths are implemented:
 - the MON3-compatible compiler gateway exercised under Debug80;
 - sequential Node-backed IMAGE and PATCH spools;
 - pre-generated runtime-catalogue selection and its bounded Z80 chunk gateway;
+- the flat Z80 NOBJ writer over those object and catalogue gateways;
 - the Z80 NOBJ consumer; and
 - flat and banked generated-program execution under Node.
 
@@ -351,7 +352,7 @@ The following native pieces remain incomplete:
 - common named-object and chunk-transfer services over TEC-FS;
 - the TEC-FS binding beneath the Z80 resolver, source streamer, and retained-name provider;
 - TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
-- the Z80 NOBJ writer over the object and catalogue gateways;
+- banked MAP serialization in the Z80 NOBJ writer;
 - the hardware NOBJ loader binding and generated-program adapter; and
 - a CP/M binding.
 
@@ -366,7 +367,7 @@ Implementation proceeds from the common services upward:
 1. define and prove the named-object and chunk-transfer request blocks;
 2. implement a narrow Node provider for those exact calls;
 3. implement the Z80 resolver and source streamer against that provider;
-4. implement the Z80 NOBJ writer against the same object services;
+4. extend the proved flat Z80 NOBJ writer to banked MAP serialization;
 5. run resolver, compiler, writer, loader, and generated program end to end;
 6. bind the proved calls to TEC-FS and MON3; and
 7. add the flat CP/M binding without changing the Z80 clients.
