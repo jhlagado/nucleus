@@ -23,6 +23,11 @@ NativeNobjCopyHandle        .equ $5C5E
 NativeNobjImageFill         .equ $5C60
 NativeNobjAbortStatus       .equ $5C61
 NativeNobjSavedFailure      .equ $5C62
+; RuntimeRequest occupies $5C50..$5C65. Bank count must survive every runtime
+; catalogue call, so the persistent/map state starts after that overlay.
+NativeNobjBankCount         .equ $5C66
+NativeNobjMapStatePointer   .equ $5C67
+NativeNobjMapBankOrdinal    .equ $5C69
 NativeNobjRecordBuffer      .equ $5C70
 NativeNobjTransferBuffer    .equ $5D00
 NativeNobjTransferLimit     .equ $5E00
@@ -48,11 +53,14 @@ NativeNobjUnavailable:
 NativeNobjBegin:
             LD   A,(IX+11)
             DEC  A
-            JR   Z,NativeNobjBeginFlat
+            CP   4
+            JR   C,NativeNobjBeginValid
             CALL NativeNobjUnavailable
             RET
-NativeNobjBeginFlat:
+NativeNobjBeginValid:
             LD   (NativeNobjBeginPointer),IX
+            LD   A,(IX+11)
+            LD   (NativeNobjBankCount),A
             XOR  A
             LD   (NativeNobjMapPointer),A
             LD   (NativeNobjMapPointer+1),A
@@ -93,11 +101,18 @@ NativeNobjBeginFlat:
             LD   DE,NativeNobjRecordBuffer
             LD   BC,10
             LDIR
+            LD   A,(NativeNobjBankCount)
+            DEC  A
+            LD   A,0
+            JR   Z,NativeNobjBeginFlagsReady
+            INC  A
+NativeNobjBeginFlagsReady:
+            LD   (NativeNobjRecordBuffer+9),A
             LD   IX,(NativeNobjBeginPointer)
             LD   L,(IX+0)
             LD   H,(IX+1)
             LD   (NativeNobjRecordBuffer+10),HL
-            LD   A,1
+            LD   A,(NativeNobjBankCount)
             LD   (NativeNobjRecordBuffer+12),A
             LD   A,(NativeNobjImageFill)
             LD   (NativeNobjRecordBuffer+13),A
@@ -189,7 +204,7 @@ NativeNobjPatchWord:
             JR   NativeNobjIncrementWord
 
 ; The dispatcher supplies A=operation, BC=complete length, DE=identity,
-; HL=address, and IX=context. The first native slice is flat, so bank is zero.
+; HL=address, and IX=context. NativeHostRuntimeBank supplies the selected bank.
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeNobjRuntime:
             CP   2
@@ -204,7 +219,7 @@ NativeNobjRuntime:
             INC  HL
             INC  HL
             LD   (NativeNobjRecordBuffer+1),HL
-            XOR  A
+            LD   A,(NativeHostRuntimeBank)
             LD   (NativeNobjRecordBuffer+3),A
             POP  AF
             LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOperation),A
@@ -212,9 +227,16 @@ NativeNobjRuntime:
             LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestSizeField),A
             LD   A,NucleusRuntimeCatalogAbiVersion
             LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestAbi),A
-            XOR  A
+            LD   A,(NativeNobjBankCount)
+            DEC  A
+            LD   A,0
+            JR   Z,NativeNobjRuntimeFlagsReady
+            INC  A
+NativeNobjRuntimeFlagsReady:
             LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestFlags),A
+            LD   A,(NativeHostRuntimeBank)
             LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestBank),A
+            XOR  A
             LD   (NativeNobjRuntimeRequest+5),A
             LD   (NativeNobjRuntimeRequest+20),A
             LD   (NativeNobjRuntimeRequest+21),A
@@ -260,8 +282,10 @@ NativeNobjRuntimeLoop:
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 NativeNobjMap:
             LD   A,(IX+31)
-            DEC  A
-            JP   NZ,NativeNobjUnavailable
+            LD   B,A
+            LD   A,(NativeNobjBankCount)
+            CP   B
+            JP   NZ,NativeObjectInvalid
             LD   (NativeNobjMapPointer),IX
             OR   A
             RET
@@ -281,7 +305,7 @@ NativeNobjCommitHasMap:
             LD   HL,(NativeNobjPatchHandle)
             CALL NativeNobjCopySpool
             JP   C,NativeNobjCommitAbort
-            CALL NativeNobjWriteFlatMap
+            CALL NativeNobjWriteMap
             JP   C,NativeNobjCommitAbort
 
             LD   HL,(NativeNobjImageCount)
@@ -363,13 +387,21 @@ NativeNobjCopyLoop:
             RET  C
             JR   NativeNobjCopyLoop
 
-; Serialize the flat native MAP request into the NOBJ 0.1 MAP payload.
+; Serialize the native MAP request into the NOBJ 0.1 MAP payload.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjWriteFlatMap:
+NativeNobjWriteMap:
             LD   IX,(NativeNobjMapPointer)
             LD   A,(IX+28)
             LD   (NativeNobjRecordBuffer+31),A
-            ADD  A,40
+            LD   B,A
+            LD   A,(IX+31)
+            ADD  A,A
+            LD   E,A
+            ADD  A,A
+            ADD  A,A
+            ADD  A,E
+            ADD  A,B
+            ADD  A,30
             LD   (NativeNobjRecordBuffer+1),A
             XOR  A
             LD   (NativeNobjRecordBuffer+2),A
@@ -422,59 +454,22 @@ NativeNobjWriteFlatMap:
             LD   H,(IX+30)
             LD   DE,NativeNobjRecordBuffer+32
             LDIR
-            LD   A,1
+            LD   A,(IX+31)
             LD   (DE),A
             INC  DE
             LD   (NativeNobjMapTailPointer),DE
 
-            ; usedLength = bank cursor - imageBase.
             LD   L,(IX+32)
             LD   H,(IX+33)
+            LD   (NativeNobjMapStatePointer),HL
+            XOR  A
+            LD   (NativeNobjMapBankOrdinal),A
+NativeNobjMapBankLoop:
+            ; usedLength = bank cursor - imageBase.
+            LD   HL,(NativeNobjMapStatePointer)
             LD   C,(HL)
             INC  HL
             LD   B,(HL)
-            LD   HL,(NativeNobjBeginPointer)
-            INC  HL
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            LD   H,B
-            LD   L,C
-            OR   A
-            SBC  HL,DE
-            LD   (NativeNobjMapUsedLength),HL
-
-            ; readOnlyBase = imageBase + entry slot + runtime + startup.
-            LD   HL,(NativeNobjBeginPointer)
-            INC  HL
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            EX   DE,HL
-            LD   BC,3
-            ADD  HL,BC
-            LD   C,(IX+34)
-            LD   B,(IX+35)
-            ADD  HL,BC
-            LD   C,(IX+36)
-            LD   B,(IX+37)
-            ADD  HL,BC
-            LD   (NativeNobjMapRoBase),HL
-
-            LD   C,(IX+15)
-            LD   B,(IX+16)
-            BIT  0,(IX+1)
-            JR   NZ,NativeNobjMapHasInitial
-            LD   BC,0
-NativeNobjMapHasInitial:
-            LD   (NativeNobjMapInitialLength),BC
-
-            ; The flat bank-state entry is cursor, remaining, aggregate length.
-            LD   L,(IX+32)
-            LD   H,(IX+33)
-            INC  HL
             INC  HL
             INC  HL
             INC  HL
@@ -482,6 +477,49 @@ NativeNobjMapHasInitial:
             INC  HL
             LD   D,(HL)
             LD   (NativeNobjMapAggregateLength),DE
+            LD   H,B
+            LD   L,C
+            LD   E,(IX+5)
+            LD   D,(IX+6)
+            OR   A
+            SBC  HL,DE
+            LD   (NativeNobjMapUsedLength),HL
+
+            LD   HL,(NativeNobjMapStatePointer)
+            LD   DE,6
+            ADD  HL,DE
+            LD   (NativeNobjMapStatePointer),HL
+
+            ; Every bank starts with the entry slot and runtime. The entry
+            ; bank then carries startup and the initialized image.
+            LD   L,(IX+5)
+            LD   H,(IX+6)
+            LD   BC,3
+            ADD  HL,BC
+            LD   C,(IX+34)
+            LD   B,(IX+35)
+            ADD  HL,BC
+            LD   A,(NativeNobjMapBankOrdinal)
+            CP   (IX+2)
+            JR   NZ,NativeNobjMapRoBaseReadyForBank
+            LD   C,(IX+36)
+            LD   B,(IX+37)
+            ADD  HL,BC
+NativeNobjMapRoBaseReadyForBank:
+            LD   (NativeNobjMapRoBase),HL
+
+            LD   BC,0
+            LD   A,(NativeNobjMapBankOrdinal)
+            CP   (IX+2)
+            JR   NZ,NativeNobjMapHasInitial
+            BIT  0,(IX+1)
+            JR   Z,NativeNobjMapHasInitial
+            LD   C,(IX+15)
+            LD   B,(IX+16)
+NativeNobjMapHasInitial:
+            LD   (NativeNobjMapInitialLength),BC
+
+            LD   DE,(NativeNobjMapAggregateLength)
             LD   HL,(NativeNobjMapInitialLength)
             ADD  HL,DE
             LD   (NativeNobjMapRoLength),HL
@@ -525,9 +563,17 @@ NativeNobjMapRoBaseReady:
             LD   (HL),E
             INC  HL
             LD   (HL),D
+            INC  HL
+            LD   (NativeNobjMapTailPointer),HL
 
-            LD   A,(IX+28)
-            ADD  A,43
+            LD   A,(NativeNobjMapBankOrdinal)
+            INC  A
+            LD   (NativeNobjMapBankOrdinal),A
+            CP   (IX+31)
+            JP   C,NativeNobjMapBankLoop
+
+            LD   A,(NativeNobjRecordBuffer+1)
+            ADD  A,3
             LD   C,A
             LD   B,0
             LD   HL,(NativeNobjOutputHandle)

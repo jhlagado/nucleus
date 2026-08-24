@@ -77,8 +77,8 @@ Normal compiler core is 16,314 bytes and ends at `$BFBA`, leaving 70 bytes in
 the bank. The D8-instrumented host image is 16,380 bytes and ends at `$BFFC`,
 leaving four bytes. D8 hooks remain conditional: the normal native image does
 not pay their 66-byte cost. The compiler-host vector occupies 981 external Z80
-code bytes. The object client, source provider, flat NOBJ writer, and dispatcher
-add 2,796 external code bytes. The writer accounts for 1,217 of those bytes and
+code bytes. The object client, source provider, NOBJ writer, and dispatcher add
+2,913 external code bytes. The writer accounts for 1,312 of those bytes and
 448 bytes of external workspace, including its 256-byte transfer buffer. None
 of these bytes is counted as compiler core.
 

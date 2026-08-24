@@ -30,11 +30,12 @@ hardware work.
 The ordinary Node project host performs import discovery and owns the IMAGE and
 PATCH spools. The native-path proof instead runs the prebuilt Z80 resolver,
 commits SP1, and lets the Z80 source provider stream that plan into the
-compiler. The flat path also runs the Z80 IMAGE/PATCH spool and NOBJ writer.
+compiler. The same path runs the Z80 IMAGE/PATCH spool and NOBJ writer for flat
+and banked targets.
 Node supplies named-object and runtime-catalogue effects beneath their gateways;
 it does not parse directives, order dependencies, frame NOBJ records, or apply
-patches in that path. Banked native output and the TEC-FS provider remain
-separate increments.
+patches in that path. Native source-bank assignment and the TEC-FS provider
+remain separate increments.
 
 The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the

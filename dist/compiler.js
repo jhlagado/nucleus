@@ -245,9 +245,6 @@ const createNativeSourceObjects = (parts, prepared) => {
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-native-source-"));
     try {
         mkdirSync(path.join(root, ".nucleus"));
-        if (prepared.partBanks.some((bank) => bank !== 0)) {
-            throw new Error("native Z80 import resolution currently supports flat source plans");
-        }
         for (let index = 0; index < parts.length; index += 1) {
             const name = parts[index].name;
             if (name === ".nucleus" || name.startsWith(".nucleus/")) {

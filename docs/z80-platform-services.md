@@ -343,7 +343,7 @@ The following paths are implemented:
 - the MON3-compatible compiler gateway exercised under Debug80;
 - sequential Node-backed IMAGE and PATCH spools;
 - pre-generated runtime-catalogue selection and its bounded Z80 chunk gateway;
-- the flat Z80 NOBJ writer over those object and catalogue gateways;
+- the flat and banked Z80 NOBJ writer over those object and catalogue gateways;
 - the Z80 NOBJ consumer; and
 - flat and banked generated-program execution under Node.
 
@@ -352,7 +352,7 @@ The following native pieces remain incomplete:
 - common named-object and chunk-transfer services over TEC-FS;
 - the TEC-FS binding beneath the Z80 resolver, source streamer, and retained-name provider;
 - TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
-- banked MAP serialization in the Z80 NOBJ writer;
+- native source-bank assignment for the Z80 resolver;
 - the hardware NOBJ loader binding and generated-program adapter; and
 - a CP/M binding.
 
@@ -367,7 +367,7 @@ Implementation proceeds from the common services upward:
 1. define and prove the named-object and chunk-transfer request blocks;
 2. implement a narrow Node provider for those exact calls;
 3. implement the Z80 resolver and source streamer against that provider;
-4. extend the proved flat Z80 NOBJ writer to banked MAP serialization;
+4. define and implement native source-bank assignment for the Z80 resolver;
 5. run resolver, compiler, writer, loader, and generated program end to end;
 6. bind the proved calls to TEC-FS and MON3; and
 7. add the flat CP/M binding without changing the Z80 clients.

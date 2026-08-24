@@ -49,11 +49,12 @@ Nucleus already supplies:
 The Node package supplies both the ordinary desktop resolver and a native-path
 proof. The latter runs the generated Z80 resolver and source streamer while
 Node implements named-object effects below selector `$91` and runtime-catalogue
-chunks below `$92`. The same proof now runs the flat Z80 NOBJ writer and checks
-its complete object byte for byte against the established sink. The TEC-FS
-binding for those calls is not yet implemented. The current resolver and writer
-accept flat bank-zero output; native source-bank policy and banked MAP
-serialization are the next target-output increment.
+chunks below `$92`. The same proof now runs the Z80 NOBJ writer for flat and
+banked targets and checks each complete object byte for byte against the
+established sink. The banked proof covers a nonzero entry bank, a separate
+library bank, and an empty bank. The TEC-FS binding for those calls is not yet
+implemented. The current resolver still writes bank zero into SP1; a native
+source-bank assignment input is the remaining packaging decision.
 
 `asm/vertical-slice/node-nobj-consumer.asm` is a Node reference image, not a
 ROM image to flash. Its loader and generated-program adapters use the native

@@ -176,6 +176,40 @@ describe("the MON3-compatible native compiler host", () => {
     }
   }, 30_000);
 
+  it("writes byte-identical banked NOBJ across source and empty banks", async () => {
+    const parts = [
+      {
+        name: "library/value.nu",
+        source:
+          "const lookup as u8[3] = [40, 41, 42]\nsub value() as u8\nreturn lookup[1]\nend\n",
+      },
+      {
+        name: "main.nu",
+        source:
+          '//% import "library/value.nu"\nvar answer as u8 = 1\nsub main()\nanswer = value() + answer\nend\n',
+      },
+    ];
+    const target = {
+      bankCount: 3,
+      entryBank: 2,
+      partBanks: [1, 2],
+      imageFill: 0xa5,
+    };
+    const [compatibility, native] = await Promise.all([
+      compile("mon3", parts, target),
+      compile("mon3", parts, target, false, true),
+    ]);
+    expect(native.result).toEqual(
+      expect.objectContaining({ success: compatibility.result.success }),
+    );
+    expect(native.bytes).toEqual(compatibility.bytes);
+    if (native.result.success && compatibility.result.success) {
+      expect(native.result.object).toEqual(compatibility.result.object);
+      expect(native.result.object.begin.bankCount).toBe(3);
+      expect(native.result.object.map.partBanks).toEqual([1, 2]);
+    }
+  }, 30_000);
+
   it("returns the same diagnostic and starts clean after a failed compile", async () => {
     await expectSameCompile([{ name: "bad.nu", source: "broken\n" }], {});
     await expectSameCompile(
