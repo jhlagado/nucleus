@@ -10,7 +10,7 @@ import { bundledRuntimeProvider } from "./runtime-catalog.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
 import { NativeRetainedNameStore, nativeRetainedNameByteCapacity, nativeRetainedNameEntryCapacity, } from "./native-retained-names.js";
 import { NodeNamedObjectServices, NucleusSystemStatus, } from "./object-services.js";
-import { serializeNucleusSourcePlan } from "./source-plan.js";
+import { runNativeImportResolver } from "./native-import-resolver.js";
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
@@ -244,10 +244,9 @@ const createNativeSourceObjects = (parts, prepared) => {
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-native-source-"));
     try {
         mkdirSync(path.join(root, ".nucleus"));
-        const plan = serializeNucleusSourcePlan(parts.map((part, index) => ({
-            bank: prepared.partBanks[index],
-            path: part.name,
-        })));
+        if (prepared.partBanks.some((bank) => bank !== 0)) {
+            throw new Error("native Z80 import resolution currently supports flat source plans");
+        }
         for (let index = 0; index < parts.length; index += 1) {
             const name = parts[index].name;
             if (name === ".nucleus" || name.startsWith(".nucleus/")) {
@@ -257,8 +256,16 @@ const createNativeSourceObjects = (parts, prepared) => {
             mkdirSync(path.dirname(destination), { recursive: true });
             writeFileSync(destination, prepared.bytes[index]);
         }
-        writeFileSync(path.join(root, ".nucleus", "source-plan.sp1"), plan);
-        return { root, services: new NodeNamedObjectServices(root) };
+        const services = new NodeNamedObjectServices(root);
+        const entry = parts.at(-1)?.name;
+        if (entry === undefined) {
+            throw new Error("native source resolution requires an entry part");
+        }
+        const resolved = runNativeImportResolver(services, entry);
+        if (!resolved.success) {
+            throw new Error(`native Z80 import resolution failed with status ${resolved.status}`);
+        }
+        return { root, services };
     }
     catch (error) {
         rmSync(root, { recursive: true, force: true });

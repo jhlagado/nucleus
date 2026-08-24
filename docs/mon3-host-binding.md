@@ -56,8 +56,10 @@ The MON3-compatible compiler image uses this Z80 layout:
 | Extent          | Use                                                             |
 | --------------- | --------------------------------------------------------------- |
 | `$4000..$43D5`  | compiler-host vector, gateway, source adapter, and launch shell |
+| `$4400..$4965`  | named-object source provider and common-service dispatcher      |
 | `$5800..$5818`  | 24 bytes of host workspace                                      |
 | `$5900..$5939`  | target, launch, and result descriptors                          |
+| `$5A00..$5C40`  | source-plan, refill, and retained-name provider workspace       |
 | `$5FFF`         | native-host return sentinel                                     |
 | `$6000..$7000`  | compiler workspace                                              |
 | `$7000..$7500`  | retained-token scratch                                          |
@@ -74,9 +76,17 @@ or the hardware ABI.
 Normal compiler core is 16,314 bytes and ends at `$BFBA`, leaving 70 bytes in
 the bank. The D8-instrumented host image is 16,380 bytes and ends at `$BFFC`,
 leaving four bytes. D8 hooks remain conditional: the normal native image does
-not pay their 66-byte cost. The MON3 gateway occupies 981 external Z80 code
-bytes and 24 host-workspace bytes. None of those external bytes is counted as
-compiler core.
+not pay their 66-byte cost. The compiler-host vector occupies 981 external Z80
+code bytes. The source provider and dispatcher add 1,381 external code bytes
+and use the separately listed host workspace. None of these bytes is counted
+as compiler core.
+
+The import resolver is a separate tool image. Its current proof image occupies
+`$8000..$8BCA`, including a temporary duplicate of the common object-client
+helpers, and uses bounded RAM below `$6D00`. A shell runs it first, selects the
+compiler bank second, and leaves only the committed SP1 object between those
+steps. The duplicate helpers are a refactoring target for the NOBJ-writer
+increment; they do not consume compiler-bank headroom.
 
 ## Compiler-adapter selectors
 

@@ -126,7 +126,7 @@ describe("the MON3-compatible native compiler host", () => {
       {
         name: "main.nu",
         source:
-          "var answer as u8\nsub main()\nanswer = value() + 1\nend\n",
+          '//% import "library/value.nu"\nvar answer as u8\nsub main()\nanswer = value() + 1\nend\n',
       },
     ];
     const [compatibility, native] = await Promise.all([

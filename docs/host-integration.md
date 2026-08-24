@@ -22,16 +22,17 @@ diagnostics retain source-part identity, byte offset, line, and byte column.
 The compiler adapter, NOBJ loader, and generated-program runtime vector sit
 over the one boundary defined by the
 [Z80 system-services architecture](z80-platform-services.md). Node is the
-implemented desktop provider. MON3 and TEC-FS are the intended native binding;
-their common object services and Z80 import resolver remain implementation
-work.
+implemented desktop provider. The package now includes a standalone Z80 import
+resolver and a Z80 SP1 source streamer. Both obtain stored bytes through
+named-object ABI 1. A MON3 and TEC-FS implementation of that ABI remains
+hardware work.
 
-The current Node project host performs import discovery and owns the IMAGE and
-PATCH spools. That arrangement is a desktop integration, not proof that the
-native Z80 development environment is complete. The native acceptance path
-must run the Z80 resolver, source streamer, compiler adapter, NOBJ writer, and
-loader while Node supplies only the external service effects beneath their
-gateway.
+The ordinary Node project host performs import discovery and owns the IMAGE and
+PATCH spools. The native-path proof instead runs the prebuilt Z80 resolver,
+commits SP1, and lets the Z80 source provider stream that plan into the
+compiler. Node supplies file effects beneath the object gateway; it does not
+parse directives or order dependencies in that path. The remaining native
+producer work is the Z80 IMAGE/PATCH spool and NOBJ writer.
 
 The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the
@@ -80,11 +81,12 @@ backend therefore rejects profiles with `bankCount > 1` before compilation.
 Standalone banked NOBJ and per-bank D8 production remain available; Debug80
 does not flatten those objects or invent a selected-bank policy.
 
-The package contains generated shipping and D8-instrumented compiler images.
-Each image is paired with the symbols from that exact assembly. The
-reproducible image gate assembles both layouts from checked AZM source and
-rejects stale embedded bytes or symbol maps. Node and Debug80 execute those
-Z80 images directly.
+The package contains generated shipping and D8-instrumented compiler images,
+the standalone import-resolver image, and the NOBJ consumer image. Each image
+is paired with symbols from the same assembly. The reproducible image gate
+assembles these layouts from checked AZM source and rejects stale embedded
+bytes or symbol maps. Runtime compilation and execution use the generated
+bytes and do not import AZM.
 
 The package also contains a generated catalogue of pre-linked target runtime
 images for its supported target profiles. A compiler session selects one of

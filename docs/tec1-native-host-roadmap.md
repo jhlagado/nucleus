@@ -38,17 +38,20 @@ Nucleus already supplies:
 - the 16 KiB streaming Z80 compiler and stable compiler adapter;
 - direct and MON3-compatible compiler transports;
 - the import convention and deterministic source ordering rules;
+- a 3,018-byte standalone Z80 import-resolver image that commits flat SP1;
+- a bounded Z80 SP1 reader, source streamer, and retained-name spool;
 - runtime revision 10 and a pre-resolved executable catalogue;
 - the append-only NOBJ producer;
 - the 2,425-byte one-read Z80 NOBJ consumer with 381 bytes of workspace;
 - the generated-program vector and service contracts; and
 - flat and banked Node execution through the same Z80 boundaries.
 
-The Node package supplies the working import resolver. The native Z80 import
-resolver, TEC-FS source streamer, common named-object provider, and TEC-FS NOBJ
-writer are not yet implemented. The MON3-compatible compiler proof supplies
-their effects from Node beneath the Z80 gateway; it does not count as the
-missing native implementation.
+The Node package supplies both the ordinary desktop resolver and a native-path
+proof. The latter runs the generated Z80 resolver and source streamer while
+Node implements only named-object effects below selector `$91`. The TEC-FS
+binding for those object calls and the Z80 NOBJ writer are not yet implemented.
+The current resolver emits flat bank-zero plans; native source-bank policy is a
+later input to the banked build path.
 
 `asm/vertical-slice/node-nobj-consumer.asm` is a Node reference image, not a
 ROM image to flash. Its loader and generated-program adapters use the native
@@ -149,10 +152,12 @@ not as a compiler or language limit.
 ## 5. Source resolver and stream
 
 The resolver belongs to the shell or Nucleus launcher, before compiler entry.
-It reads only the preserved `//% import` header directives, resolves paths
-through TEC-FS, detects missing files and cycles, includes each file once, and
-produces dependency order with the entry part last. Version 1 admits at most
-eight source parts because that is the compiler's published capacity.
+The implemented standalone image takes an entry-object name in `HL/B`, reads
+preserved `//% import` headers through named-object ABI 1, detects missing files
+and cycles, includes each canonical name once, and commits dependency order to
+`.nucleus/source-plan.sp1`. Version 1 admits at most eight source parts because
+that is the compiler's published capacity. A TEC-FS provider must supply a
+canonical object namespace or reject aliases.
 
 TECM8's 32-byte source records are a storage representation. The source
 provider must expose their logical bytes and LF line endings to the compiler;
@@ -238,6 +243,11 @@ Implement and prove these increments in order:
 Keep compiler core, compiler workspace, loader code, loader workspace, provider
 ROM, provider RAM, catalogue bytes, generated runtime, generated program, NOBJ
 storage, instructions, and T-states as separate accounts.
+
+Steps 1, 3, and the Node-backed proof of step 4 are complete. Step 2 is the
+next hardware-facing dependency. Step 5 is the next repository implementation
+increment and must reuse the object-client helpers already exercised by the
+resolver and source streamer.
 
 ## 10. CP/M compatibility
 

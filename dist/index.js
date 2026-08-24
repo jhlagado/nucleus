@@ -16,3 +16,4 @@ export * from "./source-identity.js";
 export * from "./source-imports.js";
 export * from "./source-manifest.js";
 export * from "./source-plan.js";
+export * from "./native-import-resolver.js";

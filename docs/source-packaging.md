@@ -8,12 +8,13 @@ retains its original bytes and has one stable path identity for diagnostics and
 D8 maps. Project sources use project-relative identities. Bundled library
 sources use the reserved `@nucleus/` prefix.
 
-The packaging layer turns stored source objects into that stream. On a native
-machine it is a Z80 resolver and source streamer. On the desktop it is the Node
-resolver. Both read import headers, resolve each physical source once, order
-dependencies before their users, and then supply the resulting parts to the
-compiler. Dependency discovery does not add a language declaration or a
-compiler pass.
+The packaging layer turns stored source objects into that stream. A native
+machine runs the Z80 resolver and source streamer. The ordinary desktop path
+uses the Node resolver; the native-path proof runs the same prebuilt Z80 tools
+through Debug80 Runtime. Each path reads import headers, includes one object
+for each canonical source identity, orders dependencies before their users,
+and supplies the resulting parts to the compiler. Dependency discovery does
+not add a language declaration or a compiler pass.
 
 The resolver uses the common named-object services defined by the
 [Z80 system-services architecture](z80-platform-services.md). It may retain a
@@ -59,7 +60,9 @@ therefore provide a deliberate local replacement, while an import such as
 `..` is accepted only when normalization remains inside the source's own root.
 Project and standard-library roots are checked independently. Absolute paths,
 root escapes, symbolic-link escapes, missing files, and two logical paths
-naming the same physical file are configuration errors.
+naming the same physical file are configuration errors. A native named-object
+provider must therefore expose a canonical namespace or reject aliases; the
+resolver deduplicates canonical names and does not inspect directory metadata.
 
 ## Dependency order
 
@@ -147,8 +150,7 @@ therefore omits `partBanks`; specifying both forms is an error.
 
 ## SP1 source plans
 
-The Node host can serialize the resolved order as a compact line-oriented SP1
-plan for a filesystem-aware Z80 host:
+The resolver commits the resolved order as a compact line-oriented SP1 plan:
 
 ```text
 SP1 3
@@ -163,8 +165,14 @@ ordinal, path-byte length, and printable ASCII source identity. `END` and the
 declared counts detect a truncated plan. Flat plans use bank zero.
 
 SP1 contains no source bytes, target origins, service addresses, or conditional
-logic. It is an optional serialization of an order that has already been
-resolved. A native source streamer may read the plan, open each named source,
-and supply the same ordered events used by the Node host. A fully native build
-instead runs the Z80 import resolver first and may retain the equivalent plan
-in memory or a small work object. The Nucleus compiler parses neither form.
+logic. The standalone Z80 resolver reads one entry-source name, traverses
+imports in depth-first postorder, and commits `.nucleus/source-plan.sp1`
+through named-object ABI 1. The Z80 source streamer then reopens each named
+source and supplies bounded chunks to the compiler. The resolver and compiler
+run as separate tool images, so neither program must coexist with the other in
+the Z80 address space.
+
+The implemented native resolver emits flat plans with bank zero. Source-bank
+assignment remains in the desktop project host until a native bank-assignment
+input is specified. The Nucleus compiler parses neither import directives nor
+SP1.
