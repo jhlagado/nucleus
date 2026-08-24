@@ -1,6 +1,6 @@
 # Nucleus source packaging
 
-## Compiler boundary
+## Packaging boundary
 
 The Nucleus compiler receives an ordered stream of source parts. It has no
 filesystem interface and does not search for dependencies. Each source part
@@ -8,10 +8,18 @@ retains its original bytes and has one stable path identity for diagnostics and
 D8 maps. Project sources use project-relative identities. Bundled library
 sources use the reserved `@nucleus/` prefix.
 
-The host turns files into that stream. It reads import headers, resolves each
-physical file once, orders dependencies before their users, and then supplies
-the resulting parts to the compiler. Dependency discovery does not add a
-language declaration or a compiler pass.
+The packaging layer turns stored source objects into that stream. On a native
+machine it is a Z80 resolver and source streamer. On the desktop it is the Node
+resolver. Both read import headers, resolve each physical source once, order
+dependencies before their users, and then supply the resulting parts to the
+compiler. Dependency discovery does not add a language declaration or a
+compiler pass.
+
+The resolver uses the common named-object services defined by the
+[Z80 system-services architecture](z80-platform-services.md). It may retain a
+bounded dependency plan, but it does not concatenate every source byte in RAM.
+After discovery, the source streamer reopens each ordered part and transfers
+bounded chunks to the compiler.
 
 ## Import headers
 
@@ -155,6 +163,8 @@ ordinal, path-byte length, and printable ASCII source identity. `END` and the
 declared counts detect a truncated plan. Flat plans use bank zero.
 
 SP1 contains no source bytes, target origins, service addresses, or conditional
-logic. A native resolver reads the plan, opens each named file, and supplies
-the same ordered source events used by the Node host. The Nucleus compiler does
-not parse SP1.
+logic. It is an optional serialization of an order that has already been
+resolved. A native source streamer may read the plan, open each named source,
+and supply the same ordered events used by the Node host. A fully native build
+instead runs the Z80 import resolver first and may retain the equivalent plan
+in memory or a small work object. The Nucleus compiler parses neither form.

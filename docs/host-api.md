@@ -7,7 +7,7 @@ standalone Nucleus 0.1 compiler package. The language specification governs
 source syntax and meaning. The target-system specification governs target
 layout. This interface transports those inputs to the authoritative Z80
 compiler and returns its committed artifacts.
-The [Z80 Platform Services Architecture](z80-platform-services.md) defines the
+The [Z80 system-services architecture](z80-platform-services.md) defines the
 common operating boundary exercised by the Node and MON3 transports.
 
 Host API 1 does not expose compiler workspace addresses, trace collection or
@@ -212,6 +212,11 @@ The compiler still receives only ordered source parts; it neither parses the
 project file nor accesses the filesystem. [Nucleus source packaging](source-packaging.md)
 defines the complete host convention.
 
+These functions are the working desktop resolver. They do not replace the Z80
+resolver required by the native development environment. A native-path proof
+runs that Z80 resolver and source streamer against the common named-object
+services; Node may provide the external file effects beneath the gateway.
+
 `buildNucleusProject()` accepts the same optional `hostTransport` choice as the
 compiler object. Transport selection is an execution-host concern, so it is not
 stored in the portable project file.
@@ -237,6 +242,10 @@ resident compatibility images generated from the checked AZM source.
 `npm run check:compiler-images` assembles both layouts afresh and rejects stale
 embedded bytes or symbol maps. AZM remains the build-time authority; the Node
 package and Debug80 execute the generated Z80 images directly.
+
+Normal compiler objects, project builds, NOBJ loading, and NOBJ execution do
+not import AZM. AZM-backed assembly helpers are test and package-generation
+code and must not be reachable through the published runtime module graph.
 
 The repository retains `dist` so a commit-pinned Git dependency can run without
 assembling the compiler during npm's isolated Git preparation. The

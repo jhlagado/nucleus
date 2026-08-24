@@ -16,9 +16,13 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`nucleus-object-format.md`](nucleus-object-format.md) governs the binary
   append-only object stream, patch records, integrity check, and commit.
 - [`z80-runtime-contract.md`](z80-runtime-contract.md) governs packed representation, generated-code integrity, services, traps, and direct Z80 execution; the language specification remains authoritative for source-language meaning.
-- [`z80-platform-services.md`](z80-platform-services.md) governs the single Z80
-  platform-services boundary shared by the compiler adapter, NOBJ loader, and
-  generated-program runtime vector.
+- [`z80-platform-services.md`](z80-platform-services.md) defines the native-first
+  system-services architecture shared by the Z80 resolver, compiler adapter,
+  NOBJ writer, loader, and generated program, with separate MON3, CP/M, and Node
+  bindings.
+- [`z80-platform-services-abi.md`](z80-platform-services-abi.md) records the
+  current MON3 selector binding and its transition to the common object
+  services.
 - [`native-z80-host-contract.md`](native-z80-host-contract.md) defines the
   compiler and NOBJ-loader adapter ABIs over that common platform boundary.
 - [`mon3-host-binding.md`](mon3-host-binding.md) records the implemented

@@ -9,7 +9,7 @@
 This document defines the client adapters used by the Z80 Nucleus compiler and
 the Z80 NOBJ loader. Both adapters terminate at the one platform-services layer
 defined by the
-[Z80 Platform Services Architecture](z80-platform-services.md). This document
+[Z80 system-services architecture](z80-platform-services.md). This document
 does not define Nucleus source syntax or generated-program services.
 
 The [language specification](specification.md) governs source meaning. The

@@ -1,6 +1,6 @@
-# Nucleus Z80 Platform Services ABI 0.1
+# MON3 binding for Nucleus system services ABI 1
 
-- Status: Stage 1 allocation and client contract
+- Status: implemented compiler binding; native storage provider incomplete
 - ABI version: 1
 - Audit date: 2026-08-23
 - Nucleus revision: `b725dbaa44b3eba4b7a5a714c3f86f916e3eedb6`
@@ -9,10 +9,15 @@
 
 ## 1. Scope
 
-This document allocates the MON3 `RST 10h` selectors used by Nucleus and
-defines the contract at that boundary. It does not replace the compiler,
-loader, or generated-runtime vector contracts. Their adapters translate to
-this ABI.
+This document allocates the MON3 `RST 10h` selectors currently used by Nucleus
+and defines the TEC-1G binding at that boundary. It is not the
+platform-independent system-services architecture. That architecture is
+defined in [Nucleus Z80 system services](z80-platform-services.md).
+
+The compiler, loader, and generated-program vectors are compatibility client
+interfaces. Their adapters translate to the common service meanings and then
+to this binding. A CP/M implementation preserves the common meanings but need
+not reproduce these selector numbers, MON3 register damage, or `RST 10h`.
 
 The selector is always in `C`. Unless an entry below says otherwise, carry
 clear means success, carry set means failure with a nonzero platform status in
@@ -56,9 +61,9 @@ identity query. Far control uses the fixed entries in Section 6.
 |    `$69` | `NUCLEUS_REWIND_STORAGE` | none                                                          | `A=0`                    | `BC,DE,HL,IX,IY`            | storage status         |
 |    `$6A` | `NUCLEUS_WRITE_STORAGE`  | `A=byte`                                                      | `A=0`                    | `BC,DE,HL,IX,IY`            | storage status         |
 |    `$6B` | `NUCLEUS_SEEK_STORAGE`   | `HL=offset`                                                   | `A=0`                    | `BC,DE,HL,IX,IY`            | storage status         |
-|    `$6C` | `NUCLEUS_EXIT_SUCCESS`   | exit record in fixed RAM                                      | does not return          | —                           | —                      |
-|    `$6D` | `NUCLEUS_EXIT_FAILURE`   | failure record in fixed RAM                                   | does not return          | —                           | —                      |
-|    `$6E` | `NUCLEUS_EXIT_TRAP`      | trap record in fixed RAM                                      | does not return          | —                           | —                      |
+|    `$6C` | `NUCLEUS_EXIT_SUCCESS`   | exit record in fixed RAM                                      | does not return          | n/a                         | n/a                    |
+|    `$6D` | `NUCLEUS_EXIT_FAILURE`   | failure record in fixed RAM                                   | does not return          | n/a                         | n/a                    |
+|    `$6E` | `NUCLEUS_EXIT_TRAP`      | trap record in fixed RAM                                      | does not return          | n/a                         | n/a                    |
 |    `$6F` | `NUCLEUS_PACKET`         | `A=slot`, `HL=packet`, original `BC=count` in adapter mailbox | `A=0`                    | `IX,IY`, caller bank, stack | platform packet status |
 
 Capability bits returned in `DE` are: bit 0 execution, bit 1 sequential
@@ -87,7 +92,7 @@ transport is differential evidence and does not claim ABI version 1. The
 current TECM8 ROM still predates the complete dispatcher; the native provider
 must pass the Stage 7 acceptance tests before it claims `$000F`.
 
-## 4. Compiler/development entries
+## 4. Compiler compatibility entries
 
 Selectors `$70..$7F` retain the existing meanings and contracts in
 `asm/vertical-slice/mon3-host-services.asmi`: source-next, retain-name,
@@ -95,9 +100,17 @@ compare-name, materialize-name, target-begin, image-byte, runtime-image,
 runtime-initial-image, patch-byte, patch-word, map-flat, map-banked, commit,
 abort, launch-begin, and launch-end, in that order.
 
-This is a high-level adapter boundary. It is deliberately not decomposed into
-generic filesystem calls. The provider may use TEC-FS internally, but the
-compiler never receives a path or handle.
+This is a high-level compatibility boundary for the existing 16 KiB compiler.
+It is not a second filesystem interface. The source resolver, source streamer,
+runtime-catalogue provider, and NOBJ writer implement these entries with the
+common named-object and sequential-storage services. The compiler itself never
+receives a path or handle.
+
+The current Node provider implements the high-level entries directly. The
+native increment must factor their storage effects through the common object
+operations before claiming a complete TEC-1G development profile. New Z80
+tools, including the native import resolver, call the common object operations
+instead of adding more compiler-specific selectors.
 
 Calls whose client contract uses `BC` save it in `NativeHostMon3InputBC`
 before loading the selector. Entries documented as preserving `IX/IY` must do
@@ -172,7 +185,7 @@ the current prototypes as a completed filesystem ABI.
 
 EOF is distinct from all byte values. A failed read does not advance its
 cursor. A failed write, seek, commit, or publication does not claim success;
-the client-specific contract decides whether tentative bytes may remain.
+the client-specific contract defines whether tentative bytes may remain.
 Compiler generations publish only after commit. Loader failure may leave an
 unpublished target dirty but may not enter it. PATCH application is ordered and
 the last serialized write wins.

@@ -14,7 +14,7 @@ representation, generated-code integrity, runtime vectors, and the private Z80
 ABI. The [Nucleus Object Stream Format](nucleus-object-format.md) governs the
 binary records used to publish and materialize the resulting object. This
 document governs the boundary between those authorities and a target adapter.
-The [Z80 Platform Services Architecture](z80-platform-services.md) governs the
+The [Z80 system-services architecture](z80-platform-services.md) governs the
 one platform layer beneath the compiler, loader, and generated-program
 adapters.
 

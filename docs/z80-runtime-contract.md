@@ -37,13 +37,12 @@ The [Nucleus Object Stream Format](nucleus-object-format.md) governs the binary
 record tags, framing, payloads, patch order, integrity check, and terminal
 commit used to publish that representation.
 
-The [Z80 Platform Services Architecture](z80-platform-services.md) governs the
+The [Z80 system-services architecture](z80-platform-services.md) governs the
 one platform layer beneath the generated-program runtime vector, compiler
 adapter, and NOBJ-loader adapter.
 
-The [Z80 Platform Services ABI](z80-platform-services-abi.md) governs the
-versioned MON3 selector allocation and its register, failure, bank, and stack
-contracts.
+The [MON3 system-services binding](z80-platform-services-abi.md) governs its
+versioned selector allocation and register, failure, bank, and stack contracts.
 
 The implementation plan and reviewer's charter are non-normative. Tests,
 proofs, and measurements provide evidence; they do not amend either authority.

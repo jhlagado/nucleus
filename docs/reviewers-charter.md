@@ -34,7 +34,7 @@ Apply the following authority order:
 4. The [Nucleus Z80 Runtime and Backend Contract](z80-runtime-contract.md)
    governs packed representation, direct-code integrity, runtime services,
    trap records, and direct Z80 execution.
-5. The [Nucleus Z80 Platform Services Architecture](z80-platform-services.md)
+5. The [Nucleus Z80 system-services architecture](z80-platform-services.md)
    governs the one platform boundary beneath the compiler, loader, and
    generated-program adapters.
 6. [Nucleus Host API 1](host-api.md) governs the public Node API, project and

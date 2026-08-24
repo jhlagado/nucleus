@@ -44,6 +44,12 @@ Nucleus already supplies:
 - the generated-program vector and service contracts; and
 - flat and banked Node execution through the same Z80 boundaries.
 
+The Node package supplies the working import resolver. The native Z80 import
+resolver, TEC-FS source streamer, common named-object provider, and TEC-FS NOBJ
+writer are not yet implemented. The MON3-compatible compiler proof supplies
+their effects from Node beneath the Z80 gateway; it does not count as the
+missing native implementation.
+
 `asm/vertical-slice/node-nobj-consumer.asm` is a Node reference image, not a
 ROM image to flash. Its loader and generated-program adapters use the native
 `RST 10h` selector ABI, but the file also installs a three-byte emulator shim
@@ -102,11 +108,21 @@ is low RAM starting at `$1800`, after the current MON3 display workspace and
 before TECM8's `$3B00` parameter area. Exact addresses remain a TECM8 memory-map
 decision and require the normal overlap proof.
 
-## 4. Storage work required in TEC-FS
+## 4. Common storage services over TEC-FS
 
 Do not solve this by materializing the complete source unit, compiler output,
 or target image in RAM. Add a bounded sequential work-file facility beneath
-the Nucleus provider.
+the Nucleus provider. It implements the same named-object and chunk-transfer
+contract used by a later CP/M binding:
+
+```text
+openRead, beginWrite, read, write, rewind, seek, close, commit, abort
+```
+
+The TEC-FS binding maps those operations to catalogue entries, records, and
+fixed work slots. The resolver, compiler adapter, NOBJ writer, and loader all
+use this one facility. Compiler selectors `$70..$7F` remain compatibility
+entries above it; they are not another storage API.
 
 One compilation generation needs:
 
@@ -151,13 +167,17 @@ does not receive paths or parse import directives.
 
 ## 6. Compiler provider
 
-Bind selectors `$70..$7F` to the existing compiler adapter contracts. The
-provider owns source refills, retained names, the two spools, runtime-catalogue
-selection, MAP/COMMIT serialization, and generation reset.
+Bind selectors `$70..$7F` to the existing compiler adapter contracts. Their
+implementation uses the common object services from Section 4. The source
+streamer owns source refills and retained identities; the NOBJ writer owns the
+two spools, MAP/COMMIT serialization, and generation reset; the catalogue
+provider owns exact runtime selection. These components share a platform
+binding but retain separate state.
 
 Store the one native runtime catalogue entry in ROM beside the host tool or in
 another immutable bank. Compilation performs an exact lookup and copies bytes;
-it does not run AZM, link, or relocate the runtime.
+it does not run AZM, link, or relocate the runtime. AZM is used only while
+constructing and verifying the release image on a development system.
 
 After a successful compile, close the source and spool cursors before returning
 to the shell. After any diagnostic, storage failure, operator cancellation, or
@@ -204,15 +224,16 @@ formatting remain imported Nucleus library source.
 
 Implement and prove these increments in order:
 
-1. preallocated sequential TEC-FS work files larger than 512 bytes;
-2. one source-file byte stream, exact EOF, and diagnostic identity;
-3. import resolution for two files and then the eight-part boundary;
-4. compiler IMAGE/PATCH spools and committed NOBJ publication;
-5. runtime-catalogue selection for the `$4000/$6000/$7000` profile;
-6. the flat consumer loading and rejecting corrupt NOBJ without entry;
-7. the `$7000` execution adapter with console success, failure, and trap;
-8. the imported `Total: 42` program from TEC-FS to console output; and
-9. failure followed by a clean compile/load/run on the same system.
+1. common named-object and chunk-transfer calls over a narrow Node provider;
+2. the same calls over preallocated TEC-FS work files larger than 512 bytes;
+3. one source-file byte stream, exact EOF, and diagnostic identity;
+4. native import resolution for two files and then the eight-part boundary;
+5. compiler IMAGE/PATCH spools and committed NOBJ publication;
+6. runtime-catalogue selection for the `$4000/$6000/$7000` profile;
+7. the flat consumer loading and rejecting corrupt NOBJ without entry;
+8. the `$7000` execution adapter with console success, failure, and trap;
+9. the imported `Total: 42` program from TEC-FS to console output; and
+10. failure followed by a clean compile/load/run on the same system.
 
 Keep compiler core, compiler workspace, loader code, loader workspace, provider
 ROM, provider RAM, catalogue bytes, generated runtime, generated program, NOBJ
@@ -220,14 +241,16 @@ storage, instructions, and T-states as separate accounts.
 
 ## 10. CP/M compatibility
 
-No CP/M implementation is required for this milestone. Preserve the path by
-keeping all filesystem and terminal choices beneath the platform ABI.
+No CP/M implementation is required for this milestone. The common service
+contract must nevertheless permit a real CP/M implementation without changing
+the resolver, source streamer, compiler, NOBJ writer, or flat loader.
 
-A later CP/M host can map sequential storage and console bytes to BDOS, keep
-NOBJ on disk, exit the compiler before loading the target, and assemble the
-same consumer source at a TPA-compatible address. Its first profile should also
-be flat and loaded. It does not need MON3 selectors, TEC-FS records, or bank
-control, and none of those details may enter the compiler or NOBJ format.
+A later CP/M binding maps names and handles to FCBs, chunk transfers to buffered
+BDOS records, console bytes to BDOS, and terminal control to CP/M. It keeps NOBJ
+on disk, exits the compiler before loading the target, and assembles the same
+consumer source at a TPA-compatible address. Its first profile is flat and
+loaded. It does not need MON3 selectors, TEC-FS records, bank control, Node, or
+AZM in its compile-and-run path.
 
 ## 11. Explicit non-goals
 

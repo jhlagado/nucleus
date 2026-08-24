@@ -2,11 +2,14 @@
 
 ## Proven paths
 
-Nucleus uses the single platform boundary defined by the
-[Z80 Platform Services Architecture](z80-platform-services.md). The compiler,
+Nucleus uses the common boundary defined by the
+[Z80 system-services architecture](z80-platform-services.md). The compiler,
 NOBJ loader, and generated programs retain separate client adapters because
 their register contracts differ. Each adapter ultimately reaches the same
 MON3-compatible `RST 10h` dispatcher, with the service selector in `C`.
+
+This file defines one platform binding. It does not define the common storage
+model or make `RST 10h` a requirement for CP/M or another Z80 system.
 
 The implemented MON3 slice proves the compiler adapter. The production Node
 runner now drives the Z80 NOBJ consumer and generated-program vector through

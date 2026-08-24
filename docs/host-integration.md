@@ -21,8 +21,17 @@ classifies configuration, source, and execution failures. Exact compiler
 diagnostics retain source-part identity, byte offset, line, and byte column.
 The compiler adapter, NOBJ loader, and generated-program runtime vector sit
 over the one boundary defined by the
-[Z80 Platform Services Architecture](z80-platform-services.md). Node is one
-provider for that boundary; MON3 and TEC-FS provide the native implementation.
+[Z80 system-services architecture](z80-platform-services.md). Node is the
+implemented desktop provider. MON3 and TEC-FS are the intended native binding;
+their common object services and Z80 import resolver remain implementation
+work.
+
+The current Node project host performs import discovery and owns the IMAGE and
+PATCH spools. That arrangement is a desktop integration, not proof that the
+native Z80 development environment is complete. The native acceptance path
+must run the Z80 resolver, source streamer, compiler adapter, NOBJ writer, and
+loader while Node supplies only the external service effects beneath their
+gateway.
 
 The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the
@@ -84,6 +93,11 @@ bounds as initial writable bytes. It does not invoke AZM. AZM remains an
 offline build authority: the generation gate rebuilds the catalogue from the
 runtime source and rejects stale entries. A custom placement must provide a
 compatible `RuntimeImageProvider` prepared before compilation.
+
+No normal build or run operation imports AZM. AZM belongs to package generation
+and proof support. Assembly helpers must remain outside the published runtime
+module graph so an installed Node package, a TEC-1G installation, and a CP/M
+installation all consume the same prebuilt compiler and catalogue boundary.
 
 `@jhlagado/debug80-runtime` is an operationally required peer. During local
 development it is supplied by the linked Debug80 package; the optional npm

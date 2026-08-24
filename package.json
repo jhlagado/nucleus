@@ -39,6 +39,7 @@
   "scripts": {
     "check:azm-toolchain": "node scripts/check-azm-toolchain.mjs",
     "check:compiler-relocation": "vitest run test/compiler-relocation.test.ts --reporter=verbose",
+    "check:runtime-boundary": "node scripts/check-runtime-boundary.mjs",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "prebuild": "npm run generate:compiler-images",
@@ -47,7 +48,7 @@
     "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run check:runtime-boundary"
   },
   "dependencies": {},
   "peerDependencies": {

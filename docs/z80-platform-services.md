@@ -1,298 +1,393 @@
-# Nucleus Z80 Platform Services Architecture 0.1
+# Nucleus Z80 system-services architecture
 
-- Status: settled architecture; Node reference path implemented
-- Applies to: native and emulated Z80 deployments
-- Last reviewed: 2026-08-24
+- Architecture status: settled
+- Register-level implementation: platform ABI 1 in transition
+- Applies to: native and emulated Z80 development and execution
+- Last reviewed: 2026-08-25
 
 ## 1. Purpose
 
-Nucleus uses one platform-services layer on a Z80 system. The compiler, NOBJ
-loader, and generated programs are different clients of that layer. They do not
-require separate operating environments.
+Nucleus is intended to compile and run on a Z80 without depending on Node,
+Debug80, AZM, or a particular monitor. The complete native environment contains
+Z80 components for import resolution, source streaming, compilation, NOBJ
+writing, NOBJ loading, and generated-program execution. Each component obtains
+machine and operating-system facilities through one system-services layer.
 
-The [native Z80 adapter contract](native-z80-host-contract.md) defines the
-register-level interfaces presented to the compiler and NOBJ loader. The
-[runtime and backend contract](z80-runtime-contract.md) defines the vector
-presented to generated programs. This document defines the common platform
-boundary beneath those adapters.
+The compiler is one client of that layer. It is not the layer itself, and it
+does not require a private filesystem architecture. A Z80 resolver that opens
+source files, a Z80 NOBJ writer that commits an object, and a generated program
+that writes to the console ultimately use the same storage and console
+facilities.
 
-The [Z80 Platform Services ABI](z80-platform-services-abi.md) allocates the
-MON3 selectors and fixes the register, failure, bank, and stack contracts at
-that boundary.
+This document defines that common architecture. The
+[native Z80 adapter contract](native-z80-host-contract.md) defines the existing
+interfaces presented to the compiler and NOBJ loader. The
+[runtime contract](z80-runtime-contract.md) defines the interface presented to
+generated programs. The [MON3 binding](mon3-host-binding.md) maps the common
+services to TEC-1G firmware. A later CP/M binding maps them to BDOS.
 
-The reference call path is:
+## 2. Terms and boundaries
+
+The following terms have distinct meanings.
+
+- A **system service** is a platform-independent operation available to Z80
+  clients, such as reading a console byte, reading from an open object, or
+  committing tentative output.
+- A **client interface** is the call shape already used by one component. The
+  compiler-host vector and generated-program vector are client interfaces.
+- A **client adapter** translates a client interface into system-service calls.
+- A **platform binding** translates system-service calls into MON3, TEC-FS,
+  CP/M BDOS, Node, or another implementation.
+- A **provider** performs the external effect beneath a platform binding.
+
+Client interfaces may differ because existing code already calls them and
+because the compiler's 16 KiB limit makes call-site bytes important. Those
+differences do not justify separate console, storage, or target-control
+systems. New Z80 components call the common system services directly unless a
+measured compatibility constraint requires an adapter.
+
+## 3. Complete native path
+
+A self-contained Z80 development system performs this sequence:
 
 ```text
-Nucleus compiler ---- compiler adapter ---\
-                                          \
-NOBJ loader -------- loader adapter --------> Z80 platform services
-                                          /             |
-Generated program -- runtime vector -----/              +-- MON3 and TEC-FS
-                                                        +-- Node providers
-                                                        +-- CP/M adapter
+entry source name
+  -> Z80 import resolver
+  -> ordered source-part plan
+  -> Z80 source streamer
+  -> Z80 compiler
+  -> Z80 NOBJ writer
+  -> committed NOBJ object
+  -> Z80 NOBJ loader
+  -> generated program
 ```
 
-The adapters preserve their own register, flag, stack, and failure contracts.
-They translate those contracts to one platform implementation. An adapter is
-not another service layer.
+The resolver and NOBJ writer are part of the development environment. The
+16 KiB compiler core remains filesystem-unaware, but the complete system does
+not. The resolver must open named source objects, and the NOBJ writer must
+create, write, commit, and abort stored objects.
 
-On a TEC-family machine, MON3 and TEC-FS implement the platform services. In
-the Node reference environment, the same Z80 adapters run under Debug80 and
-Node implements the operations beneath them. A difference in provider does not
-change compiler code, generated code, source semantics, or NOBJ.
+The source streamer does not concatenate the complete program in RAM. After
+dependency discovery, it reopens each source part in dependency order and
+supplies bounded chunks. The compiler reads each source byte once and emits
+logical IMAGE, PATCH, MAP, COMMIT, and ABORT operations. The NOBJ writer stores
+those operations without materialising the generated target image.
 
-## 2. Whole-program construction
+## 4. Common system services
 
-Nucleus has no source-language linker. The source resolver reads `//% import`
-headers, discovers each dependency once, orders the source parts, and streams
-that ordered unit to the compiler. Every imported declaration and routine is
-compiled as part of the program. Nucleus 0.1 performs no dead-code elimination.
+The common layer is divided by capability. A deployment reports the groups it
+implements. A client checks its required groups before beginning work.
 
-Standard-library routines such as `printLine`, `readLine`, and integer
-formatters are ordinary imported Nucleus source. They are not platform
-services. Their lowest-level operations call the generated-program runtime
-vector, which then reaches the platform.
+### 4.1 Identity and capabilities
 
-NOBJ `PATCH` records also do not constitute linking. The compiler has already
-calculated every replacement byte. The loader writes `IMAGE` bytes to their
-destination and applies `PATCH` bytes in serialized order as part of loading.
-It resolves no name, type, branch kind, library, or relocation expression.
+Every binding reports:
 
-## 3. Target runtime images
+- the system-services ABI revision;
+- implemented capability groups;
+- service availability; and
+- any deployment capacity that the client must check before an operation.
 
-The target runtime contains compiler-selected Z80 helpers, the generated-
-program service adapter, trap support, and fixed initial runtime state. It does
-not contain imported Nucleus libraries.
+An unavailable operation returns a defined status. It never jumps to
+uninitialised memory or silently substitutes another operation.
 
-A compilation selects a complete, pre-resolved runtime image from a catalogue.
-Runtime ABI revision 10 makes the executable bytes depend on three placement
-values: runtime base, writable-state base, and packet-service destination. The
-executable lookup key therefore contains those values and the runtime ABI
-revision. The selected entry records its exact length and helper offsets.
+### 4.2 Console and terminal control
 
-The complete placement context is still validated. The provider builds the
-initial writable image for this particular program: it writes the twelve
-service vectors, directs the packet vector through the selected runtime's
-gateway, initializes runtime state, and records the program-data base and
-capacity. Changing an ordinary vector destination or a program's data extent
-does not require another copy of the executable runtime bytes.
-
-The provider verifies an exact catalog match and appends the selected bytes as
-ordinary NOBJ `IMAGE` records. It does not assemble, link, or relocate the
-runtime during compilation. No runtime binding occurs while loading or running
-the program. An unsupported placement context produces a target-configuration
-failure.
-
-An offline release process may use AZM to build catalog entries. That process
-is not part of the compiler session, the NOBJ protocol, the loader, or the Z80
-platform-services ABI. A fixed TEC-1 target can therefore ship one catalog
-entry; a host that supports several exact target profiles can ship several.
-
-Existing implementation names such as `runtimeImage` describe the operation
-that appends a selected image. They do not authorize an operating-layer linker.
-Names containing `LinkContext` are legacy implementation names for the runtime
-placement context and should be replaced during the implementation increment.
-
-## 4. Platform capabilities
-
-The platform ABI is divided into capability groups. One versioned dispatcher
-may expose all groups. A deployment profile states which groups are present.
-
-### 4.1 Execution
-
-The execution group is sufficient for an ordinary console program:
+The execution group provides:
 
 - read one byte from standard input;
 - write one byte to standard output;
 - terminate successfully;
-- report an unhandled recoverable failure;
-- report a Nucleus trap; and
+- terminate with an unhandled recoverable failure;
+- terminate with a Nucleus trap; and
 - enter an operator-break path when the platform provides one.
 
-The first two operations are the only console primitives required by the
-standard library. Line handling, string traversal, number formatting, and
-error propagation remain Nucleus source.
+Line editing, string traversal, number formatting, and standard-library
+routines remain Nucleus source. The system layer transfers bytes and terminal
+results.
 
-### 4.2 Sequential storage
+### 4.3 Named object and sequential storage
 
-The storage group supports source packaging, compiler output, object loading,
-and source programs that explicitly use storage:
+The storage group provides one common object model for source files, work
+spools, NOBJ files, runtime-catalogue entries, and program-selected storage.
+Its logical operations are:
 
-- open a named input object;
-- read its next byte or bounded chunk, with EOF distinct from every byte value;
-- close the input object;
-- create a tentative output generation;
-- append bytes to that generation;
-- commit the complete generation;
-- abort the tentative generation; and
-- seek or rewind only where the selected client contract requires it.
+```text
+openRead(name) -> handle
+beginWrite(name) -> tentative handle
+read(handle, destination, capacity) -> count or EOF
+write(handle, source, count)
+rewind(handle)
+seek(handle, offset)
+close(handle)
+commit(handle)
+abort(handle)
+```
 
-The compiler adapter uses these operations to supply ordered source parts and
-to maintain separate IMAGE and PATCH spools. The NOBJ loader uses them to read
-one committed object. A source program receives only the storage operations
-declared by the generated-program service vector; it does not inherit compiler
-file handles or filesystem names.
+A handle is an opaque bounded value owned by the provider. A name is a bounded
+byte string supplied by the resolver, shell, or loader. The compiler core never
+receives a path or handle merely because the common layer supports them.
 
-### 4.3 Target control
+`read` and `write` transfer bounded chunks. A byte-oriented client may keep a
+small local buffer over those operations. TEC-FS records, CP/M DMA records,
+Node file descriptors, sectors, allocation blocks, and directory structures
+remain inside their platform bindings.
 
-The target-control group supports loading and banked execution:
+Tentative output becomes visible only after `commit`. `abort` releases the
+tentative generation without replacing the preceding committed object. A
+platform with weaker filesystem primitives may implement this with fixed work
+files, publish-length-last, or a bounded copy at commit; it must preserve the
+observable generation rule.
 
-- select a physical target bank from a validated logical bank binding;
-- publish a validated target generation and entry pair;
-- enter the published bank and address;
+### 4.4 Runtime catalogue
+
+Compilation selects an exact pre-resolved runtime image by ABI identity and
+placement context. The selected bytes may reside in ROM, a file, or another
+immutable object. The system layer returns or streams an existing entry. It
+does not assemble, link, or relocate a runtime during compilation.
+
+A fixed TEC-1G installation may contain one catalogue entry beside the host
+tool. A CP/M installation may keep a catalogue file. A desktop package may
+embed several generated entries. The lookup and storage differ; the bytes and
+identity checks do not.
+
+### 4.5 Target control
+
+The target-control group provides:
+
+- select a validated physical target bank;
+- publish a validated loaded generation and entry pair;
+- enter the published program;
 - perform a far call; and
 - perform a far jump.
 
-After selecting a bank, the NOBJ loader writes target memory directly. The
-platform does not need a service for every deposited byte or patch. Loader
-code, workspace, storage state, and stack must remain visible across bank
-selection.
+The loader deposits IMAGE bytes and applies PATCH bytes directly to the target
+destination. The system layer does not need a service call for every deposited
+byte when the destination is locally writable.
 
-### 4.4 Development support
+## 5. Common machine-call discipline
 
-The development group contains state required specifically by the streaming
-compiler adapter:
+The common Z80 ABI uses a numbered service gateway. A platform binding supplies
+one callable gateway to each client image. Platform ABI 1 places the selector
+in `C`. Existing compiler wrappers preserve a conflicting `BC` value in a
+private mailbox. The converged object-service calls will instead use bounded
+request blocks, so `BC` has no second meaning at the common boundary.
 
-- supply ordered source-part events and bounded chunks;
-- retain, compare, and temporarily materialize exact source names;
-- begin, append to, commit, and abort an NOBJ generation; and
-- select and append an exact pre-resolved runtime catalog entry.
+Unless an operation states otherwise:
 
-These are adapter operations rather than general source-program services. A
-native adapter may implement retained names and NOBJ spools with TEC-FS; the
-Node adapter may implement them with host memory and files. Both implementations
-present the same adapter contract to the compiler.
+- carry clear reports success;
+- carry set reports failure with a nonzero platform status in `A`;
+- `IX` and `IY` are preserved;
+- `SP` returns to its entry value;
+- the selected bank is unchanged; and
+- a failed operation publishes none of that operation's logical effect.
 
-## 5. Deployment profiles
+Request blocks and transfer buffers remain valid for the synchronous duration
+of the call. A banked provider may require them to occupy always-visible RAM.
+The provider does not retain their addresses after return.
 
-Three profiles define useful subsets of the one ABI.
+The gateway transport is a platform-binding detail:
 
-| Profile     | Required capability groups                                             | Purpose                                        |
-| ----------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| Execution   | execution, plus target control for banked code                         | run a previously loaded Nucleus program        |
-| Loader      | sequential storage and target control                                  | consume committed NOBJ and enter it            |
-| Development | execution, sequential storage, target control, and development support | resolve imports, compile, store, load, and run |
+```text
+TEC-1G: client adapter -> selector in C -> RST 10h -> MON3/TEC-FS
+CP/M:   client adapter -> selector in C -> CP/M binding -> CALL 0005h
+Node:   client adapter -> same Z80 gateway -> narrow external provider
+```
 
-The development profile is a capability superset of the execution profile.
-The compiler-host adapter is not a register-level superset of the generated-
-program runtime vector: their operations and calling conventions differ. Both
-terminate at the same platform dispatcher.
+CP/M BDOS function numbers and MON3 selectors are not Nucleus source semantics.
+A CP/M binding maps a Nucleus service to the required BDOS operation and adapts
+its request block, registers, status, buffering, and partial-effect rules.
 
-## 6. Client adapters
+## 6. Client mappings
 
-### 6.1 Compiler adapter
+The components share primitive services while retaining private algorithms and
+state:
 
-The compiler continues to call its stable fourteen compilation entries, plus
-the two launch-control entries owned by its native shell. The adapter
-implements source events, retained names, NOBJ construction, runtime-catalog
-selection, and publication by using the platform capability groups. The
-compiler remains unaware of paths, directories, filesystems, MON3 selectors,
-and Node.
+| Common facility | Resolver | Compiler adapter | NOBJ writer | Loader | Generated program |
+| --- | --- | --- | --- | --- | --- |
+| console bytes | optional diagnostics | no | no | optional diagnostics | standard input/output |
+| named-object open | source discovery | through source streamer | work-object creation | NOBJ open | unavailable |
+| chunk read | import headers and source | next-source callback | spool serialization | NOBJ records | selected storage only |
+| chunk write | optional plan | no direct call | IMAGE, PATCH, and NOBJ | no | selected storage only |
+| commit and abort | optional plan | generation callbacks | NOBJ publication | target publication | unavailable |
+| runtime catalogue | no | exact runtime request | serializes returned bytes | validates identity | unavailable |
+| target control | no | records target map | no | select, publish, enter | far control only |
 
-The import resolver runs before this interface. It presents one ordered source
-generation; the compiler does not read import directives or search for files.
+The table describes capability use, not permission inheritance. A generated
+program cannot open a source file, and a resolver cannot publish a target,
+even though both components call the same system-services layer.
 
-### 6.2 NOBJ loader adapter
+### 6.1 Import resolver and source streamer
 
-The loader continues to use its object and target-control entries. It opens a
-committed NOBJ stream, deposits IMAGE bytes, applies PATCH bytes in serialized
-order, checks MAP and COMMIT, publishes the validated target, and enters it.
-A second pass over source or compiler output is not involved.
+The resolver starts with one entry-source name. It uses named-object services
+to read only the preserved `//% import` headers, resolves each source once,
+detects cycles, and records dependency order. It then closes its discovery
+cursors.
 
-### 6.3 Generated-program runtime vector
+The source streamer reopens each ordered source object and supplies begin,
+name, byte-chunk, and end events to the compiler. Source identities remain
+stable for diagnostics and D8. The resolver may store a compact ordered plan;
+it never needs to store the combined source text.
 
-Generated code continues to call the RAM-resident runtime vector. Its standard
-entries cover byte input, byte output, the existing implicit storage streams,
-terminal paths, far control transfer, and the packet gateway. The adapter
-translates those entries to the platform ABI. A target may bind unused entries
-to a defined unavailable-service result.
+### 6.2 Compiler
 
-## 7. Common call discipline
+The existing compiler calls a fourteen-entry compiler-host vector. That vector
+is a compatibility interface, not a second operating system. Its adapter maps:
 
-The concrete MON3 binding uses `RST 10h` with the selector in `C`. Version 1
-selector numbers and capability bits are fixed by the
-[Z80 Platform Services ABI](z80-platform-services-abi.md). Future assignments
-must preserve that table or introduce a new reported ABI version.
+```text
+next source chunk       -> source streamer over common object reads
+retain or compare name  -> resolver-owned identity storage
+begin output            -> tentative common objects for IMAGE and PATCH
+append IMAGE or PATCH   -> buffered common object writes
+runtime image request   -> common runtime-catalogue lookup
+commit or abort         -> common generation operations
+```
 
-Every synchronous service must define:
+The existing call sites remain compact while the compiler is constrained to
+16 KiB. A later measured change may collapse some entries into direct
+system-service calls, but no implementation may create another filesystem or
+console boundary beneath the compiler vector.
 
-- input, result, preserved, and clobbered registers;
-- flags defined on return;
-- stack shape on success and failure;
-- EOF or end-of-stream representation where applicable;
-- selected-bank behavior;
-- partial-effect rules; and
-- status mapping at the client adapter.
+### 6.3 NOBJ writer and loader
 
-Unless a service explicitly states otherwise, carry clear means success, carry
-set means failure, `A` contains a nonzero platform status on failure, `IX` and
-`IY` are preserved, and the hardware stack returns to its call-entry depth.
-Platform statuses do not become Nucleus source diagnostics or recoverable
-failure codes without an explicit adapter mapping.
+The NOBJ writer owns the IMAGE and PATCH spools, record framing, integrity
+fields, MAP serialization, and final COMMIT. It uses the same named-object and
+sequential-storage services as the resolver.
 
-An emulated provider may suspend the outer execution loop while Node completes
-an asynchronous filesystem operation. The Z80 call remains synchronous: the
-provider resumes the saved continuation once, without replaying parser or
-backend work.
+The loader opens one committed NOBJ, deposits IMAGE records, applies PATCH
+records in order, validates MAP and COMMIT, publishes the target, and enters
+it. It uses common storage and target-control services. It does not resolve
+source names, call AZM, or replay compiler work.
 
-## 8. Publication and failure
+### 6.4 Generated programs
 
-Source input, retained names, output spools, D8 events, and runtime-catalog
-selection belong to one compilation generation. A failed or interrupted
-generation releases those resources and cannot replace the preceding committed
-NOBJ or D8 artifact.
+Generated programs currently call a twelve-entry RAM-resident runtime vector.
+That vector is another compatibility interface over the common services. Its
+entries cover six standard streams, three terminal paths, far call, far jump,
+and the target-specific packet gateway.
 
-The NOBJ loader may leave bytes in a non-runnable destination after a late
-validation or storage failure. It must not publish or enter that destination.
-PATCH overlap is valid; the last serialized replacement wins.
+The twelve entries are not the capacity of the system-services layer. They are
+the fixed operations required directly by runtime ABI revision 10. The packet
+entry supplies a bounded program-extension namespace. Compiler, resolver, and
+loader services are not exposed to generated programs.
 
-The platform-services layer does not parse Nucleus source, resolve Nucleus
-symbols, select source dependencies, reinterpret PATCH records, or generate
-runtime machine code.
+## 7. Platform mappings
+
+### 7.1 TEC-1G
+
+The TEC-1G binding uses MON3's `RST 10h` dispatcher and TEC-FS. The binding
+must provide named-object and sequential work-file operations larger than the
+current 512-byte artifact path. It buffers the compiler's byte and chunk calls,
+keeps request blocks and cursors visible across bank changes, and implements
+generation commit without retaining the complete source, NOBJ, or target image
+in RAM.
+
+### 7.2 CP/M
+
+The first CP/M profile is flat and loaded. Its binding maps named objects to
+FCBs, sequential transfers to buffered BDOS records, console bytes to BDOS
+console operations, and terminal return to CP/M. The Z80 resolver, source
+streamer, compiler, NOBJ writer, and flat loader remain the same components.
+Only the binding and deployment memory map change.
+
+CP/M is therefore a real deployment target, not an analogy used to justify a
+Node API. A design that requires Node memory, JavaScript callbacks, AZM, or an
+emulator-only I/O trap in the compilation path is not a conforming CP/M path.
+
+### 7.3 Node and Debug80
+
+Node supplies the same external effects during desktop use and executable
+proofs. The narrow provider may read host files, append to host spools, display
+console bytes, and maintain physical bank images. The Z80 clients retain the
+same call paths and service contracts.
+
+The proof-only direct-port transport may compare results with the real gateway,
+but it is not a platform architecture. A native-path proof must run the Z80
+resolver, source streamer, compiler adapter, NOBJ writer, loader, and generated
+program being claimed. Node may implement services beneath their gateway; it
+must not replace those Z80 components with hidden orchestration while claiming
+native completion.
+
+## 8. AZM boundary
+
+AZM is an offline construction and verification tool. It may:
+
+- assemble the compiler and host images during package generation;
+- assemble the finite runtime catalogue during package generation;
+- assemble proof programs and compare checked artifacts; and
+- verify that committed generated sources are reproducible.
+
+Normal `nucleus build`, `compileNucleusTo`, NOBJ loading, and generated-program
+execution do not call AZM. A native Z80 installation stores the assembled
+compiler, host components, loader, and required runtime-catalogue entries. A
+CP/M installation does the same in files or system images.
+
+Production Node modules must not import AZM as a latent runtime fallback.
+Assembly helpers belong to package-generation or test support and must remain
+outside the published runtime module graph.
 
 ## 9. Implementation state
 
-The Node reference path now proves the ordered source stream, retained names,
-the compiler adapter, direct and MON3 transports, transactional NOBJ output,
-the production Z80 NOBJ consumer, pre-linked runtime-catalogue selection, D8
-output, and flat or banked execution through console, storage, terminal, packet,
-and raw-port providers. Normal compiler sessions and NOBJ launches do not
-invoke AZM.
+The following paths are implemented:
 
-The production runner preserves independent physical bank images behind the
-common Z80 window and implements far call, far return, and far jump through the
-standard runtime vector. The TEC-1 provider still needs concrete MON3/TEC-FS
-routines beneath the settled selector ABI. A later CP/M adapter may reuse the
-same consumer source at a different memory layout and bind sequential storage
-to BDOS; that deployment work is not part of the current Node completion.
+- Node import discovery and deterministic ordering;
+- the streaming Z80 compiler and fourteen-entry compiler adapter;
+- the MON3-compatible compiler gateway exercised under Debug80;
+- sequential Node-backed IMAGE and PATCH spools;
+- pre-generated runtime-catalogue selection;
+- the Z80 NOBJ consumer; and
+- flat and banked generated-program execution under Node.
 
-The remaining work is native TEC-1 integration:
+The following native pieces remain incomplete:
 
-1. bind the allocated MON3/TECM8 selector groups to the common gateway;
-2. route the loader adapter and generated-program runtime vector through it;
-3. implement sequential source and object storage with TEC-FS;
-4. implement native retained-name and IMAGE/PATCH spools;
-5. provide target-bank selection, publication, entry, far-call, and far-jump;
-6. generate and store the runtime entry for the selected TEC-1 profile; and
-7. run the end-to-end hardware proof from imported source through console
-   output.
+- common named-object and chunk-transfer services over TEC-FS;
+- the Z80 `//% import` resolver;
+- the TEC-FS source streamer and retained-name provider;
+- TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
+- the hardware NOBJ loader binding and generated-program adapter; and
+- a CP/M binding.
 
-CP/M is not an implementation target for this stage. Its later adapter must be
-able to provide the same source events, sequential NOBJ storage, runtime entry,
-loader operations, and execution services without changing the compiler.
+The current Node resolver proves dependency rules, not the existence of the
+native resolver. The current MON3-compatible emulator path proves register and
+selector contracts, not the existence of the missing TEC-FS provider.
 
-The acceptance path is:
+## 10. Implementation order and acceptance
 
-```text
-TEC-FS source
-  -> import resolver
-  -> ordered source stream
-  -> Z80 compiler
-  -> committed NOBJ
-  -> direct NOBJ loader
-  -> patched target memory
-  -> main
-  -> platform byte output
-```
+Implementation proceeds from the common services upward:
 
-The first native proof program prints `Total: 42` through the standard library.
+1. define and prove the named-object and chunk-transfer request blocks;
+2. implement a narrow Node provider for those exact calls;
+3. implement the Z80 resolver and source streamer against that provider;
+4. implement the Z80 NOBJ writer against the same object services;
+5. run resolver, compiler, writer, loader, and generated program end to end;
+6. bind the proved calls to TEC-FS and MON3; and
+7. add the flat CP/M binding without changing the Z80 clients.
+
+The first native acceptance program begins as source files in TEC-FS and ends
+by printing `Total: 42` after loading the committed NOBJ. The corresponding
+CP/M proof begins as CP/M source files and follows the same component sequence.
+Every proof reports provider code, provider workspace, compiler core, compiler
+workspace, external object storage, loader, runtime, generated program,
+instructions, and T-states as separate accounts.
+
+## 11. Rules for later work
+
+Later implementation work follows these rules:
+
+- Define a common system service before adding a Node callback, MON3 selector,
+  CP/M wrapper, compiler entry, or runtime-vector entry for the same effect.
+- Keep dependency discovery and named-object access outside the 16 KiB compiler
+  core, but implement them as Z80 components for a native development profile.
+- Do not claim native completion when Node performs source resolution, NOBJ
+  construction, loading, or runtime linking in place of the specified Z80
+  component.
+- Do not call AZM during compilation, object loading, or generated-program
+  execution. Ship preassembled compiler and runtime-catalogue bytes.
+- Do not materialise the complete ordered source, compiler output, NOBJ, or
+  banked target merely to cross a service boundary. Use bounded buffers and
+  sequential objects.
+- Treat the compiler-host vector, loader adapter, and generated-program vector
+  as client compatibility interfaces. They may map to common services; they do
+  not define additional operating systems.
+- Prove a new common service under the narrow Node provider and at least one
+  real Z80 binding. Emulator-only port interception is differential evidence,
+  not the native transport.
