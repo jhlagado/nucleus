@@ -29,15 +29,16 @@ import {
   type NobjMap,
   type NobjSequentialOutput,
   type NobjSpoolFactory,
+  type RuntimeImageProvider,
   type RuntimeLinkContext,
   type RuntimeServiceAddresses,
 } from "./nobj.js";
-import { loadCanonicalRuntimeProvider } from "./nucleus-runtime.js";
 import {
   commitNobjAdapterGeneration,
   commitNobjAdapterGenerationTo,
   type NobjAdapterImageByte,
-} from "./proof.js";
+} from "./nobj-adapter.js";
+import { bundledRuntimeProvider } from "./runtime-catalog.js";
 import {
   isNucleusDebugPort,
   NucleusDebugCollector,
@@ -59,7 +60,7 @@ const NATIVE_LAUNCH_DESCRIPTOR = TARGET_DESCRIPTOR + 0x20;
 const NATIVE_LAUNCH_RESULT = TARGET_DESCRIPTOR + 0x30;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
-const RUNTIME_IDENTITY = 9;
+const RUNTIME_ABI_REVISION = 10;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
@@ -128,6 +129,8 @@ export type NucleusTarget = NucleusFlatTarget | NucleusBankedTarget;
 export interface NucleusCompileOptions {
   readonly debugMap?: boolean;
   readonly compilerIoWrite?: (port: number, value: number) => void;
+  /** Override the pre-linked runtime catalogue for a custom target layout. */
+  readonly runtimeProvider?: RuntimeImageProvider;
 }
 
 export interface NucleusStreamingCompileOptions {
@@ -138,6 +141,8 @@ export interface NucleusStreamingCompileOptions {
   readonly spoolFactory?: NobjSpoolFactory;
   readonly lowMemoryPatchValidation?: boolean;
   readonly signal?: AbortSignal;
+  /** Override the pre-linked runtime catalogue for a custom target layout. */
+  readonly runtimeProvider?: RuntimeImageProvider;
 }
 
 export interface NucleusDiagnostic {
@@ -323,7 +328,9 @@ const compilerImageFingerprint = (image: CompilerImage): string => {
 export const nucleusCompilerInfo = async (): Promise<{
   readonly hostApiVersion: 1;
   readonly languageVersion: "0.1";
-  readonly runtimeIdentity: 9;
+  readonly runtimeAbiRevision: 10;
+  /** @deprecated Use runtimeAbiRevision. */
+  readonly runtimeIdentity: 10;
   readonly normalImageSha256: string;
   readonly debugImageSha256: string;
   readonly mon3ImageSha256: string;
@@ -345,7 +352,8 @@ export const nucleusCompilerInfo = async (): Promise<{
   return {
     hostApiVersion: 1,
     languageVersion: "0.1",
-    runtimeIdentity: RUNTIME_IDENTITY,
+    runtimeAbiRevision: RUNTIME_ABI_REVISION,
+    runtimeIdentity: RUNTIME_ABI_REVISION,
     normalImageSha256: compilerImageFingerprint(normal),
     debugImageSha256: compilerImageFingerprint(debug),
     mon3ImageSha256: compilerImageFingerprint(mon3),
@@ -497,7 +505,7 @@ const prepareTarget = (
   }
   const partBanksBase = descriptorBase + 0x10;
   memory.fill(0, descriptorBase, descriptorBase + TARGET_DESCRIPTOR_SIZE);
-  writeWord(memory, descriptorBase, RUNTIME_IDENTITY);
+  writeWord(memory, descriptorBase, RUNTIME_ABI_REVISION);
   writeWord(memory, descriptorBase + 2, imageBase);
   writeWord(memory, descriptorBase + 4, imageCapacity);
   writeWord(memory, descriptorBase + 6, writableBase);
@@ -530,7 +538,7 @@ const prepareTarget = (
   memory.set(partBanks, partBanksBase);
   return {
     banked: bankCount > 1,
-    runtimeIdentity: RUNTIME_IDENTITY,
+    runtimeIdentity: RUNTIME_ABI_REVISION,
     bankCount,
     imageFill,
     imageBase,
@@ -838,12 +846,7 @@ const runNucleusCompilerNativeTo = async (
   let debugMapping: NucleusDebugMapping | undefined;
   const adapterImages: NobjAdapterImageByte[] = [];
   let collector: NucleusDebugCollector | undefined;
-  let activeProvider:
-    Awaited<ReturnType<typeof loadCanonicalRuntimeProvider>> | undefined;
-  const provider = {
-    get: (identity: number, context: RuntimeLinkContext) =>
-      activeProvider?.get(identity, context),
-  };
+  const provider = options.runtimeProvider ?? bundledRuntimeProvider;
   const runtime = createZ80Runtime(
     { ...image.program, memory: image.program.memory.slice() },
     symbol(image.symbols, "CompileTargetAggregateCallParts"),
@@ -1178,15 +1181,6 @@ const runNucleusCompilerNativeTo = async (
             );
             pendingHostWork = (async () => {
               try {
-                if (
-                  activeProvider?.get(requestIdentity, context) === undefined
-                ) {
-                  const loadedProvider = await loadCanonicalRuntimeProvider([
-                    context,
-                  ]);
-                  if (hostGenerationCancelled) return;
-                  activeProvider = loadedProvider;
-                }
                 if (hostGenerationCancelled) return;
                 if (initial) {
                   sink?.runtimeInitialImage(
@@ -1556,6 +1550,7 @@ const runNucleusCompiler = async (
     begin,
     map,
     runtimeLinkContext,
+    runtimeProvider: options.runtimeProvider ?? bundledRuntimeProvider,
     ...(streamingOptions?.spoolFactory === undefined
       ? {}
       : { spoolFactory: streamingOptions.spoolFactory }),

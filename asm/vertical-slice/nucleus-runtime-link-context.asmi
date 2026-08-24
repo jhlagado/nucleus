@@ -24,14 +24,14 @@ RootSP             .equ ActivationArena+ActivationCapacity
 RootIX             .equ RootSP+2
 FarReturnArena     .equ RootIX+2
 FarReturnCapacity  .equ ActivationCapacity*2
-StateEnd           .equ FarReturnArena+FarReturnCapacity
+RuntimeProgramDataBaseState .equ FarReturnArena+FarReturnCapacity
+RuntimeProgramDataCapacityState .equ RuntimeProgramDataBaseState+2
+StateEnd           .equ RuntimeProgramDataCapacityState+2
 
 RunReady           .equ 1
 RunSucceeded       .equ 2
 RunTrapped         .equ 3
 
-ProgramDataBase           .equ RuntimeProgramDataBase
-ProgramDataRegionCapacity .equ RuntimeProgramDataCapacity
 GeneratedRoDataBase       .equ RuntimeReadOnlyBase
 GeneratedRoDataCapacity   .equ RuntimeReadOnlyCapacity
 

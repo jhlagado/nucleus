@@ -1,4 +1,4 @@
-import { type MaterializedNobj, type NobjCommitMetadata, type NobjSequentialOutput, type NobjSpoolFactory, type RuntimeServiceAddresses } from "./nobj.js";
+import { type MaterializedNobj, type NobjCommitMetadata, type NobjSequentialOutput, type NobjSpoolFactory, type RuntimeImageProvider, type RuntimeServiceAddresses } from "./nobj.js";
 import { type NucleusDebugMapping } from "./d8.js";
 export declare const nucleusCompilerCapacities: {
     readonly sourceParts: 8;
@@ -37,6 +37,8 @@ export type NucleusTarget = NucleusFlatTarget | NucleusBankedTarget;
 export interface NucleusCompileOptions {
     readonly debugMap?: boolean;
     readonly compilerIoWrite?: (port: number, value: number) => void;
+    /** Override the pre-linked runtime catalogue for a custom target layout. */
+    readonly runtimeProvider?: RuntimeImageProvider;
 }
 export interface NucleusStreamingCompileOptions {
     readonly debugMap?: boolean;
@@ -46,6 +48,8 @@ export interface NucleusStreamingCompileOptions {
     readonly spoolFactory?: NobjSpoolFactory;
     readonly lowMemoryPatchValidation?: boolean;
     readonly signal?: AbortSignal;
+    /** Override the pre-linked runtime catalogue for a custom target layout. */
+    readonly runtimeProvider?: RuntimeImageProvider;
 }
 export interface NucleusDiagnostic {
     readonly code: number;
@@ -81,7 +85,9 @@ export declare const writeNucleusIntelHex: (result: NucleusCompileSuccess) => st
 export declare const nucleusCompilerInfo: () => Promise<{
     readonly hostApiVersion: 1;
     readonly languageVersion: "0.1";
-    readonly runtimeIdentity: 9;
+    readonly runtimeAbiRevision: 10;
+    /** @deprecated Use runtimeAbiRevision. */
+    readonly runtimeIdentity: 10;
     readonly normalImageSha256: string;
     readonly debugImageSha256: string;
     readonly mon3ImageSha256: string;

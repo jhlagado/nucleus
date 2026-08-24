@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { debugCompilerHex, debugCompilerSymbols, nativeCompilerHex, nativeCompilerSymbols, nativeDebugCompilerHex, nativeDebugCompilerSymbols, mon3CompilerHex, mon3CompilerSymbols, mon3DebugCompilerHex, mon3DebugCompilerSymbols, normalCompilerHex, normalCompilerSymbols, } from "./generated-compiler-images.js";
 import { materializeNobj, MemoryNobjSpool, NobjGenerationSink, NobjGenerationStore, parseNobj, } from "./nobj.js";
-import { loadCanonicalRuntimeProvider } from "./nucleus-runtime.js";
-import { commitNobjAdapterGeneration, commitNobjAdapterGenerationTo, } from "./proof.js";
+import { commitNobjAdapterGeneration, commitNobjAdapterGenerationTo, } from "./nobj-adapter.js";
+import { bundledRuntimeProvider } from "./runtime-catalog.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
 import { NativeRetainedNameStore, nativeRetainedNameByteCapacity, nativeRetainedNameEntryCapacity, } from "./native-retained-names.js";
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
@@ -13,7 +13,7 @@ const NATIVE_LAUNCH_DESCRIPTOR = TARGET_DESCRIPTOR + 0x20;
 const NATIVE_LAUNCH_RESULT = TARGET_DESCRIPTOR + 0x30;
 const RETURN_SENTINEL = 0x9fff;
 const STACK_TOP = 0xff00;
-const RUNTIME_IDENTITY = 9;
+const RUNTIME_ABI_REVISION = 10;
 const TARGET_DESCRIPTOR_SIZE = 15;
 const TARGET_MAP_SIZE = 0x28;
 const MAX_SOURCE_PARTS = 8;
@@ -162,7 +162,8 @@ export const nucleusCompilerInfo = async () => {
     return {
         hostApiVersion: 1,
         languageVersion: "0.1",
-        runtimeIdentity: RUNTIME_IDENTITY,
+        runtimeAbiRevision: RUNTIME_ABI_REVISION,
+        runtimeIdentity: RUNTIME_ABI_REVISION,
         normalImageSha256: compilerImageFingerprint(normal),
         debugImageSha256: compilerImageFingerprint(debug),
         mon3ImageSha256: compilerImageFingerprint(mon3),
@@ -275,7 +276,7 @@ const prepareTarget = (memory, partBanks, target, descriptorBase = TARGET_DESCRI
     }
     const partBanksBase = descriptorBase + 0x10;
     memory.fill(0, descriptorBase, descriptorBase + TARGET_DESCRIPTOR_SIZE);
-    writeWord(memory, descriptorBase, RUNTIME_IDENTITY);
+    writeWord(memory, descriptorBase, RUNTIME_ABI_REVISION);
     writeWord(memory, descriptorBase + 2, imageBase);
     writeWord(memory, descriptorBase + 4, imageCapacity);
     writeWord(memory, descriptorBase + 6, writableBase);
@@ -302,7 +303,7 @@ const prepareTarget = (memory, partBanks, target, descriptorBase = TARGET_DESCRI
     memory.set(partBanks, partBanksBase);
     return {
         banked: bankCount > 1,
-        runtimeIdentity: RUNTIME_IDENTITY,
+        runtimeIdentity: RUNTIME_ABI_REVISION,
         bankCount,
         imageFill,
         imageBase,
@@ -554,10 +555,7 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
     let debugMapping;
     const adapterImages = [];
     let collector;
-    let activeProvider;
-    const provider = {
-        get: (identity, context) => activeProvider?.get(identity, context),
-    };
+    const provider = options.runtimeProvider ?? bundledRuntimeProvider;
     const runtime = createZ80Runtime({ ...image.program, memory: image.program.memory.slice() }, symbol(image.symbols, "CompileTargetAggregateCallParts"), {
         write: (port, value) => {
             let selectedPort = port & 0xff;
@@ -807,14 +805,6 @@ const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
                     const context = nativeRuntimeContext(memory, requestContext, target.services ?? defaultNucleusServices);
                     pendingHostWork = (async () => {
                         try {
-                            if (activeProvider?.get(requestIdentity, context) === undefined) {
-                                const loadedProvider = await loadCanonicalRuntimeProvider([
-                                    context,
-                                ]);
-                                if (hostGenerationCancelled)
-                                    return;
-                                activeProvider = loadedProvider;
-                            }
                             if (hostGenerationCancelled)
                                 return;
                             if (initial) {
@@ -1118,6 +1108,7 @@ const runNucleusCompiler = async (parts, target = {}, options = {}, sequentialOu
         begin,
         map,
         runtimeLinkContext,
+        runtimeProvider: options.runtimeProvider ?? bundledRuntimeProvider,
         ...(streamingOptions?.spoolFactory === undefined
             ? {}
             : { spoolFactory: streamingOptions.spoolFactory }),

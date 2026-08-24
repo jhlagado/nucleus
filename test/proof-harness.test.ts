@@ -30,25 +30,25 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_355 },
     ]);
-    expect(outcome.nobj?.parsed.begin.runtimeIdentity).toBe(9);
+    expect(outcome.nobj?.parsed.begin.runtimeIdentity).toBe(10);
     expect(outcome.nobj?.parsed.map.entryAddress).toBe(0x8000);
-    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(926);
+    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(931);
     expect(outcome.nobj?.materialized.flatImage?.length).toBe(4096);
     expect(outcome.nobj?.memory[0x8000]).toBe(0xc3);
     expect(outcome.nobj?.memory[0x8003]).not.toBe(0xff);
     expect(
-      Array.from(outcome.nobj?.memory.slice(0x8362, 0x8364) ?? []),
+      Array.from(outcome.nobj?.memory.slice(0x8367, 0x8369) ?? []),
     ).toEqual([3, 0]);
     const generated = Array.from(
-      outcome.nobj?.memory.slice(0x8364, 0x839e) ?? [],
+      outcome.nobj?.memory.slice(0x8369, 0x83a3) ?? [],
     );
     const contains = (wanted: readonly number[]): boolean =>
       generated.some((_, index) =>
         wanted.every((byte, offset) => generated[index + offset] === byte),
       );
-    expect(contains([0x2a, 0x49, 0x40])).toBe(true); // LD HL,($4049)
-    expect(contains([0x22, 0x49, 0x40])).toBe(true); // LD ($4049),HL
-    expect(contains([0xcd, 0xb9, 0x80])).toBe(true); // CALL linked MultiplyU16
+    expect(contains([0x2a, 0x4d, 0x40])).toBe(true); // LD HL,($404D)
+    expect(contains([0x22, 0x4d, 0x40])).toBe(true); // LD ($404D),HL
+    expect(contains([0xcd, 0xba, 0x80])).toBe(true); // CALL linked MultiplyU16
     const word = (name: string): number =>
       wordAt(outcome.memory, outcome.symbols[name] ?? -1);
     expect(outcome.symbols.ProofEnd).toBeLessThanOrEqual(
@@ -132,7 +132,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       0,
     );
     expect(wordAt(outcome.nobj?.memory ?? new Uint8Array(), 0x403b)).toBe(0);
-    expect(outcome.nobj?.memory[0x404b]).toBe(12);
+    expect(outcome.nobj?.memory[0x404f]).toBe(12);
     expect(outcome.nobj?.selectedBank).toBe(1);
   }, 30_000);
 
@@ -142,7 +142,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.nobj?.parsed.map.entryBank).toBe(1);
     expect(outcome.nobj?.parsed.map.partBanks).toEqual([1]);
-    expect(outcome.nobj?.memory[0x4049]).toBe(12);
+    expect(outcome.nobj?.memory[0x404d]).toBe(12);
     expect(outcome.nobj?.selectedBank).toBe(1);
   }, 30_000);
 
@@ -160,7 +160,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       proof("flat-target-loaded-z80-slice-proof"),
     );
     expect(outcome.nobj?.parsed.map.romMode).toBe(false);
-    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(0x104b);
+    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(0x104f);
     expect(outcome.nobj?.instructions).toBeGreaterThan(0);
   }, 30_000);
 
@@ -202,8 +202,8 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
         source("Chapter21TargetPart2", "Chapter21TargetPart2End"),
     ).toBe(firstProgram);
     expect(outcome.nobj?.parsed.map.partBanks).toEqual([0, 0]);
-    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(1831);
-    expect(outcome.nobj?.memory[0x4049]).toBe(4);
+    expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(1836);
+    expect(outcome.nobj?.memory[0x404d]).toBe(4);
     expect(outcome.nobj?.memory[0x7300]).toBe("Y".charCodeAt(0));
   }, 30_000);
 

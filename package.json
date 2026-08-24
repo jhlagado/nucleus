@@ -24,7 +24,8 @@
     "./nobj": "./dist/nobj.js",
     "./nobj-file": "./dist/nobj-file.js",
     "./project-host": "./dist/project-host.js",
-    "./publication": "./dist/publication.js"
+    "./publication": "./dist/publication.js",
+    "./runtime-catalog": "./dist/runtime-catalog.js"
   },
   "files": [
     "asm/",

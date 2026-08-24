@@ -1,18 +1,20 @@
-; Canonical operating-layer runtime source, private ABI, link-rule, vector and
-; helper-layout identity. The same identity may link to different resolved
-; bytes when the validated target addresses differ.
-NucleusRuntimeIdentity       .equ $0009
-NucleusRuntimeExpectedLength .equ 731
+; Canonical operating-layer runtime ABI revision. This is a compatibility tag,
+; not an address or offset. Revision $000A moves the per-program writable-data
+; bounds from helper instruction operands into initialized runtime state.
+NucleusRuntimeIdentity       .equ $000A
+NucleusRuntimeExpectedLength .equ 732
 
 NucleusRuntimeVectorCount  .equ 12
 NucleusRuntimeVectorLength .equ NucleusRuntimeVectorCount*3
-NucleusRuntimeStateLength  .equ 37
+NucleusRuntimeStateLength  .equ 41
 NucleusRuntimeRunStateOffset        .equ 0
 NucleusRuntimeActivationLimitOffset .equ 7
 ; Banked targets use ScalarSlot as the selected-bank byte. The activation and
 ; far-return arenas retain caller-bank and return-address slots at depth-1.
 ; General source calls do not use the legacy scalar carrier in this mode.
 NucleusRuntimeCurrentBankOffset     .equ 8
+NucleusRuntimeProgramDataBaseOffset .equ 37
+NucleusRuntimeProgramDataCapacityOffset .equ 39
 
 NucleusRuntimeActivationPushOffset      .equ 0
 NucleusRuntimeActivationPopOffset       .equ 23
@@ -22,16 +24,16 @@ NucleusRuntimeCheckArrayIndexOffset      .equ 77
 NucleusRuntimeCheckStringLengthOffset    .equ 85
 NucleusRuntimeCheckStringIndexOffset     .equ 95
 NucleusRuntimeCheckAggregateRegionOffset .equ 115
-NucleusRuntimeInitializeBssOffset        .equ 160
-NucleusRuntimeMultiplyU8Offset           .equ 174
-NucleusRuntimeMultiplyU16Offset          .equ 182
-NucleusRuntimeDivideU16Offset            .equ 228
-NucleusRuntimeModuloU16Offset            .equ 236
-NucleusRuntimeCompareU16Offset           .equ 289
-NucleusRuntimeResizeStringOffset          .equ 369
-NucleusRuntimeConvertIntegerOffset        .equ 395
-NucleusRuntimeCompareSignedOffset          .equ 467
-NucleusRuntimeDivideSignedOffset           .equ 500
-NucleusRuntimeSignedLoopStepOffset         .equ 590
-NucleusRuntimePromoteI8PairOffset           .equ 675
-NucleusRuntimePacketServiceGatewayOffset    .equ 689
+NucleusRuntimeInitializeBssOffset        .equ 161
+NucleusRuntimeMultiplyU8Offset           .equ 175
+NucleusRuntimeMultiplyU16Offset          .equ 183
+NucleusRuntimeDivideU16Offset            .equ 229
+NucleusRuntimeModuloU16Offset            .equ 237
+NucleusRuntimeCompareU16Offset           .equ 290
+NucleusRuntimeResizeStringOffset          .equ 370
+NucleusRuntimeConvertIntegerOffset        .equ 396
+NucleusRuntimeCompareSignedOffset          .equ 468
+NucleusRuntimeDivideSignedOffset           .equ 501
+NucleusRuntimeSignedLoopStepOffset         .equ 591
+NucleusRuntimePromoteI8PairOffset           .equ 676
+NucleusRuntimePacketServiceGatewayOffset    .equ 690

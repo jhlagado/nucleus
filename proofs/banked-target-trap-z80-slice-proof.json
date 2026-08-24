@@ -60,7 +60,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 9,
+      "runtimeIdentity": 10,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -76,24 +76,24 @@
       "vectorBase": 16384,
       "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 73,
-      "bssBase": 16457,
+      "initializedRunLength": 77,
+      "bssBase": 16461,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33561,
-      "dataLoadLength": 73,
+      "dataLoadAddress": 33562,
+      "dataLoadLength": 77,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 964,
-          "readOnlyBase": 33561,
-          "readOnlyLength": 73,
+          "usedLength": 969,
+          "readOnlyBase": 33562,
+          "readOnlyLength": 77,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 821,
+          "usedLength": 822,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
@@ -107,7 +107,7 @@
       "writableCapacity": 4096,
       "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16457,
+      "programDataBase": 16461,
       "programDataCapacity": 1,
       "readOnlyBase": 0,
       "readOnlyCapacity": 0,
@@ -160,7 +160,7 @@
       { "at": 16421, "width": "u8", "equals": 3 },
       { "at": 16426, "width": "u8", "equals": 0 },
       { "at": 16428, "width": "u8", "equals": 0 },
-      { "at": 16457, "width": "u8", "equals": 0 }
+      { "at": 16461, "width": "u8", "equals": 0 }
     ]
   }
 }

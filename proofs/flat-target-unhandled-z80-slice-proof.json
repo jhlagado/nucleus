@@ -21,7 +21,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 9,
+      "runtimeIdentity": 10,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -37,19 +37,19 @@
       "vectorBase": 16384,
       "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 73,
-      "bssBase": 16457,
+      "initializedRunLength": 77,
+      "bssBase": 16461,
       "bssLength": 0,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33552,
-      "dataLoadLength": 73,
+      "dataLoadAddress": 33553,
+      "dataLoadLength": 77,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 1038,
-          "readOnlyBase": 33552,
-          "readOnlyLength": 73,
+          "usedLength": 1043,
+          "readOnlyBase": 33553,
+          "readOnlyLength": 77,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         }
@@ -61,9 +61,9 @@
       "writableCapacity": 4096,
       "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16457,
+      "programDataBase": 16461,
       "programDataCapacity": 0,
-      "readOnlyBase": 33625,
+      "readOnlyBase": 33630,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,

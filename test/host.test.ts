@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createNucleusCompiler } from "../src/host.js";
+import { bundledRuntimeProvider } from "../src/runtime-catalog.js";
 
 const services = {
   readInputByte: 0x7000,
@@ -47,6 +48,22 @@ describe("the stable in-process Nucleus host API", () => {
     if (!direct.success || !mon3.success) return;
     expect(mon3.artifacts.nobj).toEqual(direct.artifacts.nobj);
     expect(mon3.artifacts.d8).toEqual(direct.artifacts.d8);
+  }, 30_000);
+
+  it("uses a caller-supplied runtime provider for a prepared target", async () => {
+    let requests = 0;
+    const result = await createNucleusCompiler().build({
+      sources: [{ name: "src/main.nu", source: "sub main()\nend\n" }],
+      target: { services },
+      runtimeProvider: {
+        get(identity, context) {
+          requests += 1;
+          return bundledRuntimeProvider.get(identity, context);
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(requests).toBe(2);
   }, 30_000);
 
   it("returns target configuration failures instead of throwing", async () => {
@@ -198,7 +215,8 @@ describe("the stable in-process Nucleus host API", () => {
     expect(info).toMatchObject({
       hostApiVersion: 1,
       languageVersion: "0.1",
-      runtimeIdentity: 9,
+      runtimeAbiRevision: 10,
+      runtimeIdentity: 10,
       hostTransports: ["direct", "mon3"],
       capacities: {
         sourceParts: 8,

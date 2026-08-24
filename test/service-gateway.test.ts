@@ -147,7 +147,7 @@ const stateBase = (built: NucleusCompileSuccess): number =>
   built.materialized.parsed.map.vectorLength;
 
 const programDataBase = (built: NucleusCompileSuccess): number =>
-  stateBase(built) + 37;
+  stateBase(built) + 41;
 
 describe("packet-based service gateway", () => {
   it("passes exact slots and writable concrete/open u8 packets to MON-3", async () => {
@@ -463,8 +463,8 @@ describe("packet-based service gateway", () => {
     const start = segment.start - built.materialized.parsed.begin.imageBase;
     const bytes = image.slice(start, start + segment.end - segment.start);
     expect(Array.from(bytes)).toEqual([
-      0x21, 0x49, 0x40, 0xe5, 0xd1, 0x21, 0x03, 0x00, 0xe5, 0xd5,
-      0x3e, 0x01, 0xe1, 0xc1, 0x11, 0xff, 0x82, 0xd5, 0x11, 0x1f,
+      0x21, 0x4d, 0x40, 0xe5, 0xd1, 0x21, 0x03, 0x00, 0xe5, 0xd5,
+      0x3e, 0x01, 0xe1, 0xc1, 0x11, 0x00, 0x83, 0xd5, 0x11, 0x1f,
       0x00, 0xcd, 0x21, 0x40,
     ]);
   });

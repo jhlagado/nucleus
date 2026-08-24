@@ -29,10 +29,12 @@ runtime images, NOBJ spools, and publication. Replacing Node with TEC-FS and
 MON3 providers does not change compiler code, source semantics, generated code,
 or NOBJ.
 
-At the recorded implementation revision, the Node runtime-image provider still
-invokes AZM on demand. That mechanism predates the common-platform decision and
-is transitional. The settled contract selects an exact pre-resolved catalog
-entry; compilation, loading, and execution perform no runtime linking.
+The Node runtime-image provider selects an exact pre-resolved catalogue entry.
+AZM produces those entries during package generation, not during a compiler
+session. Compilation, loading, and execution perform no runtime linking. The
+same division is required on hardware: a TEC-1 installation stores the entry
+for its fixed target profile and supplies it when the compiler requests that
+runtime revision and placement.
 
 Select the proof path from the command line with:
 
@@ -142,9 +144,11 @@ launch proves generation reset. A bundled-library program is imported,
 compiled through the MON3 path, loaded from committed NOBJ, and executed with
 observable console output.
 
-The remaining work is one machine-specific platform implementation: formal
-MON3/TECM8 selector allocation, TEC-FS source and object storage, console byte
-I/O, bank selection and entry, far control transfer, and a pre-resolved runtime
-catalog. The compiler, loader, and generated program reach those facilities
-through their existing adapters. Their absence does not justify adding
-filesystem knowledge or monitor calls to the compiler core.
+The remaining work is the machine-specific platform implementation: bind the
+allocated MON3/TECM8 selectors, add TEC-FS source and object storage, provide
+console byte I/O, bank selection and entry, and far control transfer, then
+generate the catalogue entry for the chosen TEC-1 target profile. The Node
+catalogue and provider already prove the selection boundary. The compiler,
+loader, and generated program reach the native facilities through their
+existing adapters. Their absence does not justify adding filesystem knowledge
+or monitor calls to the compiler core.

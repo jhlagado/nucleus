@@ -1,5 +1,5 @@
 import { compileNucleusTo, nucleusCompilerCapacities, nucleusCompilerInfo, writeNucleusIntelHex, } from "./compiler.js";
-import { materializeNobj, parseNobj } from "./nobj.js";
+import { materializeNobj, parseNobj, } from "./nobj.js";
 import { validateNucleusTarget, } from "./configuration.js";
 import { nucleusD8SourceName } from "./d8-internal.js";
 import { nucleusDiagnosticMessage } from "./diagnostics.js";
@@ -107,6 +107,7 @@ export class NucleusCompiler {
             }, {
                 debugMap: request.artifacts?.d8 === true,
                 hostTransport: request.hostTransport,
+                runtimeProvider: request.runtimeProvider,
             });
             if (!compiled.success) {
                 if (compiled.diagnostic.code === 95 ||

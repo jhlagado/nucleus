@@ -66,6 +66,14 @@ reproducible image gate assembles both layouts from checked AZM source and
 rejects stale embedded bytes or symbol maps. Node and Debug80 execute those
 Z80 images directly.
 
+The package also contains a generated catalogue of pre-linked target runtime
+images for its supported target profiles. A compiler session selects one of
+those images and supplies the target's vector destinations and program-data
+bounds as initial writable bytes. It does not invoke AZM. AZM remains an
+offline build authority: the generation gate rebuilds the catalogue from the
+runtime source and rejects stale entries. A custom placement must provide a
+compatible `RuntimeImageProvider` prepared before compilation.
+
 `@jhlagado/debug80-runtime` is an operationally required peer. During local
 development it is supplied by the linked Debug80 package; the optional npm
 peer metadata only prevents isolated Git preparation from requesting an

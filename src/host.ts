@@ -9,7 +9,11 @@ import {
   type NucleusTarget,
   writeNucleusIntelHex,
 } from "./compiler.js";
-import { materializeNobj, parseNobj } from "./nobj.js";
+import {
+  materializeNobj,
+  parseNobj,
+  type RuntimeImageProvider,
+} from "./nobj.js";
 import {
   validateNucleusTarget,
   type NucleusConfigurationIssue,
@@ -30,6 +34,8 @@ export interface NucleusBuildRequest {
   readonly artifacts?: NucleusBuildArtifactRequest;
   /** Exercise the compiler through direct pseudo-ports or the MON3 RST gateway. */
   readonly hostTransport?: "direct" | "mon3";
+  /** Supply pre-linked runtime images for target layouts outside the package catalogue. */
+  readonly runtimeProvider?: RuntimeImageProvider;
 }
 
 export interface NucleusD8Artifact {
@@ -203,6 +209,7 @@ export class NucleusCompiler {
         {
           debugMap: request.artifacts?.d8 === true,
           hostTransport: request.hostTransport,
+          runtimeProvider: request.runtimeProvider,
         },
       );
       if (!compiled.success) {

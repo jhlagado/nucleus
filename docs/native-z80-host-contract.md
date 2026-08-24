@@ -779,16 +779,19 @@ Node supplies files, spools, runtime-image catalog access, and publication
 beneath the Z80 calls. It may inspect the explicit mailbox and yield state; it
 does not parse Nucleus or replay compiler work.
 
-This binding proves asynchronous provider success, failure, cancellation, and
-a following clean launch. Its output is compared byte for byte with the
-resident-source and AdapterLog compatibility path.
+This binding proves provider success and failure, rejection of a launch that
+the outer host has already cancelled, and a following clean launch. Its output
+is compared byte for byte with the resident-source and AdapterLog compatibility
+path.
 
 The first completed binding uses the public `NucleusHostCompile` entry and its
-nine-byte result block. A runtime-image request may suspend at a bounded
-13-byte request mailbox and resume the original Z80 call frame. Compiler
-diagnostics remain outcome 1; source-provider, cancellation, and D8-preflight failures remain host
-outcome 2. `NucleusHostInitialize` and `NucleusHostReset` make the same image
-reusable after ordinary and interrupted launches.
+nine-byte result block. The protocol retains a bounded 13-byte request mailbox
+and can resume the original Z80 call frame after an asynchronous provider. The
+shipped Node runtime catalogue is already resident, so its lookup completes
+without suspension. Compiler diagnostics remain outcome 1; source-provider,
+cancellation, and D8-preflight failures remain host outcome 2.
+`NucleusHostInitialize` and `NucleusHostReset` make the same image reusable
+after ordinary and interrupted launches.
 
 The Debug80 reference host occupies 913 Z80 code bytes without D8 and 915 with
 D8, plus 22 bytes of host workspace. These bytes are outside the compiler-core
@@ -838,7 +841,9 @@ Conformance requires at least:
 - maximum escaped-string pinning and retained names across refills;
 - output larger than the former AdapterLog and image regions;
 - flat and four-bank streamed output;
-- provider suspension, failure, cancellation, and sequential reset;
+- provider success and failure, pre-launch cancellation, and sequential reset;
+- suspension and mid-call cancellation when a deployment supplies an
+  asynchronous provider;
 - late output failure preserving a previous object;
 - stream-ordered overlapping PATCH records with the last write winning;
 - one sequential consumer read with no lock or rewind call, plus rejection of

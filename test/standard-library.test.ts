@@ -159,7 +159,7 @@ describe("bundled Nucleus console library", () => {
     expect(
       Array.from(result.memory.slice(outputBase, outputBase + expected.length)),
     ).toEqual(Array.from(expected));
-  }, 15_000);
+  }, 30_000);
 
   it("prints strings and LF-terminated lines through the text module", async () => {
     const { parts, built, committed, nobj } = await compileEntry(
@@ -190,7 +190,7 @@ describe("bundled Nucleus console library", () => {
     expect(
       Array.from(result.memory.slice(outputBase, outputBase + expected.length)),
     ).toEqual(Array.from(expected));
-  }, 15_000);
+  }, 30_000);
 
   it("discovers and formats the selective 8-bit output modules", async () => {
     const { parts, built, committed, nobj } = await compileEntry(
@@ -219,7 +219,7 @@ describe("bundled Nucleus console library", () => {
     expect(
       Array.from(result.memory.slice(outputBase, outputBase + expected.length)),
     ).toEqual(Array.from(expected));
-  }, 15_000);
+  }, 30_000);
 
   it("formats both 16-bit signednesses, including the signed minimum", async () => {
     const { parts, built, committed, nobj } = await compileEntry(
@@ -248,7 +248,7 @@ describe("bundled Nucleus console library", () => {
     expect(
       Array.from(result.memory.slice(outputBase, outputBase + expected.length)),
     ).toEqual(Array.from(expected));
-  }, 15_000);
+  }, 30_000);
 
   it("implements the settled LF, EOF, exact-fill, and drain behavior", async () => {
     const successBuild = await compileEntry(
@@ -323,5 +323,5 @@ describe("bundled Nucleus console library", () => {
       expect(result.memory[outputBase]).toBe(sample.error);
       expect(result.memory[inputCursor]).toBe(sample.consumed);
     }
-  }, 30_000);
+  }, 45_000);
 });

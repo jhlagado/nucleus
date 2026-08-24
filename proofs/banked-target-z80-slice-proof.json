@@ -14,10 +14,10 @@
     { "at": "ProofCase", "width": "u8", "equals": 0 },
     { "at": "TargetOutputBank", "width": "u8", "equals": 255 },
     { "at": "AdapterBankedLogLength", "width": "u16", "equals": 4353 },
-    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33951 },
-    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33724 },
-    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2913 },
-    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3140 },
+    { "at": "AdapterCapturedBank0Cursor", "width": "u16", "equals": 33956 },
+    { "at": "AdapterCapturedBank1Cursor", "width": "u16", "equals": 33725 },
+    { "at": "AdapterCapturedBank0Remaining", "width": "u16", "equals": 2908 },
+    { "at": "AdapterCapturedBank1Remaining", "width": "u16", "equals": 3139 },
     { "at": "AdapterCapturedBank0RoLength", "width": "u16", "equals": 0 },
     { "at": "AdapterCapturedBank1RoLength", "width": "u16", "equals": 2 }
   ],
@@ -67,7 +67,7 @@
     },
     "begin": {
       "banked": true,
-      "runtimeIdentity": 9,
+      "runtimeIdentity": 10,
       "bankCount": 2,
       "imageFill": 255,
       "imageBase": 32768,
@@ -83,27 +83,27 @@
       "vectorBase": 16384,
       "vectorLength": 36,
       "initializedRunBase": 16384,
-      "initializedRunLength": 75,
-      "bssBase": 16459,
+      "initializedRunLength": 79,
+      "bssBase": 16463,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
-      "dataLoadAddress": 33561,
-      "dataLoadLength": 75,
+      "dataLoadAddress": 33562,
+      "dataLoadLength": 79,
       "partBanks": [1, 0],
       "banks": [
         {
-          "usedLength": 1183,
-          "readOnlyBase": 33561,
-          "readOnlyLength": 75,
+          "usedLength": 1188,
+          "readOnlyBase": 33562,
+          "readOnlyLength": 79,
           "aggregateConstantBase": 0,
           "aggregateConstantLength": 0
         },
         {
-          "usedLength": 956,
-          "readOnlyBase": 33502,
+          "usedLength": 957,
+          "readOnlyBase": 33503,
           "readOnlyLength": 2,
-          "aggregateConstantBase": 33502,
+          "aggregateConstantBase": 33503,
           "aggregateConstantLength": 2
         }
       ]
@@ -114,7 +114,7 @@
       "writableCapacity": 4096,
       "writableStateBase": 16420,
       "vectorBase": 16384,
-      "programDataBase": 16457,
+      "programDataBase": 16461,
       "programDataCapacity": 3,
       "readOnlyBase": 0,
       "readOnlyCapacity": 0,
@@ -159,7 +159,7 @@
         { "at": 28800, "bytes": [50, 44, 64, 211, 127, 233] },
         {
           "at": 28832,
-          "bytes": [193, 62, 1, 33, 222, 130, 195, 128, 112]
+          "bytes": [193, 62, 1, 33, 223, 130, 195, 128, 112]
         },
         { "at": 28864, "bytes": [201, 201, 201, 201, 201, 201] },
         { "at": 16640, "bytes": [0] },
@@ -171,9 +171,9 @@
       { "at": 16420, "width": "u8", "equals": 2 },
       { "at": 16426, "width": "u8", "equals": 0 },
       { "at": 16428, "width": "u8", "equals": 1 },
-      { "at": 16457, "width": "u8", "equals": 4 },
-      { "at": 16458, "width": "u8", "equals": 0 },
-      { "at": 16459, "width": "u8", "equals": 12 },
+      { "at": 16461, "width": "u8", "equals": 4 },
+      { "at": 16462, "width": "u8", "equals": 0 },
+      { "at": 16463, "width": "u8", "equals": 12 },
       { "at": 16640, "width": "u8", "equals": 0 }
     ]
   }

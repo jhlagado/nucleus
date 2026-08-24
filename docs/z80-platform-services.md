@@ -1,8 +1,8 @@
 # Nucleus Z80 Platform Services Architecture 0.1
 
-- Status: settled architecture; MON3 selector ABI allocated for Stage 1
+- Status: settled architecture; Node reference path implemented
 - Applies to: native and emulated Z80 deployments
-- Last reviewed: 2026-08-23
+- Last reviewed: 2026-08-24
 
 ## 1. Purpose
 
@@ -64,12 +64,18 @@ The target runtime contains compiler-selected Z80 helpers, the generated-
 program service adapter, trap support, and fixed initial runtime state. It does
 not contain imported Nucleus libraries.
 
-A compilation selects a complete, pre-resolved runtime image from a catalog.
-The lookup key contains the runtime identity and the exact validated placement
-context used by that image: runtime base, writable and vector addresses,
-service destinations, and the data bounds embedded by the runtime revision.
-The selected entry records its exact length, helper offsets, vector layout, and
-initial writable-state bytes.
+A compilation selects a complete, pre-resolved runtime image from a catalogue.
+Runtime ABI revision 10 makes the executable bytes depend on three placement
+values: runtime base, writable-state base, and packet-service destination. The
+executable lookup key therefore contains those values and the runtime ABI
+revision. The selected entry records its exact length and helper offsets.
+
+The complete placement context is still validated. The provider builds the
+initial writable image for this particular program: it writes the twelve
+service vectors, directs the packet vector through the selected runtime's
+gateway, initializes runtime state, and records the program-data base and
+capacity. Changing an ordinary vector destination or a program's data extent
+does not require another copy of the executable runtime bytes.
 
 The provider verifies an exact catalog match and appends the selected bytes as
 ordinary NOBJ `IMAGE` records. It does not assemble, link, or relocate the
@@ -244,21 +250,28 @@ The platform-services layer does not parse Nucleus source, resolve Nucleus
 symbols, select source dependencies, reinterpret PATCH records, or generate
 runtime machine code.
 
-## 9. Required implementation work
+## 9. Implementation state
 
-The current Node and Z80 proof path establishes the compiler adapter and direct
-NOBJ consumer. Completion of this architecture requires:
+The Node reference path now proves the ordered source stream, retained names,
+the compiler adapter, direct and MON3 transports, transactional NOBJ output,
+the direct NOBJ consumer, pre-linked runtime-catalogue selection, D8 output,
+and execution with console input and output. Normal compiler sessions do not
+invoke AZM.
 
-1. a formal MON3/TECM8 selector allocation for the common capability groups;
-2. one Z80 platform gateway used by the compiler adapter, loader adapter, and
-   generated-program runtime vector;
-3. TEC-FS implementations of sequential source and object storage;
-4. native retained-name and IMAGE/PATCH spool implementations;
-5. target-bank selection, publication, entry, far-call, and far-jump services;
-6. a pre-resolved runtime-image catalog for the first TEC-1 target profile;
-7. replacement of the Node provider's compile-time runtime assembly with the
-   same catalog-selection contract; and
-8. end-to-end Node and TEC-1 proofs from imported source through console output.
+The remaining work is native TEC-1 integration:
+
+1. bind the allocated MON3/TECM8 selector groups to the common gateway;
+2. route the loader adapter and generated-program runtime vector through it;
+3. implement sequential source and object storage with TEC-FS;
+4. implement native retained-name and IMAGE/PATCH spools;
+5. provide target-bank selection, publication, entry, far-call, and far-jump;
+6. generate and store the runtime entry for the selected TEC-1 profile; and
+7. run the end-to-end hardware proof from imported source through console
+   output.
+
+CP/M is not an implementation target for this stage. Its later adapter must be
+able to provide the same source events, sequential NOBJ storage, runtime entry,
+loader operations, and execution services without changing the compiler.
 
 The acceptance path is:
 

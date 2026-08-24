@@ -110,37 +110,43 @@ stubs. No provider logic proceeds on an assumed selector allocation.
 
 ## 5. Stage 2: pre-resolved runtime catalog
 
+Status: core selection is implemented for the Node reference profiles. A
+standalone catalogue builder, artifact fingerprinting, and the first native
+TEC-1 profile remain to be added.
+
 Replace on-demand runtime assembly during compilation with catalog selection.
 
 ### 5.1 Catalog key
 
-An entry is selected by:
+Runtime ABI revision 10 separates executable dependencies from per-program
+initial state. An executable entry is selected by:
 
-- runtime identity;
+- runtime ABI revision;
 - runtime base;
-- writable base and capacity;
-- writable-state and vector bases;
-- program-data base and capacity;
-- read-only-data base and capacity; and
-- all twelve service destinations.
+- writable-state base; and
+- packet-service destination.
+
+The provider validates the complete placement context. It then constructs the
+twelve service vectors and initializes the program-data base and capacity for
+the current compilation. These writable bytes are not part of the executable
+catalog key.
 
 The entry records:
 
 - resolved runtime bytes;
-- initial vector and writable-state bytes;
-- exact total and component lengths;
-- every published helper offset;
-- catalog-format revision; and
-- an integrity fingerprint.
+- the executable placement values used to link them;
+- exact start, end, and expected length symbols; and
+- every published helper offset.
 
-The provider requires exact equality. It never substitutes an entry built for
-another address or service table.
+The provider requires exact equality for the executable key. It never
+substitutes an entry built for another runtime base, writable-state base, or
+packet-service destination.
 
 ### 5.2 Standard and custom targets
 
-Bundle catalog entries for every target context used by the shipped CLI,
-tests, and first TEC-1 profile. A custom target profile has two supported
-paths:
+Bundle catalog entries for every target context used by the shipped CLI and
+tests, then add the first TEC-1 profile when its addresses settle. A custom
+target profile has two supported paths:
 
 1. supply a previously prepared catalog entry; or
 2. run an explicit offline host utility that assembles the entry before the

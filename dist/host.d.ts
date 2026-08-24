@@ -1,5 +1,6 @@
 import type { NucleusD8DebugMap } from "./d8.js";
 import { nucleusCompilerInfo, type NucleusCompileSuccess, type NucleusDiagnostic, type NucleusSourcePart, type NucleusTarget } from "./compiler.js";
+import { type RuntimeImageProvider } from "./nobj.js";
 import { type NucleusConfigurationIssue } from "./configuration.js";
 export declare const NUCLEUS_HOST_API_VERSION = 1;
 export interface NucleusBuildArtifactRequest {
@@ -12,6 +13,8 @@ export interface NucleusBuildRequest {
     readonly artifacts?: NucleusBuildArtifactRequest;
     /** Exercise the compiler through direct pseudo-ports or the MON3 RST gateway. */
     readonly hostTransport?: "direct" | "mon3";
+    /** Supply pre-linked runtime images for target layouts outside the package catalogue. */
+    readonly runtimeProvider?: RuntimeImageProvider;
 }
 export interface NucleusD8Artifact {
     readonly bank: number;

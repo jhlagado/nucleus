@@ -124,7 +124,7 @@ this compact compiler descriptor:
 
 | Field              | Meaning                                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `runtimeIdentity`  | Runtime source/ABI revision, image length, catalog format, vector layout, and helper-offset identity. |
+| `runtimeAbiRevision` | Generated-code/runtime ABI revision. The NOBJ 0.1 wire field retains the legacy name `runtimeIdentity`. |
 | `imageBase`        | First target address of startup, runtime, code, and image bytes.                                      |
 | `imageCapacity`    | Maximum byte extent of each selected image region.                                                    |
 | `writableBase`     | First target address of runtime vectors, fixed state, and program writable storage.                   |
@@ -159,19 +159,17 @@ Before reduction, the adapter verifies that image mappings can be loaded and
 executed and that writable permits writes. Hardware attributes and device
 offsets remain external and add no source-visible property.
 
-The runtime identity must equal the constant carried by the compiler before
-publication. It identifies the runtime source and private ABI revision,
-RAM-vector and helper layout, expected image length, and catalog format. It
-does not by itself identify one address-bound byte sequence. A mismatch is a
+The runtime ABI revision must equal the constant carried by the compiler before
+publication. It identifies the generated-code/runtime calling contract. It
+does not identify one address-bound byte sequence. A mismatch is a
 target-configuration diagnostic, not a runnable artifact.
 
 The platform supplies pre-resolved helper bytes through a runtime-image catalog
-keyed by that identity and the complete validated placement context. The
-adapter derives that context from the target profile and the compiler's checked
-full-width layout state: runtime base, writable/vector state addresses, service
-destinations, and every data or read-only-data bound embedded by the runtime.
-The provider requires an exact catalog match and verifies image length, vector
-layout, initial-state layout, and helper offsets against the identity. The
+keyed by the ABI revision and executable placement values. The adapter derives
+the complete context from the target profile and the compiler's checked
+full-width layout state. The provider requires an exact catalog match and
+verifies image length, vector layout, initial-state layout, and helper offsets
+against the catalog entry. The
 compiler retains the identity, expected length, vector layout, and helper
 offsets; it does not retain the selected image. At each derived runtime base it
 submits the bank, target address, identity, and expected length. The private Z80
@@ -222,7 +220,7 @@ Before the terminal commit, the compiler and adapter together establish all of
 these facts:
 
 - every mathematical region end is at most `$10000`;
-- the runtime identity and `establishStack` value are valid;
+- the runtime ABI revision and `establishStack` value are valid;
 - writable is wholly inside or wholly outside image for a flat target;
 - writable lies outside the bank window for a banked target;
 - image bytes, runtime vectors, initialized data, BSS, and optional stack fit
@@ -262,7 +260,7 @@ program variables occupy always-visible writable RAM outside the bank window.
 
 Calls within one bank use ordinary `CALL`. Calls across banks use the far-call
 vector in Section 8.6. Every bank contains the complete selected runtime helper
-image. The runtime identity therefore fixes one byte length and one set of
+image. The ABI revision therefore fixes one byte length and one set of
 helper offsets for every bank. Every bank reserves the first three bytes of the
 window, and its runtime begins at `bankWindowBase + 3`; this version performs no
 per-bank subsetting.
@@ -428,9 +426,9 @@ complete selected runtime begins at `bankWindowBase + 3` in every bank. In the
 entry bank, startup follows that runtime, generated read-only data follows
 startup, and generated code follows the read-only extent. In every other bank,
 read-only data follows the runtime and precedes code. Only the entry bank
-contains startup and the initialized-RAM load image. The runtime identity fixes
-the source and ABI revision, image length, helper offsets, and RAM vector
-layout; this version performs no helper subsetting. Banks with the same
+contains startup and the initialized-RAM load image. The runtime ABI revision
+fixes the helper and RAM-vector layouts; the selected catalog entry fixes the
+resolved image length and helper offsets. This version performs no helper subsetting. Banks with the same
 complete placement context use the same pre-resolved helper image.
 
 The initialized block begins with the adapter-selected runtime vector table,
@@ -739,7 +737,7 @@ profiles are defined in the
 
 The codes identify the standard semantic service set in machine-readable tests
 and adapters. Generated programs call their entries in the RAM-resident runtime
-vector table. Each entry is one `JP`, and the runtime identity fixes the table's
+vector table. Each entry is one `JP`, and the ABI revision fixes the table's
 base, order, and offsets.
 
 The target environment establishes the table before source execution. ROM
@@ -747,7 +745,7 @@ startup copies it; a loaded image places it directly at its run address. Its
 initialized bytes come from the selected adapter runtime rather than from
 source declarations. The table also contains the terminal success,
 unhandled-failure, and trap entries required by Chapter 7 and the far-call and
-far-jump entries in Section 8.6. Runtime identity `$0009` appends the packet
+far-jump entries in Section 8.6. Runtime ABI revision `$000A` includes the packet
 gateway as ordinal 11; the preceding ordinals retain their identity `$0008`
 positions. The complete twelve-entry vector is 36 bytes.
 
@@ -801,7 +799,7 @@ returns carry set with `A = 0x07`; the shared runtime gateway then enters the
 `packet-service` trap at the source statement before calling native code or
 changing the packet.
 
-The runtime identity covers the slot contract as well as the vector position.
+The runtime ABI revision covers the slot contract as well as the vector position.
 A provider may bind slots to MON-3 RST gateways, CP/M BDOS, MSX BIOS,
 firmware, host callbacks, or another target-native mechanism. This is a
 bounded native call, not a recoverable standard service. Provider effects and
@@ -902,7 +900,7 @@ the compact compiler descriptor. Its record classes are:
 
 | Record   | Required fields                                                                                            |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `begin`  | format revision, runtime identity, flat or banked form, bank count, image bases, capacities, and fill byte |
+| `begin`  | format revision, runtime ABI revision, flat or banked form, bank count, image bases, capacities, and fill byte |
 | `image`  | bank ordinal, 16-bit target address, nonempty byte payload                                                 |
 | `patch`  | bank ordinal, 16-bit target address, nonempty final replacement-byte payload                               |
 | `map`    | the complete publication fields in Section 9.5                                                             |
@@ -982,7 +980,7 @@ must not replace the source location with the helper's address.
 
 ### 9.5 Published map
 
-The committed artifact reports at least its runtime identity, vector layout,
+The committed artifact reports at least its runtime ABI revision, vector layout,
 object format revision, image fill byte, entry bank and address, source-part
 bank mapping, bank-tagged image-record extents, first free image address per
 bank, initialized-data run extent, BSS run extent, aggregate-constant extent,
@@ -1023,10 +1021,11 @@ activation storage, instruction count, and T-states. A projection states its
 measured basis; an untested expectation is labelled a hypothesis.
 
 At the recorded implementation revision, `test/nobj.test.ts` assembles runtime
-identity `$0009` under the legacy-named `defaultRuntimeLinkContext` and measures
-a 731-byte helper image. This on-demand assembly is transitional evidence, not
-the settled provider contract; the catalog increment must preserve its exact
-bytes and measurements for the same context. This identity includes checked
+ABI revision `$000A` under the legacy-named `defaultRuntimeLinkContext` and
+measures a 732-byte helper image. Its writable state is 41 bytes: the previous
+37-byte state followed by the program-data base and capacity. Current tests use
+on-demand assembly as transitional evidence. A catalog entry for the same
+executable-image key must reproduce the measured bytes. This ABI revision includes checked
 four-way integer conversion, signed
 comparison, signed division and modulo, signed loop continuation, and mixed
 `u8`/`i8` promotion in addition to the existing unsigned and aggregate helpers.

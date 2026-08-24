@@ -6,8 +6,6 @@ import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 
 import {
   materializeNobj,
-  MemoryNobjSpool,
-  NobjGenerationSink,
   NobjGenerationStore,
   type MaterializedNobj,
   type NobjBegin,
@@ -16,9 +14,12 @@ import {
   type NobjSequentialOutput,
   type NobjSpoolFactory,
   type ParsedNobj,
-  type RuntimeImageProvider,
   type RuntimeLinkContext,
 } from "./nobj.js";
+import {
+  commitNobjAdapterGeneration as commitNobjAdapterGenerationWithProvider,
+  commitNobjAdapterGenerationTo as commitNobjAdapterGenerationToWithProvider,
+} from "./nobj-adapter.js";
 import {
   defaultRuntimeLinkContext,
   loadCanonicalRuntimeProvider,
@@ -431,114 +432,35 @@ const runNobjManifest = async (
   });
 };
 
-const prepareNobjAdapterGeneration = async ({
-  name,
-  producerMemory,
-  start,
-  length,
-  maxBytes,
-  begin,
-  map,
-  runtimeLinkContext = defaultRuntimeLinkContext,
-  store = new NobjGenerationStore(),
-  spoolFactory,
-  lowMemoryPatchValidation = false,
-  onImageByte,
-}: NobjAdapterGeneration): Promise<NobjGenerationSink> => {
-  if (length > maxBytes) {
-    throw new ProofFailure(
-      `${name}: NOBJ adapter log uses ${length} bytes, limit ${maxBytes}`,
-    );
-  }
-  if (start + length > producerMemory.length) {
-    throw new ProofFailure(`${name}: NOBJ adapter log exceeds proof memory`);
-  }
-  const provider = await loadCanonicalRuntimeProvider([runtimeLinkContext]);
-  const sink = new NobjGenerationSink(
-    store,
-    provider,
-    spoolFactory ?? (() => new MemoryNobjSpool()),
-    { lowMemoryPatchValidation },
-  );
-  sink.begin(begin);
-  try {
-    let cursor = start;
-    const end = start + length;
-    while (cursor < end) {
-      if (end - cursor < 6) {
-        throw new ProofFailure(`${name}: truncated NOBJ adapter operation`);
-      }
-      const kind = producerMemory[cursor] ?? 0;
-      const bank = producerMemory[cursor + 1] ?? 0;
-      const address =
-        (producerMemory[cursor + 2] ?? 0) |
-        ((producerMemory[cursor + 3] ?? 0) << 8);
-      const count =
-        (producerMemory[cursor + 4] ?? 0) |
-        ((producerMemory[cursor + 5] ?? 0) << 8);
-      cursor += 6;
-      if (kind === 3 || kind === 4) {
-        if (end - cursor < 2) {
-          throw new ProofFailure(`${name}: truncated runtime-image operation`);
-        }
-        const identity =
-          (producerMemory[cursor] ?? 0) |
-          ((producerMemory[cursor + 1] ?? 0) << 8);
-        cursor += 2;
-        if (kind === 3) {
-          sink.runtimeImage(bank, address, identity, runtimeLinkContext, count);
-        } else {
-          sink.runtimeInitialImage(
-            bank,
-            address,
-            identity,
-            runtimeLinkContext,
-            count,
-          );
-        }
-        continue;
-      }
-      if (kind !== 1 && kind !== 2) {
-        throw new ProofFailure(
-          `${name}: unknown NOBJ adapter operation ${kind}`,
-        );
-      }
-      if (cursor + count > end) {
-        throw new ProofFailure(`${name}: truncated NOBJ adapter bytes`);
-      }
-      const bytes = producerMemory.slice(cursor, cursor + count);
-      cursor += count;
-      if (kind === 1) {
-        for (let offset = 0; offset < bytes.length; offset += 1) {
-          onImageByte?.({
-            bank,
-            address: address + offset,
-            value: bytes[offset] ?? 0,
-          });
-        }
-        sink.image(bank, address, bytes);
-      } else {
-        sink.patch(bank, address, bytes);
-      }
-    }
-    sink.map(map);
-    return sink;
-  } catch (error) {
-    sink.abort();
-    throw error;
-  }
-};
-
 export const commitNobjAdapterGeneration = async (
   generation: NobjAdapterGeneration,
-): Promise<Uint8Array> =>
-  (await prepareNobjAdapterGeneration(generation)).commit();
+): Promise<Uint8Array> => {
+  const runtimeLinkContext =
+    generation.runtimeLinkContext ?? defaultRuntimeLinkContext;
+  const runtimeProvider = await loadCanonicalRuntimeProvider([
+    runtimeLinkContext,
+  ]);
+  return commitNobjAdapterGenerationWithProvider({
+    ...generation,
+    runtimeLinkContext,
+    runtimeProvider,
+  });
+};
 
 export const commitNobjAdapterGenerationTo = async (
   generation: NobjAdapterGeneration,
   output: NobjSequentialOutput,
-): Promise<NobjCommitMetadata> =>
-  (await prepareNobjAdapterGeneration(generation)).commitTo(output);
+): Promise<NobjCommitMetadata> => {
+  const runtimeLinkContext =
+    generation.runtimeLinkContext ?? defaultRuntimeLinkContext;
+  const runtimeProvider = await loadCanonicalRuntimeProvider([
+    runtimeLinkContext,
+  ]);
+  return commitNobjAdapterGenerationToWithProvider(
+    { ...generation, runtimeLinkContext, runtimeProvider },
+    output,
+  );
+};
 
 export const executeCommittedNobj = (
   serialized: Uint8Array,

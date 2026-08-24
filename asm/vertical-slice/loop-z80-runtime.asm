@@ -191,15 +191,16 @@ CheckAggregateRegionOne:
             JR   Z,CheckAggregateRegionSuccess
 .else
 ; Target-linked ABI: DE/IY carry the bank-local read-only base/capacity. The
-; writable base/capacity is part of the common linked context. Capacities
-; preserve a legal nonempty region ending at mathematical $10000.
+; writable base/capacity is initialized runtime state. Capacities preserve a
+; legal nonempty region ending at mathematical $10000 without making the
+; helper image depend on one source program's data and BSS lengths.
 .routine in BC,DE,HL,IY out A,carry,zero clobbers sign,parity,halfCarry,DE,HL,IY
 CheckAggregateRegion:
             PUSH DE
             PUSH IY
             PUSH HL
-            LD   DE,ProgramDataBase
-            LD   IY,ProgramDataRegionCapacity
+            LD   DE,(RuntimeProgramDataBaseState)
+            LD   IY,(RuntimeProgramDataCapacityState)
             CALL CheckAggregateRegionOne
             POP  HL
             POP  IY

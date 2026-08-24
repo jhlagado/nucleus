@@ -83,6 +83,16 @@ execution and target-control capability groups are implemented. The
 [MON3-compatible platform binding](mon3-host-binding.md) defines its current
 compiler-side layout and provisional selectors.
 
+The package selects target runtime bytes from a pre-linked catalogue; it never
+assembles a runtime during `build()` or `compileNucleusTo()`. The bundled
+catalogue covers the shipped Node target profiles. A caller using another
+runtime base, writable-state base, or packet-service destination supplies a
+`RuntimeImageProvider` on `NucleusBuildRequest` or in the low-level compile
+options. The provider must have been prepared before compilation. If neither
+the bundled catalogue nor the supplied provider contains the selected runtime
+ABI and executable placement, the build returns target-configuration
+diagnostic 95.
+
 By default, `compileNucleusTo` uses in-memory IMAGE and PATCH spools. A bounded
 file-host build supplies `nodeFileNobjSpoolFactory(tempDirectory)` to move both
 spools out of proportional resident memory. The retained

@@ -11,14 +11,40 @@ import {
 } from "../src/compiler.js";
 import { NucleusDebugCollector } from "../src/d8.js";
 import {
-  MemoryNobjSpool,
   type NobjSequentialOutput,
-  type NobjSpool,
 } from "../src/nobj.js";
+import { loadCanonicalRuntimeProvider } from "../src/nucleus-runtime.js";
 import { runProofManifest } from "../src/proof.js";
 
 const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
+
+const runtimeProviderForTarget = async (target: {
+  readonly imageBase?: number;
+  readonly writableBase?: number;
+  readonly writableCapacity?: number;
+  readonly services?: typeof defaultNucleusServices;
+}) => {
+  const runtimeBase = (target.imageBase ?? 0x8000) + 3;
+  const writableBase = target.writableBase ?? 0x4000;
+  const writableCapacity = target.writableCapacity ?? 0x1000;
+  const services = target.services ?? defaultNucleusServices;
+  const writableStateBase = writableBase + 36;
+  return loadCanonicalRuntimeProvider([
+    {
+      runtimeBase,
+      writableBase,
+      writableCapacity,
+      vectorBase: writableBase,
+      writableStateBase,
+      programDataBase: writableStateBase + 41,
+      programDataCapacity: 0,
+      readOnlyBase: 0,
+      readOnlyCapacity: 0,
+      services,
+    },
+  ]);
+};
 
 const expectValidIntelHexChecksums = (hex: string): void => {
   for (const line of hex.trim().split("\n")) {
@@ -618,53 +644,30 @@ describe("emulator-backed compiler host", () => {
     expect(aborted).toBe(true);
   }, 30_000);
 
-  it("cancels a suspended runtime-provider request without resuming stale work", async () => {
-    await compileNucleusToBytes([
-      { name: "warm.nu", source: "sub main()\nend\n" },
-    ]);
+  it("rejects an already-cancelled launch without publishing output", async () => {
     const controller = new AbortController();
-    let spoolClears = 0;
     let writes = 0;
     let commits = 0;
     let outputAborts = 0;
-    const spoolFactory = (): NobjSpool => {
-      const spool = new MemoryNobjSpool();
-      return {
-        get byteLength() {
-          return spool.byteLength;
-        },
-        append: (bytes) => spool.append(bytes),
-        chunks: () => spool.chunks(),
-        clear: () => {
-          spoolClears += 1;
-          spool.clear();
-        },
-      };
-    };
-    const timer = setTimeout(() => controller.abort(), 0);
-    try {
-      await expect(
-        compileNucleusTo(
-          [{ name: "cancel.nu", source: "sub main()\nend\n" }],
-          {},
-          {
-            write: () => {
-              writes += 1;
-            },
-            commit: () => {
-              commits += 1;
-            },
-            abort: () => {
-              outputAborts += 1;
-            },
+    controller.abort();
+    await expect(
+      compileNucleusTo(
+        [{ name: "cancel.nu", source: "sub main()\nend\n" }],
+        {},
+        {
+          write: () => {
+            writes += 1;
           },
-          { signal: controller.signal, spoolFactory },
-        ),
-      ).rejects.toThrow("native Nucleus host failed with status 6");
-    } finally {
-      clearTimeout(timer);
-    }
-    expect(spoolClears).toBeGreaterThan(0);
+          commit: () => {
+            commits += 1;
+          },
+          abort: () => {
+            outputAborts += 1;
+          },
+        },
+        { signal: controller.signal },
+      ),
+    ).rejects.toThrow("native Nucleus host failed with status 6");
     expect({ writes, commits, outputAborts }).toEqual({
       writes: 0,
       commits: 0,
@@ -763,7 +766,10 @@ describe("emulator-backed compiler host", () => {
         imageBase: 0x10000 - capacity,
         imageCapacity: capacity,
       };
-      const conventional = await compileNucleus(fixture.parts, boundaryTarget);
+      const runtimeProvider = await runtimeProviderForTarget(boundaryTarget);
+      const conventional = await compileNucleus(fixture.parts, boundaryTarget, {
+        runtimeProvider,
+      });
       expect(conventional.success).toBe(true);
       if (!conventional.success) continue;
       expect(
@@ -774,13 +780,18 @@ describe("emulator-backed compiler host", () => {
         ) + boundaryTarget.imageBase,
       ).toBe(0x10000);
       const chunks: Uint8Array[] = [];
-      const streamed = await compileNucleusTo(fixture.parts, boundaryTarget, {
-        write: (bytes) => chunks.push(bytes.slice()),
-        commit: () => undefined,
-        abort: () => {
-          throw new Error("unexpected top-of-memory streaming abort");
+      const streamed = await compileNucleusTo(
+        fixture.parts,
+        boundaryTarget,
+        {
+          write: (bytes) => chunks.push(bytes.slice()),
+          commit: () => undefined,
+          abort: () => {
+            throw new Error("unexpected top-of-memory streaming abort");
+          },
         },
-      });
+        { runtimeProvider },
+      );
       expect(streamed.success).toBe(true);
       expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
         conventional.nobj,
@@ -958,15 +969,16 @@ describe("emulator-backed compiler host", () => {
   }, 30_000);
 
   it("links target service addresses and materializes a high flat layout", async () => {
+    const target = {
+      imageBase: 0xf000,
+      imageCapacity: 0x1000,
+      writableBase: 0x5000,
+      writableCapacity: 0x1000,
+      services: { ...defaultNucleusServices, writeOutputByte: 0x1234 },
+    };
     const result = await compileNucleus(
       [{ name: "main.nu", source: "sub main()\nend\n" }],
-      {
-        imageBase: 0xf000,
-        imageCapacity: 0x1000,
-        writableBase: 0x5000,
-        writableCapacity: 0x1000,
-        services: { ...defaultNucleusServices, writeOutputByte: 0x1234 },
-      },
+      target,
     );
     expect(result.success).toBe(true);
     if (!result.success) return;

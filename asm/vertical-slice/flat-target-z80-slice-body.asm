@@ -212,14 +212,14 @@ FlatTargetBadFlagsDescriptor:
 FlatTargetStackExactDescriptor:
             .dw NucleusRuntimeIdentity
             .dw $8000,$1000
-            .dw $4000,$0F4B+(NucleusRuntimeVectorLength-33)
+            .dw $4000,$0F4B+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeStateLength-37)
             .db 1
             .db 1,0
             .dw FlatTargetPartBanks
 FlatTargetStackOverflowDescriptor:
             .dw NucleusRuntimeIdentity
             .dw $8000,$1000
-            .dw $4000,$0F4A+(NucleusRuntimeVectorLength-33)
+            .dw $4000,$0F4A+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeStateLength-37)
             .db 1
             .db 1,0
             .dw FlatTargetPartBanks
@@ -480,7 +480,7 @@ ProofStart:
             LD   DE,(TargetImageBase)
             OR   A
             SBC  HL,DE
-            LD   DE,$1048+(NucleusRuntimeVectorLength-33)
+            LD   DE,$1048+(NucleusRuntimeVectorLength-33)+(NucleusRuntimeStateLength-37)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure

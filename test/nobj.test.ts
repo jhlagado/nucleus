@@ -23,9 +23,12 @@ import {
   type RuntimeImageProvider,
 } from "../src/nobj.js";
 import {
+  CanonicalRuntimeImageProvider,
   defaultRuntimeLinkContext,
   loadCanonicalRuntimeImage,
 } from "../src/nucleus-runtime.js";
+import { defaultNucleusServices } from "../src/compiler.js";
+import { bundledRuntimeProvider } from "../src/runtime-catalog.js";
 import { commitNobjAdapterGenerationTo } from "../src/proof.js";
 
 const emptyProvider: RuntimeImageProvider = { get: () => undefined };
@@ -605,12 +608,15 @@ describe("NOBJ 0.1", () => {
 
   it("assembles the canonical provider from the exact selected runtime source", async () => {
     const runtime = await loadCanonicalRuntimeImage();
-    expect(runtime.identity).toBe(9);
-    expect(runtime.bytes).toHaveLength(731);
+    expect(runtime.identity).toBe(10);
+    expect(runtime.bytes).toHaveLength(732);
     expect(runtime.vectorBytes).toHaveLength(36);
-    expect(runtime.initialBytes).toHaveLength(73);
+    expect(runtime.initialBytes).toHaveLength(77);
     expect(runtime.initialBytes[36]).toBe(1);
     expect(runtime.initialBytes[43]).toBe(8);
+    expect(Array.from(runtime.initialBytes.slice(73, 77))).toEqual([
+      0x4d, 0x78, 0x00, 0x08,
+    ]);
     expect(runtime.currentBankOffset).toBe(8);
     expect(runtime.helperOffsets?.CheckAggregateRegion).toBe(115);
     expect(runtime.helperOffsets?.StringEqual).toBeUndefined();
@@ -627,7 +633,7 @@ describe("NOBJ 0.1", () => {
       writableCapacity: 0x2000,
       writableStateBase: 0x5024,
       vectorBase: 0x5000,
-      programDataBase: 0x5049,
+      programDataBase: 0x504d,
       programDataCapacity: 0x0800,
       readOnlyBase: 0x8300,
       readOnlyCapacity: 0x1000,
@@ -664,6 +670,51 @@ describe("NOBJ 0.1", () => {
       expect(runtime.isHalted()).toBe(true);
       expect(runtime.hardware.memory[context.writableStateBase + 6]).toBe(1);
     });
+  }, 30_000);
+
+  it("reuses one resolved runtime while initializing per-program writable bounds", async () => {
+    const image = await loadCanonicalRuntimeImage(defaultRuntimeLinkContext);
+    const provider = new CanonicalRuntimeImageProvider([
+      { context: defaultRuntimeLinkContext, image },
+    ]);
+    const smallerProgram = {
+      ...defaultRuntimeLinkContext,
+      programDataCapacity: 0x0123,
+      readOnlyBase: 0,
+      readOnlyCapacity: 0,
+      services: {
+        ...defaultRuntimeLinkContext.services,
+        writeOutputByte: 0x9123,
+      },
+    };
+    const resolved = provider.get(image.identity, smallerProgram);
+    expect(resolved?.bytes).toEqual(image.bytes);
+    expect(resolved?.vectorBytes).not.toEqual(image.vectorBytes);
+    expect(Array.from(resolved?.initialBytes.slice(73, 77) ?? [])).toEqual([
+      0x4d, 0x78, 0x23, 0x01,
+    ]);
+  }, 30_000);
+
+  it("ships a pre-linked Node runtime identical to the canonical offline link", async () => {
+    const context = {
+      runtimeBase: 0x8003,
+      writableBase: 0x4000,
+      writableCapacity: 0x1000,
+      vectorBase: 0x4000,
+      writableStateBase: 0x4024,
+      programDataBase: 0x404d,
+      programDataCapacity: 0x0123,
+      readOnlyBase: 0,
+      readOnlyCapacity: 0,
+      services: defaultNucleusServices,
+    };
+    const linked = await loadCanonicalRuntimeImage(context);
+    const bundled = bundledRuntimeProvider.get(linked.identity, context);
+    expect(bundled).toBeDefined();
+    expect(bundled?.bytes).toEqual(linked.bytes);
+    expect(bundled?.initialBytes).toEqual(linked.initialBytes);
+    expect(bundled?.helperOffsets).toEqual(linked.helperOffsets);
+    expect(bundled?.currentBankOffset).toBe(linked.currentBankOffset);
   }, 30_000);
 
   it("rejects runtime contexts that violate the identity-fixed writable layout", async () => {

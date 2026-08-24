@@ -82,7 +82,7 @@ addresses. The adapter validates those properties before invoking the compiler.
 For a flat target, the adapter validates this complete configuration:
 
 ```text
-runtimeIdentity
+runtimeAbiRevision
 imageBase
 imageCapacity
 imageFill
@@ -91,14 +91,14 @@ writableCapacity
 establishStack
 ```
 
-`runtimeIdentity`, the region bases, and the region capacities are unsigned
+`runtimeAbiRevision`, the region bases, and the region capacities are unsigned
 16-bit words; both capacities are nonzero. `imageFill` is the byte used for unwritten image addresses.
 `establishStack` is Boolean.
 
 For a banked target, the adapter validates this complete configuration:
 
 ```text
-runtimeIdentity
+runtimeAbiRevision
 bankWindowBase
 bankCapacity
 bankCount
@@ -116,7 +116,7 @@ image capacity. `bankCount` bounds valid bank ordinals. `entryBank` identifies
 the bank containing startup and `main`. The bounded `partBank` array maps each
 manifest ordinal to one of those banks.
 
-`runtimeIdentity`, `bankWindowBase`, `bankCapacity`, `writableBase`, and
+`runtimeAbiRevision`, `bankWindowBase`, `bankCapacity`, `writableBase`, and
 `writableCapacity` are unsigned 16-bit words. `imageFill` is one byte.
 `bankCount` is in the range 2 through 4. `entryBank` and each `partBank` entry
 are bounded byte ordinals within that count. `establishStack` remains Boolean.
@@ -126,28 +126,33 @@ not a field in the compact 15-byte descriptor passed to the Z80 compiler. The
 descriptor contains the remaining layout values needed while code is being
 generated; the adapter retains the fill byte for publication.
 
-`runtimeIdentity` identifies one runtime source and ABI revision, RAM-vector
-and helper layout, expected image length, and runtime-catalog format. It does
-not by itself identify one address-bound byte sequence.
+`runtimeAbiRevision` identifies the generated-code/runtime calling contract.
+For example, `$000A` means ABI revision 10. It is neither an address nor an
+offset, and it does not identify one address-bound runtime image.
 
 The platform provides a catalog of pre-resolved runtime images. Before catalog
 lookup, the adapter establishes the complete validated runtime placement
 context from the target profile and the compiler's checked full-width layout
-state. That context contains the derived runtime base, writable and vector
-state addresses, service destinations, and every data or read-only-data bound
-embedded by the runtime. The provider requires an exact identity-and-context
-match, then verifies image length, vector layout, initial-state layout, and
-every published helper offset. An unsupported context, identity mismatch,
+state. The executable-image key contains the ABI revision, runtime base,
+writable-state base, and packet-service destination. The provider requires an
+exact key match, then verifies image length, vector layout, initial-state
+layout, and every published helper offset. An unsupported context, revision mismatch,
 length mismatch, or helper-layout mismatch is a target-configuration
 diagnostic. Compilation does not assemble, link, or relocate a runtime image.
 
+Program-data base and capacity are initialized in fixed runtime state. The
+ordinary service destinations are initialized in the writable vector table.
+Those per-program values therefore do not produce distinct executable runtime
+images.
+
 At each derived runtime address, the compiler submits the bank, address,
-runtime identity, and expected length to the adapter. The adapter supplies the
+runtime ABI revision, and expected length to the adapter. The adapter supplies the
 validated context when it invokes the bounded
 `runtimeImage(bank, address, runtimeIdentity, linkContext, expectedLength)`
-operation. `linkContext` is a legacy implementation name for the runtime
-placement context; it does not authorize a linker. The private compiler-to-
-adapter handoff need not repeat the complete context. The provider streams the
+operation. `runtimeIdentity` and `linkContext` are legacy NOBJ 0.1 and
+implementation names for the ABI revision and runtime placement context. They
+do not authorize a linker. The private compiler-to-adapter handoff need not
+repeat the complete context. The provider streams the
 selected bytes into the image spool as one or more ordinary `IMAGE` records in
 increasing target-address order. It must report exactly `expectedLength`.
 NOBJ remains non-relocatable: the emitted records contain no runtime relocation
@@ -215,9 +220,10 @@ generated code
 
 Every other bank contains the reserved entry slot, the same complete runtime,
 then that bank's read-only bytes and code. Only the entry bank contains startup
-and the initialized-data load image. The runtime identity fixes one source and
-ABI revision, image length, common vector layout, and set of helper offsets for
-every bank. This version performs no per-bank helper subsetting.
+and the initialized-data load image. The runtime ABI revision fixes the common
+vector layout and helper ABI for every bank. The selected catalog entry fixes
+the resolved image length and helper offsets. This version performs no
+per-bank helper subsetting.
 
 The runtime catalog supplies each complete pre-resolved helper-image copy at
 the derived runtime address. The compiler advances its target cursor by the
@@ -250,8 +256,8 @@ writableBase + writableCapacity
 The runtime vector table is adapter-contributed initialized data at offset
 zero. The identity-fixed runtime writable state follows the table, then program
 initialized data. BSS begins immediately after that complete used initialized
-length, not after a reserved initialized-data capacity. The runtime identity
-fixes the vector and state extents; target-derived addresses select their
+length, not after a reserved initialized-data capacity. The runtime ABI revision
+fixes the vector and state layouts; target-derived addresses select their
 placement.
 
 The complete upward allocation must fit `writableCapacity`. When stack
@@ -371,7 +377,7 @@ The table contains:
 
 The table lies in the writable region and therefore remains visible from every
 bank. Every vector destination must also remain callable under every bank
-selector. The runtime identity fixes its entry order and offsets. The selected
+selector. The runtime ABI revision fixes its entry order and offsets. The selected
 catalog entry fixes the target-specific vector destinations. Generated code
 never assumes a platform-specific service address.
 
@@ -388,14 +394,14 @@ Direct I/O uses no memory-bank address and is valid in both flat and banked
 images.
 
 The packet-service entry is different: it is runtime-vector ordinal 11 and is
-part of runtime identity `$0009`. A target may bind it to a MON-3 RST gateway,
+part of runtime ABI revision `$000A`. A target may bind it to a MON-3 RST gateway,
 CP/M BDOS, MSX BIOS, firmware, or a host callback. The destination must remain
 callable under every bank selector, validate the slot and retained packet
 count before native dispatch, preserve the selected bank, and confine every
 write to the supplied packet extent. Adding the entry increases the initialized
 vector image by three bytes. The shared packet-validation and terminal-trap
-gateway adds 42 bytes to the canonical helper image, which is 731 bytes under
-runtime identity `$0009`.
+gateway is 42 bytes. The complete canonical helper image is 732 bytes under
+runtime ABI revision `$000A`.
 
 ## 7. Banked programs
 
@@ -623,7 +629,7 @@ loader or host utility consumes the stored object.
 The committed map reports at least:
 
 - object format revision and image fill byte;
-- runtime identity and vector-table layout;
+- runtime ABI revision and vector-table layout;
 - entry bank and entry address;
 - source-part ordinal to bank assignment;
 - bank-window base, per-bank capacity, bank-tagged image-record extents, used
@@ -639,9 +645,9 @@ Used lengths and capacities remain distinct.
 
 Before emitting the terminal commit, the compiler and adapter establish:
 
-- the runtime catalog contains an exact entry for the selected identity and
+- the runtime catalog contains an exact entry for the selected ABI revision and
   placement context, and its byte length, vector layout, initial-state layout,
-  and helper offsets match the runtime identity;
+  and helper offsets match the catalog entry;
 - every mathematical region end is at most `$10000`;
 - writable is wholly inside or wholly outside image for a flat target;
 - writable lies outside the banked window for a banked target;
@@ -680,7 +686,7 @@ an invalid patch target, and a record following commit.
 ### 12.1 TEC-1 ROM
 
 ```text
-runtime identity  nucleus-z80-0.1
+runtime ABI revision  $000A
 image             $8000 + $4000
 writable          $2000 + $2000
 establish stack   true
@@ -692,7 +698,7 @@ vectors and initialized values to RAM, clears BSS, and enters `main`.
 ### 12.2 Loaded program
 
 ```text
-runtime identity  nucleus-z80-0.1
+runtime ABI revision  $000A
 image             $0100 + $6F00
 writable          $6000 + $1000
 establish stack   false
@@ -707,7 +713,7 @@ distinguishes used space from unused capacity.
 ### 12.3 TECM8 banked ROM
 
 ```text
-runtime identity  nucleus-z80-0.1
+runtime ABI revision  $000A
 bank window       $8000 + $4000
 writable          $2000 + $2000
 establish stack   true

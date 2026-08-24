@@ -264,15 +264,15 @@ describe("constant-true while fallthrough", () => {
     );
     if (!built.success) throw new Error(JSON.stringify(built));
     expect(sha256(built.nobj)).toBe(
-      "82a8704ddafc8dd097483021aff36fa9211d8ad9b426c66f3fd1fe977fa6f4ca",
+      "bd7475172c107fb127ea0f2ecd4ad7bcfcfd26dd83d18273eb721617b1902073",
     );
     expect(sha256(writeNucleusIntelHex(built))).toBe(
-      "0855072388953c7b2e1548e8d745434158c8ad517623ab4d73bef8fc68352238",
+      "faa55dab7c2428784eb94d4c80c1aa85c20f53003cd8351bb0d8f699b19f1550",
     );
     expect(sha256(built.materialized.flatImage ?? new Uint8Array())).toBe(
-      "546c4e6feda52e26db9a5a44f1cc6985087de35e549e4bb65caae7b0c9eef6f9",
+      "77f778bab303caf27e177c99594a5f0a1299e278c2622b1ce29b1f1e9be2272c",
     );
-    expect(built.materialized.parsed.map.banks[0]?.usedLength).toBe(1_051);
+    expect(built.materialized.parsed.map.banks[0]?.usedLength).toBe(1_056);
     expect(built.debugMapping).toMatchObject({
       semanticOperations: 15,
       sourceMarks: 9,

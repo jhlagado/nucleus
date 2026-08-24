@@ -28,7 +28,7 @@ belong to the language specification.
 ## 2. Design boundary
 
 One object contains one completely placed Nucleus program. It may contain one
-flat image or several bank images, but it has one runtime identity, one source
+flat image or several bank images, but it has one runtime ABI revision, one source
 unit, one map, and one entry pair.
 
 An object is not relocatable. Every image and patch record contains a final
@@ -112,7 +112,7 @@ aborted write ends without `COMMIT`.
 |              4 | `majorVersion`    | `u8`       | `$00`.                                          |
 |              5 | `minorVersion`    | `u8`       | `$01`.                                          |
 |              6 | `flags`           | `u8`       | Bit 0 is banked; bits 1 through 7 are zero.     |
-|              7 | `runtimeIdentity` | `u16`      | Exact selected runtime identity.                |
+|              7 | `runtimeIdentity` | `u16`      | Runtime ABI revision; the field name is retained for NOBJ 0.1 compatibility. |
 |              9 | `bankCount`       | `u8`       | Number of image banks.                          |
 |             10 | `imageFill`       | `u8`       | Initial value of every materialized image byte. |
 |             11 | `imageBase`       | `u16`      | Flat image base or common bank-window base.     |
@@ -330,7 +330,7 @@ The compiler-facing sink supports `begin`, `image`, `runtimeImage`,
 `runtimeInitialImage`, `patch`, `map`, `commit`, and `abort`. During
 compilation, `image` appends to an image
 spool and `patch` appends to a patch spool. `runtimeImage` selects an exact
-pre-resolved catalog entry by runtime identity and complete validated placement
+pre-resolved catalog entry by runtime ABI revision and executable placement
 context, then appends it to the image spool as ordinary `IMAGE` records at the
 supplied bank and address. It
 must emit the declared runtime length and helper layout exactly. The compiler
@@ -422,8 +422,8 @@ Conformance evidence must include:
 - an incorrect record count and CRC;
 - truncation in every record header and payload class;
 - a byte after `COMMIT`;
-- an unavailable runtime identity or unsupported runtime placement context, and a
-  wrong-identity, wrong-helper-layout, or wrong-length runtime before commit;
+- an unavailable runtime ABI revision or unsupported runtime placement context,
+  and a wrong-revision, wrong-helper-layout, or wrong-length runtime before commit;
 - direct wire loading of a flat image and stored materialization of a banked
   image without private backing for every bank;
 - a failed generation after at least one image record while an earlier

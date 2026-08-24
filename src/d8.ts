@@ -6,7 +6,7 @@ import {
   nucleusD8SourceName,
 } from "./d8-internal.js";
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
-import type { NobjAdapterImageByte } from "./proof.js";
+import type { NobjAdapterImageByte } from "./nobj-adapter.js";
 
 type CompilerCpu = ReturnType<typeof createZ80Runtime>["cpu"];
 

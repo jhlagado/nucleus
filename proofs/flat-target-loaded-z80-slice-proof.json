@@ -61,7 +61,7 @@
     },
     "begin": {
       "banked": false,
-      "runtimeIdentity": 9,
+      "runtimeIdentity": 10,
       "bankCount": 1,
       "imageFill": 255,
       "imageBase": 32768,
@@ -77,17 +77,17 @@
       "vectorBase": 36864,
       "vectorLength": 36,
       "initializedRunBase": 36864,
-      "initializedRunLength": 75,
-      "bssBase": 36939,
+      "initializedRunLength": 79,
+      "bssBase": 36943,
       "bssLength": 1,
       "stackRequirement": 3840,
       "dataLoadBank": 0,
       "dataLoadAddress": 36864,
-      "dataLoadLength": 75,
+      "dataLoadLength": 79,
       "partBanks": [0],
       "banks": [
         {
-          "usedLength": 4171,
+          "usedLength": 4175,
           "readOnlyBase": 0,
           "readOnlyLength": 0,
           "aggregateConstantBase": 0,
@@ -101,9 +101,9 @@
       "writableCapacity": 4096,
       "writableStateBase": 36900,
       "vectorBase": 36864,
-      "programDataBase": 36937,
+      "programDataBase": 36941,
       "programDataCapacity": 3,
-      "readOnlyBase": 33537,
+      "readOnlyBase": 33538,
       "readOnlyCapacity": 0,
       "services": {
         "readInputByte": 28672,
@@ -132,7 +132,7 @@
         { "at": 28693, "bytes": [201] },
         { "at": 28696, "bytes": [201] },
         { "at": 65280, "bytes": [0, 127] },
-        { "at": 36939, "bytes": [165, 90] }
+        { "at": 36943, "bytes": [165, 90] }
       ]
     },
     "observations": [
@@ -140,9 +140,9 @@
       { "at": 36866, "width": "u8", "equals": 112 },
       { "at": 36900, "width": "u8", "equals": 2 },
       { "at": 36907, "width": "u8", "equals": 8 },
-      { "at": 36937, "width": "u16", "equals": 6 },
-      { "at": 36939, "width": "u8", "equals": 0 },
-      { "at": 36940, "width": "u8", "equals": 90 }
+      { "at": 36941, "width": "u16", "equals": 6 },
+      { "at": 36943, "width": "u8", "equals": 0 },
+      { "at": 36944, "width": "u8", "equals": 90 }
     ]
   }
 }

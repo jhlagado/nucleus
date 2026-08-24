@@ -43,15 +43,19 @@ const serviceOrder = [
     "farJump",
     "packetService",
 ];
+const runtimeVectorLength = serviceOrder.length * 3;
+const runtimeStateLength = 41;
+const runtimeProgramDataBaseOffset = 37;
+const runtimeProgramDataCapacityOffset = 39;
 export const defaultRuntimeLinkContext = {
     runtimeBase: 0x6800,
     writableBase: 0x7800,
     writableCapacity: 0x1000,
     writableStateBase: 0x7824,
     vectorBase: 0x7800,
-    programDataBase: 0x7849,
+    programDataBase: 0x784d,
     programDataCapacity: 0x0800,
-    readOnlyBase: 0x6adb,
+    readOnlyBase: 0x6adc,
     readOnlyCapacity: 0x0800,
     services: {
         readInputByte: 0x9000,
@@ -98,6 +102,19 @@ export const validateRuntimeLinkContext = (context) => {
     if (context.vectorBase < context.writableBase || vectorEnd > writableEnd) {
         throw new NobjError("vector table is outside writable storage");
     }
+    if (context.vectorBase !== context.writableBase) {
+        throw new NobjError("runtime vector base differs from writable base");
+    }
+    if (context.writableStateBase !== context.vectorBase + runtimeVectorLength) {
+        throw new NobjError("runtime state does not follow the vector table");
+    }
+    if (context.programDataBase !==
+        context.writableStateBase + runtimeStateLength) {
+        throw new NobjError("program data does not follow runtime state");
+    }
+    if (context.programDataBase + context.programDataCapacity > writableEnd) {
+        throw new NobjError("program data exceeds writable storage");
+    }
     for (const service of serviceOrder) {
         checkedWord(`${service} service address`, context.services[service]);
     }
@@ -127,14 +144,14 @@ RootSP             .equ ActivationArena+ActivationCapacity
 RootIX             .equ RootSP+2
 FarReturnArena     .equ RootIX+2
 FarReturnCapacity  .equ ActivationCapacity*2
-StateEnd           .equ FarReturnArena+FarReturnCapacity
+RuntimeProgramDataBaseState .equ FarReturnArena+FarReturnCapacity
+RuntimeProgramDataCapacityState .equ RuntimeProgramDataBaseState+2
+StateEnd           .equ RuntimeProgramDataCapacityState+2
 
 RunReady           .equ 1
 RunSucceeded       .equ 2
 RunTrapped         .equ 3
 
-ProgramDataBase           .equ RuntimeProgramDataBase
-ProgramDataRegionCapacity .equ RuntimeProgramDataCapacity
 GeneratedRoDataBase       .equ RuntimeReadOnlyBase
 GeneratedRoDataCapacity   .equ RuntimeReadOnlyCapacity
 
@@ -156,30 +173,55 @@ const vectorBytes = (services, packetServiceGateway) => {
     });
     return bytes;
 };
-const runtimeStateBytes = (stateLength, runStateOffset, activationLimitOffset, runReady, activationCapacity) => {
+const runtimeStateBytes = (stateLength, runStateOffset, activationLimitOffset, programDataBaseOffset, programDataCapacityOffset, runReady, activationCapacity, context) => {
     const bytes = new Uint8Array(stateLength);
     bytes[runStateOffset] = runReady;
     bytes[activationLimitOffset] = activationCapacity;
+    bytes[programDataBaseOffset] = context.programDataBase & 0xff;
+    bytes[programDataBaseOffset + 1] = context.programDataBase >>> 8;
+    bytes[programDataCapacityOffset] = context.programDataCapacity & 0xff;
+    bytes[programDataCapacityOffset + 1] =
+        context.programDataCapacity >>> 8;
     return bytes;
 };
-const contextKey = (identity, context) => JSON.stringify([
+const executableContextKey = (identity, context) => JSON.stringify([
     identity,
     context.runtimeBase,
-    context.writableBase,
-    context.writableCapacity,
     context.writableStateBase,
-    context.vectorBase,
-    context.programDataBase,
-    context.programDataCapacity,
-    context.readOnlyBase,
-    context.readOnlyCapacity,
-    ...serviceOrder.map((service) => context.services[service]),
+    context.services.packetService,
 ]);
+const resolvedImageForContext = (image, context) => {
+    const packetServiceGateway = image.helperOffsets?.PacketServiceGateway;
+    if (packetServiceGateway === undefined) {
+        throw new NobjError("runtime catalog entry omits PacketServiceGateway");
+    }
+    const vectors = vectorBytes(context.services, context.runtimeBase + packetServiceGateway);
+    const state = image.initialBytes.slice(image.vectorBytes.length);
+    if (state.length < runtimeStateLength) {
+        throw new NobjError("runtime catalog entry has an obsolete state layout");
+    }
+    state[runtimeProgramDataBaseOffset] = context.programDataBase & 0xff;
+    state[runtimeProgramDataBaseOffset + 1] = context.programDataBase >>> 8;
+    state[runtimeProgramDataCapacityOffset] =
+        context.programDataCapacity & 0xff;
+    state[runtimeProgramDataCapacityOffset + 1] =
+        context.programDataCapacity >>> 8;
+    return {
+        ...image,
+        bytes: image.bytes.slice(),
+        initialBytes: Uint8Array.from([...vectors, ...state]),
+        vectorBytes: vectors,
+        helperOffsets: image.helperOffsets === undefined
+            ? undefined
+            : { ...image.helperOffsets },
+        currentBankOffset: image.currentBankOffset,
+    };
+};
 export class CanonicalRuntimeImageProvider {
     #images = new Map();
     constructor(images) {
         for (const { context, image } of images) {
-            this.#images.set(contextKey(image.identity, context), {
+            this.#images.set(executableContextKey(image.identity, context), {
                 ...image,
                 bytes: image.bytes.slice(),
                 initialBytes: image.initialBytes.slice(),
@@ -192,19 +234,11 @@ export class CanonicalRuntimeImageProvider {
         }
     }
     get(identity, context) {
-        const image = this.#images.get(contextKey(identity, context));
+        validateRuntimeLinkContext(context);
+        const image = this.#images.get(executableContextKey(identity, context));
         if (image === undefined)
             return undefined;
-        return {
-            ...image,
-            bytes: image.bytes.slice(),
-            initialBytes: image.initialBytes.slice(),
-            vectorBytes: image.vectorBytes.slice(),
-            helperOffsets: image.helperOffsets === undefined
-                ? undefined
-                : { ...image.helperOffsets },
-            currentBankOffset: image.currentBankOffset,
-        };
+        return resolvedImageForContext(image, context);
     }
 }
 export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkContext) => {
@@ -268,9 +302,15 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
         const runStateOffset = symbol("RunState") - symbol("StateBase");
         const activationLimitOffset = symbol("ActivationLimit") - symbol("StateBase");
         const currentBankOffset = symbol("CurrentBank") - symbol("StateBase");
+        const programDataBaseOffset = symbol("RuntimeProgramDataBaseState") - symbol("StateBase");
+        const programDataCapacityOffset = symbol("RuntimeProgramDataCapacityState") - symbol("StateBase");
         if (runStateOffset !== symbol("NucleusRuntimeRunStateOffset") ||
             activationLimitOffset !== symbol("NucleusRuntimeActivationLimitOffset") ||
-            currentBankOffset !== symbol("NucleusRuntimeCurrentBankOffset")) {
+            currentBankOffset !== symbol("NucleusRuntimeCurrentBankOffset") ||
+            programDataBaseOffset !==
+                symbol("NucleusRuntimeProgramDataBaseOffset") ||
+            programDataCapacityOffset !==
+                symbol("NucleusRuntimeProgramDataCapacityOffset")) {
             throw new NobjError("canonical runtime writable-state offset mismatch");
         }
         const writableEnd = context.writableBase + context.writableCapacity;
@@ -304,7 +344,7 @@ export const loadCanonicalRuntimeImage = async (context = defaultRuntimeLinkCont
         if (linkedVectors.length !== vectorLength) {
             throw new NobjError("canonical runtime vector-layout mismatch");
         }
-        const linkedState = runtimeStateBytes(stateLength, runStateOffset, activationLimitOffset, symbol("RunReady"), symbol("ActivationCapacity"));
+        const linkedState = runtimeStateBytes(stateLength, runStateOffset, activationLimitOffset, programDataBaseOffset, programDataCapacityOffset, symbol("RunReady"), symbol("ActivationCapacity"), context);
         if (linkedState.length !== stateLength) {
             throw new NobjError("canonical runtime initial-state length mismatch");
         }
