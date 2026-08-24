@@ -45,6 +45,8 @@ export interface NucleusStreamingCompileOptions {
     readonly compilerIoWrite?: (port: number, value: number) => void;
     /** Select the Z80-to-host transport used by the authoritative compiler. */
     readonly hostTransport?: "direct" | "mon3";
+    /** Run the Z80 SP1 reader and source streamer through named-object ABI 1. */
+    readonly nativeObjectSource?: boolean;
     readonly spoolFactory?: NobjSpoolFactory;
     readonly lowMemoryPatchValidation?: boolean;
     readonly signal?: AbortSignal;

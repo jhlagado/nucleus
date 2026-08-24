@@ -71,8 +71,8 @@ returned as a valid handle.
 | Number | Operation | Inputs | Success result |
 | ---: | --- | --- | --- |
 | 0 | `openRead` | `pointer`, name `length` | readable `handle` at offset zero |
-| 1 | `beginWrite` | `pointer`, name `length` | tentative writable `handle` at offset zero |
-| 2 | `read` | readable `handle`, buffer `pointer`, requested `length` | `result` bytes copied |
+| 1 | `beginWrite` | `pointer`, name `length` | tentative update `handle` at offset zero |
+| 2 | `read` | readable or update `handle`, buffer `pointer`, requested `length` | `result` bytes copied |
 | 3 | `write` | writable `handle`, buffer `pointer`, requested `length` | `result == length` |
 | 4 | `rewind` | readable or writable `handle` | cursor becomes zero |
 | 5 | `seek` | readable or writable `handle`, 32-bit `offset` | cursor becomes `offset` |
@@ -93,10 +93,13 @@ end returns zero bytes. A write after a permitted seek defines every newly
 created gap as zero bytes.
 
 `beginWrite` creates a tentative replacement even when a committed object of
-the same name exists. That replacement is invisible to `openRead` until
-`commit` succeeds. `close` is valid only for a readable handle; a writable
-handle must finish with `commit` or `abort`. Successful `commit`, `abort`, and
-`close` invalidate the handle.
+the same name exists. The returned update handle may read, write, rewind, and
+seek within its own tentative bytes. This permits bounded work spools without
+making an incomplete generation visible under its object name. Other
+`openRead` calls continue to see the preceding committed object until `commit`
+succeeds. `close` is valid only for a readable handle; an update handle must
+finish with `commit` or `abort`. Successful `commit`, `abort`, and `close`
+invalidate the handle.
 
 ## 5. Failure and publication
 

@@ -89,3 +89,10 @@ out A,carry,zero
 clobbers sign,parity,halfCarry
 preserves IX,IY
 end
+
+service rst $10 C $91 NUCLEUS_OBJECT
+in C,H,L
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end

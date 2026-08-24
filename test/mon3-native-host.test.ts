@@ -17,6 +17,7 @@ const compile = async (
   parts: readonly NucleusSourcePart[],
   target: NucleusTarget,
   debugMap = false,
+  nativeObjectSource = false,
 ) => {
   const chunks: Uint8Array[] = [];
   let commits = 0;
@@ -33,7 +34,7 @@ const compile = async (
         aborts += 1;
       },
     },
-    { debugMap, hostTransport },
+    { debugMap, hostTransport, nativeObjectSource },
   );
   return {
     result,
@@ -114,6 +115,33 @@ describe("the MON3-compatible native compiler host", () => {
       { bankCount: 2, entryBank: 1, partBanks: [1] },
       true,
     );
+  }, 30_000);
+
+  it("runs the Z80 SP1 reader, retained-name spool, and source streamer", async () => {
+    const parts = [
+      {
+        name: "library/value.nu",
+        source: "sub value() as u8\nreturn 41\nend\n",
+      },
+      {
+        name: "main.nu",
+        source:
+          "var answer as u8\nsub main()\nanswer = value() + 1\nend\n",
+      },
+    ];
+    const [compatibility, native] = await Promise.all([
+      compile("mon3", parts, {}),
+      compile("mon3", parts, {}, false, true),
+    ]);
+    expect(native.result).toEqual(
+      expect.objectContaining({ success: compatibility.result.success }),
+    );
+    expect(native.bytes).toEqual(compatibility.bytes);
+    expect(native.commits).toBe(1);
+    expect(native.aborts).toBe(0);
+    if (native.result.success && compatibility.result.success) {
+      expect(native.result.object).toEqual(compatibility.result.object);
+    }
   }, 30_000);
 
   it("returns the same diagnostic and starts clean after a failed compile", async () => {

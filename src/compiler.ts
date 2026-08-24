@@ -1,4 +1,12 @@
 import { createHash } from "node:crypto";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 
@@ -52,6 +60,11 @@ import {
   nativeRetainedNameByteCapacity,
   nativeRetainedNameEntryCapacity,
 } from "./native-retained-names.js";
+import {
+  NodeNamedObjectServices,
+  NucleusSystemStatus,
+} from "./object-services.js";
+import { serializeNucleusSourcePlan } from "./source-plan.js";
 
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
@@ -138,6 +151,8 @@ export interface NucleusStreamingCompileOptions {
   readonly compilerIoWrite?: (port: number, value: number) => void;
   /** Select the Z80-to-host transport used by the authoritative compiler. */
   readonly hostTransport?: "direct" | "mon3";
+  /** Run the Z80 SP1 reader and source streamer through named-object ABI 1. */
+  readonly nativeObjectSource?: boolean;
   readonly spoolFactory?: NobjSpoolFactory;
   readonly lowMemoryPatchValidation?: boolean;
   readonly signal?: AbortSignal;
@@ -453,6 +468,36 @@ const prepareNativeSource = (
     bytes: partBytes,
   }));
   return { bytes, loaded, partBanks };
+};
+
+const createNativeSourceObjects = (
+  parts: readonly NucleusSourcePart[],
+  prepared: ReturnType<typeof prepareNativeSource>,
+): { readonly root: string; readonly services: NodeNamedObjectServices } => {
+  const root = mkdtempSync(path.join(tmpdir(), "nucleus-native-source-"));
+  try {
+    mkdirSync(path.join(root, ".nucleus"));
+    const plan = serializeNucleusSourcePlan(
+      parts.map((part, index) => ({
+        bank: prepared.partBanks[index]!,
+        path: part.name,
+      })),
+    );
+    for (let index = 0; index < parts.length; index += 1) {
+      const name = parts[index]!.name;
+      if (name === ".nucleus" || name.startsWith(".nucleus/")) {
+        throw new Error("Nucleus source identity uses the reserved .nucleus namespace");
+      }
+      const destination = path.resolve(root, ...name.split("/"));
+      mkdirSync(path.dirname(destination), { recursive: true });
+      writeFileSync(destination, prepared.bytes[index]!);
+    }
+    writeFileSync(path.join(root, ".nucleus", "source-plan.sp1"), plan);
+    return { root, services: new NodeNamedObjectServices(root) };
+  } catch (error) {
+    rmSync(root, { recursive: true, force: true });
+    throw error;
+  }
 };
 
 const debugTraceSymbols = (image: CompilerImage): NucleusDebugTraceSymbols => ({
@@ -820,6 +865,13 @@ const runNucleusCompilerNativeTo = async (
   const debugHooks = options.debugMap === true;
   const hostTransport = options.hostTransport ?? "mon3";
   const mon3Transport = hostTransport === "mon3";
+  const nativeObjectSource = options.nativeObjectSource === true;
+  if (nativeObjectSource && !mon3Transport) {
+    throw new Error("native object source requires the mon3 host transport");
+  }
+  if (nativeObjectSource && debugHooks) {
+    throw new Error("native object source D8 handle resolution is not yet implemented");
+  }
   const image = await loadNativeCompilerImage(debugHooks, hostTransport);
   const targetDescriptor =
     image.symbols.NativeHostTargetDescriptorBase ?? TARGET_DESCRIPTOR;
@@ -846,6 +898,9 @@ const runNucleusCompilerNativeTo = async (
   let debugMapping: NucleusDebugMapping | undefined;
   const adapterImages: NobjAdapterImageByte[] = [];
   let collector: NucleusDebugCollector | undefined;
+  let nativeSourceObjects:
+    | { readonly root: string; readonly services: NodeNamedObjectServices }
+    | undefined;
   const provider = options.runtimeProvider ?? bundledRuntimeProvider;
   const runtime = createZ80Runtime(
     { ...image.program, memory: image.program.memory.slice() },
@@ -855,9 +910,15 @@ const runNucleusCompilerNativeTo = async (
         let selectedPort = port & 0xff;
         const cpu = runtime.cpu;
         const memory = runtime.hardware.memory;
+        const objectServiceCall =
+          nativeObjectSource &&
+          mon3Transport &&
+          selectedPort === symbol(image.symbols, "NativeHostMon3NodePort") &&
+          cpu.c === symbol(image.symbols, "NucleusServiceObject");
         if (
           mon3Transport &&
-          selectedPort === symbol(image.symbols, "NativeHostMon3NodePort")
+          selectedPort === symbol(image.symbols, "NativeHostMon3NodePort") &&
+          !objectServiceCall
         ) {
           const service =
             cpu.c - symbol(image.symbols, "NativeHostMon3ServiceBase");
@@ -881,7 +942,16 @@ const runNucleusCompilerNativeTo = async (
           cpu.flags.C = 1;
         };
         try {
-          if (debugHooks && isNucleusDebugPort(selectedPort)) {
+          if (objectServiceCall) {
+            if (nativeSourceObjects === undefined) {
+              throw new Error("native named-object source provider is unavailable");
+            }
+            const status = nativeSourceObjects.services.dispatch(memory, hl);
+            cpu.a = status;
+            cpu.flags.C =
+              status === NucleusSystemStatus.success ? 0 : 1;
+            return;
+          } else if (debugHooks && isNucleusDebugPort(selectedPort)) {
             collector?.collect(selectedPort, cpu);
             return;
           } else if (
@@ -1267,13 +1337,20 @@ const runNucleusCompilerNativeTo = async (
     },
   );
   const memory = runtime.hardware.memory;
+  if (nativeObjectSource) {
+    nativeSourceObjects = createNativeSourceObjects(parts, prepared);
+  }
   if (mon3Transport) {
-    memory[symbol(image.symbols, "NativeHostMon3RstVector")] = 0xd3;
-    memory[symbol(image.symbols, "NativeHostMon3RstVector") + 1] = symbol(
-      image.symbols,
-      "NativeHostMon3NodePort",
-    );
-    memory[symbol(image.symbols, "NativeHostMon3RstVector") + 2] = 0xc9;
+    const vector = symbol(image.symbols, "NativeHostMon3RstVector");
+    if (nativeObjectSource) {
+      const dispatcher = symbol(image.symbols, "NativeSystemDispatcher");
+      memory[vector] = 0xc3;
+      writeWord(memory, vector + 1, dispatcher);
+    } else {
+      memory[vector] = 0xd3;
+      memory[vector + 1] = symbol(image.symbols, "NativeHostMon3NodePort");
+      memory[vector + 2] = 0xc9;
+    }
   }
   const begin = prepareTarget(
     memory,
@@ -1419,6 +1496,10 @@ const runNucleusCompilerNativeTo = async (
     if (metadata === undefined) sink?.abort();
     launchActive = false;
     retainedNames.clear();
+    nativeSourceObjects?.services.abortAll();
+    if (nativeSourceObjects !== undefined) {
+      rmSync(nativeSourceObjects.root, { recursive: true, force: true });
+    }
   }
 };
 

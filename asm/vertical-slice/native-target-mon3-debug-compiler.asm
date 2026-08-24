@@ -8,3 +8,8 @@ Mon3HostTransport .equ 1
             .org CompilerCoreBase
             .include "flat-target-compiler-image.asmi"
             .include "native-host-vector.asmi"
+            .org $4400
+NativeSystemServicesBase:
+            .include "platform-services-abi.asmi"
+            .include "native-source-plan-provider.asm"
+            .include "native-system-services.asm"

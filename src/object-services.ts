@@ -372,22 +372,26 @@ export class NodeNamedObjectServices {
     writing: boolean,
   ): NucleusSystemStatusCode {
     const state = this.#handles.get(handleNumber);
+    if (state === undefined) {
+      return NucleusSystemStatus.invalid;
+    }
     if (
-      state === undefined ||
-      (writing ? state.kind !== "write" : state.kind !== "read") ||
-      (state.kind === "write" && state.poisoned)
+      state.kind === "write" &&
+      (state.poisoned || state.descriptor === undefined)
     ) {
       return NucleusSystemStatus.invalid;
     }
+    if (writing && state.kind !== "write") return NucleusSystemStatus.invalid;
     if (length === 0) return NucleusSystemStatus.success;
     const bytes = memory.subarray(pointer, pointer + length);
-    if (state.kind === "read") {
-      const count = readSync(state.descriptor, bytes, 0, length, state.cursor);
+    if (!writing) {
+      const count = readSync(state.descriptor!, bytes, 0, length, state.cursor);
       state.cursor += count;
       writeWord(memory, request + NucleusObjectRequest.result, count);
       return NucleusSystemStatus.success;
     }
 
+    if (state.kind !== "write") return NucleusSystemStatus.invalid;
     const start = state.cursor;
     try {
       let written = 0;

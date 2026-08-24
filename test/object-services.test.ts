@@ -160,6 +160,17 @@ describe("named-object services ABI 1", () => {
       length,
     });
     expect(services.dispatch(memory, requestAt)).toBe(0);
+    request(memory, NucleusObjectOperation.rewind, { handle });
+    expect(services.dispatch(memory, requestAt)).toBe(0);
+    request(memory, NucleusObjectOperation.read, {
+      handle,
+      pointer: bytesAt,
+      length,
+    });
+    expect(services.dispatch(memory, requestAt)).toBe(0);
+    expect(
+      Buffer.from(memory.subarray(bytesAt, bytesAt + length)).toString("ascii"),
+    ).toBe("discarded");
     expect(readFileSync(target, "utf8")).toBe("old");
     request(memory, NucleusObjectOperation.abort, { handle });
     expect(services.dispatch(memory, requestAt)).toBe(0);
