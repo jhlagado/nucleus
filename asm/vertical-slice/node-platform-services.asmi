@@ -1,0 +1,107 @@
+service rst $10 C $52 MON_BANK_SELECT
+in A,C
+out A,carry,zero
+clobbers B,C,sign,parity,halfCarry
+preserves D,E,H,L,IX,IY
+end
+
+service rst $10 C $66 NUCLEUS_READ_INPUT
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $67 NUCLEUS_WRITE_OUTPUT
+in A,C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $68 NUCLEUS_READ_STORAGE
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $69 NUCLEUS_REWIND_STORAGE
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $6A NUCLEUS_WRITE_STORAGE
+in A,C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $6B NUCLEUS_SEEK_STORAGE
+in C,H,L
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $6C NUCLEUS_EXIT_SUCCESS
+in C
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $6D NUCLEUS_EXIT_FAILURE
+in C
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $6E NUCLEUS_EXIT_TRAP
+in C
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,IY,sign,parity,halfCarry
+end
+service rst $10 C $6F NUCLEUS_PACKET
+in A,C,H,L
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+
+service rst $10 C $84 NUCLEUS_NOBJ_OPEN
+in C,H,L
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $85 NUCLEUS_NOBJ_READ_BYTE
+in C
+out A,carry,zero
+clobbers sign,parity,halfCarry
+preserves B,C,D,E,H,L,IX,IY
+end
+service rst $10 C $86 NUCLEUS_NOBJ_REWIND
+in C
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $87 NUCLEUS_NOBJ_LOCK
+in C
+out A,D,E,H,L,carry,zero
+clobbers B,C,sign,parity,halfCarry
+preserves IX,IY
+end
+service rst $10 C $88 NUCLEUS_NOBJ_PUBLISH
+in A,C,D,E,H,L,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,sign,parity,halfCarry
+preserves IY
+end
+service rst $10 C $89 NUCLEUS_NOBJ_ENTER
+in A,C,H,L,IX
+out A,carry,zero
+clobbers B,C,D,E,H,L,IX,sign,parity,halfCarry
+preserves IY
+end
+service rst $10 C $8A NUCLEUS_NOBJ_CLOSE
+in C
+out A,carry,zero
+clobbers B,C,D,E,H,L,sign,parity,halfCarry
+preserves IX,IY
+end

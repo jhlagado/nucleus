@@ -117,7 +117,7 @@ const validateNativeHostVector = (image) => {
         }
     }
 };
-const loadNativeCompilerImage = async (debugHooks, hostTransport = "direct") => {
+const loadNativeCompilerImage = async (debugHooks, hostTransport = "mon3") => {
     const cacheKey = `${hostTransport}:${debugHooks ? "debug" : "normal"}`;
     let pending = nativeCompilerImages.get(cacheKey);
     if (pending === undefined) {
@@ -532,7 +532,7 @@ const validateNativeTargetDescriptor = (memory, pointer, begin, target, partBank
 };
 const runNucleusCompilerNativeTo = async (parts, target, output, options) => {
     const debugHooks = options.debugMap === true;
-    const hostTransport = options.hostTransport ?? "direct";
+    const hostTransport = options.hostTransport ?? "mon3";
     const mon3Transport = hostTransport === "mon3";
     const image = await loadNativeCompilerImage(debugHooks, hostTransport);
     const targetDescriptor = image.symbols.NativeHostTargetDescriptorBase ?? TARGET_DESCRIPTOR;

@@ -279,7 +279,7 @@ const validateNativeHostVector = (image: CompilerImage): void => {
 
 const loadNativeCompilerImage = async (
   debugHooks: boolean,
-  hostTransport: "direct" | "mon3" = "direct",
+  hostTransport: "direct" | "mon3" = "mon3",
 ): Promise<CompilerImage> => {
   const cacheKey = `${hostTransport}:${debugHooks ? "debug" : "normal"}`;
   let pending = nativeCompilerImages.get(cacheKey);
@@ -818,7 +818,7 @@ const runNucleusCompilerNativeTo = async (
   options: NucleusStreamingCompileOptions,
 ): Promise<NucleusStreamingCompileResult> => {
   const debugHooks = options.debugMap === true;
-  const hostTransport = options.hostTransport ?? "direct";
+  const hostTransport = options.hostTransport ?? "mon3";
   const mon3Transport = hostTransport === "mon3";
   const image = await loadNativeCompilerImage(debugHooks, hostTransport);
   const targetDescriptor =

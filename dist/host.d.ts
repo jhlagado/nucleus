@@ -11,7 +11,7 @@ export interface NucleusBuildRequest {
     readonly sources: readonly NucleusSourcePart[];
     readonly target?: NucleusTarget;
     readonly artifacts?: NucleusBuildArtifactRequest;
-    /** Exercise the compiler through direct pseudo-ports or the MON3 RST gateway. */
+    /** Use the MON3 RST gateway, or select the direct transport for proof comparisons. */
     readonly hostTransport?: "direct" | "mon3";
     /** Supply pre-linked runtime images for target layouts outside the package catalogue. */
     readonly runtimeProvider?: RuntimeImageProvider;

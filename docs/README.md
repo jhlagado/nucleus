@@ -22,8 +22,10 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
 - [`native-z80-host-contract.md`](native-z80-host-contract.md) defines the
   compiler and NOBJ-loader adapter ABIs over that common platform boundary.
 - [`mon3-host-binding.md`](mon3-host-binding.md) records the implemented
-  compiler-side `RST 10h` deployment, memory map, provisional selectors,
+  compiler-side `RST 10h` deployment, memory map, allocated selectors,
   measurements, and the remaining common-platform work.
+- [`tec1-native-host-roadmap.md`](tec1-native-host-roadmap.md) turns the common
+  ABI into a concrete first TEC-1/TECM8 compile, load, and run milestone.
 - [`implementation-plan.md`](implementation-plan.md) records the non-normative construction order, measurement accounts, capacity ledger, and readiness gates for the first Z80 implementation.
 - [`reviewers-charter.md`](reviewers-charter.md) records the settled project directions, open measurements, and evidence expected from an adversarial review. It guides review work but does not override the normative authorities.
 - [`oddities.md`](oddities.md) records deliberate first-time surprises and the
@@ -44,7 +46,9 @@ design](plans/2026-08-21-direct-nobj-loader.md) records the one-read loader
 model: IMAGE bytes are deposited into their destination, PATCH records
 overwrite them in stream order, and only valid COMMIT permits entry.
 
-The proposed [one-platform convergence
+The active [one-platform convergence
 plan](plans/2026-08-23-z80-platform-services-convergence.md) sequences runtime-
 catalog selection, common Node and MON3 dispatch, compiler and loader adapters,
 generated-program services, TEC-FS integration, and the native vertical slice.
+Its Node compiler, NOBJ consumer, flat and banked runner, and generated-program
+service stages are implemented; the native TEC-FS provider remains.

@@ -10,6 +10,7 @@ export * from "./project-host.js";
 export * from "./publication.js";
 export * from "./runtime-contract.js";
 export * from "./runtime-catalog.js";
+export * from "./runner.js";
 export * from "./source-identity.js";
 export * from "./source-imports.js";
 export * from "./source-manifest.js";

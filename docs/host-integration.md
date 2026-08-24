@@ -28,6 +28,14 @@ The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the
 compiler result and source of target-layout metadata.
 
+`nucleus run` and `runNucleusNobj()` take the canonical object in the other
+direction. They execute the packaged standalone Z80 consumer, which fills the
+target image, applies PATCH records in order, validates the committed stream,
+and requests entry. Node then runs the target through the standard
+generated-program service vector. Flat and banked objects use the same path;
+banked execution retains separate physical images behind the visible window
+and exercises far call, return, and jump.
+
 With `--d8-output`, the host runs a conditionally instrumented image of the
 same Z80 compiler and derives a D8 sidecar without changing NOBJ or target
 bytes. Flat builds write the requested map. Banked builds write one map for
@@ -35,15 +43,18 @@ each physical bank. The trace protocol and publication rules are defined in
 [Nucleus D8 source maps](d8-source-maps.md).
 
 A launch adapter supplies a target profile with real implementations of all
-twelve vector destinations. The library's default addresses describe the
-synthetic conformance target; they are not Debug80 or monitor entry points.
+twelve vector destinations. The production Node runner installs its Z80
+adapter at the package's default addresses. A hardware profile must replace
+those addresses with callable entries in its own always-visible memory.
 
-The native package contains a direct Node transport and a MON3-compatible
-transport beneath the same compiler adapter. The latter relocates the
+The native package uses a MON3-compatible transport beneath the compiler
+adapter by default and retains the older direct transport for differential
+proofs. The MON3 form relocates the
 compiler to the `$8000..$C000` bank window, preserves monitor vectors and fixed
 ROM, and calls sixteen bounded compiler operations through `RST 10h`. Node runs
-this real Z80 gateway during proof builds. These provisional selectors are the
-implemented compiler group, not a second platform layer. A hardware deployment
+this real Z80 gateway during ordinary and proof builds. These allocated
+selectors are the implemented compiler group, not a second platform layer. A
+hardware deployment
 replaces only the provider below the common dispatcher. See the
 [MON3-compatible platform binding](mon3-host-binding.md).
 

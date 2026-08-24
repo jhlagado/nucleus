@@ -805,8 +805,8 @@ ordinary `CALL` instructions; its entries use `RST 10h` with a selector in `C`.
 Changing the monitor does not change compiler code, Nucleus source, the
 generated-program runtime vector, or NOBJ.
 
-The checked reference reserves provisional selectors `$70..$7F`, relocates the
-compiler core to `$8000..$C000`, and leaves the low restart vectors and
+Platform ABI 1 allocates selectors `$70..$7F`. The checked reference relocates
+the compiler core to `$8000..$C000`, and leaves the low restart vectors and
 `$C000..$10000` monitor ROM untouched. Node can run this exact gateway instead
 of the direct proof-port transport. Loaded, ROM, banked, diagnostic, D8, and
 sequential-reuse proofs require byte-identical results between the two paths.

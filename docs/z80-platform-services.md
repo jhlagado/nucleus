@@ -254,9 +254,17 @@ runtime machine code.
 
 The Node reference path now proves the ordered source stream, retained names,
 the compiler adapter, direct and MON3 transports, transactional NOBJ output,
-the direct NOBJ consumer, pre-linked runtime-catalogue selection, D8 output,
-and execution with console input and output. Normal compiler sessions do not
+the production Z80 NOBJ consumer, pre-linked runtime-catalogue selection, D8
+output, and flat or banked execution through console, storage, terminal, packet,
+and raw-port providers. Normal compiler sessions and NOBJ launches do not
 invoke AZM.
+
+The production runner preserves independent physical bank images behind the
+common Z80 window and implements far call, far return, and far jump through the
+standard runtime vector. The TEC-1 provider still needs concrete MON3/TEC-FS
+routines beneath the settled selector ABI. A later CP/M adapter may reuse the
+same consumer source at a different memory layout and bind sequential storage
+to BDOS; that deployment work is not part of the current Node completion.
 
 The remaining work is native TEC-1 integration:
 

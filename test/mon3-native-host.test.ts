@@ -13,7 +13,7 @@ import {
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 
 const compile = async (
-  hostTransport: "direct" | "mon3",
+  hostTransport: "direct" | "mon3" | undefined,
   parts: readonly NucleusSourcePart[],
   target: NucleusTarget,
   debugMap = false,
@@ -67,6 +67,15 @@ const expectSameCompile = async (
 };
 
 describe("the MON3-compatible native compiler host", () => {
+  it("uses the MON3 transport by default", async () => {
+    const parts = [{ name: "main.nu", source: "sub main()\nend\n" }];
+    const [implicit, explicit] = await Promise.all([
+      compile(undefined, parts, {}),
+      compile("mon3", parts, {}),
+    ]);
+    expect(implicit).toEqual(explicit);
+  });
+
   it("keeps the normal and debug compiler images inside the 16 KiB bank", () => {
     expect(mon3CompilerSymbols.CompilerCoreBase).toBe(0x8000);
     expect(mon3CompilerSymbols.CompilerCoreEnd).toBeLessThanOrEqual(0xc000);

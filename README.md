@@ -58,9 +58,21 @@ nucleus build -o program.nobj --hex-output program.hex \
   --d8-output program.d8.json \
   --target-profile nucleus-target.json src/main.nu
 nucleus build --project nucleus-project.json
+nucleus run program.nobj
 nucleus target validate nucleus-target.json
 nucleus capabilities --json
 ```
+
+`nucleus run` does not bypass the target architecture. It starts the packaged
+standalone Z80 NOBJ consumer under Debug80 Runtime. That consumer reads the
+object once, writes IMAGE bytes to target memory, applies PATCH records in
+order, validates MAP and COMMIT, and only then enters the program. Program
+console calls pass through the standard Z80 service vector and the MON3
+`RST 10h` selector boundary to Node. Direct source port I/O remains ordinary
+Z80 I/O. For a banked target, Node preserves one physical image per bank while
+the Z80 sees
+the selected window; cross-bank calls and non-returning jumps use the same
+far-control ABI required on hardware.
 
 A launch target profile supplies image and writable layout plus every external
 service destination. The compiler library retains its synthetic default target

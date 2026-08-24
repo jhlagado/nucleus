@@ -1,6 +1,6 @@
 # Plan: one Z80 platform-services layer
 
-- Status: active; Stage 1 complete
+- Status: Node reference complete; native TEC-1 provider pending
 - Date: 2026-08-23
 - Original implementation baseline: `46978f408c2b39f041d776e1d8bddf16d9db5651`
 - Stage 1 documentation baseline: `b725dbaa44b3eba4b7a5a714c3f86f916e3eedb6`
@@ -169,6 +169,12 @@ session provider work.
 
 ## 6. Stage 3: common Node platform dispatcher
 
+Status: implemented for the Node reference path. Compiler operations use the
+MON3 transport by default and retain the direct transport for differential
+proofs. The generated standalone consumer and runtime vector use the same
+`RST 10h` selector boundary. The Node provider preserves physical banks; the
+Z80 adapter implements far call, return, and jump.
+
 Implement one Node provider for the complete platform selector table. Run it
 beneath Debug80 Runtime so the Z80 compiler adapter, loader adapter, and runtime
 vector all exercise their real machine-code gateways.
@@ -194,6 +200,9 @@ launch starts from initialized state.
 
 ## 7. Stage 4: compiler adapter over platform services
 
+Status: implemented. Direct and MON3 compiler transports are byte-identical;
+the compiler core remains unchanged by the external gateway.
+
 Keep the compiler's stable fourteen-entry vector and 16 KiB image unchanged.
 Route its MON3 wrappers to the common selector table.
 
@@ -211,6 +220,11 @@ The resolver continues to run before compiler entry. No import parser,
 filesystem path, or source-ordering algorithm enters the compiler.
 
 ## 8. Stage 5: NOBJ loader over platform services
+
+Status: implemented for flat and banked Node targets. The packaged generated
+consumer loads, patches, validates, publishes, and enters NOBJ through the
+public Node runner and CLI. The production path now shares the banked selection
+evidence with the dedicated consumer fixtures.
 
 Route the direct Z80 consumer's object and target-control adapter through the
 same platform selector table.
@@ -232,6 +246,13 @@ while loader code, stack, object cursor, CRC state, and filesystem access remain
 available.
 
 ## 9. Stage 6: generated-program runtime adapter
+
+Status: implemented for the Node reference path. The generated program
+reaches console, sequential storage, terminal, packet, and raw-port Node
+providers through the standard twelve-entry Z80 runtime vector. The imported
+`Total: 42` library program is an end-to-end acceptance test. Cross-bank calls,
+ordinary far returns, and a non-entry-bank trap using far jump are executable
+acceptance tests.
 
 Build the selected runtime catalog entry so every service vector destination
 reaches the common platform dispatcher. Preserve the twelve-entry runtime
@@ -257,6 +278,9 @@ integer formatting remain imported Nucleus routines and therefore test the
 source-import and platform-byte boundaries together.
 
 ## 10. Stage 7: TEC-FS and MON3 providers
+
+Status: not implemented in this repository. The selector allocation and client
+contracts are ready for the native provider.
 
 Implement the native provider beneath the already proved Z80 adapters:
 

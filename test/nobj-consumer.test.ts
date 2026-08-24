@@ -329,7 +329,7 @@ describe("the standalone Z80 NOBJ consumer", () => {
     expect(outcome.instructions).toBe(12_646);
     expect(outcome.tStates).toBe(108_132);
     expect(symbol("NobjConsumerCodeEnd") - symbol("NobjConsumerCodeStart")).toBe(
-      2_430,
+      2_425,
     );
     expect(
       symbol("NobjConsumerWorkspaceEnd") - symbol("NobjConsumerWorkspaceBase"),

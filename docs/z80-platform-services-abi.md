@@ -80,11 +80,12 @@ The conformance profiles report these exact masks:
 | loader            |       `$0006` | sequential storage plus target control |
 | development       |       `$000F` | every mandatory group                  |
 
-Operator break adds `$0010` to any profile but is never mandatory. The current
-Node direct-port harness and current TECM8 ROM predate this dispatcher and must
-not claim ABI version 1 merely because their underlying operations exist.
-Stage 3 makes Node a `$000F` provider; Stage 7 makes the first native TEC
-development system a `$000F` provider.
+Operator break adds `$0010` to any profile but is never mandatory. The default
+Node compiler transport and the production Node NOBJ runner now exercise this
+selector boundary and provide the required groups. The retained direct-port
+transport is differential evidence and does not claim ABI version 1. The
+current TECM8 ROM still predates the complete dispatcher; the native provider
+must pass the Stage 7 acceptance tests before it claims `$000F`.
 
 ## 4. Compiler/development entries
 

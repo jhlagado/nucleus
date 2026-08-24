@@ -3341,7 +3341,7 @@ selection, publication, and entry from the object parser. The rewind and lock
 slots remain in the version 0.1 table for layout compatibility, but the direct
 strategy does not call them.
 
-The direct consumer measures 2,430 code bytes with 381 workspace bytes,
+The direct consumer measures 2,425 code bytes with 381 workspace bytes,
 including a 325-byte maximum MAP payload buffer. The flat proof executes 12,646
 instructions in 108,132 T-states. The two-bank proof executes 15,532
 instructions in 187,389 T-states. Executable cases cover framing, truncation,
@@ -3349,6 +3349,17 @@ CRC, record order, IMAGE ordering, PATCH last-write-wins, loaded and ROM layout,
 banking, mathematical `$10000` ends, protected memory, platform failure,
 publication, Node materialization identity, and sequential reset. Compiler
 code, compiler workspace, generated program, and target runtime are unchanged.
+
+The production Node runner packages that consumer as a generated Z80 image.
+Its MON3-compatible object/target adapter is 75 bytes, and the standard
+twelve-entry generated-program vector plus MON3-compatible adapter is 269
+bytes. A separate three-byte Node emulator shim sits beneath `RST 10h`; it is
+replaced by monitor ROM on hardware. The runner loads and
+patches NOBJ before entering a fresh target execution context, which lets the
+loader write a ROM destination while enforcing ROM writes during program
+execution. The imported introductory program prints `Total: 42` through this
+path. This remains an external-host account and adds no compiler-core,
+compiler-workspace, generated-program, or selected-runtime bytes.
 
 ### Native Z80 launch shell under Debug80
 
@@ -3405,6 +3416,10 @@ used. Each row records the selected Z80 or host representation and its evidence.
 | native launch-shell workspace bytes     |         22 | launch lifecycle, result pointers, and one bounded runtime-request mailbox            | deployment memory-map rejection                                                  | cold initialization, interrupted reset, suspended request, and same-image reuse proofs                           |
 | MON3-compatible host code bytes         |        981 | external vector, RST wrappers, source adapter, and launch shell                       | deployment memory-map rejection                                                  | strict service contracts and direct-versus-RST NOBJ/D8 identity                                                  |
 | MON3-compatible host workspace bytes    |         24 | launch workspace plus retained original `BC` for selector adaptation                  | deployment memory-map rejection                                                  | exact symbol extent, failure reset, and sequential reuse                                                         |
+| native NOBJ consumer code bytes         |      2,425 | standalone one-read Z80 object loader                                                  | deployment memory-map rejection                                                  | flat, ROM, banked, malformed, failure-reset, and Node-runner proofs                                               |
+| native NOBJ consumer workspace bytes    |        381 | fixed state, four image/patch ends, and bounded MAP buffer                             | MAP or deployment failure                                                        | exact generated-symbol extent and maximum MAP derivation                                                         |
+| Node loader/program adapter bytes       |     75/269 | MON3-compatible loader wrapper / twelve-entry generated-program vector and wrapper      | Node runner configuration rejection                                               | generated image, RST-selector dispatch, flat/banked console, Z80 far control, storage, packet, terminal, and raw-port tests |
+| Node MON3 emulator shim bytes           |          3 | private provider boundary beneath the restart vector                                    | Node runner image rejection                                                       | exact restart address and source-port non-interference                                                            |
 | compatibility source window bytes       |      2,048 | complete source retained only by the compatibility API                                | compatibility packaging error                                                    | differential resident-source fixtures                                                                            |
 | diagnostic-name bytes                   |   external | retained by the host manifest adapter, not by the compiler core                       | packaging diagnostic                                                             | exact `model.nu` and `main.nu` mapping                                                                           |
 | identifier bytes                        |        255 | source-backed name plus one-byte length                                               | lexical diagnostic                                                               | scanner wrap guard                                                                                               |

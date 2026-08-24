@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readSync, writeSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NucleusConfigurationError, parseNucleusTargetProfile, } from "./configuration.js";
@@ -7,12 +8,14 @@ import { createNucleusCompiler } from "./host.js";
 import { prepareNucleusProject } from "./project-host.js";
 import { publishNucleusBuildOutputs, } from "./publication.js";
 import { resolveNucleusImports } from "./source-imports.js";
+import { runNucleusNobj } from "./runner.js";
 const PACKAGE_VERSION = "0.2.0";
 const help = `Nucleus ${PACKAGE_VERSION}
 
 Usage:
   nucleus build [options] <source.nu> [more.nu ...]
   nucleus build --project <nucleus-project.json>
+  nucleus run [options] <program.nobj>
   nucleus target validate [--json] <target.json>
   nucleus capabilities [--json]
 
@@ -23,12 +26,19 @@ Build options:
       --target-profile <path>     target profile JSON
       --project <path>            versioned project JSON
       --root <path>               root for source identities
-      --host-transport <kind>     direct or mon3 (default: direct)
+      --host-transport <kind>     mon3 or direct proof transport (default: mon3)
       --diagnostic-format <kind>  text or json
       --json                      alias for --diagnostic-format json
       --quiet                     suppress successful output messages
   -h, --help                      show help
       --version                   show the package version
+`;
+const runHelp = `Run options:
+      --target-profile <path>     deployment profile (default: Node profile)
+      --input <path>              read standard input from a file
+      --max-instructions <count>  execution limit (default: 5000000)
+      --max-cycles <count>        T-state limit (default: 50000000)
+  -h, --help                      show this help
 `;
 class CliUsageError extends Error {
 }
@@ -239,6 +249,94 @@ const build = async (args) => {
     }
     return 0;
 };
+const positiveInteger = (text, option) => {
+    const value = Number(text);
+    if (!Number.isSafeInteger(value) || value <= 0) {
+        throw new CliUsageError(`${option} must be a positive integer`);
+    }
+    return value;
+};
+const parseRunArguments = (args) => {
+    const parsed = {};
+    while (args.length > 0) {
+        const argument = args.shift();
+        if (argument === "--target-profile") {
+            parsed.targetProfile = valueAfter(args, argument);
+        }
+        else if (argument === "--input") {
+            parsed.input = valueAfter(args, argument);
+        }
+        else if (argument === "--max-instructions") {
+            parsed.maxInstructions = positiveInteger(valueAfter(args, argument), argument);
+        }
+        else if (argument === "--max-cycles") {
+            parsed.maxCycles = positiveInteger(valueAfter(args, argument), argument);
+        }
+        else if (argument === "-h" || argument === "--help") {
+            console.log(runHelp);
+            parsed.help = true;
+            return parsed;
+        }
+        else if (argument?.startsWith("-") === true) {
+            throw new CliUsageError(`unknown option ${argument}`);
+        }
+        else if (argument !== undefined && parsed.object === undefined) {
+            parsed.object = argument;
+        }
+        else {
+            throw new CliUsageError("run accepts one NOBJ file");
+        }
+    }
+    return parsed;
+};
+const run = async (args) => {
+    const parsed = parseRunArguments(args);
+    if (parsed.object === undefined) {
+        if (parsed.help === true)
+            return 0;
+        throw new CliUsageError("run requires one NOBJ file");
+    }
+    const object = await readFile(parsed.object);
+    const target = parsed.targetProfile === undefined
+        ? {}
+        : parseNucleusTargetProfile(await readFile(parsed.targetProfile, "utf8"), { requireServices: true });
+    const fileInput = parsed.input === undefined ? undefined : await readFile(parsed.input);
+    const stdinByte = new Uint8Array(1);
+    const result = runNucleusNobj(object, target, {
+        ...(fileInput === undefined ? {} : { input: fileInput }),
+        ...(fileInput !== undefined
+            ? {}
+            : {
+                readInput: () => {
+                    const count = readSync(process.stdin.fd, stdinByte, 0, 1, null);
+                    return count === 1 ? stdinByte[0] : undefined;
+                },
+            }),
+        writeOutput: (value) => {
+            writeSync(process.stdout.fd, Uint8Array.of(value));
+        },
+        ...(parsed.maxInstructions === undefined
+            ? {}
+            : { maxInstructions: parsed.maxInstructions }),
+        ...(parsed.maxCycles === undefined
+            ? {}
+            : { maxCycles: parsed.maxCycles }),
+    });
+    switch (result.outcome) {
+        case "success":
+            return 0;
+        case "unhandledFailure":
+        case "trap":
+            console.error(`Nucleus program ${result.outcome}: reason ${result.trapReason}, error ${result.errorCode}, source offset ${result.trapOffset}`);
+            return 1;
+        case "loaderFailure":
+            console.error(`NOBJ load failed: outcome ${result.loaderOutcome}, status ${result.status}, record ${result.recordOrdinal}`);
+            return 2;
+        case "executionLimit":
+            console.error(`Nucleus ${result.phase} execution limit reached at $${result.programCounter.toString(16).padStart(4, "0")}`);
+            return 2;
+    }
+};
 const target = async (args) => {
     if (args.shift() !== "validate")
         throw new CliUsageError("expected target validate");
@@ -268,6 +366,8 @@ const main = async (args) => {
     const command = args.shift();
     if (command === "build")
         return await build(args);
+    if (command === "run")
+        return await run(args);
     if (command === "target")
         return await target(args);
     if (command === "capabilities") {

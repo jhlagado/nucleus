@@ -1,6 +1,6 @@
 # MON3-compatible platform binding
 
-## Proven compiler path
+## Proven paths
 
 Nucleus uses the single platform boundary defined by the
 [Z80 Platform Services Architecture](z80-platform-services.md). The compiler,
@@ -8,10 +8,10 @@ NOBJ loader, and generated programs retain separate client adapters because
 their register contracts differ. Each adapter ultimately reaches the same
 MON3-compatible `RST 10h` dispatcher, with the service selector in `C`.
 
-The implemented slice proves the compiler adapter. The NOBJ consumer already
-has a direct Z80 implementation, but its platform entries have not yet been
-routed through the common MON3 selector table. The generated-program runtime
-vector likewise still needs its common-platform binding.
+The implemented MON3 slice proves the compiler adapter. The production Node
+runner now drives the Z80 NOBJ consumer and generated-program vector through
+the same `RST 10h` selector boundary. Node supplies an emulator provider below
+the restart vector; a native TEC-1 supplies MON3 and TEC-FS there.
 
 The Node package can run either host transport:
 
@@ -77,10 +77,9 @@ compiler core.
 
 ## Compiler-adapter selectors
 
-The current compiler proof reserves expansion selectors `$70..$7F`. These are
-compiler-adapter operations, not the complete platform table. They remain
-provisional until the monitor project allocates the execution, storage, target-
-control, and development groups together.
+Platform ABI 1 allocates compiler-adapter selectors `$70..$7F`. These are
+compiler operations within the complete platform table; they do not replace
+the execution, storage, target-control, and development groups.
 
 |   `C` | Operation                                                |
 | ----: | -------------------------------------------------------- |
@@ -137,18 +136,22 @@ utility operation, not a compiler pass.
 
 ## Evidence and remaining hardware work
 
-The executable proof compares direct and MON3 transports for loaded, ROM, and
+The compiler proof compares direct and MON3 transports for loaded, ROM, and
 banked targets, including D8 collection. NOBJ bytes, MAP and COMMIT metadata,
 diagnostics, and D8 maps are identical. A failed launch followed by a successful
-launch proves generation reset. A bundled-library program is imported,
-compiled through the MON3 path, loaded from committed NOBJ, and executed with
-observable console output.
+launch proves generation reset. Separately, the production Node runner uses the
+Z80 consumer to load committed NOBJ and runs a bundled-library program through
+the generated-program vector with observable console output. That runner also
+proves nested physical-bank calls and non-entry-bank terminal transfer. It does
+not claim that the still-missing native TEC-1 wrappers already exist.
 
 The remaining work is the machine-specific platform implementation: bind the
 allocated MON3/TECM8 selectors, add TEC-FS source and object storage, provide
 console byte I/O, bank selection and entry, and far control transfer, then
-generate the catalogue entry for the chosen TEC-1 target profile. The Node
+install the catalogue entry for the chosen TEC-1 target profile. The Node
 catalogue and provider already prove the selection boundary. The compiler,
 loader, and generated program reach the native facilities through their
 existing adapters. Their absence does not justify adding filesystem knowledge
-or monitor calls to the compiler core.
+or monitor calls to the compiler core. The concrete order, memory map, storage
+gap, and acceptance tests are in the
+[native TEC-1 host roadmap](tec1-native-host-roadmap.md).

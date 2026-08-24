@@ -1140,21 +1140,16 @@ NobjMapUsedWithinCapacity:
             SBC  HL,DE
             JP   C,NobjMapInvalid
             ; aggregate offset within read-only plus its length.
-            PUSH HL
             LD   E,(IX+8)
             LD   D,(IX+9)
             ADD  HL,DE
-            JR   C,NobjMapAggregateOverflow
+            JP   C,NobjMapInvalid
             LD   E,(IX+4)
             LD   D,(IX+5)
             OR   A
             SBC  HL,DE
-            POP  HL
             JR   C,NobjMapAggregateReady
             JP   NZ,NobjMapInvalid
-NobjMapAggregateOverflow:
-            POP  HL
-            JP   NobjMapInvalid
 NobjMapAggregateReady:
             LD   DE,10
             ADD  IX,DE

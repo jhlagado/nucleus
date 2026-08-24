@@ -16,6 +16,18 @@ The host first looks beside the importing source and then in the installed
 Nucleus library. Installed library parts have stable identities beginning with
 `@nucleus/`, which keeps diagnostics and D8 maps distinct from project files.
 
+The Node command line can compile and run the introductory library program
+through the production Z80 object consumer and service adapter:
+
+```bash
+nucleus build --quiet -o hello.nobj examples/hello.nu
+nucleus run hello.nobj
+```
+
+It prints `Total: 42` followed by LF. The first command resolves the imports
+and writes canonical NOBJ. The second loads IMAGE records, applies PATCH
+records, validates the committed object, and only then runs it.
+
 ## Text output
 
 `console/output.nu` provides:

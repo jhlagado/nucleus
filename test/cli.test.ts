@@ -7,13 +7,40 @@ import { describe, expect, it } from "vitest";
 
 const cli = path.resolve("dist/cli.js");
 
-const runCli = (cwd: string, args: readonly string[]) =>
+const runCli = (
+  cwd: string,
+  args: readonly string[],
+  input?: string | Uint8Array,
+) =>
   spawnSync(process.execPath, [cli, ...args], {
     cwd,
     encoding: "utf8",
+    ...(input === undefined ? {} : { input }),
   });
 
 describe("Nucleus CLI diagnostics", () => {
+  it("loads NOBJ through the Z80 consumer and runs it from the command line", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-run-"));
+    await writeFile(
+      path.join(directory, "main.nu"),
+      [
+        "sub main() fails",
+        "var value as u8 = readInputByte() else fail",
+        "writeOutputByte(value) else fail",
+        "end",
+        "",
+      ].join("\n"),
+    );
+    expect(
+      runCli(directory, ["build", "--quiet", "-o", "program.nobj", "main.nu"])
+        .status,
+    ).toBe(0);
+    const result = runCli(directory, ["run", "program.nobj"], "R");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("R");
+    expect(result.stderr).toBe("");
+  });
+
   it("discovers imports from one entry source and preserves both D8 identities", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-import-"));
     await writeFile(
