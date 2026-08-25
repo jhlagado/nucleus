@@ -123,20 +123,20 @@ describe("native Nucleus CP/M output candidates", () => {
 
     runtime.cpu.a = 0x12;
     runtime.cpu.c = 0;
-    runtime.cpu.h = 0x05;
+    runtime.cpu.h = 0x08;
     runtime.cpu.l = 0;
     expect(run(symbols.CpmDirectImageByte).carry).toBe(0);
     expect(runtime.hardware.memory[0x7800]).toBe(0x12);
 
     runtime.cpu.a = 0x34;
     runtime.cpu.c = 0;
-    runtime.cpu.h = 0x05;
+    runtime.cpu.h = 0x08;
     runtime.cpu.l = 0;
     expect(run(symbols.CpmDirectPatchByte).carry).toBe(0);
     expect(runtime.hardware.memory[0x7800]).toBe(0x34);
 
     runtime.cpu.c = 0;
-    runtime.cpu.d = 0x61;
+    runtime.cpu.d = 0x64;
     runtime.cpu.e = 0xfe;
     runtime.cpu.h = 0xab;
     runtime.cpu.l = 0xcd;
@@ -147,7 +147,7 @@ describe("native Nucleus CP/M output candidates", () => {
     ]);
 
     runtime.cpu.c = 0;
-    runtime.cpu.d = 0x61;
+    runtime.cpu.d = 0x64;
     runtime.cpu.e = 0xff;
     runtime.cpu.h = 0x55;
     runtime.cpu.l = 0x66;
@@ -159,7 +159,7 @@ describe("native Nucleus CP/M output candidates", () => {
 
     runtime.cpu.a = 0xee;
     runtime.cpu.c = 1;
-    runtime.cpu.h = 0x05;
+    runtime.cpu.h = 0x08;
     runtime.cpu.l = 0;
     expect(run(symbols.CpmDirectImageByte).carry).toBe(1);
     expect(runtime.hardware.memory[0x7800]).toBe(0x34);

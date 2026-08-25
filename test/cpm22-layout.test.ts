@@ -62,10 +62,10 @@ describe("native Nucleus CP/M 2.2 TPA layout", () => {
     expect(symbols.StackTop - symbols.StackFloor).toBe(3_840);
     expect(symbols.StackTop).toBe(0xe400);
 
-    expect(symbols.CpmTargetImageBase).toBe(0x0500);
-    expect(symbols.CpmTargetImageLimit).toBe(0x6200);
+    expect(symbols.CpmTargetImageBase).toBe(0x0800);
+    expect(symbols.CpmTargetImageLimit).toBe(0x6500);
     expect(symbols.CpmTargetWritableBase).toBe(0x5800);
-    expect(symbols.CpmTargetWritableCapacity).toBe(2_560);
-    expect(symbols.CpmOutputAddressDelta).toBe(0x7300);
+    expect(symbols.CpmTargetWritableCapacity).toBe(3_328);
+    expect(symbols.CpmOutputAddressDelta).toBe(0x7000);
   });
 });

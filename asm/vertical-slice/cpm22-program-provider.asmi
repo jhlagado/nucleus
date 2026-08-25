@@ -1,0 +1,19 @@
+extern CpmProgramTargetEntry
+out A,carry,zero
+clobbers BC,DE,HL,IX,IY,sign,parity,halfCarry
+end
+
+extern CpmProgramBdos
+out A
+clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
+end
+
+extern CpmProgramBiosConin
+out A
+clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
+end
+
+extern CpmProgramBiosConout
+out A
+clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
+end
