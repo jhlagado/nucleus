@@ -5,8 +5,8 @@ export declare const validateRuntimeLinkContext: (context: RuntimeLinkContext) =
 export declare const bundledRuntimeProvider: RuntimeImageProvider;
 /** Runtime placements pre-linked into the published Node package. */
 export declare const bundledRuntimeCatalog: {
-    name: "node-default" | "node-loaded-4000" | "node-loaded-9000" | "test-banked" | "test-high";
-    runtimeBase: 32771 | 16387 | 61443;
-    writableStateBase: 36900 | 16420 | 24612 | 20516;
-    packetService: 28705 | 28870;
+    name: "node-default" | "node-loaded-4000" | "node-loaded-9000" | "cpm22-loaded" | "test-banked" | "test-high";
+    runtimeBase: 32771 | 16387 | 2051 | 61443;
+    writableStateBase: 36900 | 16420 | 24612 | 22564 | 20516;
+    packetService: 28705 | 296 | 28870;
 }[];
