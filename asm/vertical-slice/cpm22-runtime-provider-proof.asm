@@ -10,6 +10,10 @@ DebugHooks .equ 0
 CpmDirectPublish:
             XOR  A
             RET
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+CpmDirectPublishAbort:
+            XOR  A
+            RET
 
             .org $5900
 CpmRuntimeProofContext:

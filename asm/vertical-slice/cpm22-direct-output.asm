@@ -144,13 +144,13 @@ CpmDirectCommitLengthReady:
             LD   (CpmDirectActive),A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmDirectAbort:
             XOR  A
             LD   (CpmDirectActive),A
             LD   (CpmDirectMapPointer),A
             LD   (CpmDirectMapPointer+1),A
-            RET
+            JP   CpmDirectPublishAbort
 
 ; Translate one logical target byte in HL to its physical private-image byte.
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE

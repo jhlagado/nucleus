@@ -54,10 +54,10 @@ describe("native Nucleus CP/M output candidates", () => {
     const nobjMaterializer =
       consumer.NobjConsumerCodeEnd - consumer.NobjConsumerCodeStart;
 
-    expect(directSink).toBe(286);
+    expect(directSink).toBe(288);
     expect(nobjProducer).toBe(1_312);
     expect(nobjMaterializer).toBe(2_425);
-    expect(nobjProducer + nobjMaterializer - directSink).toBe(3_451);
+    expect(nobjProducer + nobjMaterializer - directSink).toBe(3_449);
     expect(direct.CpmDirectWorkspaceEnd - direct.CpmDirectMapPointer).toBe(18);
     expect(
       consumer.NobjConsumerWorkspaceEnd - consumer.NobjConsumerWorkspaceBase,
