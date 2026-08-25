@@ -146,7 +146,7 @@ const runtimeProfiles = [
   { name: "node-default", runtimeBase: 0x8003, stateBase: 0x4024, packetService: 0x7021 },
   { name: "node-loaded-4000", runtimeBase: 0x4003, stateBase: 0x6024, packetService: 0x7021 },
   { name: "node-loaded-9000", runtimeBase: 0x8003, stateBase: 0x9024, packetService: 0x7021 },
-  { name: "cpm22-loaded", runtimeBase: 0x0803, stateBase: 0x5824, packetService: 0x0141 },
+  { name: "cpm22-loaded", runtimeBase: 0x0803, stateBase: 0x5824, packetService: 0x0128 },
   { name: "test-banked", runtimeBase: 0x8003, stateBase: 0x4024, packetService: 0x70c6 },
   { name: "test-high", runtimeBase: 0xf003, stateBase: 0x5024, packetService: 0x7021 },
 ];
