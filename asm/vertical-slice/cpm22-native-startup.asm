@@ -3,6 +3,19 @@
 CpmCompilerStartupCodeStart:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmCompilerEntry:
+            ; The CCP stack lives inside the resident CP/M image and is far too
+            ; small for the compiler. This transient is writable and cannot be
+            ; re-entered, so retain the caller stack in one immediate operand
+            ; and give the complete compilation its reserved stack.
+            LD   (CpmCompilerRestoreSp+1),SP
+            LD   SP,StackTop
+            CALL CpmCompilerRun
+CpmCompilerRestoreSp:
+            LD   SP,0
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+CpmCompilerRun:
             CALL CpmCommandPrepare
             JR   C,CpmCompilerPrintHostError
             CALL CpmSourceProviderBegin

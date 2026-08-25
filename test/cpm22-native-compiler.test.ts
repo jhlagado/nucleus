@@ -219,7 +219,8 @@ const createCompiler = (
   const memory = compilerImage.slice();
   memory.set([0xd3, 0xe1, 0xc9], 0x0005);
   const sentinel = 0xe500;
-  const stack = 0xe300;
+  const stack = 0xef3b;
+  memory.fill(0xa5, 0xe400, 0xf000);
   memory[sentinel] = 0x76;
   let runtime!: ReturnType<typeof createZ80Runtime>;
   runtime = createZ80Runtime({ memory, startAddress: 0x0100 }, 0x0100, {
@@ -232,6 +233,7 @@ const createCompiler = (
     }
     installCommand(runtime.hardware.memory, tail);
     word(runtime.hardware.memory, stack, sentinel);
+    const highMemory = runtime.hardware.memory.slice(0xe400, 0xf000);
     runtime.cpu.sp = stack;
     runtime.cpu.pc = 0x0100;
     runtime.cpu.halted = false;
@@ -245,6 +247,7 @@ const createCompiler = (
       true,
     );
     expect(runtime.cpu.sp).toBe(stack + 2);
+    expect(runtime.hardware.memory.slice(0xe400, 0xf000)).toEqual(highMemory);
     return { a: runtime.cpu.a, instructions, tStates };
   };
 
@@ -318,7 +321,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
 
     const executed = runCom(output!);
     expect(Buffer.from(executed.output).toString()).toBe("OK");
-    expect(compiled).toEqual({ a: 0, instructions: 35_447, tStates: 963_656 });
+    expect(compiled).toEqual({ a: 0, instructions: 35_452, tStates: 963_723 });
     expect(executed).toEqual({
       instructions: 258,
       output: [0x4f, 0x4b],
@@ -405,7 +408,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     ).toBe(399);
     expect(
       symbols.CpmCompilerStartupCodeEnd - symbols.CpmCompilerStartupCodeStart,
-    ).toBe(159);
+    ).toBe(173);
     expect(symbols.CpmEmbeddedPrefixEnd - symbols.CpmEmbeddedPrefix).toBe(859);
     expect(symbols.CpmEmbeddedRuntimeEnd - symbols.CpmEmbeddedRuntime).toBe(
       732,
@@ -419,9 +422,9 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
         .slice(symbols.CpmCompilerPartBanks!, symbols.CpmCompilerPartBanks! + 8)
         .every((byte) => byte === 0),
     ).toBe(true);
-    expect(symbols.CpmCompilerResidentEnd).toBe(0x52ed);
+    expect(symbols.CpmCompilerResidentEnd).toBe(0x52fb);
     expect(symbols.CpmHostResidentLimit - symbols.CpmCompilerResidentEnd).toBe(
-      1_299,
+      1_285,
     );
     expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e5b);
     expect(symbols.CpmHostWorkspaceLimit - symbols.CpmCommandWorkspaceEnd).toBe(
