@@ -14,8 +14,9 @@ CpmCallBdos:
             RET
 
 ; Copy a twelve-byte drive/name/type field and clear the remaining ordinary
-; 36-byte FCB. Publisher and source providers both rebuild private FCBs.
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+; 36-byte FCB. HL returns at the byte after the source name field. Publisher
+; and source providers both rebuild private FCBs.
+.routine in DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
 CpmBuildFcb:
             LD   BC,12
             LDIR
