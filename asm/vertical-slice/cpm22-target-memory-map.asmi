@@ -27,6 +27,7 @@ CpmHostVectorBase      .equ $4100
 CpmHostResidentLimit   .equ $5800
 CpmHostWorkspaceBase   .equ $5800
 CpmHostWorkspaceLimit  .equ CompilerWorkBase
+CpmDirectWorkspaceBase .equ CpmHostWorkspaceBase+$0020
 
 ; Direct-COM candidate. Logical target addresses begin after a CP/M bootstrap
 ; and generated-program service provider at $0100..$07FF. IMAGE and PATCH

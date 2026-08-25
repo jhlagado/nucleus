@@ -6,7 +6,7 @@
 ; catalogue transfer and CP/M file publication are provider operations and are
 ; measured outside this core.
 
-CpmDirectMapPointer .equ CpmHostWorkspaceBase
+CpmDirectMapPointer .equ CpmDirectWorkspaceBase
 CpmDirectActive     .equ CpmDirectMapPointer+2
 CpmDirectUsedLength .equ CpmDirectActive+1
 CpmDirectPatchAddress .equ CpmDirectUsedLength+2
@@ -17,6 +17,7 @@ CpmDirectRuntimeIdentity .equ CpmDirectRuntimeLength+2
 CpmDirectRuntimeContext .equ CpmDirectRuntimeIdentity+2
 CpmDirectRangeStart .equ CpmDirectRuntimeContext+2
 CpmDirectWorkspaceEnd .equ CpmDirectRangeStart+2
+CpmDirectDiagnosticTargetOutput .equ 97
 
 CpmDirectOutputCodeStart:
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
@@ -208,7 +209,7 @@ CpmDirectRangeFailed:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 CpmDirectInvalid:
-            LD   A,1
+            LD   A,CpmDirectDiagnosticTargetOutput
             SCF
             RET
 CpmDirectOutputCodeEnd:
