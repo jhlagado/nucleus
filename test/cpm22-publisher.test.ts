@@ -117,7 +117,7 @@ beforeAll(async () => {
       registerContracts: "strict",
       registerContractsInterfaces: [
         path.join(verticalSlice, "expression-generated-z80.asmi"),
-        path.join(verticalSlice, "cpm22-publisher.asmi"),
+        path.join(verticalSlice, "cpm22-bdos-call.asmi"),
       ],
     },
   );
@@ -216,7 +216,7 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
     ).toBe(true);
     expect(bdos.files.has("OUTPUT  $$$")).toBe(false);
     expect(bdos.files.has("OUTPUT  BAK")).toBe(false);
-    expect(result).toMatchObject({ instructions: 1_273, tStates: 70_245 });
+    expect(result).toMatchObject({ instructions: 1_277, tStates: 70_285 });
   });
 
   it("publishes the maximum admitted image and supports a later command", () => {
@@ -313,7 +313,10 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
 
   it("reports measured resident code and mutable workspace", () => {
     expect(symbols.CpmPublisherCodeEnd! - symbols.CpmPublisherCodeStart!).toBe(
-      389,
+      367,
+    );
+    expect(symbols.CpmBdosCallCodeEnd! - symbols.CpmBdosCallCodeStart!).toBe(
+      25,
     );
     expect(
       symbols.CpmPublisherWorkspaceEnd! - symbols.CpmPublisherWorkspaceStart!,

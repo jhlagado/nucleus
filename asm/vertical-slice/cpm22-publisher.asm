@@ -2,7 +2,6 @@
 ; target image is already patched in TPA. Publication writes a temporary file,
 ; then uses one backup rename so the selected output is never a partial COM.
 
-CpmPublishBdos          .equ $0005
 CpmPublishDmaFunction   .equ 26
 CpmPublishOpenFunction  .equ 15
 CpmPublishCloseFunction .equ 16
@@ -158,7 +157,7 @@ CpmPublishRollbackFailure:
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CpmPublishWriteRecord:
             LD   C,CpmPublishDmaFunction
-            CALL CpmPublishCallBdos
+            CALL CpmCallBdos
             LD   C,CpmPublishWriteFunction
             CALL CpmPublishFcbCall
             OR   A
@@ -201,30 +200,13 @@ CpmPublishRollbackDone:
 .routine in C out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
 CpmPublishFcbCall:
             LD   DE,CpmPublishWorkFcb
-            JP   CpmPublishCallBdos
-
-.routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-CpmPublishCallBdos:
-            PUSH IX
-            PUSH IY
-            CALL CpmPublishBdos
-            POP  IY
-            POP  IX
-            RET
+            JP   CpmCallBdos
 
 .routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
 CpmPublishCopyOutputName:
             LD   HL,CpmCompilerOutputName
             LD   DE,CpmPublishWorkFcb
-            LD   BC,12
-            LDIR
-            XOR  A
-            LD   B,24
-CpmPublishClearFcbTail:
-            LD   (DE),A
-            INC  DE
-            DJNZ CpmPublishClearFcbTail
-            RET
+            JP   CpmBuildFcb
 
 .routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmPublishSetTemporary:

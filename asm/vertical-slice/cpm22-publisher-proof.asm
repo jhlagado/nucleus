@@ -5,6 +5,7 @@ DebugHooks .equ 0
             .org $4100
             .include "cpm22-direct-output.asm"
             .include "cpm22-embedded-assets.asmi"
+            .include "cpm22-bdos-call.asm"
             .include "cpm22-publisher.asm"
 
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
