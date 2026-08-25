@@ -1,0 +1,80 @@
+; Fixed compiler-host vector bindings for the native CP/M transient.
+
+CpmCompilerHostVectorStart:
+            .db "NH",0,1,8,14,0,0
+.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+HostSourceNextChunk:           JP CpmSourceProviderNext
+.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+HostRetainCurrentName:         JP CpmSourceProviderRetainName
+.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+HostCompareCurrentName:        JP CpmSourceProviderCompareName
+.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+HostMaterializeName:           JP CpmSourceProviderMaterializeName
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkBegin:               JP CpmDirectBegin
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSinkImageByte:           JP CpmDirectImageByte
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkRuntimeImage:        JP CpmDirectRuntimeImage
+.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkRuntimeInitialImage: JP CpmDirectRuntimeInitial
+.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TargetSinkPatchByte:           JP CpmDirectPatchByte
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkPatchWord:           JP CpmCompilerPatchWord
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkMapFlat:             JP CpmDirectMap
+.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TargetSinkMapBanked:           JP CpmDirectMap
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkCommit:              JP CpmCompilerCommit
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+TargetSinkAbort:               JP CpmCompilerAbort
+CpmCompilerHostVectorEnd:
+
+CpmCompilerHostAdaptersStart:
+.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+CpmCompilerPatchWord:
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            PUSH IX
+            PUSH IY
+            CALL CpmDirectPatchWord
+            POP  IY
+            POP  IX
+            POP  HL
+            POP  DE
+            POP  BC
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+CpmCompilerCommit:
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            PUSH IX
+            PUSH IY
+            CALL CpmDirectCommit
+            POP  IY
+            POP  IX
+            POP  HL
+            POP  DE
+            POP  BC
+            RET
+
+.routine out A,carry,zero clobbers sign,parity,halfCarry
+CpmCompilerAbort:
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            PUSH IX
+            PUSH IY
+            CALL CpmDirectAbort
+            POP  IY
+            POP  IX
+            POP  HL
+            POP  DE
+            POP  BC
+            RET
+CpmCompilerHostAdaptersEnd:

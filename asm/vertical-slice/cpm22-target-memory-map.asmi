@@ -1,13 +1,15 @@
 ; Native Nucleus compiler deployment in the CP/M 2.2 TPA.
 ;
-; The compiler is a transient loaded at $0100. Its fixed host vector begins at
-; the next page after the complete 16 KiB compiler-core partition. Compiler
+; The compiler is a transient loaded at $0100. A three-byte CP/M entry jump
+; precedes the relocatable compiler core; its fixed host vector begins at the
+; next page after the complete 16 KiB compiler-core partition. Compiler
 ; workspace and streaming-source buffers retain their production capacities.
 ; The upper TPA is divided between one direct flat-image candidate and the
 ; existing full compiler-stack allocation. This file records simultaneous
 ; lifetimes; it does not count the output image as resident compiler code.
 
-CompilerCoreBase    .equ $0100
+CompilerTransientBase .equ $0100
+CompilerCoreBase    .equ CompilerTransientBase+3
 CompilerCoreLimit   .equ $4100
 
 CompilerWorkBase    .equ $6000

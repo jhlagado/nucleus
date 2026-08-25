@@ -41,9 +41,9 @@ describe("native Nucleus CP/M 2.2 TPA layout", () => {
     );
 
     expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_314);
-    expect(symbols.CompilerCoreEnd).toBe(0x40ba);
+    expect(symbols.CompilerCoreEnd).toBe(0x40bd);
     expect(symbols.CpmHostVectorStart).toBe(0x4100);
-    expect(symbols.CpmHostVectorStart - symbols.CompilerCoreEnd).toBe(70);
+    expect(symbols.CpmHostVectorStart - symbols.CompilerCoreEnd).toBe(67);
     expect(symbols.CpmHostVectorTableEnd - symbols.CpmHostVectorStart).toBe(50);
     expect(symbols.CpmLayoutResidentEnd).toBeLessThanOrEqual(
       symbols.CpmHostResidentLimit,
