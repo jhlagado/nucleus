@@ -1,0 +1,75 @@
+; Native Nucleus compiler deployment in the CP/M 2.2 TPA.
+;
+; The compiler is a transient loaded at $0100. Its fixed host vector begins at
+; the next page after the complete 16 KiB compiler-core partition. Compiler
+; workspace and streaming-source buffers retain their production capacities.
+; The upper TPA is divided between one direct flat-image candidate and the
+; existing full compiler-stack allocation. This file records simultaneous
+; lifetimes; it does not count the output image as resident compiler code.
+
+CompilerCoreBase    .equ $0100
+CompilerCoreLimit   .equ $4100
+
+CompilerWorkBase    .equ $6000
+CompilerWorkLimit   .equ $7000
+
+SourceBase          .equ $7000
+SourceLimit         .equ $7800
+NativeSourceTokenBase  .equ SourceBase
+NativeSourceTokenLimit .equ SourceBase+$0500
+NativeSourceChunkBase  .equ NativeSourceTokenLimit
+NativeSourceChunkLimit .equ SourceLimit
+
+; CP/M host code and mutable provider state occupy the gap between the host
+; vector and compiler workspace. Exact sub-extents are fixed by the eventual
+; adapter rather than by the compiler core.
+CpmHostVectorBase      .equ $4100
+CpmHostResidentLimit   .equ $5800
+CpmHostWorkspaceBase   .equ $5800
+CpmHostWorkspaceLimit  .equ CompilerWorkBase
+
+; Direct-COM candidate. Logical target addresses begin after a CP/M bootstrap
+; and generated-program service provider at $0100..$04FF. IMAGE and PATCH
+; callbacks translate the logical target range into this private TPA buffer.
+CpmTargetPrefixBase    .equ $0100
+CpmTargetImageBase     .equ $0500
+CpmOutputBufferBase    .equ SourceLimit
+CpmOutputBufferLimit   .equ $D500
+CpmTargetImageCapacity .equ CpmOutputBufferLimit-CpmOutputBufferBase
+CpmTargetImageLimit    .equ CpmTargetImageBase+CpmTargetImageCapacity
+CpmOutputAddressDelta  .equ CpmOutputBufferBase-CpmTargetImageBase
+
+; Loaded target profile. Writable bytes follow the maximum admitted generated
+; code/read-only extent and stay within the materialized target image.
+CpmTargetWritableBase     .equ $5800
+CpmTargetWritableLimit    .equ CpmTargetImageLimit
+CpmTargetWritableCapacity .equ CpmTargetWritableLimit-CpmTargetWritableBase
+
+ReleasedGeneratedStagingBase  .equ SourceLimit
+ReleasedGeneratedStagingLimit .equ SourceLimit
+ProofSourceCorpusBase          .equ SourceLimit
+ProofSourceCorpusLimit         .equ SourceLimit
+TargetRuntimeBase              .equ SourceLimit
+TargetRuntimeLimit             .equ SourceLimit
+ExecutionBase                  .equ CpmOutputBufferBase
+ExecutionLimit                 .equ CpmOutputBufferLimit
+ProgramDataBase                .equ CpmTargetWritableBase
+ProgramDataLimit               .equ CpmTargetWritableLimit
+ProgramBssBase                 .equ CpmTargetWritableBase
+ProgramBssLimit                .equ CpmTargetWritableLimit
+ProgramDataRegionLimit         .equ CpmTargetWritableLimit
+ProgramDataRegionCapacity      .equ CpmTargetWritableCapacity
+GeneratedRoDataCapacity        .equ $0400
+ServiceBase                    .equ CpmTargetPrefixBase
+ServiceLimit                   .equ CpmTargetImageBase
+ProofBase                      .equ CpmHostWorkspaceBase
+ProofLimit                     .equ CpmHostWorkspaceBase
+SpareBase                      .equ CpmHostWorkspaceBase
+SpareLimit                     .equ CpmHostWorkspaceBase
+ReleasedRollbackStagingBase    .equ CpmHostWorkspaceBase
+ReleasedRollbackStagingLimit   .equ CpmHostWorkspaceBase
+
+StackFloor          .equ CpmOutputBufferLimit
+StackTop            .equ $E400
+HighReservedBase    .equ $E400
+AddressSpaceLimit   .equ $10000
