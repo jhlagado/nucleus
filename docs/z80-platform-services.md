@@ -1,4 +1,4 @@
-# Nucleus Z80 system-services architecture
+# Nucleus Z80 tool-service architecture
 
 - Architecture status: settled
 - Register-level implementation: platform ABI 1 in transition
@@ -8,23 +8,24 @@
 ## 1. Purpose
 
 Nucleus is intended to compile and run on a Z80 without depending on Node,
-Debug80, AZM, or a particular monitor. The complete native environment contains
-Z80 components for import resolution, source streaming, compilation, NOBJ
-writing, NOBJ loading, and generated-program execution. Each component obtains
-machine and operating-system facilities through one system-services layer.
+Debug80, AZM, or a particular monitor. Import resolution, source streaming,
+compilation, NOBJ writing, and NOBJ loading use one private tool-service
+boundary. It belongs to the compiler and its development environment, not to
+Nucleus source programs.
 
-The compiler is one client of that layer. It is not the layer itself, and it
-does not require a private filesystem architecture. A Z80 resolver that opens
-source files, a Z80 NOBJ writer that commits an object, and a generated program
-that writes to the console ultimately use the same storage and console
-facilities.
+The compiler is one client of that boundary. It is not the boundary itself and
+does not require a private filesystem architecture. Generated programs use
+their separate twelve-entry runtime vector. A platform may implement both
+interfaces over the same BDOS, firmware, or Node primitives, but it must not
+give generated programs compiler sources, spools, catalogues, or publication
+operations.
 
 This document defines that common architecture. The
 [native Z80 adapter contract](native-z80-host-contract.md) defines the existing
 interfaces presented to the compiler and NOBJ loader. The
 [runtime contract](z80-runtime-contract.md) defines the interface presented to
-generated programs. The [MON3 binding](mon3-host-binding.md) maps the common
-services to TEC-1G firmware. The implemented CP/M compiler and
+generated programs. The [MON3 binding](mon3-host-binding.md) maps the private
+tool services to TEC-1G firmware. The implemented CP/M compiler and
 generated-program adapters use public BDOS calls; the common named-object CP/M
 binding remains incomplete.
 The [named-object ABI](z80-object-services-abi.md) fixes the request block and
@@ -34,21 +35,21 @@ operation semantics used by native development tools.
 
 The following terms have distinct meanings.
 
-- A **system service** is a platform-independent operation available to Z80
-  clients, such as reading a console byte, reading from an open object, or
-  committing tentative output.
+- A **tool service** is a private, platform-independent operation available to
+  a compiler, resolver, writer, or loader, such as reading a console byte,
+  reading from an open object, or committing tentative output.
 - A **client interface** is the call shape already used by one component. The
-  compiler-host vector and generated-program vector are client interfaces.
-- A **client adapter** translates a client interface into system-service calls.
-- A **platform binding** translates system-service calls into MON3, TEC-FS,
+  compiler-host vector and NOBJ-loader adapter are tool client interfaces.
+- A **client adapter** translates a client interface into tool-service calls.
+- A **platform binding** translates tool-service calls into MON3, TEC-FS,
   CP/M BDOS, Node, or another implementation.
 - A **provider** performs the external effect beneath a platform binding.
 
 Client interfaces may differ because existing code already calls them and
 because the compiler's 16 KiB limit makes call-site bytes important. Those
 differences do not justify separate console, storage, or target-control
-systems. New Z80 components call the common system services directly unless a
-measured compatibility constraint requires an adapter.
+systems. New Z80 development components call the common tool services directly
+unless a measured compatibility constraint requires an adapter.
 
 ## 3. Complete native path
 
@@ -77,7 +78,7 @@ supplies bounded chunks. The compiler reads each source byte once and emits
 logical IMAGE, PATCH, MAP, COMMIT, and ABORT operations. The NOBJ writer stores
 those operations without materialising the generated target image.
 
-## 4. Common system services
+## 4. Common tool services
 
 The common layer is divided by capability. A deployment reports the groups it
 implements. A client checks its required groups before beginning work.
@@ -86,7 +87,7 @@ implements. A client checks its required groups before beginning work.
 
 Every binding reports:
 
-- the system-services ABI revision;
+- the tool-services ABI revision;
 - implemented capability groups;
 - service availability; and
 - any deployment capacity that the client must check before an operation.
@@ -173,9 +174,9 @@ The loader deposits IMAGE bytes and applies PATCH bytes directly to the target
 destination. The system layer does not need a service call for every deposited
 byte when the destination is locally writable.
 
-## 5. Common machine-call discipline
+## 5. Private gateway discipline
 
-The common Z80 ABI uses a numbered service gateway. A platform binding supplies
+The private Z80 ABI uses a numbered service gateway. A platform binding supplies
 one callable gateway to each client image. Platform ABI 1 places the selector
 in `C`. Existing compiler wrappers preserve a conflicting `BC` value in a
 private mailbox. The converged object-service calls will instead use bounded
@@ -221,9 +222,10 @@ state:
 | runtime catalogue | no                        | exact runtime request   | serializes returned bytes | validates identity     | unavailable           |
 | target control    | no                        | records target map      | no                        | select, publish, enter | far control only      |
 
-The table describes capability use, not permission inheritance. A generated
-program cannot open a source file, and a resolver cannot publish a target,
-even though both components call the same system-services layer.
+The table describes capability use, not permission inheritance. The generated
+program column describes the separate runtime provider, not access to the
+tool-service gateway. A generated program cannot open a compiler source or
+publish compiler output, and a resolver cannot publish a target.
 
 ### 6.1 Import resolver and source streamer
 
@@ -253,7 +255,7 @@ commit or abort         -> common generation operations
 
 The existing call sites remain compact while the compiler is constrained to
 16 KiB. A later measured change may collapse some entries into direct
-system-service calls, but no implementation may create another filesystem or
+tool-service calls, but no implementation may create another filesystem or
 console boundary beneath the compiler vector.
 
 ### 6.3 NOBJ writer and loader
@@ -270,11 +272,11 @@ source names, call AZM, or replay compiler work.
 ### 6.4 Generated programs
 
 Generated programs currently call a twelve-entry RAM-resident runtime vector.
-That vector is another compatibility interface over the common services. Its
+That vector is a separate program interface over target runtime services. Its
 entries cover six standard streams, three terminal paths, far call, far jump,
 and the target-specific packet gateway.
 
-The twelve entries are not the capacity of the system-services layer. They are
+The twelve entries do not measure the private tool-service boundary. They are
 the fixed operations required directly by runtime ABI revision 10. The packet
 entry supplies a bounded program-extension namespace. Compiler, resolver, and
 loader services are not exposed to generated programs.
@@ -399,7 +401,7 @@ instructions, and T-states as separate accounts.
 
 Later implementation work follows these rules:
 
-- Define a common system service before adding a Node callback, MON3 selector,
+- Define a common tool service before adding a Node callback, MON3 selector,
   CP/M wrapper, compiler entry, or runtime-vector entry for the same effect.
 - Keep dependency discovery and named-object access outside the 16 KiB compiler
   core, but implement them as Z80 components for a native development profile.
@@ -411,9 +413,9 @@ Later implementation work follows these rules:
 - Do not materialise the complete ordered source, compiler output, NOBJ, or
   banked target merely to cross a service boundary. Use bounded buffers and
   sequential objects.
-- Treat the compiler-host vector, loader adapter, and generated-program vector
-  as client compatibility interfaces. They may map to common services; they do
-  not define additional operating systems.
+- Treat the compiler-host vector and loader adapter as private tool client
+  interfaces. Keep the generated-program vector separate; sharing lower-level
+  platform primitives does not grant compiler-development capabilities.
 - Prove a new common service under the narrow Node provider and at least one
   real Z80 binding. Emulator-only port interception is differential evidence,
   not the native transport.

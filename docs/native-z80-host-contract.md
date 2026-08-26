@@ -7,9 +7,9 @@
 ## 1. Purpose and authority
 
 This document defines the client adapters used by the Z80 Nucleus compiler and
-the Z80 NOBJ loader. Both adapters terminate at the one platform-services layer
+the Z80 NOBJ loader. Both adapters terminate at the private tool-service layer
 defined by the
-[Z80 system-services architecture](z80-platform-services.md). This document
+[Z80 tool-service architecture](z80-platform-services.md). This document
 does not define Nucleus source syntax or generated-program services.
 
 The [language specification](specification.md) governs source meaning. The
@@ -19,18 +19,20 @@ governs placement and entry. The [NOBJ specification](nucleus-object-format.md)
 governs stored object bytes. This document governs the Z80 calls used to supply
 those facilities.
 
-There are three client interfaces:
+There are two private tool client interfaces:
 
 1. the **compiler-host ABI**, called while the compiler is running;
-2. the **generated-program runtime vector**, called by a compiled program; and
-3. the **NOBJ consumer adapter ABI**, called by a validator or loader.
+2. the **NOBJ consumer adapter ABI**, called by a validator or loader.
 
-These interfaces retain distinct register, flag, stack, and failure contracts,
-but they are not separate service layers. Their adapters call one platform
-dispatcher. A compiler source read is still not a Nucleus
-`readInputByte()` call, and a loader bank selection is still not a
+These interfaces retain distinct register, flag, stack, and failure contracts.
+Their adapters call one private platform dispatcher. A compiler source read is
+not a Nucleus `readInputByte()` call, and a loader bank selection is not a
 source-language service: the adapter translates each operation to the relevant
-platform capability.
+tool capability.
+
+The generated-program runtime vector is separate. It may share lower-level
+BDOS, firmware, or Node primitives with a tool provider, but it cannot dispatch
+compiler source, spool, catalogue, import, or publication operations.
 
 The complete development profile is a capability superset of the execution
 profile. The compiler-host vector is not a register-level superset of the

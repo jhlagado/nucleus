@@ -449,17 +449,19 @@ describe("native Nucleus CP/M generated-program provider", () => {
 
   it("implements exact byte storage, rewind, overwrite, append, seek, and EOF", () => {
     const { runtime, bdos, call } = createStorageProof(
-      Uint8Array.of(0, 0x41, 0xff),
+      Uint8Array.of(0x00, 0x1a, 0x7f, 0x80, 0xff),
       Uint8Array.of(0x10, 0x20),
     );
     expect(call("CpmProgramInitialize")).toMatchObject({ a: 0, carry: 0 });
     expect(runtime.hardware.memory[symbols.CpmProgramStorageState!]).toBe(3);
-    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0, carry: 0 });
-    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x41, carry: 0 });
+    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x00, carry: 0 });
+    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x1a, carry: 0 });
+    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x7f, carry: 0 });
+    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x80, carry: 0 });
     expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0xff, carry: 0 });
     expect(call("CpmProgramReadStorage")).toMatchObject({ a: 1, carry: 1 });
     expect(call("CpmProgramRewindStorage")).toMatchObject({ a: 0, carry: 0 });
-    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0, carry: 0 });
+    expect(call("CpmProgramReadStorage")).toMatchObject({ a: 0x00, carry: 0 });
 
     expect(
       call("CpmProgramWriteStorage", (active) => {

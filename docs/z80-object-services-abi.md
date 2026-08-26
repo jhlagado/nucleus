@@ -1,6 +1,6 @@
 # Nucleus named-object services ABI 1
 
-- Status: specified; Node and native provider proofs pending
+- Status: Node provider and Z80 client implemented; generic CP/M binding pending
 - ABI version: 1
 - Applies to: Z80 import resolver, source streamer, NOBJ writer, and loader
 - Last reviewed: 2026-08-25
@@ -13,14 +13,14 @@ runtime-catalogue entry, or NOBJ file. The ABI describes the operation visible
 to the client. It does not expose host paths, TEC-FS records, CP/M FCBs, Node
 file descriptors, sectors, or allocation blocks.
 
-The common entry is a numbered system service. The MON3 binding assigns it
+The common entry is a numbered private tool service. The MON3 binding assigns it
 selector `$91`; another platform may use a different transport while preserving
 this request and result contract.
 
 ## 2. Call contract
 
 The client places the platform's object-service selector in `C`, places the
-address of a request block in `HL`, and calls the system-service gateway.
+address of a request block in `HL`, and calls the tool-service gateway.
 
 On return:
 

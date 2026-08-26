@@ -1,4 +1,4 @@
-# MON3 binding for Nucleus system services ABI 1
+# MON3 binding for Nucleus tool services ABI 1
 
 - Status: implemented compiler binding; native storage provider incomplete
 - ABI version: 1
@@ -11,10 +11,10 @@
 
 This document allocates the MON3 `RST 10h` selectors currently used by Nucleus
 and defines the TEC-1G binding at that boundary. It is not the
-platform-independent system-services architecture. That architecture is
-defined in [Nucleus Z80 system services](z80-platform-services.md).
+platform-independent tool-service architecture. That architecture is defined
+in [Nucleus Z80 tool services](z80-platform-services.md).
 
-The compiler, loader, and generated-program vectors are compatibility client
+The compiler and loader vectors are private compatibility client
 interfaces. Their adapters translate to the common service meanings and then
 to this binding. A CP/M implementation preserves the common meanings but need
 not reproduce these selector numbers, MON3 register damage, or `RST 10h`.
@@ -146,7 +146,7 @@ Selector `$91`, `NUCLEUS_OBJECT`, accepts `HL` pointing to the 16-byte request
 defined by the [named-object ABI](z80-object-services-abi.md). The call
 preserves `IX` and `IY`, restores the caller's bank and stack, and otherwise
 clobbers `BC`, `DE`, `HL`, and the non-carry flags. Carry clear and `A=0`
-report success. Carry set and nonzero `A` report a canonical system-services
+report success. Carry set and nonzero `A` report a canonical tool-service
 status.
 
 The single entry covers open, chunk transfer, cursor movement, close, commit,

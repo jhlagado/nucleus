@@ -9,7 +9,7 @@
 5. [Checked access and aggregate copying](#5-checked-access-and-aggregate-copying)
 6. [Calls, activations, and results](#6-calls-activations-and-results)
 7. [Recoverable failure and traps](#7-recoverable-failure-and-traps)
-8. [System-service boundary](#8-system-service-boundary)
+8. [Generated-program platform boundary](#8-generated-program-platform-boundary)
 9. [Generated-code integrity](#9-generated-code-integrity)
 10. [Conformance and measurement](#10-conformance-and-measurement)
 
@@ -37,11 +37,13 @@ The [Nucleus Object Stream Format](nucleus-object-format.md) governs the binary
 record tags, framing, payloads, patch order, integrity check, and terminal
 commit used to publish that representation.
 
-The [Z80 system-services architecture](z80-platform-services.md) governs the
-one platform layer beneath the generated-program runtime vector, compiler
-adapter, and NOBJ-loader adapter.
+The [Z80 tool-service architecture](z80-platform-services.md) governs the
+private platform boundary used by the compiler and NOBJ loader. Generated
+programs do not inherit that boundary. Their separate runtime vector may use
+the same provider primitives, such as BDOS or MON3, but exposes only the
+published program services in this contract.
 
-The [MON3 system-services binding](z80-platform-services-abi.md) governs its
+The [MON3 tool-services binding](z80-platform-services-abi.md) governs its
 versioned selector allocation and register, failure, bank, and stack contracts.
 
 The implementation plan and reviewer's charter are non-normative. Tests,
@@ -715,13 +717,15 @@ service effects, activation changes, or control transfer. It terminates source
 execution. Reporting failure must not resume the program or replace the
 original reason.
 
-## 8. System-service boundary
+## 8. Generated-program platform boundary
 
-The runtime vector is the generated program's adapter to the one platform-
-services layer. The compiler and NOBJ loader use different client adapters, but
-all three reach the same platform implementation. The platform and deployment
-profiles are defined in the
-[Z80 Platform Services Architecture](z80-platform-services.md).
+The runtime vector is the generated program's platform adapter. It is separate
+from the private tool-service boundary used by the compiler and NOBJ loader.
+A deployment may implement both over the same operating-system or firmware
+primitives, but generated programs cannot call compiler source, spool,
+catalogue, object-publication, or import-resolution operations. Platform and
+deployment profiles are defined in the
+[Z80 tool-service architecture](z80-platform-services.md).
 
 ### 8.1 Stable services
 
