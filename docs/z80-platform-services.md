@@ -24,7 +24,9 @@ This document defines that common architecture. The
 interfaces presented to the compiler and NOBJ loader. The
 [runtime contract](z80-runtime-contract.md) defines the interface presented to
 generated programs. The [MON3 binding](mon3-host-binding.md) maps the common
-services to TEC-1G firmware. A later CP/M binding maps them to BDOS.
+services to TEC-1G firmware. The implemented CP/M compiler and
+generated-program adapters use public BDOS calls; the common named-object CP/M
+binding remains incomplete.
 The [named-object ABI](z80-object-services-abi.md) fixes the request block and
 operation semantics used by native development tools.
 
@@ -296,6 +298,13 @@ console operations, and terminal return to CP/M. The Z80 resolver, source
 streamer, compiler, NOBJ writer, and flat loader remain the same components.
 Only the binding and deployment memory map change.
 
+Generated CP/M programs enter BDOS at `$0005`. Standard input uses blocking
+console input, including CP/M echo, control processing, and operator-break
+behavior. The returned console byte is seven-bit; portable console text is
+ASCII `$00..$7F`. Standard output uses the ordinary BDOS console-output
+operation. High-bit storage bytes remain unchanged because named-object and
+generated-program storage do not pass through the console capability.
+
 CP/M is therefore a real deployment target, not an analogy used to justify a
 Node API. A design that requires Node memory, JavaScript callbacks, AZM, or an
 emulator-only I/O trap in the compilation path is not a conforming CP/M path.
@@ -344,8 +353,12 @@ The following paths are implemented:
 - sequential Node-backed IMAGE and PATCH spools;
 - pre-generated runtime-catalogue selection and its bounded Z80 chunk gateway;
 - the flat and banked Z80 NOBJ writer over those object and catalogue gateways;
-- the Z80 NOBJ consumer; and
-- flat and banked generated-program execution under Node; and
+- the Z80 NOBJ consumer;
+- flat and banked generated-program execution under Node;
+- the native CP/M compiler adapter with FCB-backed source input, addressed
+  output, and transactional publication;
+- the generated CP/M program adapter with public BDOS console and storage
+  operations; and
 - one end-to-end native proof from Z80 import resolution through cross-bank
   generated-program execution.
 
@@ -356,7 +369,8 @@ The following hardware bindings and packaging inputs remain incomplete:
 - TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
 - native source-bank assignment for the Z80 resolver;
 - the hardware NOBJ loader binding and generated-program adapter; and
-- a CP/M binding.
+- the common named-object CP/M binding beneath the resolver, streamer, writer,
+  and loader.
 
 The MON3-compatible emulator path proves the Z80 algorithms, register
 contracts, and service selectors. It does not prove the missing TEC-FS effect

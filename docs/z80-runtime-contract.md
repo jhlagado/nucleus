@@ -753,6 +753,14 @@ banked target therefore binds these entries to fixed memory, always-visible
 RAM, or another adapter path whose behavior is independent of the currently
 selected bank.
 
+The CP/M 2.2 profile binds `readInputByte()` to blocking BDOS console input and
+`writeOutputByte(value)` to BDOS console output through the public entry at
+`$0005`. Input follows CP/M echo, control-processing, and operator-break rules
+and returns a canonical seven-bit `u8`. Portable CP/M console programs restrict
+text to ASCII `$00..$7F`; the operating system does not define portable
+terminal behavior for `$80..$FF`. These console restrictions do not affect
+the byte-transparent storage services.
+
 Arithmetic and aggregate helpers remain ordinary local calls. They are not
 placed in the vector table.
 

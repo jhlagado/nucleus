@@ -204,10 +204,14 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
     const published = bdos.files.get("OUTPUT  COM");
     expect(published).toBeDefined();
     expect(published!.length).toBe(0x800);
-    expect(published!.slice(0, 859)).toEqual(
+    const prefixBytes =
+      symbols.CpmEmbeddedPrefixEnd! - symbols.CpmEmbeddedPrefix!;
+    expect(published!.slice(0, prefixBytes)).toEqual(
       memory.slice(symbols.CpmEmbeddedPrefix!, symbols.CpmEmbeddedPrefixEnd!),
     );
-    expect(published!.slice(859, 0x700).every((byte) => byte === 0)).toBe(true);
+    expect(
+      published!.slice(prefixBytes, 0x700).every((byte) => byte === 0),
+    ).toBe(true);
     expect(published!.slice(0x700, 0x700 + generated.length)).toEqual(
       generated,
     );
@@ -216,7 +220,7 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
     ).toBe(true);
     expect(bdos.files.has("OUTPUT  $$$")).toBe(false);
     expect(bdos.files.has("OUTPUT  BAK")).toBe(false);
-    expect(result).toMatchObject({ instructions: 1_277, tStates: 70_285 });
+    expect(result).toMatchObject({ instructions: 1_277, tStates: 70_642 });
   });
 
   it("publishes the maximum admitted image and supports a later command", () => {

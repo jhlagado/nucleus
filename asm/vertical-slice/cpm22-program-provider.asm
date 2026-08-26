@@ -4,8 +4,8 @@
 
 CpmProgramTargetEntry .equ $0800
 CpmProgramBdos        .equ $0005
-CpmProgramBiosConin   .equ $FA09
-CpmProgramBiosConout  .equ $FA0C
+CpmProgramConsoleInputFunction .equ 1
+CpmProgramConsoleOutputFunction .equ 2
 CpmProgramDmaFunction .equ 26
 CpmProgramOpenFunction .equ 15
 CpmProgramCloseFunction .equ 16
@@ -65,18 +65,19 @@ CpmProgramInitialize:
             XOR  A
             RET
 
-; The ideal Debug80 BIOS CONIN path blocks, returns every byte including zero,
-; and performs no implicit echo. Preserve the generated-program register set.
+; Standard CP/M console input blocks, echoes, and performs the operating
+; system's ordinary control processing. The portable profile is seven-bit.
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 CpmProgramReadInput:
             PUSH BC
             PUSH DE
             PUSH HL
-            CALL CpmProgramBiosConin
+            LD   C,CpmProgramConsoleInputFunction
+            CALL CpmProgramCallBdos
             POP  HL
             POP  DE
             POP  BC
-            OR   A
+            AND  $7F
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry
@@ -84,12 +85,24 @@ CpmProgramWriteOutput:
             PUSH BC
             PUSH DE
             PUSH HL
-            LD   C,A
-            CALL CpmProgramBiosConout
+            LD   E,A
+            LD   C,CpmProgramConsoleOutputFunction
+            CALL CpmProgramCallBdos
             POP  HL
             POP  DE
             POP  BC
             XOR  A
+            RET
+
+; CP/M standardizes only the 8080 register set. Preserve every Z80 register
+; promised by the generated-program service vector around public BDOS calls.
+.routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CpmProgramCallBdos:
+            PUSH IX
+            PUSH IY
+            CALL CpmProgramBdos
+            POP  IY
+            POP  IX
             RET
 
 ; CP/M does not retain a byte count for the final 128-byte record. Each selected
@@ -280,7 +293,7 @@ CpmProgramOpenInput:
             RET  Z
             LD   DE,CpmProgramInputFcb
             LD   C,CpmProgramOpenFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             INC  A
             RET  Z
             LD   IX,CpmProgramInputFcb
@@ -315,7 +328,7 @@ CpmProgramCompareStorageName:
 CpmProgramOpenOutputFile:
             LD   DE,CpmProgramOutputFcb
             LD   C,CpmProgramOpenFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             INC  A
             JR   Z,CpmProgramCreateOutput
             LD   IX,CpmProgramOutputFcb
@@ -329,7 +342,7 @@ CpmProgramCreateOutput:
             CALL CpmProgramClearFcbTail
             LD   DE,CpmProgramOutputFcb
             LD   C,CpmProgramMakeFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             INC  A
             RET  Z
             CALL CpmProgramClearCache
@@ -416,7 +429,7 @@ CpmProgramReadCurrentRecordRaw:
             PUSH IX
             POP  DE
             LD   C,CpmProgramRandomReadFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             OR   A
             RET
 
@@ -426,7 +439,7 @@ CpmProgramWriteCurrentRecord:
             PUSH IX
             POP  DE
             LD   C,CpmProgramRandomWriteFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             OR   A
             RET  Z
             JP   CpmProgramStorageFailure
@@ -435,7 +448,7 @@ CpmProgramWriteCurrentRecord:
 CpmProgramSetDma:
             LD   DE,CpmProgramRecordCache
             LD   C,CpmProgramDmaFunction
-            JP   CpmProgramBdos
+            JP   CpmProgramCallBdos
 
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE,IX
 CpmProgramStoreOutputHeader:
@@ -468,14 +481,14 @@ CpmProgramCloseStorage:
             JR   Z,CpmProgramCloseOutput
             LD   DE,CpmProgramInputFcb
             LD   C,CpmProgramCloseFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
 CpmProgramCloseOutput:
             LD   A,(CpmProgramStorageState)
             AND  CpmProgramOutputReadyFlag
             JR   Z,CpmProgramStorageClosed
             LD   DE,CpmProgramOutputFcb
             LD   C,CpmProgramCloseFunction
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
 CpmProgramStorageClosed:
             XOR  A
             LD   (CpmProgramStorageState),A
@@ -498,7 +511,7 @@ CpmProgramTrap:
 CpmProgramTerminalMessage:
             CALL CpmProgramCloseStorage
             LD   C,9
-            CALL CpmProgramBdos
+            CALL CpmProgramCallBdos
             XOR  A
             RET
 

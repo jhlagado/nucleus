@@ -248,13 +248,13 @@ describe("native Nucleus CP/M generated-program provider", () => {
     ).toBe(36);
     expect(
       symbols.CpmProgramProviderCodeEnd - symbols.CpmProgramProviderCodeStart,
-    ).toBe(686);
+    ).toBe(703);
     expect(
       symbols.CpmProgramProviderImmutableEnd -
         symbols.CpmProgramProviderImmutableStart,
     ).toBe(47);
     expect(symbols.CpmProgramPrefixEnd - symbols.CpmProgramPrefixStart).toBe(
-      859,
+      876,
     );
     expect(
       symbols.CpmProgramProviderWorkspaceEnd -
@@ -288,6 +288,57 @@ describe("native Nucleus CP/M generated-program provider", () => {
         symbols[name]! >>> 8,
       ]);
     });
+
+    const call = symbols.CpmProgramCallBdos!;
+    expect(
+      Array.from(
+        image.slice(
+          symbols.CpmProgramReadInput!,
+          symbols.CpmProgramReadInput! + 14,
+        ),
+      ),
+    ).toEqual([
+      0xc5,
+      0xd5,
+      0xe5,
+      0x0e,
+      0x01,
+      0xcd,
+      call & 0xff,
+      call >>> 8,
+      0xe1,
+      0xd1,
+      0xc1,
+      0xe6,
+      0x7f,
+      0xc9,
+    ]);
+    expect(
+      Array.from(
+        image.slice(
+          symbols.CpmProgramWriteOutput!,
+          symbols.CpmProgramWriteOutput! + 14,
+        ),
+      ),
+    ).toEqual([
+      0xc5,
+      0xd5,
+      0xe5,
+      0x5f,
+      0x0e,
+      0x02,
+      0xcd,
+      call & 0xff,
+      call >>> 8,
+      0xe1,
+      0xd1,
+      0xc1,
+      0xaf,
+      0xc9,
+    ]);
+    expect(Array.from(image.slice(call, call + 12))).toEqual([
+      0xdd, 0xe5, 0xfd, 0xe5, 0xcd, 0x05, 0x00, 0xfd, 0xe1, 0xdd, 0xe1, 0xc9,
+    ]);
   });
 
   it("enters the generated image and returns cleanly through success", () => {
@@ -295,9 +346,35 @@ describe("native Nucleus CP/M generated-program provider", () => {
     expect(runtime.cpu.flags.C).toBe(0);
   });
 
-  it("preserves the generated-program register set around BIOS console I/O", () => {
-    const read = execute(symbols.CpmProgramReadInput!, (runtime) => {
-      runtime.hardware.memory.set([0x3e, 0x00, 0xc9], 0xfa09);
+  it("uses public BDOS console calls and preserves the generated-program register set", () => {
+    const calls: Array<{ operation: number; value: number }> = [];
+    const callConsole = (
+      entry: number,
+      value = 0,
+    ): ReturnType<typeof createZ80Runtime> => {
+      const memory = image.slice();
+      const sentinel = 0x0700;
+      const stack = 0xe300;
+      memory.set([0xd3, 0xe0, 0xc9], 0x0005);
+      memory[sentinel] = 0x76;
+      word(memory, stack, sentinel);
+      let runtime!: ReturnType<typeof createZ80Runtime>;
+      runtime = createZ80Runtime({ memory, startAddress: entry }, entry, {
+        write: () => {
+          calls.push({ operation: runtime.cpu.c, value: runtime.cpu.e });
+          runtime.cpu.a = 0xff;
+          runtime.cpu.b = 0xa1;
+          runtime.cpu.c = 0xa2;
+          runtime.cpu.d = 0xa3;
+          runtime.cpu.e = 0xa4;
+          runtime.cpu.h = 0xa5;
+          runtime.cpu.l = 0xa6;
+          runtime.cpu.ix = 0xa7a8;
+          runtime.cpu.iy = 0xa9aa;
+        },
+      });
+      runtime.cpu.sp = stack;
+      runtime.cpu.a = value;
       runtime.cpu.b = 0x12;
       runtime.cpu.c = 0x34;
       runtime.cpu.d = 0x56;
@@ -306,10 +383,21 @@ describe("native Nucleus CP/M generated-program provider", () => {
       runtime.cpu.l = 0xbc;
       runtime.cpu.ix = 0x2468;
       runtime.cpu.iy = 0x1357;
-    });
-    expect(read.cpu.a).toBe(0);
+      let instructions = 0;
+      while (!runtime.isHalted() && instructions < 2_000) {
+        runtime.step();
+        instructions += 1;
+      }
+      expect(runtime.isHalted()).toBe(true);
+      expect(runtime.cpu.sp).toBe(stack + 2);
+      return runtime;
+    };
+
+    const read = callConsole(symbols.CpmProgramReadInput!);
+    expect(calls.shift()).toEqual({ operation: 1, value: 0x78 });
+    expect(read.cpu.a).toBe(0x7f);
     expect(read.cpu.flags.C).toBe(0);
-    expect(read.cpu.flags.Z).toBe(1);
+    expect(read.cpu.flags.Z).toBe(0);
     expect([
       read.cpu.b,
       read.cpu.c,
@@ -321,36 +409,8 @@ describe("native Nucleus CP/M generated-program provider", () => {
       read.cpu.iy,
     ]).toEqual([0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0x2468, 0x1357]);
 
-    const writes: Array<{ port: number; value: number }> = [];
-    const memory = image.slice();
-    const sentinel = 0x0700;
-    const stack = 0xe300;
-    memory[sentinel] = 0x76;
-    word(memory, stack, sentinel);
-    memory.set([0x79, 0xd3, 0xe0, 0xc9], 0xfa0c);
-    const write = createZ80Runtime(
-      { memory, startAddress: symbols.CpmProgramWriteOutput! },
-      symbols.CpmProgramWriteOutput!,
-      { write: (port, value) => writes.push({ port, value }) },
-    );
-    write.cpu.sp = stack;
-    write.cpu.a = 0x5a;
-    write.cpu.b = 0x12;
-    write.cpu.c = 0x34;
-    write.cpu.d = 0x56;
-    write.cpu.e = 0x78;
-    write.cpu.h = 0x9a;
-    write.cpu.l = 0xbc;
-    write.cpu.ix = 0x2468;
-    write.cpu.iy = 0x1357;
-    let instructions = 0;
-    while (!write.isHalted() && instructions < 2_000) {
-      write.step();
-      instructions += 1;
-    }
-    expect(write.isHalted()).toBe(true);
-    expect(write.cpu.sp).toBe(stack + 2);
-    expect(writes).toEqual([{ port: 0x5ae0, value: 0x5a }]);
+    const write = callConsole(symbols.CpmProgramWriteOutput!, 0x5a);
+    expect(calls).toEqual([{ operation: 2, value: 0x5a }]);
     expect(write.cpu.a).toBe(0);
     expect(write.cpu.flags.C).toBe(0);
     expect([

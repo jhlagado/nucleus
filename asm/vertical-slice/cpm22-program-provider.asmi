@@ -5,15 +5,5 @@ end
 
 extern CpmProgramBdos
 out A
-clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
-end
-
-extern CpmProgramBiosConin
-out A
-clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
-end
-
-extern CpmProgramBiosConout
-out A
-clobbers BC,DE,HL,carry,zero,sign,parity,halfCarry
+clobbers BC,DE,HL,IX,IY,carry,zero,sign,parity,halfCarry
 end

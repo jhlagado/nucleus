@@ -260,18 +260,14 @@ const runCom = (file: Uint8Array) => {
   installFcb(memory, 0x005c);
   installFcb(memory, 0x006c);
   memory.set([0xd3, 0xe1, 0xc9], 0x0005);
-  memory.set([0x3e, 0x00, 0xc9], 0xfa09);
-  memory.set([0x79, 0xd3, 0xe2, 0xc9], 0xfa0c);
   const sentinel = 0xe500;
   const stack = 0xe300;
   memory[sentinel] = 0x76;
   word(memory, stack, sentinel);
-  const output: number[] = [];
   let runtime!: ReturnType<typeof createZ80Runtime>;
   const bdos = new NativeCompilerBdos();
   runtime = createZ80Runtime({ memory, startAddress: 0x0100 }, 0x0100, {
     write: (port, value) => {
-      if ((port & 0xff) === 0xe2) output.push(value);
       if ((port & 0xff) === 0xe1) bdos.dispatch(runtime);
     },
   });
@@ -284,7 +280,7 @@ const runCom = (file: Uint8Array) => {
   }
   expect(runtime.isHalted(), "generated COM did not return to CP/M").toBe(true);
   expect(runtime.cpu.sp).toBe(stack + 2);
-  return { instructions, output, tStates };
+  return { instructions, output: bdos.console, tStates };
 };
 
 const validSource = [
@@ -302,10 +298,14 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     expect(compiled.a, bdos.text()).toBe(0);
     const output = bdos.files.get(canonicalName("OUTPUT.COM"));
     expect(output).toBeDefined();
-    expect(output!.slice(0, 859)).toEqual(
+    const prefixBytes =
+      symbols.CpmEmbeddedPrefixEnd! - symbols.CpmEmbeddedPrefix!;
+    expect(output!.slice(0, prefixBytes)).toEqual(
       memory.slice(symbols.CpmEmbeddedPrefix!, symbols.CpmEmbeddedPrefixEnd!),
     );
-    expect(output!.slice(859, 0x700).every((byte) => byte === 0)).toBe(true);
+    expect(output!.slice(prefixBytes, 0x700).every((byte) => byte === 0)).toBe(
+      true,
+    );
     expect(output![0x700]).toBe(0xc3);
     const used =
       memory[symbols.CpmDirectUsedLength!]! |
@@ -321,11 +321,11 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
 
     const executed = runCom(output!);
     expect(Buffer.from(executed.output).toString()).toBe("OK");
-    expect(compiled).toEqual({ a: 0, instructions: 35_452, tStates: 963_723 });
+    expect(compiled).toEqual({ a: 0, instructions: 35_452, tStates: 964_080 });
     expect(executed).toEqual({
-      instructions: 258,
+      instructions: 270,
       output: [0x4f, 0x4b],
-      tStates: 3_064,
+      tStates: 3_240,
     });
   });
 
@@ -409,7 +409,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     expect(
       symbols.CpmCompilerStartupCodeEnd - symbols.CpmCompilerStartupCodeStart,
     ).toBe(173);
-    expect(symbols.CpmEmbeddedPrefixEnd - symbols.CpmEmbeddedPrefix).toBe(859);
+    expect(symbols.CpmEmbeddedPrefixEnd - symbols.CpmEmbeddedPrefix).toBe(876);
     expect(symbols.CpmEmbeddedRuntimeEnd - symbols.CpmEmbeddedRuntime).toBe(
       732,
     );
@@ -422,9 +422,9 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
         .slice(symbols.CpmCompilerPartBanks!, symbols.CpmCompilerPartBanks! + 8)
         .every((byte) => byte === 0),
     ).toBe(true);
-    expect(symbols.CpmCompilerResidentEnd).toBe(0x52fb);
+    expect(symbols.CpmCompilerResidentEnd).toBe(0x530c);
     expect(symbols.CpmHostResidentLimit - symbols.CpmCompilerResidentEnd).toBe(
-      1_285,
+      1_268,
     );
     expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e5b);
     expect(symbols.CpmHostWorkspaceLimit - symbols.CpmCommandWorkspaceEnd).toBe(
