@@ -1,6 +1,6 @@
 # Plan: one Z80 platform-services layer
 
-- Status: Node reference complete; native TEC-1 provider pending
+- Status: Node reference and native TEC-FS named-object provider complete; native vertical slice pending
 - Date: 2026-08-23
 - Original implementation baseline: `46978f408c2b39f041d776e1d8bddf16d9db5651`
 - Stage 1 documentation baseline: `b725dbaa44b3eba4b7a5a714c3f86f916e3eedb6`
@@ -279,8 +279,10 @@ source-import and platform-byte boundaries together.
 
 ## 10. Stage 7: TEC-FS and MON3 providers
 
-Status: not implemented in this repository. The selector allocation and client
-contracts are ready for the native provider.
+Status: the TECM8 repository implements the common named-object request beneath
+private selector `$91`, including transactional commit/abort and exact bank,
+register, and stack restoration. Native Nucleus client integration, runtime
+catalogue, loader target control, and console bindings remain.
 
 Implement the native provider beneath the already proved Z80 adapters:
 

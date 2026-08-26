@@ -53,7 +53,9 @@ chunks below `$92`. The same proof now runs the Z80 NOBJ writer for flat and
 banked targets and checks each complete object byte for byte against the
 established sink. The banked proof covers a nonzero entry bank, a separate
 library bank, and an empty bank. The TEC-FS binding for those calls is not yet
-implemented. The current resolver still writes bank zero into SP1; a native
+used by the native Nucleus launcher. TECM8 now provides the exact named-object
+ABI through selector `$91`, backed by eight transactional, double-buffered
+64-KiB slots. The current resolver still writes bank zero into SP1; a native
 source-bank assignment input is the remaining packaging decision.
 
 The complete Node-backed discriminator now continues past object production:

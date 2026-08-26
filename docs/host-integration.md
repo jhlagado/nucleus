@@ -24,8 +24,9 @@ over the one boundary defined by the
 [Z80 system-services architecture](z80-platform-services.md). Node is the
 implemented desktop provider. The package now includes a standalone Z80 import
 resolver and a Z80 SP1 source streamer. Both obtain stored bytes through
-named-object ABI 1. A MON3 and TEC-FS implementation of that ABI remains
-hardware work.
+named-object ABI 1. TECM8 now implements that request through its MON3 private
+gateway and bounded TEC-FS object arena. Wiring the resolver, streamer, writer,
+and loader into one native launcher remains hardware integration work.
 
 The ordinary Node project host performs import discovery and owns the IMAGE and
 PATCH spools. The native-path proof instead runs the prebuilt Z80 resolver,
@@ -34,8 +35,8 @@ compiler. The same path runs the Z80 IMAGE/PATCH spool and NOBJ writer for flat
 and banked targets.
 Node supplies named-object and runtime-catalogue effects beneath their gateways;
 it does not parse directives, order dependencies, frame NOBJ records, or apply
-patches in that path. Native source-bank assignment and the TEC-FS provider
-remain separate increments.
+patches in that path. Native source-bank assignment and the end-to-end TEC-FS
+client binding remain separate increments.
 
 The CLI always writes canonical NOBJ. It can also materialize a flat Intel HEX
 launch artifact with `--hex-output`. HEX is a launch adapter; NOBJ remains the

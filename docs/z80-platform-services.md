@@ -349,6 +349,7 @@ The following paths are implemented:
 
 - Node import discovery and deterministic ordering;
 - common named-object services with a Node provider and Z80 client;
+- a TECM8/MON3 named-object provider over a bounded TEC-FS private arena;
 - the standalone Z80 import resolver and bounded SP1 source streamer;
 - the streaming Z80 compiler and fourteen-entry compiler adapter;
 - the MON3-compatible compiler gateway exercised under Debug80;
@@ -366,7 +367,6 @@ The following paths are implemented:
 
 The following hardware bindings and packaging inputs remain incomplete:
 
-- common named-object and chunk-transfer services over TEC-FS;
 - the TEC-FS binding beneath the Z80 resolver, source streamer, and retained-name provider;
 - TEC-FS IMAGE, PATCH, and tentative-NOBJ work objects;
 - native source-bank assignment for the Z80 resolver;
@@ -375,8 +375,10 @@ The following hardware bindings and packaging inputs remain incomplete:
   and loader.
 
 The MON3-compatible emulator path proves the Z80 algorithms, register
-contracts, and service selectors. It does not prove the missing TEC-FS effect
-provider or hardware bank mapping.
+contracts, and service selectors. TECM8 separately proves the named-object
+effect provider, media-failure atomicity, and hardware bank restoration. The
+combined native compiler-to-loader path and its complete hardware memory map
+remain unproved.
 
 ## 10. Implementation order and acceptance
 

@@ -57,4 +57,5 @@ plan](plans/2026-08-23-z80-platform-services-convergence.md) sequences runtime-
 catalog selection, common Node and MON3 dispatch, compiler and loader adapters,
 generated-program services, TEC-FS integration, and the native vertical slice.
 Its Node compiler, NOBJ consumer, flat and banked runner, and generated-program
-service stages are implemented; the native TEC-FS provider remains.
+service stages are implemented. TECM8 now supplies the native named-object
+provider; native resolver/compiler/writer/loader integration remains.
