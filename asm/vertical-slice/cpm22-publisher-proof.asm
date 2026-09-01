@@ -15,4 +15,8 @@ CpmDirectRuntimeProvider:
 
 CpmCompilerOutputName:
             .db  0,"OUTPUT  ","COM"
+CpmCompilerOutputFormat: .db 0
+CpmOutputFormatCom .equ 0
+CpmOutputFormatBin .equ 1
+CpmOutputFormatHex .equ 2
             .end

@@ -97,6 +97,7 @@ The current authorities are:
 - [Nucleus Z80 Platform Services Architecture](docs/z80-platform-services.md)
 - [Nucleus Host API 1](docs/host-api.md)
 - [Nucleus standard library](docs/standard-library.md)
+- [Nucleus on CP/M 2.2](docs/cpm22-command-line.md)
 - [Nucleus D8 Source Maps](docs/d8-source-maps.md)
 - [Nucleus host and Debug80 integration](docs/host-integration.md)
 - [MON3-compatible platform binding](docs/mon3-host-binding.md)

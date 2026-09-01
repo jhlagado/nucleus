@@ -10,6 +10,8 @@ Nucleus 0.1 is a small, safe, general-purpose structured language for Z80 and ot
   validation rules, and D8 sidecar production.
 - [`host-integration.md`](host-integration.md) records the implemented boundary
   between the standalone compiler and Debug80.
+- [`cpm22-command-line.md`](cpm22-command-line.md) documents the compact native
+  `NUC.COM` interface and its `COM`, `BIN`, and Intel HEX outputs.
 - [`target-system-specification.md`](target-system-specification.md) governs
   target profiles, program images, startup, entry, and banked-program
   composition.

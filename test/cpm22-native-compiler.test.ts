@@ -321,7 +321,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
 
     const executed = runCom(output!);
     expect(Buffer.from(executed.output).toString()).toBe("OK");
-    expect(compiled).toEqual({ a: 0, instructions: 35_452, tStates: 964_080 });
+    expect(compiled).toEqual({ a: 0, instructions: 35_469, tStates: 965_911 });
     expect(executed).toEqual({
       instructions: 270,
       output: [0x4f, 0x4b],
@@ -362,18 +362,35 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     expect(bdos.files.has(canonicalName("OUTPUT.COM"))).toBe(true);
   });
 
-  it("retains multipart ordinals and offsets through a native plan", () => {
+  it("supports the compact one-name command and BIN/HEX selection", () => {
     const files = new Map<string, Uint8Array>([
-      ["PARTS.LST", cpmTextFile("LIB.NU\nMAIN.NU\n")],
-      ["LIB.NU", cpmTextFile("var value as u8\n")],
-      ["MAIN.NU", cpmTextFile("sub main(\n")],
+      ["HELLO.NU", cpmTextFile(validSource)],
     ]);
     const { bdos, compileOnce } = createCompiler("", undefined, files);
-    compileOnce(undefined, " parts.lst output.com @");
-    expect(bdos.text(), bdos.events.join(" | ")).toContain(
-      "Nucleus error 01 P=02 O=000A L=0002 C=0001",
+    expect(compileOnce(undefined, " hello").a, bdos.text()).toBe(0);
+    expect(runCom(bdos.files.get(canonicalName("HELLO.COM"))!).output).toEqual(
+      [0x4f, 0x4b],
     );
-    expect(bdos.files.has(canonicalName("OUTPUT.COM"))).toBe(false);
+
+    expect(
+      compileOnce(undefined, " hello.nu made.bin").a,
+      bdos.text(),
+    ).toBe(0);
+    expect(runCom(bdos.files.get(canonicalName("MADE.BIN"))!).output).toEqual([
+      0x4f, 0x4b,
+    ]);
+
+    expect(
+      compileOnce(undefined, " hello.nu made.hex").a,
+      bdos.text(),
+    ).toBe(0);
+    const physicalHex = bdos.files.get(canonicalName("MADE.HEX"))!;
+    const textEnd = physicalHex.indexOf(0x1a);
+    const hexText = Buffer.from(
+      physicalHex.slice(0, textEnd < 0 ? physicalHex.length : textEnd),
+    ).toString("ascii");
+    const rendered = parseIntelHex(hexText).memory;
+    expect(rendered[0x0800]).toBe(0xc3);
   });
 
   it("fits every independently accounted code and workspace region", () => {
@@ -394,21 +411,21 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
       symbols.CpmRuntimeProviderCodeEnd - symbols.CpmRuntimeProviderCodeStart,
     ).toBe(127);
     expect(symbols.CpmPublisherCodeEnd - symbols.CpmPublisherCodeStart).toBe(
-      367,
+      759,
     );
     expect(
       symbols.CpmSourceProviderCodeEnd - symbols.CpmSourceProviderCodeStart,
     ).toBe(722);
-    expect(symbols.CpmCommandCodeEnd - symbols.CpmCommandCodeStart).toBe(630);
+    expect(symbols.CpmCommandCodeEnd - symbols.CpmCommandCodeStart).toBe(427);
     expect(
       symbols.CpmCommandImmutableEnd - symbols.CpmCommandImmutableStart,
-    ).toBe(27);
+    ).toBe(33);
     expect(
       symbols.CpmCompilerSourceHostEnd - symbols.CpmCompilerSourceHostStart,
     ).toBe(399);
     expect(
       symbols.CpmCompilerStartupCodeEnd - symbols.CpmCompilerStartupCodeStart,
-    ).toBe(173);
+    ).toBe(187);
     expect(symbols.CpmEmbeddedPrefixEnd - symbols.CpmEmbeddedPrefix).toBe(876);
     expect(symbols.CpmEmbeddedRuntimeEnd - symbols.CpmEmbeddedRuntime).toBe(
       732,
@@ -416,19 +433,19 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     expect(symbols.CpmEmbeddedInitialEnd - symbols.CpmEmbeddedInitial).toBe(77);
     expect(
       symbols.CpmCompilerImmutableEnd - symbols.CpmCompilerImmutableStart,
-    ).toBe(73);
+    ).toBe(125);
     expect(
       compilerImage
         .slice(symbols.CpmCompilerPartBanks!, symbols.CpmCompilerPartBanks! + 8)
         .every((byte) => byte === 0),
     ).toBe(true);
-    expect(symbols.CpmCompilerResidentEnd).toBe(0x530c);
+    expect(symbols.CpmCompilerResidentEnd).toBe(0x5421);
     expect(symbols.CpmHostResidentLimit - symbols.CpmCompilerResidentEnd).toBe(
-      1_268,
+      991,
     );
-    expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e5b);
+    expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e35);
     expect(symbols.CpmHostWorkspaceLimit - symbols.CpmCommandWorkspaceEnd).toBe(
-      421,
+      459,
     );
     expect(symbols.CpmOutputBufferLimit - symbols.CpmOutputBufferBase).toBe(
       23_808,

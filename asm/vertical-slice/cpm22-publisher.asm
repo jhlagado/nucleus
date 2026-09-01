@@ -1,6 +1,6 @@
-; Transactional CP/M COM publisher for the direct materializer. The completed
-; target image is already patched in TPA. Publication writes a temporary file,
-; then uses one backup rename so the selected output is never a partial COM.
+; Transactional CP/M publisher for the direct materializer. The completed
+; target image is already patched in TPA. COM and BIN are the same flat bytes
+; loaded at $0100; HEX carries those bytes with their logical addresses.
 
 CpmPublishDmaFunction   .equ 26
 CpmPublishOpenFunction  .equ 15
@@ -60,6 +60,10 @@ CpmDirectPublish:
             CALL CpmPublishFcbCall
             INC  A
             JP   Z,CpmPublishRollbackFailure
+            LD   A,(CpmCompilerOutputFormat)
+            CP   CpmOutputFormatHex
+            JP   Z,CpmPublishHexBody
+CpmPublishRawBody:
             LD   IX,CpmEmbeddedPrefix
             LD   A,CpmPublishPrefixRecords
             LD   (CpmPublishPrefixRecordCount),A
@@ -103,20 +107,66 @@ CpmPublishImageLoop:
             PUSH IX
             POP  DE
             CALL CpmPublishWriteRecord
-            JR   C,CpmPublishRollbackFailure
+            JP   C,CpmPublishRollbackFailure
             PUSH IY
             POP  HL
             LD   DE,128
             OR   A
             SBC  HL,DE
-            JR   C,CpmPublishCloseTemporary
+            JP   C,CpmPublishCloseTemporary
             LD   A,H
             OR   L
-            JR   Z,CpmPublishCloseTemporary
+            JP   Z,CpmPublishCloseTemporary
             PUSH HL
             POP  IY
             ADD  IX,DE
             JR   CpmPublishImageLoop
+
+; Render the same logical $0100 image as addressed Intel HEX records. The
+; resident prefix and generated image are disjoint physical buffers, so the
+; zero-filled logical gap is emitted as bounded sixteen-byte segments.
+CpmPublishHexBody:
+            CALL ZTS_CPM_HEX_BEGIN
+            LD   HL,CpmEmbeddedPrefix
+            LD   (ZTS_CPM_FINAL_SOURCE_CURSOR),HL
+            LD   HL,CpmEmbeddedPrefixEnd-CpmEmbeddedPrefix
+            LD   (ZTS_CPM_FINAL_REMAINING),HL
+            LD   HL,$0100
+            LD   (ZTS_CPM_FINAL_ADDRESS),HL
+            CALL ZTS_CPM_HEX_SEGMENT
+            LD   HL,CpmTargetImageBase-$0100-(CpmEmbeddedPrefixEnd-CpmEmbeddedPrefix)
+            LD   (CpmPublishHexGapRemaining),HL
+CpmPublishHexGapLoop:
+            LD   HL,(CpmPublishHexGapRemaining)
+            LD   A,H
+            OR   L
+            JR   Z,CpmPublishHexImage
+            LD   DE,16
+            OR   A
+            SBC  HL,DE
+            JR   C,CpmPublishHexLastGap
+            LD   (CpmPublishHexGapRemaining),HL
+            LD   HL,16
+            JR   CpmPublishHexGapReady
+CpmPublishHexLastGap:
+            ADD  HL,DE
+            LD   DE,0
+            LD   (CpmPublishHexGapRemaining),DE
+CpmPublishHexGapReady:
+            LD   (ZTS_CPM_FINAL_REMAINING),HL
+            LD   HL,CpmPublishHexZeroes
+            LD   (ZTS_CPM_FINAL_SOURCE_CURSOR),HL
+            CALL ZTS_CPM_HEX_SEGMENT
+            JR   CpmPublishHexGapLoop
+CpmPublishHexImage:
+            LD   HL,CpmOutputBufferBase
+            LD   (ZTS_CPM_FINAL_SOURCE_CURSOR),HL
+            PUSH IY
+            POP  HL
+            LD   (ZTS_CPM_FINAL_REMAINING),HL
+            CALL ZTS_CPM_HEX_SEGMENT
+            CALL ZTS_CPM_HEX_END
+            JP   C,CpmPublishRollbackFailure
 
 CpmPublishCloseTemporary:
             LD   C,CpmPublishCloseFunction
@@ -247,10 +297,35 @@ CpmPublishBuildCurrentToOutput:
             LD   HL,CpmCompilerOutputName
             LD   DE,CpmPublishWorkFcb+16
             JP   CpmPublishCopyRenameName
+
+ZTS_CPM_FINAL_DMA           .equ CpmPublishDma
+ZTS_CPM_FINAL_FCB           .equ CpmPublishWorkFcb
+ZTS_CPM_FINAL_DMA_CURSOR    .equ CpmPublishHexDmaCursor
+ZTS_CPM_FINAL_DMA_COUNT     .equ CpmPublishHexDmaCount
+ZTS_CPM_FINAL_ERROR         .equ CpmPublishHexError
+ZTS_CPM_FINAL_REMAINING     .equ CpmPublishHexRemaining
+ZTS_CPM_FINAL_SOURCE_CURSOR .equ CpmPublishHexSourceCursor
+ZTS_CPM_FINAL_ADDRESS       .equ CpmPublishHexAddress
+ZTS_CPM_FINAL_SIZE          .equ CpmPublishHexSize
+ZTS_CPM_FINAL_DATA_LEFT     .equ CpmPublishHexDataLeft
+ZTS_CPM_FINAL_SUM           .equ CpmPublishHexSum
+            .include "cpm22-final-image.asm"
 CpmPublisherCodeEnd:
+
+CpmPublishHexZeroes:        .ds 16,0
 
 CpmPublisherWorkspaceStart .equ CpmDirectWorkspaceEnd
 CpmPublishWorkFcb          .equ CpmPublisherWorkspaceStart
 CpmPublishPrefixRecordCount .equ CpmPublishWorkFcb+36
 CpmPublishState            .equ CpmPublishPrefixRecordCount+1
-CpmPublisherWorkspaceEnd   .equ CpmPublishState+1
+CpmPublishHexDmaCursor     .equ CpmPublishState+1
+CpmPublishHexDmaCount      .equ CpmPublishHexDmaCursor+2
+CpmPublishHexError         .equ CpmPublishHexDmaCount+1
+CpmPublishHexRemaining     .equ CpmPublishHexError+1
+CpmPublishHexSourceCursor  .equ CpmPublishHexRemaining+2
+CpmPublishHexAddress       .equ CpmPublishHexSourceCursor+2
+CpmPublishHexSize          .equ CpmPublishHexAddress+2
+CpmPublishHexDataLeft      .equ CpmPublishHexSize+1
+CpmPublishHexSum           .equ CpmPublishHexDataLeft+1
+CpmPublishHexGapRemaining  .equ CpmPublishHexSum+1
+CpmPublisherWorkspaceEnd   .equ CpmPublishHexGapRemaining+2

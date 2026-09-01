@@ -192,8 +192,19 @@ const createProof = (files = new Map<string, Uint8Array>()) => {
 
   const outputName = () =>
     fcbName(activeMemory, symbols.CpmCompilerOutputName!);
+  const outputFormat = () => activeMemory[symbols.CpmCompilerOutputFormat!];
+  const helpRequested = () => activeMemory[symbols.CpmCommandHelpRequested!];
 
-  return { bdos, call, descriptor, memory: activeMemory, outputName, prepare };
+  return {
+    bdos,
+    call,
+    descriptor,
+    helpRequested,
+    memory: activeMemory,
+    outputFormat,
+    outputName,
+    prepare,
+  };
 };
 
 describe("native Nucleus CP/M command and preflight adapter", () => {
@@ -206,13 +217,14 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
 
     const defaultCommand = proof.prepare("");
     expect(defaultCommand).toMatchObject({ a: 0, carry: 0 });
-    expect(defaultCommand).toMatchObject({ instructions: 261, tStates: 2_987 });
+    expect(defaultCommand).toMatchObject({ instructions: 272, tStates: 3_098 });
     expect(proof.memory[symbols.CpmSourcePartCount!]).toBe(1);
     expect(proof.descriptor(0)).toEqual({
       name: canonicalName("INPUT.NU"),
       length: 7,
     });
     expect(proof.outputName()).toBe(canonicalName("OUTPUT.COM"));
+    expect(proof.outputFormat()).toBe(0);
 
     const named = proof.prepare(" hello.nu made.com", "HELLO.NU", "MADE.COM");
     expect(named).toMatchObject({ a: 0, carry: 0 });
@@ -223,59 +235,48 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
     expect(proof.outputName()).toBe(canonicalName("MADE.COM"));
   });
 
-  it("loads a canonicalized eight-part LF/CRLF plan and resets sequentially", () => {
-    const names = [
-      "one.nu",
-      "TWO.NU",
-      "three.nu",
-      "FOUR.NU",
-      "five.nu",
-      "SIX.NU",
-      "seven.nu",
-      "EIGHT.NU",
-    ];
-    const plan = Buffer.from(
-      names
-        .map((name, index) => `${name}${index % 2 === 0 ? "\r\n" : "\n"}`)
-        .join(""),
-    );
-    const files = new Map<string, Uint8Array>([
-      [canonicalName("BUILD.LST"), cpmTextFile(plan)],
-      ...names.map(
-        (name, index) =>
-          [canonicalName(name), cpmTextFile(exactFile(index + 1, 1))] as const,
-      ),
-      [canonicalName("SINGLE.NU"), cpmTextFile(Buffer.from("abc"))],
+  it("derives one-argument names and accepts COM, BIN, and HEX outputs", () => {
+    const files = new Map([
+      [canonicalName("HELLO.NU"), cpmTextFile(Buffer.from("hello"))],
+      [canonicalName("INPUT.NEW"), cpmTextFile(Buffer.from("new"))],
     ]);
     const proof = createProof(files);
 
-    const planned = proof.prepare(
-      " BUILD.LST PROGRAM.COM @",
-      "BUILD.LST",
-      "PROGRAM.COM",
-    );
-    expect(planned, proof.bdos.events.join(" | ")).toMatchObject({
+    expect(proof.prepare(" HELLO", "HELLO", "IGNORED.COM")).toMatchObject({
       a: 0,
       carry: 0,
     });
-    expect(planned).toMatchObject({ instructions: 6_146, tStates: 54_405 });
-    expect(proof.memory[symbols.CpmSourcePartCount!]).toBe(8);
-    expect(names.map((_, index) => proof.descriptor(index))).toEqual(
-      names.map((name, index) => ({
-        name: canonicalName(name),
-        length: index + 1,
-      })),
-    );
-    expect(proof.outputName()).toBe(canonicalName("PROGRAM.COM"));
+    expect(proof.descriptor(0)).toEqual({
+      name: canonicalName("HELLO.NU"),
+      length: 5,
+    });
+    expect(proof.outputName()).toBe(canonicalName("HELLO.COM"));
+    expect(proof.outputFormat()).toBe(0);
 
     expect(
-      proof.prepare(" SINGLE.NU NEXT.COM", "SINGLE.NU", "NEXT.COM"),
+      proof.prepare(" INPUT.NEW", "INPUT.NEW", "IGNORED.COM"),
     ).toMatchObject({ a: 0, carry: 0 });
-    expect(proof.memory[symbols.CpmSourcePartCount!]).toBe(1);
     expect(proof.descriptor(0)).toEqual({
-      name: canonicalName("SINGLE.NU"),
+      name: canonicalName("INPUT.NEW"),
       length: 3,
     });
+    expect(proof.outputName()).toBe(canonicalName("INPUT.COM"));
+
+    expect(
+      proof.prepare(" HELLO.NU HELLO.BIN", "HELLO.NU", "HELLO.BIN"),
+    ).toMatchObject({ a: 0, carry: 0 });
+    expect(proof.outputFormat()).toBe(1);
+    expect(
+      proof.prepare(" HELLO.NU HELLO.HEX", "HELLO.NU", "HELLO.HEX"),
+    ).toMatchObject({ a: 0, carry: 0 });
+    expect(proof.outputFormat()).toBe(2);
+  });
+
+  it("accepts the help form without opening a source", () => {
+    const proof = createProof();
+    expect(proof.prepare(" ?")).toMatchObject({ a: 0, carry: 0 });
+    expect(proof.helpRequested()).toBe(1);
+    expect(proof.bdos.calls).toEqual([]);
   });
 
   it("preserves embedded zeroes, honors text EOF, and accepts 65,535 bytes", () => {
@@ -320,9 +321,10 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
   });
 
   it.each([
-    [" SOURCE.NU", "SOURCE.NU", "OUTPUT.COM", 1],
     [" SOURCE.NU OUTPUT.TXT", "SOURCE.NU", "OUTPUT.TXT", 1],
     [" SOURCE.NU OUTPUT.COM EXTRA", "SOURCE.NU", "OUTPUT.COM", 1],
+    [" ? EXTRA", "SOURCE.NU", "OUTPUT.COM", 1],
+    [" SOURCE.NU OUTPUT.COM @", "SOURCE.NU", "OUTPUT.COM", 1],
     [" A:SOURCE.NU OUTPUT.COM", "SOURCE.NU", "OUTPUT.COM", 1],
     [" *.NU OUTPUT.COM", "SOURCE.NU", "OUTPUT.COM", 1],
     [" SAME.COM SAME.COM", "SAME.COM", "SAME.COM", 7],
@@ -337,7 +339,7 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
     },
   );
 
-  it("distinguishes missing files, storage failure, malformed plans, and overflow", () => {
+  it("distinguishes missing files and storage failure", () => {
     const proof = createProof();
     expect(
       proof.prepare(" MISSING.NU OUT.COM", "MISSING.NU", "OUT.COM"),
@@ -353,55 +355,6 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
     ).toMatchObject({ a: 6, carry: 1 });
     proof.bdos.readErrorFor = undefined;
 
-    expect(
-      proof.prepare(" ABSENT.LST OUT.COM @", "ABSENT.LST", "OUT.COM"),
-    ).toMatchObject({ a: 3, carry: 1 });
-
-    proof.bdos.files.set(
-      canonicalName("BROKEN.LST"),
-      cpmTextFile(Buffer.from("ONE.NU\n")),
-    );
-    proof.bdos.readErrorFor = canonicalName("BROKEN.LST");
-    expect(
-      proof.prepare(" BROKEN.LST OUT.COM @", "BROKEN.LST", "OUT.COM"),
-    ).toMatchObject({ a: 6, carry: 1 });
-    proof.bdos.readErrorFor = undefined;
-
-    proof.bdos.files.set(
-      canonicalName("EMPTY.LST"),
-      cpmTextFile(new Uint8Array()),
-    );
-    expect(
-      proof.prepare(" EMPTY.LST OUT.COM @", "EMPTY.LST", "OUT.COM"),
-    ).toMatchObject({ a: 1, carry: 1 });
-
-    const nine = Array.from({ length: 9 }, (_, index) => `P${index}.NU`);
-    proof.bdos.files.set(
-      canonicalName("NINE.LST"),
-      cpmTextFile(Buffer.from(`${nine.join("\n")}\n`)),
-    );
-    for (const name of nine) {
-      proof.bdos.files.set(canonicalName(name), cpmTextFile(Buffer.from("x")));
-    }
-    expect(
-      proof.prepare(" NINE.LST OUT.COM @", "NINE.LST", "OUT.COM"),
-    ).toMatchObject({ a: 4, carry: 1 });
-  });
-
-  it("accepts plan text EOF after a name and rejects a detached CR", () => {
-    const files = new Map([
-      [canonicalName("ONE.NU"), cpmTextFile(Buffer.from("x"))],
-      [canonicalName("FINAL.LST"), cpmTextFile(Buffer.from("ONE.NU"))],
-      [canonicalName("BADCR.LST"), cpmTextFile(Buffer.from("ONE.NU\rX"))],
-    ]);
-    const proof = createProof(files);
-    expect(
-      proof.prepare(" FINAL.LST OUT.COM @", "FINAL.LST", "OUT.COM"),
-    ).toMatchObject({ a: 0, carry: 0 });
-    expect(proof.memory[symbols.CpmSourcePartCount!]).toBe(1);
-    expect(
-      proof.prepare(" BADCR.LST OUT.COM @", "BADCR.LST", "OUT.COM"),
-    ).toMatchObject({ a: 1, carry: 1 });
   });
 
   it("resets successfully after a rejected command", () => {
@@ -409,7 +362,7 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
       [canonicalName("GOOD.NU"), cpmTextFile(Buffer.from("ok"))],
     ]);
     const proof = createProof(files);
-    expect(proof.prepare(" BAD", "BAD", "OUTPUT.COM")).toMatchObject({
+    expect(proof.prepare(" BAD.", "BAD", "OUTPUT.COM")).toMatchObject({
       a: 1,
       carry: 1,
     });
@@ -422,25 +375,14 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
     });
   });
 
-  it("rejects source/output conflicts inside a plan", () => {
-    const files = new Map([
-      [canonicalName("PLAN.LST"), cpmTextFile(Buffer.from("OUT.COM\n"))],
-      [canonicalName("OUT.COM"), cpmTextFile(Buffer.from("x"))],
-    ]);
-    const proof = createProof(files);
-    expect(
-      proof.prepare(" PLAN.LST OUT.COM @", "PLAN.LST", "OUT.COM"),
-    ).toMatchObject({ a: 7, carry: 1 });
-  });
-
   it("keeps resident and workspace accounting inside the declared CP/M regions", () => {
-    expect(symbols.CpmCommandCodeEnd! - symbols.CpmCommandCodeStart!).toBe(630);
+    expect(symbols.CpmCommandCodeEnd! - symbols.CpmCommandCodeStart!).toBe(427);
     expect(
       symbols.CpmCommandImmutableEnd! - symbols.CpmCommandImmutableStart!,
-    ).toBe(27);
+    ).toBe(33);
     expect(
       symbols.CpmCommandWorkspaceEnd! - symbols.CpmCommandWorkspaceBase!,
-    ).toBe(63);
+    ).toBe(25);
     expect(symbols.CpmCommandWorkspaceEnd).toBeLessThanOrEqual(0x6000);
     expect(symbols.CpmCommandCodeEnd).toBeLessThanOrEqual(0x5800);
   });

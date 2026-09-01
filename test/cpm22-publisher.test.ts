@@ -163,7 +163,7 @@ const createProof = (files?: Map<string, Uint8Array>) => {
     setup?.(runtime);
     let instructions = 0;
     let tStates = 0;
-    while (!runtime.isHalted() && instructions < 100_000) {
+    while (!runtime.isHalted() && instructions < 2_000_000) {
       tStates += runtime.step().cycles ?? 0;
       instructions += 1;
     }
@@ -179,7 +179,7 @@ const createProof = (files?: Map<string, Uint8Array>) => {
   return { bdos, call, memory: activeMemory };
 };
 
-describe("native Nucleus CP/M transactional COM publisher", () => {
+describe("native Nucleus CP/M transactional final-image publisher", () => {
   it("publishes the exact prefix, zero gap, patched image, and final padding", () => {
     const old = Uint8Array.from({ length: 128 }, (_, index) => index);
     const { bdos, call, memory } = createProof(new Map([["OUTPUT  COM", old]]));
@@ -220,7 +220,63 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
     ).toBe(true);
     expect(bdos.files.has("OUTPUT  $$$")).toBe(false);
     expect(bdos.files.has("OUTPUT  BAK")).toBe(false);
-    expect(result).toMatchObject({ instructions: 1_277, tStates: 70_642 });
+    expect(result).toMatchObject({ instructions: 1_280, tStates: 70_682 });
+  });
+
+  it("publishes BIN as the flat $0100 image and HEX with the same addresses", () => {
+    const generated = Uint8Array.from(
+      { length: 19 },
+      (_, index) => (index * 29 + 7) & 0xff,
+    );
+    const publish = (extension: "BIN" | "HEX", format: number) => {
+      const { bdos, call, memory } = createProof();
+      memory.set(Buffer.from(`OUTPUT  ${extension}`), symbols.CpmCompilerOutputName! + 1);
+      memory[symbols.CpmCompilerOutputFormat!] = format;
+      expect(call("CpmPublishPrepare")).toMatchObject({ a: 0, carry: 0 });
+      expect(call("CpmDirectBegin")).toMatchObject({ a: 0, carry: 0 });
+      memory.set(generated, 0x7800);
+      memory[0x5a00 + 31] = 1;
+      word(memory, 0x5a00 + 32, 0x0800 + generated.length);
+      expect(
+        call("CpmDirectMap", (active) => {
+          active.cpu.ix = 0x5a00;
+        }),
+      ).toMatchObject({ a: 0, carry: 0 });
+      expect(call("CpmDirectCommit"), bdos.events.join(" | ")).toMatchObject({
+        a: 0,
+        carry: 0,
+      });
+      return { bdos, memory };
+    };
+
+    const binary = publish("BIN", 1);
+    const bin = binary.bdos.files.get("OUTPUT  BIN");
+    expect(bin).toBeDefined();
+    expect(bin!.slice(0x700, 0x700 + generated.length)).toEqual(generated);
+
+    const hexadecimal = publish("HEX", 2);
+    const physicalHex = hexadecimal.bdos.files.get("OUTPUT  HEX");
+    expect(physicalHex).toBeDefined();
+    const textEnd = physicalHex!.indexOf(0x1a);
+    const text = Buffer.from(
+      physicalHex!.slice(0, textEnd < 0 ? physicalHex!.length : textEnd),
+    ).toString("ascii");
+    expect(text.endsWith(":00000001FF\r\n")).toBe(true);
+    const rendered = parseIntelHex(text).memory;
+    const prefixBytes =
+      symbols.CpmEmbeddedPrefixEnd! - symbols.CpmEmbeddedPrefix!;
+    expect(rendered.slice(0x0100, 0x0100 + prefixBytes)).toEqual(
+      hexadecimal.memory.slice(
+        symbols.CpmEmbeddedPrefix!,
+        symbols.CpmEmbeddedPrefixEnd!,
+      ),
+    );
+    expect(rendered.slice(0x0100 + prefixBytes, 0x0800)).toEqual(
+      new Uint8Array(0x0700 - prefixBytes),
+    );
+    expect(rendered.slice(0x0800, 0x0800 + generated.length)).toEqual(
+      generated,
+    );
   });
 
   it("publishes the maximum admitted image and supports a later command", () => {
@@ -317,14 +373,14 @@ describe("native Nucleus CP/M transactional COM publisher", () => {
 
   it("reports measured resident code and mutable workspace", () => {
     expect(symbols.CpmPublisherCodeEnd! - symbols.CpmPublisherCodeStart!).toBe(
-      367,
+      759,
     );
     expect(symbols.CpmBdosCallCodeEnd! - symbols.CpmBdosCallCodeStart!).toBe(
       25,
     );
     expect(
       symbols.CpmPublisherWorkspaceEnd! - symbols.CpmPublisherWorkspaceStart!,
-    ).toBe(38);
+    ).toBe(53);
     expect(symbols.CpmPublisherWorkspaceStart).toBe(
       symbols.CpmDirectWorkspaceEnd,
     );

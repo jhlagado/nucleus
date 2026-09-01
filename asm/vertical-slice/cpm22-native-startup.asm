@@ -18,6 +18,9 @@ CpmCompilerRestoreSp:
 CpmCompilerRun:
             CALL CpmCommandPrepare
             JR   C,CpmCompilerPrintHostError
+            LD   A,(CpmCommandHelpRequested)
+            OR   A
+            JR   NZ,CpmCompilerPrintHelp
             CALL CpmSourceProviderBegin
             JR   C,CpmCompilerPrintHostError
             CALL CpmPublishPrepare
@@ -27,6 +30,12 @@ CpmCompilerRun:
             LD   IX,CpmCompilerTargetDescriptor
             CALL CompileTargetAggregateCallParts
             JR   C,CpmCompilerCompileFailure
+            XOR  A
+            RET
+
+CpmCompilerPrintHelp:
+            LD   DE,CpmCompilerHelpText
+            CALL CpmCompilerPrintText
             XOR  A
             RET
 
@@ -125,6 +134,7 @@ CpmCompilerPartText:       .db " P=","$"
 CpmCompilerOffsetText:     .db " O=","$"
 CpmCompilerLineText:       .db " L=","$"
 CpmCompilerColumnText:     .db " C=","$"
+CpmCompilerHelpText:       .db 13,10,"NUC [SOURCE [OUTPUT.COM|OUTPUT.BIN|OUTPUT.HEX]]",13,10,"$"
 CpmCompilerNewline:        .db 13,10,"$"
 CpmCompilerImmutableEnd:
 CpmCompilerResidentEnd:
