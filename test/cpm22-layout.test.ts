@@ -67,5 +67,6 @@ describe("native Nucleus CP/M 2.2 TPA layout", () => {
     expect(symbols.CpmTargetWritableBase).toBe(0x5800);
     expect(symbols.CpmTargetWritableCapacity).toBe(3_328);
     expect(symbols.CpmOutputAddressDelta).toBe(0x7000);
-  });
+    // Strict assembly time depends on the host; the target sizes remain exact.
+  }, 30_000);
 });

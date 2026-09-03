@@ -52,14 +52,8 @@
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run check:runtime-boundary"
   },
-  "dependencies": {},
-  "peerDependencies": {
-    "@jhlagado/debug80-runtime": "^0.3.0"
-  },
-  "peerDependenciesMeta": {
-    "@jhlagado/debug80-runtime": {
-      "optional": true
-    }
+  "dependencies": {
+    "@jhlagado/debug80-runtime": "git+https://github.com/jhlagado/debug80-runtime.git#b7343aa8c38c248abbc6ee801b4af270d4843ad6"
   },
   "devDependencies": {
     "@jhlagado/azm": "^0.3.9",

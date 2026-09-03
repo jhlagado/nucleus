@@ -62,7 +62,8 @@ describe("native Nucleus CP/M output candidates", () => {
     expect(
       consumer.NobjConsumerWorkspaceEnd - consumer.NobjConsumerWorkspaceBase,
     ).toBe(381);
-  });
+    // Allow the three strict assembler passes to complete on slower CI hosts.
+  }, 30_000);
 
   it("applies direct IMAGE and PATCH operations only inside the selected flat image", async () => {
     const assembled = await compile(
