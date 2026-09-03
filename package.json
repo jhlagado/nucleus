@@ -54,7 +54,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@jhlagado/debug80-runtime": "^0.1.0"
+    "@jhlagado/debug80-runtime": "^0.3.0"
   },
   "peerDependenciesMeta": {
     "@jhlagado/debug80-runtime": {
