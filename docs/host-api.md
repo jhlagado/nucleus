@@ -256,10 +256,11 @@ assembling the compiler during npm's isolated Git preparation. The
 publication, and CI verifies that the embedded compiler images match the AZM
 sources.
 
-Until `@jhlagado/debug80-runtime` is published, its peer entry is marked
-optional to npm so Git dependency preparation does not try to download it from
-the registry. The runtime remains operationally required: Debug80 supplies its
-workspace package, and any other host must supply the same compatible package.
+`@jhlagado/debug80-runtime` is an ordinary dependency pinned to a public Git
+revision. Installing Nucleus installs that runtime; a Debug80 workspace is not
+required. Compiler-source proofs still use a pinned development-only AZM
+checkout because its required contract-checking rule is newer than the npm
+AZM release.
 
 ## Filesystem publication
 
@@ -272,8 +273,10 @@ promotes the new set and restores the previous set after a caught promotion
 failure. Sequential filesystem renames are not atomic to concurrent readers or
 across a process or machine failure.
 
-Debug80 validates every in-memory D8 artifact through its normal D8 validator
-before calling this publication function.
+Debug80 accepts one flat-target D8 artifact, validates it with its normal D8
+validator, and publishes its selected launch files through the shared Tool
+Services publication transaction. The standalone CLI uses
+`publishNucleusBuildOutputs()`.
 
 ## Loading and running NOBJ on Node
 
