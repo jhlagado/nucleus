@@ -19,15 +19,24 @@ const services = {
 };
 
 describe("the stable in-process Nucleus host API", () => {
-  it("returns NOBJ, HEX and D8 from the authoritative Z80 compiler", async () => {
+  it("returns NOBJ, used BIN, HEX and D8 from the authoritative Z80 compiler", async () => {
     const result = await createNucleusCompiler().build({
       sources: [{ name: "src/main.nu", source: "sub main()\nend\n" }],
       target: { services },
-      artifacts: { hex: true, d8: true },
+      artifacts: { bin: true, hex: true, d8: true },
     });
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.artifacts.nobj.length).toBeGreaterThan(0);
+    expect(result.artifacts.bin).toEqual(
+      result.materialized.flatImage?.slice(
+        0,
+        result.materialized.parsed.map.banks[0]?.usedLength,
+      ),
+    );
+    expect(result.artifacts.bin?.length).toBeLessThan(
+      result.materialized.flatImage?.length ?? 0,
+    );
     expect(result.artifacts.hex).toMatch(/^:/);
     expect(result.artifacts.d8).toHaveLength(1);
     expect(result.artifacts.d8?.[0]?.map.format).toBe("d8-debug-map");
@@ -73,6 +82,23 @@ describe("the stable in-process Nucleus host API", () => {
       artifacts: { hex: true },
     });
     expect(result).toMatchObject({ success: false, kind: "configuration" });
+  });
+
+  it("rejects BIN output for a banked target", async () => {
+    const result = await createNucleusCompiler().build({
+      sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
+      target: {
+        bankCount: 2,
+        entryBank: 0,
+        partBanks: [0],
+      },
+      artifacts: { bin: true },
+    });
+    expect(result).toMatchObject({
+      success: false,
+      kind: "configuration",
+      issues: [{ path: "$.artifacts.bin", message: "requires a flat target" }],
+    });
   });
 
   it("classifies an invalid host transport as configuration", async () => {

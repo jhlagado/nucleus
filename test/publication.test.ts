@@ -21,17 +21,19 @@ afterEach(async () => {
 });
 
 describe("Nucleus artifact-set publication", () => {
-  it("publishes NOBJ, HEX and a banked D8 group together", async () => {
+  it("publishes NOBJ, BIN, HEX and a banked D8 group together", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "nucleus-publication-"));
     directories.push(root);
     const outputs = await publishNucleusBuildOutputs(
       {
         nobj: path.join(root, "build", "program.nobj"),
+        bin: path.join(root, "build", "program.bin"),
         hex: path.join(root, "build", "program.hex"),
         d8: path.join(root, "build", "program.d8.json"),
       },
       {
         nobj: new Uint8Array([1, 2, 3]),
+        bin: new Uint8Array([4, 5, 6]),
         hex: ":00000001FF\n",
         d8: [
           { bank: 0, map: {} as never, json: '{"bank":0}\n' },
@@ -42,6 +44,7 @@ describe("Nucleus artifact-set publication", () => {
     expect(outputs.map((output) => path.basename(output)).sort()).toEqual([
       "program.bank-0.d8.json",
       "program.bank-1.d8.json",
+      "program.bin",
       "program.hex",
       "program.nobj",
     ]);

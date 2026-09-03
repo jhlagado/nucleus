@@ -33,6 +33,7 @@ export const publishNucleusArtifactSet = async (
 
 export interface NucleusBuildOutputPaths {
   readonly nobj: string;
+  readonly bin?: string;
   readonly hex?: string;
   readonly d8?: string;
 }
@@ -44,6 +45,11 @@ export const publishNucleusBuildOutputs = async (
   const outputs: NucleusPublicationOutput[] = [
     { path: paths.nobj, contents: artifacts.nobj },
   ];
+  if (paths.bin !== undefined) {
+    if (artifacts.bin === undefined)
+      throw new Error("Nucleus build omitted requested BIN");
+    outputs.push({ path: paths.bin, contents: artifacts.bin });
+  }
   if (paths.hex !== undefined) {
     if (artifacts.hex === undefined)
       throw new Error("Nucleus build omitted requested HEX");

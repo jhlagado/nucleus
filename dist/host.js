@@ -83,11 +83,13 @@ export class NucleusCompiler {
                 }
             }
         });
-        if (request.artifacts?.hex === true &&
+        if ((request.artifacts?.bin === true || request.artifacts?.hex === true) &&
             "bankCount" in target &&
             target.bankCount > 1) {
             issues.push({
-                path: "$.artifacts.hex",
+                path: request.artifacts?.bin === true
+                    ? "$.artifacts.bin"
+                    : "$.artifacts.hex",
                 message: "requires a flat target",
             });
         }
@@ -161,10 +163,15 @@ export class NucleusCompiler {
                 instructions: compiled.instructions,
                 cycles: compiled.cycles,
             };
+            const flatImage = materialized.flatImage;
+            const usedLength = materialized.parsed.map.banks[0]?.usedLength ?? 0;
             return {
                 success: true,
                 artifacts: {
                     nobj,
+                    ...(request.artifacts?.bin === true && flatImage !== undefined
+                        ? { bin: flatImage.slice(0, usedLength) }
+                        : {}),
                     ...(request.artifacts?.hex === true
                         ? { hex: writeNucleusIntelHex(compatibilityResult) }
                         : {}),

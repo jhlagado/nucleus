@@ -24,6 +24,7 @@ import { nucleusDiagnosticMessage } from "./diagnostics.js";
 export const NUCLEUS_HOST_API_VERSION = 1;
 
 export interface NucleusBuildArtifactRequest {
+  readonly bin?: boolean;
   readonly hex?: boolean;
   readonly d8?: boolean;
 }
@@ -46,6 +47,7 @@ export interface NucleusD8Artifact {
 
 export interface NucleusBuildArtifacts {
   readonly nobj: Uint8Array;
+  readonly bin?: Uint8Array;
   readonly hex?: string;
   readonly d8?: readonly NucleusD8Artifact[];
 }
@@ -180,12 +182,15 @@ export class NucleusCompiler {
       }
     });
     if (
-      request.artifacts?.hex === true &&
+      (request.artifacts?.bin === true || request.artifacts?.hex === true) &&
       "bankCount" in target &&
       target.bankCount > 1
     ) {
       issues.push({
-        path: "$.artifacts.hex",
+        path:
+          request.artifacts?.bin === true
+            ? "$.artifacts.bin"
+            : "$.artifacts.hex",
         message: "requires a flat target",
       });
     }
@@ -269,10 +274,15 @@ export class NucleusCompiler {
         instructions: compiled.instructions,
         cycles: compiled.cycles,
       };
+      const flatImage = materialized.flatImage;
+      const usedLength = materialized.parsed.map.banks[0]?.usedLength ?? 0;
       return {
         success: true,
         artifacts: {
           nobj,
+          ...(request.artifacts?.bin === true && flatImage !== undefined
+            ? { bin: flatImage.slice(0, usedLength) }
+            : {}),
           ...(request.artifacts?.hex === true
             ? { hex: writeNucleusIntelHex(compatibilityResult) }
             : {}),

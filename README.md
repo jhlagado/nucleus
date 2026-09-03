@@ -33,11 +33,12 @@ const compiler = createNucleusCompiler();
 const result = await compiler.build({
   sources: [{ name: "main.nu", source: "sub main()\nend\n" }],
   target,
-  artifacts: { hex: true, d8: true },
+  artifacts: { bin: true, hex: true, d8: true },
 });
 ```
 
-`compileNucleusTo()` exposes the same streaming path to a caller-owned
+BIN contains the used extent of a flat image; it does not include the unused
+capacity filled by the target profile. `compileNucleusTo()` exposes the same streaming path to a caller-owned
 transactional NOBJ destination. `compileNucleus()` remains as a
 resident-source compatibility API for older integrations and differential
 proofs.

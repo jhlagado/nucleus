@@ -8,6 +8,7 @@ export declare const nucleusD8ArtifactOutputs: (requestedPath: string, artifacts
 export declare const publishNucleusArtifactSet: (outputs: readonly NucleusPublicationOutput[], replacePaths?: readonly string[]) => Promise<readonly string[]>;
 export interface NucleusBuildOutputPaths {
     readonly nobj: string;
+    readonly bin?: string;
     readonly hex?: string;
     readonly d8?: string;
 }

@@ -4,6 +4,7 @@ import { type RuntimeImageProvider } from "./nobj.js";
 import { type NucleusConfigurationIssue } from "./configuration.js";
 export declare const NUCLEUS_HOST_API_VERSION = 1;
 export interface NucleusBuildArtifactRequest {
+    readonly bin?: boolean;
     readonly hex?: boolean;
     readonly d8?: boolean;
 }
@@ -23,6 +24,7 @@ export interface NucleusD8Artifact {
 }
 export interface NucleusBuildArtifacts {
     readonly nobj: Uint8Array;
+    readonly bin?: Uint8Array;
     readonly hex?: string;
     readonly d8?: readonly NucleusD8Artifact[];
 }

@@ -19,6 +19,11 @@ export const publishNucleusBuildOutputs = async (paths, artifacts) => {
     const outputs = [
         { path: paths.nobj, contents: artifacts.nobj },
     ];
+    if (paths.bin !== undefined) {
+        if (artifacts.bin === undefined)
+            throw new Error("Nucleus build omitted requested BIN");
+        outputs.push({ path: paths.bin, contents: artifacts.bin });
+    }
     if (paths.hex !== undefined) {
         if (artifacts.hex === undefined)
             throw new Error("Nucleus build omitted requested HEX");

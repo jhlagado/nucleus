@@ -30,7 +30,7 @@ const result = await compiler.build({
     },
   ],
   target,
-  artifacts: { hex: true, d8: true },
+  artifacts: { bin: true, hex: true, d8: true },
 });
 ```
 
@@ -50,7 +50,10 @@ bytes. Handles and copied spellings are discarded on success, source failure,
 host failure, cancellation, or output abort. These limits are reported by
 `compiler.info()` separately from the compiler's symbol capacities.
 
-`artifacts.hex` requests a flat Intel HEX launch image. `artifacts.d8` requests
+`artifacts.bin` requests the used extent of a flat target image, excluding
+unused capacity bytes. `artifacts.hex` requests the same used extent as an
+Intel HEX launch image. BIN and HEX requests reject banked targets.
+`artifacts.d8` requests
 one D8 artifact for a flat target or one artifact for every physical bank. NOBJ
 is always present after a successful build and remains the canonical compiler
 result.
@@ -261,8 +264,9 @@ workspace package, and any other host must supply the same compatible package.
 ## Filesystem publication
 
 The compiler API returns bytes and text without writing files.
-`publishNucleusBuildOutputs()` optionally publishes NOBJ, HEX and the complete
-flat-or-banked D8 group as one recoverable best-effort transaction. It writes
+`publishNucleusBuildOutputs()` optionally publishes NOBJ, flat BIN, flat HEX,
+and the complete flat-or-banked D8 group as one recoverable best-effort
+transaction. It writes
 temporary files beside their destinations, backs up the previous generation,
 promotes the new set and restores the previous set after a caught promotion
 failure. Sequential filesystem renames are not atomic to concurrent readers or
