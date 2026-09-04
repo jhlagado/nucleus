@@ -343,7 +343,7 @@ describe("Stage 7 packed LL(1)", () => {
       name: "ll1-workspace",
       bytes: 65,
     });
-  });
+  }, 30_000); // The proof takes about seven seconds on the Linux release runner.
 
   it("runs the Stage 7 parser through the complete packed grammar", async () => {
     const outcome = await runProofManifest(
