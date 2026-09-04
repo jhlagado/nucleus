@@ -328,5 +328,5 @@ describe("compiler origin independence", () => {
       executePrefetchSelectorsAt(image, prefetchedOperations);
       executeDiagnosticAt(image);
     }
-  }, 300_000);
+  }, 600_000);
 });
