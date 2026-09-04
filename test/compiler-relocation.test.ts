@@ -1,108 +1,56 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-
-import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
-
-const sourceDirectory = path.resolve(
-  import.meta.dirname,
-  "..",
-  "asm",
-  "vertical-slice",
-);
-const imageInclude = path.join(
-  sourceDirectory,
-  "flat-target-compiler-image.asmi",
-);
-const memoryMapInclude = path.join(sourceDirectory, "target-memory-map.asmi");
-const runtimeIdentityInclude = path.join(
-  sourceDirectory,
-  "nucleus-runtime-identity.asmi",
-);
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 interface RelocatedImage {
   readonly origin: number;
   readonly memory: Uint8Array;
   readonly addresses: ReadonlyMap<string, number>;
   readonly values: ReadonlyMap<string, number>;
+  readonly physicalEnd: number;
+  readonly writeRanges: readonly { start: number; end: number }[];
 }
 
 const assembleAt = async (origin: number): Promise<RelocatedImage> => {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), "nucleus-origin-proof-"),
-  );
-  const sourcePath = path.join(
-    directory,
-    `compiler-${origin.toString(16)}.asm`,
-  );
-  try {
-    const relativeMemoryMap = path.relative(directory, memoryMapInclude);
-    const relativeImage = path.relative(directory, imageInclude);
-    const relativeRuntimeIdentity = path.relative(
-      directory,
-      runtimeIdentityInclude,
-    );
-    await writeFile(
-      sourcePath,
+  const entry = "vertical-slice/native-target-compiler.asm";
+  const result = await assembleAtomSource(entry, {
+    target: { start: origin, capacity: Math.min(0xffff, 0x10000 - origin) },
+    overrides: new Map([
       [
-        "DebugHooks .equ 0",
-        "NativeStreamingSource .equ 0",
-        `.include ${JSON.stringify(relativeMemoryMap)}`,
-        `.include ${JSON.stringify(relativeRuntimeIdentity)}`,
-        "TargetSinkImageByte .equ $5F00",
-        "TargetSinkBegin .equ $5F00",
-        "TargetSinkPatchByte .equ $5F00",
-        "TargetSinkRuntimeImage .equ $5F00",
-        "TargetSinkRuntimeInitialImage .equ $5F00",
-        "TargetSinkPatchWord .equ $5F00",
-        "TargetSinkMapFlat .equ $5F00",
-        "TargetSinkCommit .equ $5F00",
-        "TargetSinkMapBanked .equ $5F00",
-        "TargetSinkAbort .equ $5F00",
-        `.org $${origin.toString(16)}`,
-        `.include ${JSON.stringify(relativeImage)}`,
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-    const result = await compile(sourcePath, {
-      emitBin: false,
-      emitHex: true,
-      emitD8m: true,
-    });
-    const errors = result.diagnostics.filter(
-      ({ severity }) => severity === "error",
-    );
-    expect(errors, `assembly at $${origin.toString(16)}`).toEqual([]);
-    const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
-    const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
-    expect(hex?.kind).toBe("hex");
-    expect(d8m?.kind).toBe("d8m");
-    if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-      throw new Error("AZM omitted relocation-proof artifacts");
-    }
-    return {
-      origin,
-      memory: parseIntelHex(hex.text).memory,
-      addresses: new Map(
-        d8m.json.symbols.flatMap((entry) =>
-          entry.address === undefined
-            ? []
-            : [[entry.name, entry.address] as const],
-        ),
-      ),
-      values: new Map(
-        d8m.json.symbols.flatMap((entry) => {
-          const value = entry.value ?? entry.address;
-          return value === undefined ? [] : [[entry.name, value] as const];
-        }),
-      ),
-    };
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
+        entry,
+        [
+          "DebugHooks .equ 0",
+          "NativeStreamingSource .equ 0",
+          '.include "target-memory-map.asmi"',
+          '.include "nucleus-runtime-identity.asmi"',
+          "TargetSinkImageByte .equ $5F00",
+          "TargetSinkBegin .equ $5F00",
+          "TargetSinkPatchByte .equ $5F00",
+          "TargetSinkRuntimeImage .equ $5F00",
+          "TargetSinkRuntimeInitialImage .equ $5F00",
+          "TargetSinkPatchWord .equ $5F00",
+          "TargetSinkMapFlat .equ $5F00",
+          "TargetSinkCommit .equ $5F00",
+          "TargetSinkMapBanked .equ $5F00",
+          "TargetSinkAbort .equ $5F00",
+          `.org $${origin.toString(16)}`,
+          '.include "flat-target-compiler-image.asmi"',
+          "",
+        ].join("\n"),
+      ],
+    ]),
+  });
+  const program = parseIntelHex(result.hex);
+  if (program.writeRanges === undefined)
+    throw new Error("Relocation image has no initialized-address map");
+  return {
+    origin,
+    memory: program.memory,
+    addresses: new Map(Object.entries(result.addresses)),
+    values: new Map(Object.entries(result.symbols)),
+    physicalEnd: result.generation.highWater,
+    writeRanges: program.writeRanges,
+  };
 };
 
 const wordAt = (memory: Uint8Array, address: number): number =>
@@ -305,8 +253,18 @@ describe("compiler origin independence", () => {
         relocated.origin,
       );
       expect(relocated.addresses.get("CompilerCoreEnd")).toBe(
-        relocated.origin + coreBytes,
+        (relocated.origin + coreBytes) & 0xffff,
       );
+      expect(relocated.physicalEnd).toBe(relocated.origin + coreBytes);
+      // Intel HEX decoding preserves individual record ranges. Prove exact
+      // contiguous coverage without requiring the decoder to merge records.
+      let initializedEnd = relocated.origin;
+      for (const range of relocated.writeRanges) {
+        expect(range.start).toBe(initializedEnd);
+        expect(range.end).toBeGreaterThan(range.start);
+        initializedEnd = range.end;
+      }
+      expect(initializedEnd).toBe(relocated.origin + coreBytes);
       expect(relocated.origin + coreBytes).toBeLessThanOrEqual(0x10000);
       if (prefetchAddress !== undefined) {
         const relocatedPrefetch = relocated.addresses.get("TypedPrefetchBits");
@@ -370,5 +328,5 @@ describe("compiler origin independence", () => {
       executePrefetchSelectorsAt(image, prefetchedOperations);
       executeDiagnosticAt(image);
     }
-  }, 30_000);
+  }, 300_000);
 });

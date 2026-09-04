@@ -327,7 +327,7 @@ TokenIsHexDigit:
             SUB  "a"-"0"
             CP   6
             RET  NC
-            SUB  -10
+            SUB  $F6
             RET
 
 ; Consume and validate one hexadecimal escape digit. Production diagnostics

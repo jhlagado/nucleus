@@ -349,6 +349,13 @@ describe("Stage 7 packed LL(1)", () => {
     const outcome = await runProofManifest(
       proof("stage7-ll1-aggregate-call-z80-slice-proof"),
     );
+    expect(outcome.symbols.Stage7LargeDataSource).toBe(0xb000);
+    expect(outcome.symbols.Stage7ParameterCapacitySource).toBe(
+      outcome.symbols.Stage7ReadOnlyCapacityRejectedSourceEnd,
+    );
+    expect(outcome.symbols.Stage7CapacityFixturesEnd).toBeLessThanOrEqual(
+      outcome.symbols.StackFloor ?? -1,
+    );
     const extents = new Map(
       outcome.extents.map(({ name, bytes }) => [name, bytes]),
     );
@@ -397,7 +404,7 @@ describe("Stage 7 packed LL(1)", () => {
         (extents.get("ll1-tables") ?? -1) -
         (extents.get("ll1-actions") ?? -1),
     ).toBe(6_417);
-  }, 30_000);
+  }, 300_000); // Includes rebuilding the proof through emulated ATOM.
 
   it("executes every retained Stage 7 action family", async () => {
     const outcome = await runProofManifest(
@@ -405,5 +412,5 @@ describe("Stage 7 packed LL(1)", () => {
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-  }, 30_000);
+  }, 300_000); // The measured ATOM build exceeds the former 30-second limit.
 });

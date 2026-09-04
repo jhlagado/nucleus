@@ -43,15 +43,24 @@ ServiceStateEnd         .equ ServiceStorageOutputBase+ServiceStorageOutputCapaci
 
 ProgramSize       .equ 54
 LoopFailureOffset .equ 30
+            .if TargetStreamingOutput
+            .else
 GeneratedEnd      .equ GeneratedBase+ProgramSize
+            .endif
 
 ArrayProgramSize  .equ 74
 ArrayInputFailureOffset .equ 0
 ArrayBoundsOffset .equ 10
 ArrayOutputFailureOffset .equ 22
+            .if TargetStreamingOutput
+            .else
 GeneratedArrayEnd       .equ GeneratedBase+ArrayProgramSize
+            .endif
 
 CallProgramSize   .equ 99
 CallFailureOffset .equ 95
 CallCapacityOffset .equ 203
+            .if TargetStreamingOutput
+            .else
 GeneratedCallEnd        .equ GeneratedBase+CallProgramSize
+            .endif

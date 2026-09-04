@@ -1,33 +1,14 @@
-import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 describe("the Z80 platform-services ABI", () => {
   it("preserves the contracted state across executable adapter stubs", async () => {
-    const source = new URL(
-      "../asm/vertical-slice/platform-services-abi-proof.asm",
-      import.meta.url,
-    ).pathname;
-    const assembled = await compile(source, {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-    });
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted platform ABI proof artifacts");
-    }
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
+    const assembled = await assembleAtomSource(
+      "vertical-slice/platform-services-abi-proof.asm",
     );
-    const memory = parseIntelHex(hex.text).memory;
+    const symbols = assembled.symbols;
+    const memory = parseIntelHex(assembled.hex).memory;
     const runtime = createZ80Runtime(
       { memory, startAddress: symbols.ProofStart },
       symbols.ProofStart,

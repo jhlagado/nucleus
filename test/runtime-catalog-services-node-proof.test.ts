@@ -1,5 +1,5 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { describe, expect, it } from "vitest";
 
 import { type RuntimeImageProvider } from "../src/nobj.js";
@@ -11,34 +11,8 @@ import { NucleusSystemStatus } from "../src/object-services.js";
 
 describe("the Node runtime-catalogue Z80 gateway", () => {
   it("returns bounded resolved chunks without replacing the Z80 client", async () => {
-    const source = new URL(
-      "../asm/vertical-slice/runtime-catalog-services-node-proof.asm",
-      import.meta.url,
-    ).pathname;
-    const assembled = await compile(source, {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        new URL(
-          "../asm/vertical-slice/node-platform-services.asmi",
-          import.meta.url,
-        ).pathname,
-      ],
-    });
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted runtime-catalogue proof artifacts");
-    }
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
+    const { hex, symbols } = await assembleAtomSource(
+      "vertical-slice/runtime-catalog-services-node-proof.asm",
     );
     const provider: RuntimeImageProvider = {
       get: (identity) =>
@@ -59,7 +33,7 @@ describe("the Node runtime-catalogue Z80 gateway", () => {
     let runtime: ReturnType<typeof createZ80Runtime>;
     runtime = createZ80Runtime(
       {
-        memory: parseIntelHex(hex.text).memory,
+        memory: parseIntelHex(hex).memory,
         startAddress: symbols.ProofStart,
       },
       symbols.ProofStart,

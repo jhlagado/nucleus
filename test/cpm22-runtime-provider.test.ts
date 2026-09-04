@@ -1,43 +1,15 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
 import { bundledRuntimeProvider } from "../src/runtime-catalog.js";
 
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const verticalSlice = path.join(directory, "..", "asm", "vertical-slice");
-
 describe("native Nucleus CP/M runtime provider", () => {
   it("copies only the exact linked runtime and patches its initialized bounds", async () => {
-    const assembled = await compile(
-      path.join(verticalSlice, "cpm22-runtime-provider-proof.asm"),
-      {
-        emitHex: true,
-        emitD8m: true,
-        registerContracts: "strict",
-        registerContractsInterfaces: [
-          path.join(verticalSlice, "expression-generated-z80.asmi"),
-        ],
-      },
+    const { hex, symbols } = await assembleAtomSource(
+    "vertical-slice/cpm22-runtime-provider-proof.asm",
     );
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted CP/M runtime-provider proof artifacts");
-    }
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
-    );
-    const memory = parseIntelHex(hex.text).memory;
+    const memory = parseIntelHex(hex).memory;
     const runtime = createZ80Runtime(
       { memory, startAddress: symbols.CpmDirectBegin },
       symbols.CpmDirectBegin,

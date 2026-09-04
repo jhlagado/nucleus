@@ -1,50 +1,16 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const verticalSlice = path.join(directory, "..", "asm", "vertical-slice");
-
-const symbolsFor = async (
-  name: string,
-  interfaces: readonly string[],
-): Promise<Record<string, number>> => {
-  const assembled = await compile(path.join(verticalSlice, name), {
-    emitD8m: true,
-    registerContracts: "strict",
-    registerContractsInterfaces: [...interfaces],
-  });
-  expect(
-    assembled.diagnostics.filter(({ severity }) => severity === "error"),
-  ).toEqual([]);
-  const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-  if (map?.kind !== "d8m") throw new Error(`AZM omitted ${name}'s map`);
-  return Object.fromEntries(
-    map.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
-};
+const symbolsFor = async (name: string): Promise<Record<string, number>> =>
+  (await assembleAtomSource(`vertical-slice/${name}`)).symbols;
 
 describe("native Nucleus CP/M output candidates", () => {
   it("measures the direct sink against the existing NOBJ producer and materializer", async () => {
-    const expression = path.join(
-      verticalSlice,
-      "expression-generated-z80.asmi",
-    );
     const [direct, producer, consumer] = await Promise.all([
-      symbolsFor("cpm22-direct-output-proof.asm", [expression]),
-      symbolsFor("native-target-mon3-compiler.asm", [
-        expression,
-        path.join(verticalSlice, "mon3-host-services.asmi"),
-      ]),
-      symbolsFor("nobj-consumer-flat-proof.asm", [
-        path.join(verticalSlice, "nobj-consumer-platform.asmi"),
-      ]),
+      symbolsFor("cpm22-direct-output-proof.asm"),
+      symbolsFor("native-target-mon3-compiler.asm"),
+      symbolsFor("nobj-consumer-flat-proof.asm"),
     ]);
 
     const directSink =
@@ -62,38 +28,22 @@ describe("native Nucleus CP/M output candidates", () => {
     expect(
       consumer.NobjConsumerWorkspaceEnd - consumer.NobjConsumerWorkspaceBase,
     ).toBe(381);
-    // Allow the three strict assembler passes to complete on slower CI hosts.
-  }, 30_000);
+    // Includes a full compiler assembly through emulated native ATOM.
+  }, 300_000);
 
   it("applies direct IMAGE and PATCH operations only inside the selected flat image", async () => {
-    const assembled = await compile(
-      path.join(verticalSlice, "cpm22-direct-output-proof.asm"),
-      {
-        emitHex: true,
-        emitD8m: true,
-        registerContracts: "strict",
-        registerContractsInterfaces: [
-          path.join(verticalSlice, "expression-generated-z80.asmi"),
-        ],
-      },
+    const { hex, symbols } = await assembleAtomSource(
+      "vertical-slice/cpm22-direct-output-proof.asm",
     );
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted direct-output proof artifacts");
-    }
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
-    );
+    const memory = parseIntelHex(hex).memory;
+    const wordGuard = symbols.CpmDirectTranslateWord;
+    // The named constants must retain immediate CP opcodes and the last
+    // admitted address, $64FF; parentheses must not become indirect operands.
+    expect([...memory.slice(wordGuard, wordGuard + 3)]).toEqual([0x7d, 0xfe, 0xff]);
+    expect([...memory.slice(wordGuard + 5, wordGuard + 8)]).toEqual([0x7c, 0xfe, 0x64]);
     const runtime = createZ80Runtime(
       {
-        memory: parseIntelHex(hex.text).memory,
+        memory,
         startAddress: symbols.CpmDirectBegin,
       },
       symbols.CpmDirectBegin,

@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 import {
   materializeNobj,
@@ -42,6 +43,7 @@ interface ProofManifest {
   readonly name: string;
   readonly source: string;
   readonly memoryProfile: string;
+  /** Retained external ABI documentation; ATOM does not statically check it. */
   readonly interfaces?: readonly string[];
   readonly execution: {
     readonly entry: string;
@@ -180,43 +182,21 @@ export async function runProofManifest(
     path.resolve(manifestDirectory, manifest.memoryProfile),
   );
   const sourcePath = path.resolve(manifestDirectory, manifest.source);
-  const assembled = await compile(sourcePath, {
-    emitBin: false,
-    emitHex: true,
-    emitD8m: true,
-    registerContracts: "strict",
-    registerContractsInterfaces: (manifest.interfaces ?? []).map((file) =>
-      path.resolve(manifestDirectory, file),
-    ),
-  });
-  const errors = assembled.diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "error",
-  );
-  if (errors.length > 0) {
+  // Preserve declared interface-file existence, without claiming AZM's static
+  // register analysis. Execution observations below remain the proof boundary.
+  for (const file of manifest.interfaces ?? []) {
+    readFileSync(path.resolve(manifestDirectory, file), "utf8");
+  }
+  const entry = path
+    .relative(fileURLToPath(new URL("../asm/", import.meta.url)), sourcePath)
+    .split(path.sep)
+    .join("/");
+  const assembled = await assembleAtomSource(entry).catch((cause: unknown) => {
     throw new ProofFailure(
-      `${manifest.name}: assembly failed\n${errors
-        .map(
-          (diagnostic) =>
-            `  ${diagnostic.sourceName ?? sourcePath}:${diagnostic.line ?? "?"}:${diagnostic.column ?? "?"} ${diagnostic.message}`,
-        )
-        .join("\n")}`,
+      `${manifest.name}: ATOM assembly failed\n${cause instanceof Error ? cause.message : String(cause)}`,
     );
-  }
-
-  const hex = assembled.artifacts.find((artifact) => artifact.kind === "hex");
-  const debugMap = assembled.artifacts.find(
-    (artifact) => artifact.kind === "d8m",
-  );
-  if (hex?.kind !== "hex" || debugMap?.kind !== "d8m") {
-    throw new ProofFailure(`${manifest.name}: AZM omitted HEX or D8M output`);
-  }
-
-  const symbols = Object.fromEntries(
-    debugMap.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value] as const];
-    }),
-  );
+  });
+  const symbols = assembled.symbols;
   const symbolValue = (name: string): number => {
     const wanted = name.toLowerCase();
     for (const [candidate, value] of Object.entries(symbols)) {
@@ -287,7 +267,7 @@ export async function runProofManifest(
   });
 
   const runtime = createZ80Runtime(
-    parseIntelHex(hex.text),
+    parseIntelHex(assembled.hex),
     symbolValue(manifest.execution.entry),
   );
   const memory = (runtime.hardware as unknown as { memory: Uint8Array }).memory;

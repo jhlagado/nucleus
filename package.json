@@ -39,9 +39,14 @@
     "README.md"
   ],
   "scripts": {
-    "check:azm-toolchain": "node scripts/check-azm-toolchain.mjs",
+    "test:atom-source": "node --test scripts/atom-source.test.mjs",
+    "test:host-images": "vitest run --config vitest.host.config.mjs",
+    "test:atom-boundaries": "vitest run test/atom-runtime-link.test.ts test/nobj.test.ts test/platform-services-abi.test.ts test/service-gateway.test.ts test/cpm22-command.test.ts test/cpm22-program-provider.test.ts --maxWorkers=1",
+    "test:atom-cpm": "vitest run test/cpm22-command.test.ts test/cpm22-program-provider.test.ts test/cpm22-source-provider.test.ts test/cpm22-runtime-provider.test.ts test/cpm22-publisher.test.ts test/cpm22-output-candidates.test.ts test/cpm22-layout.test.ts test/cpm22-native-compiler.test.ts --maxWorkers=1",
+    "check:atom-images": "node scripts/check-atom-images.mjs",
     "check:compiler-relocation": "vitest run test/compiler-relocation.test.ts --reporter=verbose",
     "check:runtime-boundary": "node scripts/check-runtime-boundary.mjs",
+    "test:package": "node scripts/check-package.mjs",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "prebuild": "npm run generate:compiler-images",
@@ -50,14 +55,14 @@
     "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run check:runtime-boundary"
+    "prepublishOnly": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run check:runtime-boundary && npm run test:package"
   },
   "dependencies": {
     "@jhlagado/debug80-runtime": "git+https://github.com/jhlagado/debug80-runtime.git#b7343aa8c38c248abbc6ee801b4af270d4843ad6"
   },
   "devDependencies": {
-    "@jhlagado/azm": "^0.3.9",
     "@types/node": "^20.10.0",
+    "atom-z80": "git+https://github.com/jhlagado/atom.git#802b5c2d320bec777f427755ff2d7338e3b80a05",
     "typescript": "5.3.3",
     "vitest": "^4.1.7"
   },

@@ -21,8 +21,11 @@ const visit = async (directory) => {
       failures.push(`${path.relative(distributionDirectory, file)} is proof-only`);
     }
     if (!entry.name.endsWith(".js") && !entry.name.endsWith(".d.ts")) continue;
-    if ((await readFile(file, "utf8")).includes("@jhlagado/azm")) {
-      failures.push(`${path.relative(distributionDirectory, file)} imports AZM`);
+    const source = await readFile(file, "utf8");
+    for (const assembler of ["@jhlagado/azm", "atom-z80"]) {
+      if (source.includes(assembler)) {
+        failures.push(`${path.relative(distributionDirectory, file)} imports ${assembler}`);
+      }
     }
   }
 };
@@ -32,4 +35,4 @@ if (failures.length > 0) {
   throw new Error(`published runtime boundary failed:\n${failures.join("\n")}`);
 }
 
-console.log("published runtime boundary excludes AZM and proof-only modules");
+console.log("published runtime boundary excludes assemblers and proof-only modules");

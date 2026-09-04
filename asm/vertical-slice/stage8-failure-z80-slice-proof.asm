@@ -201,6 +201,12 @@ Stage8ReadInputHandlerSource:
             .db "end",10
 Stage8ReadInputHandlerSourceEnd:
 
+            ; Emit the runtime before the higher-address source fixtures.
+            .org TargetRuntimeBase
+RuntimeCodeStart:
+            .include "proof-z80-runtime.asm"
+RuntimeCodeEnd:
+
             .org SpareBase
 Stage8ConstantsSource:
             .db "sub main() fails",10
@@ -814,11 +820,6 @@ Stage8CounterHandleNameSource:
             .db "writeOutputByte(1) handle "
 Stage8CounterHandleNamePoint: .db "index",10,"end",10,"end",10,"end",10
 Stage8CounterHandleNameSourceEnd:
-
-            .org TargetRuntimeBase
-RuntimeCodeStart:
-            .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
 
             ; Stage 8's combined proof needs more than the original 2 KiB
             ; proof partition but remains below the machine stack.

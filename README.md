@@ -13,7 +13,7 @@ package does not govern Nucleus.
 | ----------- | ----------------------------------------------------------------------- |
 | `docs/`     | language and runtime authorities, implementation plan, and charter      |
 | `grammar/`  | machine-readable production grammar, generator, and packed LL(1) tables |
-| `asm/`      | direct-Z80 compiler, runtime, and executable AZM proof fixtures         |
+| `asm/`      | direct-Z80 compiler, runtime, and executable proof fixtures             |
 | `examples/` | small source programs, including a TEC-1-style console                  |
 | `library/`  | importable console and integer-output routines written in Nucleus       |
 | `proofs/`   | bounded memory profiles and proof-harness manifests                     |
@@ -107,9 +107,10 @@ The current authorities are:
 
 ## Method
 
-Bottom up. Every claim about Z80 bytes or timing is produced by AZM and the
-Debug80 Z80 runtime from a test in `test/`, or is labelled an estimate in the
-document that makes it.
+Bottom up. Byte and timing claims require assembly and execution evidence, or
+an explicit estimate label. ATOM is the build assembler; Debug80 Runtime
+executes the Z80 code. Historical results from another assembler do not
+establish ATOM-build correctness by themselves.
 
 The specification grammar analyzer checks the grammar printed in the language
 specification. The packed parser uses the machine-readable Stage 7 grammar in
@@ -153,31 +154,46 @@ recorded in the [implementation account](docs/implementation-plan.md#parameter-o
 
 ## Development toolchain
 
-Compiler-image generation requires the current AZM checkout from the Debug80
-workspace. The registry release `@jhlagado/azm` 0.3.9 cannot prove the
-`noreturn` inline-operand convention used by the compiler's strict register and
-stack contracts. Link the workspace package before regenerating or checking
-compiler images:
+ATOM is the assembler for new source and production image generation. Its
+revision is pinned in `devDependencies`. A build-time adapter translates the
+existing source spelling and symbol names into ATOM's supported syntax; ATOM
+resolves addresses and emits the bytes. Installed Nucleus packages use prebuilt
+images and do not invoke an assembler while compiling or running programs.
 
 ```bash
-cd /path/to/debug80
-npm install
-npm run build -w @jhlagado/azm
-cd packages/azm
-npm link
-cd /path/to/nucleus
-npm link @jhlagado/azm
-npm run check:azm-toolchain
+npm ci
+npm run test:atom-source
+npm run build
+npm run test:host-images
+npm run check:compiler-images
+npm run check:runtime-boundary
+npm run test:package
 ```
 
-The Debug80 checkout must contain commit `3f2adb66` or a later implementation
-of its `noreturn` inline-operand contract analysis. The compiler-image scripts
-run the same capability check themselves. It tests the required behavior
-because the linked and registry packages currently report the same version
-number.
+Use normal `npm ci` for a source checkout. The pinned Git dependencies compile
+their JavaScript during package preparation; `npm ci --ignore-scripts` omits
+those files. This differs from installing an already prepared package archive.
 
-```bash
-npm run proof
-npm run measure
-npm test
-```
+AZM is historical. The image-generation comparison against its saved outputs
+has passed, and the temporary oracle path has been removed from the generator.
+Image generation uses ATOM only, with no fallback.
+
+`test:host-images` runs the 23 host/prebuilt-image test files. It is a scoped
+execution check, not the complete language-conformance suite.
+
+`test:package` packs the current distribution and installs it in an isolated
+consumer project. The check imports every public export, compiles and runs a
+small program through both the library and command-line interfaces, and checks
+that a rejected build leaves the preceding object file intact. Neither ATOM
+nor AZM is installed in that consumer: published Nucleus packages compile and
+run programs from their prebuilt images.
+
+The proof/measurement helpers and CI now use pinned ATOM revision
+`802b5c2d320bec777f427755ff2d7338e3b80a05`. CI no longer checks out Debug80 to
+build or link AZM. The complete final-worktree release gate passes: all 563
+tests, deterministic compiler-image generation, the runtime-boundary check and
+the installed-package consumer proof. The changed workflow has not yet passed
+on GitHub. The
+[reconciliation report](docs/reports/atom-reconciliation.md) records the earlier
+migration, and the [relocation checkpoint](docs/reports/atom-relocation-qualification.md)
+records the current dependency and remaining release checks.
