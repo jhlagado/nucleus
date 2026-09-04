@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   copyFile,
   mkdir,
@@ -61,9 +62,27 @@ try {
       );
     }
   }
-  for (const file of ["dist/cli.js", "LICENSE", "library/console/output.nu"]) {
+  for (const file of [
+    "dist/cli.js",
+    "dist/NUC.COM",
+    "dist/NUC.manifest.json",
+    "LICENSE",
+    "library/console/output.nu",
+  ]) {
     assert.ok(files.has(file), `missing package file: ${file}`);
   }
+  const [cpmArtifact, cpmManifestText] = await Promise.all([
+    readFile(path.join(root, "dist", "NUC.COM")),
+    readFile(path.join(root, "dist", "NUC.manifest.json"), "utf8"),
+  ]);
+  const cpmManifest = JSON.parse(cpmManifestText);
+  assert.equal(cpmManifest.artifact, "NUC.COM");
+  assert.equal(cpmManifest.version, manifest.version);
+  assert.equal(cpmManifest.bytes, cpmArtifact.length);
+  assert.equal(
+    cpmManifest.sha256,
+    createHash("sha256").update(cpmArtifact).digest("hex"),
+  );
   for (const file of files) {
     assert.ok(
       !/^(?:scripts|test|src)\//.test(file),

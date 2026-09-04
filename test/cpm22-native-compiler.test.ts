@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
 import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -265,6 +268,29 @@ const validSource = [
 ].join("\n");
 
 describe("complete native Nucleus-on-CP/M compiler transient", () => {
+  it("matches the checked CP/M release artifact and manifest", async () => {
+    const [artifact, manifestText] = await Promise.all([
+      readFile(new URL("../dist/NUC.COM", import.meta.url)),
+      readFile(new URL("../dist/NUC.manifest.json", import.meta.url), "utf8"),
+    ]);
+    const manifest = JSON.parse(manifestText) as {
+      bytes: number;
+      endAddress: number;
+      sha256: string;
+    };
+    expect(new Uint8Array(artifact)).toEqual(
+      compilerImage.slice(
+        symbols.CpmCompilerTransientStart!,
+        symbols.CpmCompilerResidentEnd!,
+      ),
+    );
+    expect(manifest.bytes).toBe(artifact.length);
+    expect(manifest.endAddress).toBe(symbols.CpmCompilerResidentEnd);
+    expect(manifest.sha256).toBe(
+      createHash("sha256").update(artifact).digest("hex"),
+    );
+  });
+
   it("compiles through BDOS, publishes exact bytes, and executes that COM", () => {
     const { bdos, compileOnce, memory } = createCompiler(validSource);
     const compiled = compileOnce();
