@@ -51,11 +51,12 @@
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "prebuild": "npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
+    "build:cpm22": "node scripts/build-cpm22-release.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run check:runtime-boundary && npm run test:package"
+    "prepublishOnly": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run build:cpm22 && npm run check:runtime-boundary && npm run test:package"
   },
   "dependencies": {
     "@jhlagado/debug80-runtime": "git+https://github.com/jhlagado/debug80-runtime.git#b7343aa8c38c248abbc6ee801b4af270d4843ad6"

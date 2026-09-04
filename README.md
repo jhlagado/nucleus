@@ -190,10 +190,22 @@ run programs from their prebuilt images.
 
 The proof/measurement helpers and CI now use pinned ATOM revision
 `802b5c2d320bec777f427755ff2d7338e3b80a05`. CI no longer checks out Debug80 to
-build or link AZM. The complete final-worktree release gate passes: all 563
+build or link AZM. The complete final-worktree release gate passes: all 564
 tests, deterministic compiler-image generation, the runtime-boundary check and
-the installed-package consumer proof. The changed workflow has not yet passed
-on GitHub. The
+the installed-package consumer proof. Both push and pull-request Linux gates
+passed, and pull request 1 was merged to `main` at revision
+`7d3f6d2e01773d58226c758059c26b8009a18460`. The
 [reconciliation report](docs/reports/atom-reconciliation.md) records the earlier
 migration, and the [relocation checkpoint](docs/reports/atom-relocation-qualification.md)
 records the current dependency and remaining release checks.
+
+The CP/M release build emits the exact unpadded transient plus a machine-readable
+manifest. A disk-image builder may add CP/M's final 128-byte record padding; it
+must verify the manifest digest before doing so.
+
+```sh
+npm run build:cpm22
+```
+
+The outputs are `dist/NUC.COM` and `dist/NUC.manifest.json`. Normal builds use
+ATOM exclusively; AZM is not a supported alternative release path.
