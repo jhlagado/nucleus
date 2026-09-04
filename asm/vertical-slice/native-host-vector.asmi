@@ -30,6 +30,8 @@ NativeHostLaunchEndPort         .equ $CF
 
             .org HostVectorBase
             .db "NH",0,1,8,14,0,0
+            ; Start an explicit code section after the eight-byte header.
+            .org HostVectorBase+8
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 HostSourceNextChunk:           JP NativeHostSourceNextChunk
 .routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry

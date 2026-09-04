@@ -3,10 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compile } from "@jhlagado/azm/compile";
+import { assembleImageInWorker } from "./assemble-image-worker.mjs";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
-
-await import("./check-azm-toolchain.mjs");
+for (const argument of process.argv.slice(2)) {
+  if (argument !== "--check") throw new Error(`Unknown argument: ${argument}; generation uses ATOM only`);
+}
+const assembleSource = assembleImageInWorker;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(root, "asm", "vertical-slice");
@@ -31,121 +33,18 @@ const cpm22AssetsOutputPath = path.join(
   "cpm22-embedded-assets.asmi",
 );
 
-const assemble = async (debug, native = false, mon3 = false) => {
-  const source = path.join(
-    sourceDirectory,
-    mon3
-      ? debug
-        ? "native-target-mon3-debug-compiler.asm"
-        : "native-target-mon3-compiler.asm"
-      : native
-        ? debug
-          ? "native-target-debug-compiler.asm"
-          : "native-target-compiler.asm"
-        : debug
-          ? "flat-target-debug-z80-slice-proof.asm"
-          : "flat-target-z80-slice-proof.asm",
-  );
-  const result = await compile(source, {
-    emitBin: false,
-    emitHex: true,
-    emitD8m: true,
-    registerContracts: "strict",
-    registerContractsInterfaces: [
-      path.join(sourceDirectory, "expression-generated-z80.asmi"),
-      ...(mon3 ? [path.join(sourceDirectory, "mon3-host-services.asmi")] : []),
-    ],
-  });
-  const errors = result.diagnostics.filter(
-    ({ severity }) => severity === "error",
-  );
-  if (errors.length > 0) {
-    throw new Error(
-      errors
-        .map(
-          ({ sourceName, line, column, message }) =>
-            `${sourceName ?? source}:${line ?? "?"}:${column ?? "?"} ${message}`,
-        )
-        .join("\n"),
-    );
-  }
-  const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
-  const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
-  if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error(`AZM omitted generated compiler artifacts for ${source}`);
-  }
-  const symbols = Object.fromEntries(
-    d8m.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
-  return { hex: hex.text, symbols };
+const assemble = (debug, native = false, mon3 = false) => {
+  const name = mon3
+    ? debug ? "native-target-mon3-debug-compiler.asm" : "native-target-mon3-compiler.asm"
+    : native
+      ? debug ? "native-target-debug-compiler.asm" : "native-target-compiler.asm"
+      : debug ? "flat-target-debug-z80-slice-proof.asm" : "flat-target-z80-slice-proof.asm";
+  return assembleSource(path.join(sourceDirectory, name));
 };
 
-const assembleNodeRunner = async () => {
-  const result = await compile(
-    path.join(sourceDirectory, "node-nobj-consumer.asm"),
-    {
-      emitBin: false,
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(sourceDirectory, "nobj-consumer-platform.asmi"),
-        path.join(sourceDirectory, "node-platform-services.asmi"),
-      ],
-    },
-  );
-  const errors = result.diagnostics.filter(({ severity }) => severity === "error");
-  if (errors.length > 0) {
-    throw new Error(errors.map(({ message }) => message).join("\n"));
-  }
-  const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
-  const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
-  if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted Node NOBJ runner artifacts");
-  }
-  const symbols = Object.fromEntries(
-    d8m.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
-  return { hex: hex.text, symbols };
-};
+const assembleNodeRunner = () => assembleSource(path.join(sourceDirectory, "node-nobj-consumer.asm"));
 
-const assembleNativeImportResolver = async () => {
-  const source = path.join(
-    sourceDirectory,
-    "native-import-resolver-tool.asm",
-  );
-  const result = await compile(source, {
-    emitBin: false,
-    emitHex: true,
-    emitD8m: true,
-    registerContracts: "strict",
-    registerContractsInterfaces: [
-      path.join(sourceDirectory, "node-platform-services.asmi"),
-    ],
-  });
-  const errors = result.diagnostics.filter(({ severity }) => severity === "error");
-  if (errors.length > 0) {
-    throw new Error(errors.map(({ message }) => message).join("\n"));
-  }
-  const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
-  const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
-  if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-    throw new Error("AZM omitted native import resolver artifacts");
-  }
-  const symbols = Object.fromEntries(
-    d8m.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
-  return { hex: hex.text, symbols };
-};
+const assembleNativeImportResolver = () => assembleSource(path.join(sourceDirectory, "native-import-resolver-tool.asm"));
 
 const runtimeProfiles = [
   { name: "node-default", runtimeBase: 0x8003, stateBase: 0x4024, packetService: 0x7021 },
@@ -218,16 +117,6 @@ const assembleRuntime = async (profile) => {
         "ComparisonGreater .equ 4\nComparisonGreaterEqual .equ 5\n",
       "utf8",
     );
-    const interfacePath = path.join(
-      temporaryDirectory,
-      "nucleus-runtime-services.asmi",
-    );
-    await writeFile(
-      interfacePath,
-      "extern RuntimePacketService\nin A,BC,HL\nout A,carry,zero\n" +
-        "clobbers B,C,D,E,H,L,sign,parity,halfCarry\npreserves IX,IY\nend\n",
-      "utf8",
-    );
     const entryPath = path.join(temporaryDirectory, "runtime-link.asm");
     await writeFile(
       entryPath,
@@ -236,29 +125,7 @@ const assembleRuntime = async (profile) => {
         '.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n',
       "utf8",
     );
-    const result = await compile(entryPath, {
-      includeDirs: [temporaryDirectory, sourceDirectory],
-      emitBin: false,
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [interfacePath],
-    });
-    const errors = result.diagnostics.filter(({ severity }) => severity === "error");
-    if (errors.length > 0) {
-      throw new Error(errors.map(({ message }) => message).join("\n"));
-    }
-    const hex = result.artifacts.find((artifact) => artifact.kind === "hex");
-    const d8m = result.artifacts.find((artifact) => artifact.kind === "d8m");
-    if (hex?.kind !== "hex" || d8m?.kind !== "d8m") {
-      throw new Error(`AZM omitted runtime catalog artifacts for ${profile.name}`);
-    }
-    const symbols = Object.fromEntries(
-      d8m.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
-    );
+    const { hex, symbols } = await assembleSource(entryPath);
     const symbol = (name) => {
       const value = symbols[name];
       if (value === undefined) {
@@ -306,7 +173,7 @@ const assembleRuntime = async (profile) => {
       runReady: symbol("RunReady"),
       activationCapacity: symbol("ActivationCapacity"),
       helperOffsets,
-      hex: hex.text,
+      hex,
     };
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
@@ -331,37 +198,8 @@ const generatedNodeRunner = `// Generated by scripts/generate-compiler-images.mj
 const nativeImportResolver = await assembleNativeImportResolver();
 const generatedNativeImportResolver = `// Generated by scripts/generate-compiler-images.mjs. Do not edit.\n\nexport const nativeImportResolverHex: string = ${JSON.stringify(nativeImportResolver.hex)};\nexport const nativeImportResolverSymbols: Readonly<Record<string, number>> = ${JSON.stringify(nativeImportResolver.symbols, null, 2)};\n`;
 
-const cpm22Provider = await compile(
+const { hex: cpm22ProviderHex, symbols: cpm22ProviderSymbols } = await assembleSource(
   path.join(sourceDirectory, "cpm22-program-provider-proof.asm"),
-  {
-    emitHex: true,
-    emitD8m: true,
-    registerContracts: "strict",
-    registerContractsInterfaces: [
-      path.join(sourceDirectory, "cpm22-program-provider.asmi"),
-    ],
-  },
-);
-const cpm22ProviderErrors = cpm22Provider.diagnostics.filter(
-  ({ severity }) => severity === "error",
-);
-if (cpm22ProviderErrors.length > 0) {
-  throw new Error(cpm22ProviderErrors.map(({ message }) => message).join("\n"));
-}
-const cpm22ProviderHex = cpm22Provider.artifacts.find(
-  ({ kind }) => kind === "hex",
-);
-const cpm22ProviderMap = cpm22Provider.artifacts.find(
-  ({ kind }) => kind === "d8m",
-);
-if (cpm22ProviderHex?.kind !== "hex" || cpm22ProviderMap?.kind !== "d8m") {
-  throw new Error("AZM omitted CP/M generated-program provider artifacts");
-}
-const cpm22ProviderSymbols = Object.fromEntries(
-  cpm22ProviderMap.json.symbols.flatMap((entry) => {
-    const value = entry.address ?? entry.value;
-    return value === undefined ? [] : [[entry.name, value]];
-  }),
 );
 const cpm22Symbol = (name) => {
   const value = cpm22ProviderSymbols[name];
@@ -370,7 +208,7 @@ const cpm22Symbol = (name) => {
 };
 const cpm22Runtime = runtimeCatalog.find(({ name }) => name === "cpm22-loaded");
 if (cpm22Runtime === undefined) throw new Error("CP/M runtime profile is absent");
-const cpm22Prefix = parseIntelHex(cpm22ProviderHex.text).memory.slice(
+const cpm22Prefix = parseIntelHex(cpm22ProviderHex).memory.slice(
   cpm22Symbol("CpmProgramPrefixStart"),
   cpm22Symbol("CpmProgramPrefixEnd"),
 );

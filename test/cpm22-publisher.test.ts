@@ -1,12 +1,6 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
-
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const verticalSlice = path.join(directory, "..", "asm", "vertical-slice");
 
 let proofImage: Uint8Array;
 let symbols: Record<string, number>;
@@ -109,33 +103,11 @@ class PublisherBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await compile(
-    path.join(verticalSlice, "cpm22-publisher-proof.asm"),
-    {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(verticalSlice, "expression-generated-z80.asmi"),
-        path.join(verticalSlice, "cpm22-bdos-call.asmi"),
-      ],
-    },
+  const assembled = await assembleAtomSource(
+    "vertical-slice/cpm22-publisher-proof.asm",
   );
-  expect(
-    assembled.diagnostics.filter(({ severity }) => severity === "error"),
-  ).toEqual([]);
-  const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-  const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-  if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-    throw new Error("AZM omitted CP/M publisher proof artifacts");
-  }
-  proofImage = parseIntelHex(hex.text).memory;
-  symbols = Object.fromEntries(
-    map.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
+  proofImage = parseIntelHex(assembled.hex).memory;
+  symbols = assembled.symbols;
 });
 
 const createProof = (files?: Map<string, Uint8Array>) => {

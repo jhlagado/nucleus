@@ -13,7 +13,12 @@ const proof = (name: string): string =>
 const wordAt = (memory: Uint8Array, address: number): number =>
   (memory[address] ?? 0) | ((memory[address + 1] ?? 0) << 8);
 
-describe("manifest-driven AZM and Debug80 proofs", () => {
+// Full flat-proof assembly with native ATOM measured 145 seconds / 752,560,907
+// emulated assembler instructions. This host deadline includes construction;
+// the proof manifest's guest instruction, cycle and memory limits are unchanged.
+const atomProofHostTimeoutMs = 300_000;
+
+describe("manifest-driven ATOM and standalone Z80 runtime proofs", () => {
   it("publishes a flat target through the append-only logical sink", async () => {
     const outcome = await runProofManifest(
       proof("flat-target-z80-slice-proof"),
@@ -95,7 +100,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
         `${base} must not overlap ${next}`,
       ).toBeLessThanOrEqual(outcome.symbols[next] ?? -1);
     }
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("fits and executes the complete host-instrumented compiler layout", async () => {
     const outcome = await runProofManifest(
@@ -114,7 +119,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "selected-proof-runtime", bytes: 899 },
       { name: "proof-code-and-data", bytes: 2_357 },
     ]);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("runs the Stage 7 aggregate-call production path through committed banked NOBJ", async () => {
     const outcome = await runProofManifest(
@@ -134,7 +139,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(wordAt(outcome.nobj?.memory ?? new Uint8Array(), 0x403b)).toBe(0);
     expect(outcome.nobj?.memory[0x404f]).toBe(12);
     expect(outcome.nobj?.selectedBank).toBe(1);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("runs startup and main from bank 1 through committed banked NOBJ", async () => {
     const outcome = await runProofManifest(
@@ -144,7 +149,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.parsed.map.partBanks).toEqual([1]);
     expect(outcome.nobj?.memory[0x404d]).toBe(12);
     expect(outcome.nobj?.selectedBank).toBe(1);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("restores a cross-bank trap through the common terminal path", async () => {
     const outcome = await runProofManifest(
@@ -153,7 +158,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.memory[0x4025]).toBe(3);
     expect(outcome.nobj?.memory[0x402a]).toBe(0);
     expect(outcome.nobj?.selectedBank).toBe(0);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes loaded startup without copying initialized storage", async () => {
     const outcome = await runProofManifest(
@@ -162,7 +167,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.parsed.map.romMode).toBe(false);
     expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(0x104f);
     expect(outcome.nobj?.instructions).toBeGreaterThan(0);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("restores the established stack after a target trap", async () => {
     const outcome = await runProofManifest(
@@ -170,7 +175,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.nobj?.parsed.map.establishedStack).toBe(true);
     expect(outcome.nobj?.memory[0x4025]).toBe(3);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("runs the Stage 8 propagation production path through committed flat NOBJ", async () => {
     const outcome = await runProofManifest(
@@ -178,7 +183,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     );
     expect(outcome.nobj?.parsed.map.establishedStack).toBe(true);
     expect(outcome.nobj?.memory[0x4029]).toBe(7);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("runs the accepted Chapter 18 multipart program through committed NOBJ", async () => {
     const outcome = await runProofManifest(
@@ -205,7 +210,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.nobj?.parsed.map.banks[0]?.usedLength).toBe(1836);
     expect(outcome.nobj?.memory[0x404d]).toBe(4);
     expect(outcome.nobj?.memory[0x7300]).toBe("Y".charCodeAt(0));
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("retains the historical direct-Z80 Chapter 18 module proof", async () => {
     const outcome = await runProofManifest(
@@ -329,7 +334,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
         new TextDecoder().decode(manifestParts[1]?.bytes ?? new Uint8Array()),
     ).toBe(specificationPrograms[0]);
     expect(manifestParts[1]?.diagnosticName).toBe("main.nu");
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("retains the historical direct-Z80 Stage 8 module proof", async () => {
     const outcome = await runProofManifest(
@@ -388,7 +393,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     }
     expect(generatedLimit).toBeLessThanOrEqual(runtimeStart);
     expect(runtimeEnd).toBeLessThanOrEqual(symbol("TargetRuntimeLimit"));
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("locks the bounded vertical-slice memory map", async () => {
     const outcome = await runProofManifest(proof("memory-map-proof"));
@@ -512,7 +517,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.memory[outcome.symbols.DiagnosticCode ?? -1]).toBe(
       outcome.symbols.DiagnosticExpectedEnd,
     );
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes the counted loop as direct Z80", async () => {
     const outcome = await runProofManifest(proof("loop-z80-slice-proof"));
@@ -541,7 +546,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(Array.from(generated.slice(0, 7))).toEqual([
       0x16, 0x00, 0x16, 0x00, 0x7a, 0xfe, 0x03,
     ]);
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes checked initialized-array selection as direct Z80", async () => {
     const outcome = await runProofManifest(proof("array-z80-slice-proof"));
@@ -567,7 +572,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
 
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes a forward-declared recursive scalar value call", async () => {
     const outcome = await runProofManifest(proof("call-z80-slice-proof"));
@@ -632,7 +637,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
         ].map((name) => outcome.symbols[name] ?? -1),
       ).size,
     ).toBe(8);
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes general scalar symbols and precedence as direct Z80", async () => {
     const outcome = await runProofManifest(proof("expression-z80-slice-proof"));
@@ -666,7 +671,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
     expect(generatedSize).toBeGreaterThan(0);
     expect(outcome.memory[(outcome.symbols.GeneratedBase ?? -1) + 3]).toBe(0);
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes typed scalar expressions and traps atomically as direct Z80", async () => {
     const outcome = await runProofManifest(
@@ -697,11 +702,16 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "proof-code-and-data", bytes: 1_930 },
     ]);
     expect(generatedSize).toBe(857);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("executes typed structured control as direct Z80", async () => {
     const outcome = await runProofManifest(
       proof("structured-control-z80-slice-proof"),
+    );
+    expect(outcome.symbols.StructuredLabelCapacitySource).toBe(0x9800);
+    expect(outcome.symbols.ProofEnd).toBeLessThanOrEqual(0x9800);
+    expect(outcome.symbols.StructuredLabelCapacitySourceEnd).toBeLessThanOrEqual(
+      outcome.symbols.BackupBase ?? -1,
     );
     expect(outcome.memory[outcome.symbols.ProofStatus ?? -1]).toBe(0xa5);
     expect(outcome.memory[outcome.symbols.ProofCase ?? -1]).toBe(0);
@@ -769,7 +779,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "z80-runtime", bytes: 796 },
       { name: "proof-code-and-data", bytes: 902 },
     ]);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("emits packed aggregate layouts and publishes one atomic static image", async () => {
     const outcome = await runProofManifest(proof("aggregate-z80-slice-proof"));
@@ -792,7 +802,7 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
       { name: "z80-runtime", bytes: 796 },
       { name: "proof-code-and-data", bytes: 1_343 },
     ]);
-  }, 30_000);
+  }, atomProofHostTimeoutMs);
 
   it("measures dense semantic dispatch against a comparison chain", async () => {
     const outcome = await runProofManifest(proof("dispatcher-measurement"));
@@ -812,5 +822,5 @@ describe("manifest-driven AZM and Debug80 proofs", () => {
     expect(trampoline.extents).toEqual([
       { name: "page-offset-trampoline-selection", bytes: 47 },
     ]);
-  }, 20_000);
+  }, atomProofHostTimeoutMs);
 });

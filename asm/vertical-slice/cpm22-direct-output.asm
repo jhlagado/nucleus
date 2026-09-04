@@ -173,13 +173,16 @@ CpmDirectTranslateFailed:
             POP  HL
             JP   CpmDirectInvalid
 
+CpmDirectLastByteLo .equ (CpmTargetImageLimit-1)&$FF
+CpmDirectLastByteHi .equ (CpmTargetImageLimit-1)/$100
+
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 CpmDirectTranslateWord:
             LD   A,L
-            CP   (CpmTargetImageLimit-1)&$FF
+            CP   CpmDirectLastByteLo
             JR   NZ,CpmDirectTranslateByte
             LD   A,H
-            CP   (CpmTargetImageLimit-1)/$100
+            CP   CpmDirectLastByteHi
             JP   Z,CpmDirectInvalid
             JR   CpmDirectTranslateByte
 

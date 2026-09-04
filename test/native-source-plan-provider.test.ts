@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
@@ -19,34 +19,8 @@ interface SourceEvent {
 
 describe("the native Z80 SP1 source-plan provider", () => {
   it("streams ordered named sources through the four-event compiler ABI", async () => {
-    const source = new URL(
-      "../asm/vertical-slice/native-source-plan-provider-proof.asm",
-      import.meta.url,
-    ).pathname;
-    const assembled = await compile(source, {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        new URL(
-          "../asm/vertical-slice/node-platform-services.asmi",
-          import.meta.url,
-        ).pathname,
-      ],
-    });
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted native source-provider proof artifacts");
-    }
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
+    const { hex, symbols } = await assembleAtomSource(
+      "vertical-slice/native-source-plan-provider-proof.asm",
     );
 
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-source-provider-"));
@@ -62,7 +36,7 @@ describe("the native Z80 SP1 source-plan provider", () => {
     let runtime: ReturnType<typeof createZ80Runtime>;
     runtime = createZ80Runtime(
       {
-        memory: parseIntelHex(hex.text).memory,
+        memory: parseIntelHex(hex).memory,
         startAddress: symbols.ProofInitialize,
       },
       symbols.ProofInitialize,

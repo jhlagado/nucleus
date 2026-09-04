@@ -1,9 +1,9 @@
-import path from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { compile } from "@jhlagado/azm/compile";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 import {
   compileNucleus,
@@ -44,10 +44,36 @@ const trapService: readonly number[] = [
 ];
 
 const echoProvider: readonly number[] = [
-  0xfe, 0x00, 0x20, 22, 0x78, 0xb7, 0x20, 5, 0x79, 0xfe, 0x02, 0x38, 13,
-  0x3a, invocationCountAddress & 0xff, invocationCountAddress >>> 8, 0x3c,
-  0x32, invocationCountAddress & 0xff, invocationCountAddress >>> 8, 0x7e,
-  0x3c, 0x23, 0x77, 0xb7, 0xc9, 0x3e, 0x07, 0x37, 0xc9,
+  0xfe,
+  0x00,
+  0x20,
+  22,
+  0x78,
+  0xb7,
+  0x20,
+  5,
+  0x79,
+  0xfe,
+  0x02,
+  0x38,
+  13,
+  0x3a,
+  invocationCountAddress & 0xff,
+  invocationCountAddress >>> 8,
+  0x3c,
+  0x32,
+  invocationCountAddress & 0xff,
+  invocationCountAddress >>> 8,
+  0x7e,
+  0x3c,
+  0x23,
+  0x77,
+  0xb7,
+  0xc9,
+  0x3e,
+  0x07,
+  0x37,
+  0xc9,
 ];
 
 const mon3ScanKeys = (
@@ -71,28 +97,15 @@ const providerBytes = async (): Promise<readonly number[]> => {
   const fixture = fileURLToPath(
     new URL("fixtures/mon3-packet-service-proof.asm", import.meta.url),
   );
-  const assembled = await compile(fixture, {
-    includeDirs: [path.dirname(fixture)],
-    emitBin: false,
-    emitHex: true,
-    emitD8m: true,
-    registerContracts: "strict",
+  const entry = "../test/fixtures/mon3-packet-service-proof.asm";
+  const assembled = await assembleAtomSource(entry, {
+    overrides: new Map([[entry, readFileSync(fixture, "utf8")]]),
   });
-  const errors = assembled.diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "error",
-  );
-  expect(errors).toEqual([]);
-  const hex = assembled.artifacts.find((artifact) => artifact.kind === "hex");
-  const map = assembled.artifacts.find((artifact) => artifact.kind === "d8m");
-  if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-    throw new Error("MON-3 provider assembly omitted HEX or D8M");
-  }
-  const end = map.json.symbols.find(
-    (symbol) => symbol.name === "PacketServiceEnd",
-  );
-  const endAddress = end?.address ?? end?.value;
+  const endAddress = assembled.symbols.PacketServiceEnd;
   if (endAddress === undefined) throw new Error("provider end is unavailable");
-  return Array.from(parseIntelHex(hex.text).memory.slice(0x7021, endAddress));
+  return Array.from(
+    parseIntelHex(assembled.hex).memory.slice(0x7021, endAddress),
+  );
 };
 
 const execute = async (
@@ -108,28 +121,34 @@ const execute = async (
     };
   } = {},
 ) =>
-  executeCommittedNobj(built.nobj, {
-    maxInstructions: 100_000,
-    maxCycles: 1_000_000,
-    halted: true,
-    initialSp: 0x6ff0,
-    expectedSp: 0x6ff0,
-    expectedIx: 0,
-    expectedIy: 0,
-    writes: [
-      {
-        at: 0x0010,
-        bytes: mon3ScanKeys(options.key ?? 0x41, options.state ?? "new"),
-      },
-      {
-        at: services.packetService,
-        bytes: options.packetProvider ?? (await providerBytes()),
-      },
-      { at: services.success, bytes: terminal(1) },
-      { at: services.unhandledFailure, bytes: terminal(2) },
-      { at: services.trap, bytes: trapService },
-    ],
-  }, options.bankSwitch === undefined ? undefined : { bankSwitch: options.bankSwitch });
+  executeCommittedNobj(
+    built.nobj,
+    {
+      maxInstructions: 100_000,
+      maxCycles: 1_000_000,
+      halted: true,
+      initialSp: 0x6ff0,
+      expectedSp: 0x6ff0,
+      expectedIx: 0,
+      expectedIy: 0,
+      writes: [
+        {
+          at: 0x0010,
+          bytes: mon3ScanKeys(options.key ?? 0x41, options.state ?? "new"),
+        },
+        {
+          at: services.packetService,
+          bytes: options.packetProvider ?? (await providerBytes()),
+        },
+        { at: services.success, bytes: terminal(1) },
+        { at: services.unhandledFailure, bytes: terminal(2) },
+        { at: services.trap, bytes: trapService },
+      ],
+    },
+    options.bankSwitch === undefined
+      ? undefined
+      : { bankSwitch: options.bankSwitch },
+  );
 
 const position = (source: string, token: string, from = 0) => {
   const offset = source.indexOf(token, from);
@@ -217,63 +236,71 @@ describe("packet-based service gateway", () => {
     ["service(1, readonly)", 60, "readonly"],
     ["service(1, recordValue)", 60, "recordValue"],
     ["service(1, words)", 60, "words"],
-  ] as const)("rejects %s at the offending argument", async (line, code, token) => {
-    const source = [
-      "record Item",
-      "value as u8",
-      "end",
-      "var slot as u8 = 1",
-      "var scalar as u8",
-      'var text as string[3] = "abc"',
-      "const readonly as u8[3] = [1, 2, 3]",
-      "var recordValue as Item = (1)",
-      "var words as u16[3]",
-      "var packet as u8[3]",
-      "sub main()",
-      line,
-      "end",
-      "",
-    ].join("\n");
-    const built = await compileNucleus([{ name: "invalid-service.nu", source }], {
-      services,
-    });
-    expect(built.success).toBe(false);
-    if (built.success) return;
-    expect(built.diagnostic).toMatchObject({
-      code,
-      sourcePart: 1,
-      sourceName: "invalid-service.nu",
-      ...position(source, token, source.indexOf(line)),
-    });
-  });
+  ] as const)(
+    "rejects %s at the offending argument",
+    async (line, code, token) => {
+      const source = [
+        "record Item",
+        "value as u8",
+        "end",
+        "var slot as u8 = 1",
+        "var scalar as u8",
+        'var text as string[3] = "abc"',
+        "const readonly as u8[3] = [1, 2, 3]",
+        "var recordValue as Item = (1)",
+        "var words as u16[3]",
+        "var packet as u8[3]",
+        "sub main()",
+        line,
+        "end",
+        "",
+      ].join("\n");
+      const built = await compileNucleus(
+        [{ name: "invalid-service.nu", source }],
+        {
+          services,
+        },
+      );
+      expect(built.success).toBe(false);
+      if (built.success) return;
+      expect(built.diagnostic).toMatchObject({
+        code,
+        sourcePart: 1,
+        sourceName: "invalid-service.nu",
+        ...position(source, token, source.indexOf(line)),
+      });
+    },
+  );
 
   it.each([0, 255] as const)(
     "traps unknown slot %i before mutating the packet",
     async (slot) => {
-    const source = [
-      "var packet as u8[3] = [7, 8, 9]",
-      "sub main()",
-      `service(${slot}, packet)`,
-      "end",
-      "",
-    ].join("\n");
-    const built = await compileNucleus([{ name: "unknown.nu", source }], {
-      writableBase: 0x4000,
-      writableCapacity: 0x1000,
-      establishStack: false,
-      services,
-    });
-    if (!built.success) throw new Error(JSON.stringify(built));
-    const executed = await execute(built);
-    expect(executed.memory[statusAddress]).toBe(3);
-    expect(executed.memory[stateBase(built) + 1]).toBe(7);
-    expect(
-      executed.memory[stateBase(built) + 3] |
-        ((executed.memory[stateBase(built) + 4] ?? 0) << 8),
-    ).toBe(source.indexOf("service"));
-    expect(executed.memory[invocationCountAddress]).toBe(0);
-    const base = programDataBase(built);
-    expect(Array.from(executed.memory.slice(base, base + 3))).toEqual([7, 8, 9]);
+      const source = [
+        "var packet as u8[3] = [7, 8, 9]",
+        "sub main()",
+        `service(${slot}, packet)`,
+        "end",
+        "",
+      ].join("\n");
+      const built = await compileNucleus([{ name: "unknown.nu", source }], {
+        writableBase: 0x4000,
+        writableCapacity: 0x1000,
+        establishStack: false,
+        services,
+      });
+      if (!built.success) throw new Error(JSON.stringify(built));
+      const executed = await execute(built);
+      expect(executed.memory[statusAddress]).toBe(3);
+      expect(executed.memory[stateBase(built) + 1]).toBe(7);
+      expect(
+        executed.memory[stateBase(built) + 3] |
+          ((executed.memory[stateBase(built) + 4] ?? 0) << 8),
+      ).toBe(source.indexOf("service"));
+      expect(executed.memory[invocationCountAddress]).toBe(0);
+      const base = programDataBase(built);
+      expect(Array.from(executed.memory.slice(base, base + 3))).toEqual([
+        7, 8, 9,
+      ]);
     },
   );
 
@@ -452,9 +479,9 @@ describe("packet-based service gateway", () => {
       { debugMap: true },
     );
     if (!built.success) throw new Error(JSON.stringify(built));
-    const segment = built.debugMapping?.maps[0]?.map.files["mapped.nu"]?.segments?.find(
-      ({ line }) => line === 3,
-    );
+    const segment = built.debugMapping?.maps[0]?.map.files[
+      "mapped.nu"
+    ]?.segments?.find(({ line }) => line === 3);
     expect(segment).toBeDefined();
     const image = built.materialized.flatImage;
     if (image === undefined || segment === undefined) {
@@ -463,9 +490,8 @@ describe("packet-based service gateway", () => {
     const start = segment.start - built.materialized.parsed.begin.imageBase;
     const bytes = image.slice(start, start + segment.end - segment.start);
     expect(Array.from(bytes)).toEqual([
-      0x21, 0x4d, 0x40, 0xe5, 0xd1, 0x21, 0x03, 0x00, 0xe5, 0xd5,
-      0x3e, 0x01, 0xe1, 0xc1, 0x11, 0x00, 0x83, 0xd5, 0x11, 0x1f,
-      0x00, 0xcd, 0x21, 0x40,
+      0x21, 0x4d, 0x40, 0xe5, 0xd1, 0x21, 0x03, 0x00, 0xe5, 0xd5, 0x3e, 0x01,
+      0xe1, 0xc1, 0x11, 0x00, 0x83, 0xd5, 0x11, 0x1f, 0x00, 0xcd, 0x21, 0x40,
     ]);
   });
 
@@ -501,7 +527,12 @@ describe("packet-based service gateway", () => {
       services,
     });
     const rejected = await compileNucleus(
-      [{ name: "reset.nu", source: "sub main()\nservice(true, packet)\nend\n" }],
+      [
+        {
+          name: "reset.nu",
+          source: "sub main()\nservice(true, packet)\nend\n",
+        },
+      ],
       { services },
     );
     const recovered = await compileNucleus(

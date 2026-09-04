@@ -228,5 +228,5 @@ describe("the NOBJ-aware proof runner", () => {
       observations: chapter21.observations,
     });
     expect(outcome.memory[0x7300]).toBe("Y".charCodeAt(0));
-  }, 30_000);
+  }, 180_000); // Includes the same ATOM baseline build as compiler equivalence.
 });

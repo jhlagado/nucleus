@@ -43,6 +43,8 @@ NodeNobjConsumerCodeEnd:
             .org NobjConsumerPlatformBase
 NodeNobjPlatformCodeStart:
             .db  "NC",0,1,8,8,0,0
+            ; Start an explicit code section after the eight-byte header.
+            .org NobjConsumerPlatformBase+8
             JP   NodeNobjObjectOpen
             JP   NodeNobjObjectReadByte
             JP   NodeNobjObjectRewind

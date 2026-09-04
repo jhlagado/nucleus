@@ -1,12 +1,6 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
-
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const verticalSlice = path.join(directory, "..", "asm", "vertical-slice");
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 let proofImage: Uint8Array;
 let symbols: Record<string, number>;
@@ -102,32 +96,11 @@ class CommandBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await compile(
-    path.join(verticalSlice, "cpm22-command-proof.asm"),
-    {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(verticalSlice, "cpm22-bdos-call.asmi"),
-      ],
-    },
+  const assembled = await assembleAtomSource(
+    "vertical-slice/cpm22-command-proof.asm",
   );
-  expect(
-    assembled.diagnostics.filter(({ severity }) => severity === "error"),
-  ).toEqual([]);
-  const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-  const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-  if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-    throw new Error("AZM omitted CP/M command proof artifacts");
-  }
-  proofImage = parseIntelHex(hex.text).memory;
-  symbols = Object.fromEntries(
-    map.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
+  proofImage = parseIntelHex(assembled.hex).memory;
+  symbols = assembled.symbols;
 });
 
 const createProof = (files = new Map<string, Uint8Array>()) => {
@@ -354,7 +327,6 @@ describe("native Nucleus CP/M command and preflight adapter", () => {
       proof.prepare(" BROKEN.NU OUT.COM", "BROKEN.NU", "OUT.COM"),
     ).toMatchObject({ a: 6, carry: 1 });
     proof.bdos.readErrorFor = undefined;
-
   });
 
   it("resets successfully after a rejected command", () => {

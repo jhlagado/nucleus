@@ -1,10 +1,5 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 import type {
   RuntimeImage,
@@ -13,11 +8,6 @@ import type {
   RuntimeServiceAddresses,
 } from "./nobj.js";
 import { NobjError } from "./nobj.js";
-
-const runtimeSourceDirectory = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../asm/vertical-slice",
-);
 
 const helperIdentitySymbols = {
   ActivationPush: "NucleusRuntimeActivationPushOffset",
@@ -238,8 +228,7 @@ const runtimeStateBytes = (
   bytes[programDataBaseOffset] = context.programDataBase & 0xff;
   bytes[programDataBaseOffset + 1] = context.programDataBase >>> 8;
   bytes[programDataCapacityOffset] = context.programDataCapacity & 0xff;
-  bytes[programDataCapacityOffset + 1] =
-    context.programDataCapacity >>> 8;
+  bytes[programDataCapacityOffset + 1] = context.programDataCapacity >>> 8;
   return bytes;
 };
 
@@ -272,8 +261,7 @@ const resolvedImageForContext = (
   }
   state[runtimeProgramDataBaseOffset] = context.programDataBase & 0xff;
   state[runtimeProgramDataBaseOffset + 1] = context.programDataBase >>> 8;
-  state[runtimeProgramDataCapacityOffset] =
-    context.programDataCapacity & 0xff;
+  state[runtimeProgramDataCapacityOffset] = context.programDataCapacity & 0xff;
   state[runtimeProgramDataCapacityOffset + 1] =
     context.programDataCapacity >>> 8;
   return {
@@ -325,168 +313,123 @@ export const loadCanonicalRuntimeImage = async (
   context: RuntimeLinkContext = defaultRuntimeLinkContext,
 ): Promise<RuntimeImage> => {
   validateRuntimeLinkContext(context);
-  const temporaryDirectory = await mkdtemp(
-    path.join(os.tmpdir(), "nucleus-runtime-link-"),
-  );
-  try {
-    const contextPath = path.join(
-      temporaryDirectory,
-      "nucleus-runtime-link-context.asmi",
-    );
-    const interfacePath = path.join(
-      temporaryDirectory,
-      "nucleus-runtime-services.asmi",
-    );
-    const entryPath = path.join(temporaryDirectory, "runtime-link.asm");
-    await writeFile(contextPath, contextAssembly(context), "utf8");
-    await writeFile(
-      interfacePath,
+  // Development-only link proof. Installed consumers use runtime-catalog.ts.
+  // Source adaptation preserves names; native ATOM resolves all addresses.
+  const entry = "vertical-slice/nucleus-target-runtime-link.asm";
+  const assembled = await assembleAtomSource(entry, {
+    overrides: new Map([
       [
-        "extern RuntimePacketService",
-        "in A,BC,HL",
-        "out A,carry,zero",
-        "clobbers B,C,D,E,H,L,sign,parity,halfCarry",
-        "preserves IX,IY",
-        "end",
-        "",
-      ].join("\n"),
-      "utf8",
+        "vertical-slice/nucleus-runtime-link-context.asmi",
+        contextAssembly(context),
+      ],
+      [
+        entry,
+        `.include "nucleus-runtime-link-context.asmi"\n` +
+          `.org RuntimeLinkBase\nRuntimeCodeStart:\n` +
+          `.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n`,
+      ],
+    ]),
+  }).catch((cause: unknown) => {
+    throw new NobjError(
+      `canonical runtime link failed: ${cause instanceof Error ? cause.message : String(cause)}`,
     );
-    await writeFile(
-      entryPath,
-      `.include "nucleus-runtime-link-context.asmi"\n` +
-        `.org RuntimeLinkBase\nRuntimeCodeStart:\n` +
-        `.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n`,
-      "utf8",
+  });
+  const symbol = (name: string): number => {
+    const wanted = name.toLowerCase();
+    for (const [candidate, value] of Object.entries(assembled.symbols)) {
+      if (candidate.toLowerCase() === wanted) return value;
+    }
+    throw new NobjError(`canonical runtime link omitted ${name}`);
+  };
+  const start = symbol("RuntimeCodeStart");
+  const end = symbol("RuntimeCodeEnd");
+  const expectedLength = symbol("NucleusRuntimeExpectedLength");
+  if (start !== context.runtimeBase || end - start !== expectedLength) {
+    throw new NobjError(
+      `canonical runtime linked length mismatch: ${end - start}, expected ${expectedLength}`,
     );
-    const assembled = await compile(entryPath, {
-      includeDirs: [temporaryDirectory, runtimeSourceDirectory],
-      emitBin: false,
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [interfacePath],
-    });
-    const errors = assembled.diagnostics.filter(
-      (diagnostic) => diagnostic.severity === "error",
-    );
-    if (errors.length > 0) {
-      throw new NobjError(
-        `canonical runtime link failed: ${errors
-          .map((diagnostic) => diagnostic.message)
-          .join("; ")}`,
-      );
-    }
-    const hex = assembled.artifacts.find((artifact) => artifact.kind === "hex");
-    const debugMap = assembled.artifacts.find(
-      (artifact) => artifact.kind === "d8m",
-    );
-    if (hex?.kind !== "hex" || debugMap?.kind !== "d8m") {
-      throw new NobjError("canonical runtime link omitted HEX or D8M output");
-    }
-    const symbol = (name: string): number => {
-      const wanted = name.toLowerCase();
-      for (const entry of debugMap.json.symbols) {
-        if (entry.name.toLowerCase() !== wanted) continue;
-        const value = entry.address ?? entry.value;
-        if (value !== undefined) return value;
-      }
-      throw new NobjError(`canonical runtime link omitted ${name}`);
-    };
-    const start = symbol("RuntimeCodeStart");
-    const end = symbol("RuntimeCodeEnd");
-    const expectedLength = symbol("NucleusRuntimeExpectedLength");
-    if (start !== context.runtimeBase || end - start !== expectedLength) {
-      throw new NobjError(
-        `canonical runtime linked length mismatch: ${end - start}, expected ${expectedLength}`,
-      );
-    }
-    const vectorLength = symbol("NucleusRuntimeVectorLength");
-    const stateLength = symbol("NucleusRuntimeStateLength");
-    const runStateOffset = symbol("RunState") - symbol("StateBase");
-    const activationLimitOffset =
-      symbol("ActivationLimit") - symbol("StateBase");
-    const currentBankOffset = symbol("CurrentBank") - symbol("StateBase");
-    const programDataBaseOffset =
-      symbol("RuntimeProgramDataBaseState") - symbol("StateBase");
-    const programDataCapacityOffset =
-      symbol("RuntimeProgramDataCapacityState") - symbol("StateBase");
-    if (
-      runStateOffset !== symbol("NucleusRuntimeRunStateOffset") ||
-      activationLimitOffset !== symbol("NucleusRuntimeActivationLimitOffset") ||
-      currentBankOffset !== symbol("NucleusRuntimeCurrentBankOffset") ||
-      programDataBaseOffset !==
-        symbol("NucleusRuntimeProgramDataBaseOffset") ||
-      programDataCapacityOffset !==
-        symbol("NucleusRuntimeProgramDataCapacityOffset")
-    ) {
-      throw new NobjError("canonical runtime writable-state offset mismatch");
-    }
-    const writableEnd = context.writableBase + context.writableCapacity;
-    if (end > 0x10000) {
-      throw new NobjError("canonical runtime crosses the Z80 address space");
-    }
-    if (context.vectorBase !== context.writableBase) {
-      throw new NobjError("runtime vector base differs from writable base");
-    }
-    if (context.writableStateBase !== context.vectorBase + vectorLength) {
-      throw new NobjError("runtime state does not follow the vector table");
-    }
-    if (context.programDataBase !== context.writableStateBase + stateLength) {
-      throw new NobjError("program data does not follow runtime state");
-    }
-    if (context.programDataBase + context.programDataCapacity > writableEnd) {
-      throw new NobjError("program data exceeds writable storage");
-    }
-    if (context.readOnlyCapacity > 0 && context.readOnlyBase < end) {
-      throw new NobjError("read-only data overlaps the linked runtime");
-    }
-    const helperOffsets: Record<string, number> = {};
-    for (const [helper, identitySymbol] of Object.entries(
-      helperIdentitySymbols,
-    )) {
-      const offset = symbol(helper) - start;
-      if (offset !== symbol(identitySymbol)) {
-        throw new NobjError(
-          `canonical runtime helper offset mismatch: ${helper}`,
-        );
-      }
-      helperOffsets[helper] = offset;
-    }
-    const linkedVectors = vectorBytes(
-      context.services,
-      symbol("PacketServiceGateway"),
-    );
-    if (linkedVectors.length !== vectorLength) {
-      throw new NobjError("canonical runtime vector-layout mismatch");
-    }
-    const linkedState = runtimeStateBytes(
-      stateLength,
-      runStateOffset,
-      activationLimitOffset,
-      programDataBaseOffset,
-      programDataCapacityOffset,
-      symbol("RunReady"),
-      symbol("ActivationCapacity"),
-      context,
-    );
-    if (linkedState.length !== stateLength) {
-      throw new NobjError("canonical runtime initial-state length mismatch");
-    }
-    if (symbol("StateEnd") - symbol("StateBase") !== stateLength) {
-      throw new NobjError("canonical runtime writable-state layout mismatch");
-    }
-    return {
-      identity: symbol("NucleusRuntimeIdentity"),
-      bytes: parseIntelHex(hex.text).memory.slice(start, end),
-      initialBytes: Uint8Array.from([...linkedVectors, ...linkedState]),
-      vectorBytes: linkedVectors,
-      helperOffsets,
-      currentBankOffset,
-    };
-  } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true });
   }
+  const vectorLength = symbol("NucleusRuntimeVectorLength");
+  const stateLength = symbol("NucleusRuntimeStateLength");
+  const runStateOffset = symbol("RunState") - symbol("StateBase");
+  const activationLimitOffset = symbol("ActivationLimit") - symbol("StateBase");
+  const currentBankOffset = symbol("CurrentBank") - symbol("StateBase");
+  const programDataBaseOffset =
+    symbol("RuntimeProgramDataBaseState") - symbol("StateBase");
+  const programDataCapacityOffset =
+    symbol("RuntimeProgramDataCapacityState") - symbol("StateBase");
+  if (
+    runStateOffset !== symbol("NucleusRuntimeRunStateOffset") ||
+    activationLimitOffset !== symbol("NucleusRuntimeActivationLimitOffset") ||
+    currentBankOffset !== symbol("NucleusRuntimeCurrentBankOffset") ||
+    programDataBaseOffset !== symbol("NucleusRuntimeProgramDataBaseOffset") ||
+    programDataCapacityOffset !==
+      symbol("NucleusRuntimeProgramDataCapacityOffset")
+  ) {
+    throw new NobjError("canonical runtime writable-state offset mismatch");
+  }
+  const writableEnd = context.writableBase + context.writableCapacity;
+  if (end > 0x10000) {
+    throw new NobjError("canonical runtime crosses the Z80 address space");
+  }
+  if (context.vectorBase !== context.writableBase) {
+    throw new NobjError("runtime vector base differs from writable base");
+  }
+  if (context.writableStateBase !== context.vectorBase + vectorLength) {
+    throw new NobjError("runtime state does not follow the vector table");
+  }
+  if (context.programDataBase !== context.writableStateBase + stateLength) {
+    throw new NobjError("program data does not follow runtime state");
+  }
+  if (context.programDataBase + context.programDataCapacity > writableEnd) {
+    throw new NobjError("program data exceeds writable storage");
+  }
+  if (context.readOnlyCapacity > 0 && context.readOnlyBase < end) {
+    throw new NobjError("read-only data overlaps the linked runtime");
+  }
+  const helperOffsets: Record<string, number> = {};
+  for (const [helper, identitySymbol] of Object.entries(
+    helperIdentitySymbols,
+  )) {
+    const offset = symbol(helper) - start;
+    if (offset !== symbol(identitySymbol)) {
+      throw new NobjError(
+        `canonical runtime helper offset mismatch: ${helper}`,
+      );
+    }
+    helperOffsets[helper] = offset;
+  }
+  const linkedVectors = vectorBytes(
+    context.services,
+    symbol("PacketServiceGateway"),
+  );
+  if (linkedVectors.length !== vectorLength) {
+    throw new NobjError("canonical runtime vector-layout mismatch");
+  }
+  const linkedState = runtimeStateBytes(
+    stateLength,
+    runStateOffset,
+    activationLimitOffset,
+    programDataBaseOffset,
+    programDataCapacityOffset,
+    symbol("RunReady"),
+    symbol("ActivationCapacity"),
+    context,
+  );
+  if (linkedState.length !== stateLength) {
+    throw new NobjError("canonical runtime initial-state length mismatch");
+  }
+  if (symbol("StateEnd") - symbol("StateBase") !== stateLength) {
+    throw new NobjError("canonical runtime writable-state layout mismatch");
+  }
+  return {
+    identity: symbol("NucleusRuntimeIdentity"),
+    bytes: parseIntelHex(assembled.hex).memory.slice(start, end),
+    initialBytes: Uint8Array.from([...linkedVectors, ...linkedState]),
+    vectorBytes: linkedVectors,
+    helperOffsets,
+    currentBankOffset,
+  };
 };
 
 export const loadCanonicalRuntimeProvider = async (

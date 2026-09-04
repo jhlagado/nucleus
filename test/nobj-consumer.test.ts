@@ -1,4 +1,4 @@
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import {
   createZ80Runtime,
   parseIntelHex,
@@ -276,36 +276,11 @@ const bankedObjectWithAlternatingImages = (): Uint8Array => {
 };
 
 beforeAll(async () => {
-  const platform = new URL(
-    "../asm/vertical-slice/nobj-consumer-platform.asmi",
-    import.meta.url,
-  ).pathname;
   const assemble = async (name: string): Promise<ConsumerImage> => {
-    const source = new URL(`../asm/vertical-slice/${name}.asm`, import.meta.url)
-      .pathname;
-    const assembled = await compile(source, {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [platform],
-    });
-    const errors = assembled.diagnostics.filter(
-      ({ severity }) => severity === "error",
-    );
-    expect(errors).toEqual([]);
-    const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-      throw new Error("AZM omitted NOBJ consumer proof artifacts");
-    }
+    const { hex, symbols } = await assembleAtomSource(`vertical-slice/${name}.asm`);
     return {
-      memory: parseIntelHex(hex.text).memory,
-      symbols: Object.fromEntries(
-        map.json.symbols.flatMap((entry) => {
-          const value = entry.address ?? entry.value;
-          return value === undefined ? [] : [[entry.name, value]];
-        }),
-      ),
+      memory: parseIntelHex(hex).memory,
+      symbols,
     };
   };
   [image, bankedImage, controlTopImage] = await Promise.all([

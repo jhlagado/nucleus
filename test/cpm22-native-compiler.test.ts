@@ -1,12 +1,6 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
-
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const verticalSlice = path.join(directory, "..", "asm", "vertical-slice");
 
 let compilerImage: Uint8Array;
 let symbols: Record<string, number>;
@@ -161,34 +155,13 @@ class NativeCompilerBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await compile(
-    path.join(verticalSlice, "cpm22-native-compiler.asm"),
-    {
-      emitHex: true,
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(verticalSlice, "expression-generated-z80.asmi"),
-        path.join(verticalSlice, "cpm22-bdos-call.asmi"),
-      ],
-    },
+  const assembled = await assembleAtomSource(
+    "vertical-slice/cpm22-native-compiler.asm",
   );
-  expect(
-    assembled.diagnostics.filter(({ severity }) => severity === "error"),
-  ).toEqual([]);
-  const hex = assembled.artifacts.find(({ kind }) => kind === "hex");
-  const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-  if (hex?.kind !== "hex" || map?.kind !== "d8m") {
-    throw new Error("AZM omitted native CP/M compiler artifacts");
-  }
-  compilerImage = parseIntelHex(hex.text).memory;
-  symbols = Object.fromEntries(
-    map.json.symbols.flatMap((entry) => {
-      const value = entry.address ?? entry.value;
-      return value === undefined ? [] : [[entry.name, value]];
-    }),
-  );
-});
+  compilerImage = parseIntelHex(assembled.hex).memory;
+  symbols = assembled.symbols;
+  // The host allowance covers native ATOM construction, not guest execution.
+}, 300_000);
 
 const createCompiler = (
   source: string,

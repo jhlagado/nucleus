@@ -206,30 +206,6 @@ StructuredParameterMainPoint:
             .db "main as u8) as u8",10
 StructuredParameterMainSourceEnd:
 
-            .org SpareBase
-StructuredLabelCapacitySource:
-            .db "sub main() fails",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    if true",10,"    end",10
-            .db "    "
-StructuredLabelCapacityPoint:
-            .db "if true",10,"    end",10
-            .db "end",10
-StructuredLabelCapacitySourceEnd:
-
             .org TargetRuntimeBase
 RuntimeCodeStart:
             .include "proof-z80-runtime.asm"
@@ -636,4 +612,29 @@ ProofStatus:                  .db 0
 ProofCase:                    .db 0
 GeneratedTypedEnd            .equ GeneratedBase+715
 ProofEnd:
+
+            ; Retain the fixture at $9800 while emitting images in address order.
+            .org SpareBase
+StructuredLabelCapacitySource:
+            .db "sub main() fails",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    if true",10,"    end",10
+            .db "    "
+StructuredLabelCapacityPoint:
+            .db "if true",10,"    end",10
+            .db "end",10
+StructuredLabelCapacitySourceEnd:
             .end

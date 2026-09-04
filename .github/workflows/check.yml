@@ -9,22 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Development-only assembler oracle. The npm AZM release does not yet
-      # prove Nucleus's noreturn inline-operand convention. No Debug80 code is
-      # needed by the installed Nucleus host package.
-      - uses: actions/checkout@v4
-        with:
-          repository: jhlagado/debug80
-          ref: 83ccf746e1c482cd5559dbfbc1dc720d650ad2dc
-          path: .azm-toolchain
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm ci --ignore-scripts
-        working-directory: .azm-toolchain
-      - run: npm run build -w @jhlagado/azm
-        working-directory: .azm-toolchain
-      - run: npm link --no-save ./.azm-toolchain/packages/azm
       - run: npm run prepublishOnly

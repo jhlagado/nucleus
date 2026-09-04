@@ -241,6 +241,9 @@ describe("emulator-backed compiler host", () => {
     ]);
   }, 30_000);
 
+  // These three equivalence tests rebuild their baselines through emulated
+  // ATOM (measured at 56–75 seconds). Allow build time without relaxing the
+  // proof manifests' guest execution budgets or the exact artifact assertions.
   it("matches the established flat-target NOBJ byte for byte", async () => {
     const baseline = await runProofManifest(
       proof("flat-target-z80-slice-proof"),
@@ -276,7 +279,7 @@ describe("emulator-backed compiler host", () => {
         0,
       ),
     ).toBe(usedLength);
-  }, 30_000);
+  }, 180_000);
 
   it("streams the same committed NOBJ without returning materialized banks", async () => {
     const parts = [
@@ -876,7 +879,7 @@ describe("emulator-backed compiler host", () => {
     expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
       result.nobj,
     );
-  }, 30_000);
+  }, 180_000);
 
   it("matches the established entry-bank-one NOBJ and D8 identity", async () => {
     const baseline = await runProofManifest(
@@ -940,7 +943,7 @@ describe("emulator-backed compiler host", () => {
       traced.debugMapping?.maps[1]?.map.files["main.nu"]?.symbols?.[0],
     ).toMatchObject({ name: "main" });
     expect(traced.debugMapping?.maps[1]?.map.memory.segments[0]?.bank).toBe(1);
-  }, 30_000);
+  }, 180_000);
 
   it("returns the exact source-part diagnostic position", async () => {
     const parts = [

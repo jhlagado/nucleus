@@ -1,43 +1,10 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { compile } from "@jhlagado/azm/compile";
+import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { describe, expect, it } from "vitest";
-
-const directory = path.dirname(fileURLToPath(import.meta.url));
-const source = path.join(
-  directory,
-  "..",
-  "asm",
-  "vertical-slice",
-  "cpm22-compiler-layout-proof.asm",
-);
 
 describe("native Nucleus CP/M 2.2 TPA layout", () => {
   it("retains every production compiler capacity beside a direct image candidate", async () => {
-    const assembled = await compile(source, {
-      emitD8m: true,
-      registerContracts: "strict",
-      registerContractsInterfaces: [
-        path.join(
-          directory,
-          "..",
-          "asm",
-          "vertical-slice",
-          "expression-generated-z80.asmi",
-        ),
-      ],
-    });
-    expect(
-      assembled.diagnostics.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
-    const map = assembled.artifacts.find(({ kind }) => kind === "d8m");
-    if (map?.kind !== "d8m") throw new Error("AZM omitted the CP/M layout map");
-    const symbols = Object.fromEntries(
-      map.json.symbols.flatMap((entry) => {
-        const value = entry.address ?? entry.value;
-        return value === undefined ? [] : [[entry.name, value]];
-      }),
+    const { symbols } = await assembleAtomSource(
+      "vertical-slice/cpm22-compiler-layout-proof.asm",
     );
 
     expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_314);
@@ -67,6 +34,6 @@ describe("native Nucleus CP/M 2.2 TPA layout", () => {
     expect(symbols.CpmTargetWritableBase).toBe(0x5800);
     expect(symbols.CpmTargetWritableCapacity).toBe(3_328);
     expect(symbols.CpmOutputAddressDelta).toBe(0x7000);
-    // Strict assembly time depends on the host; the target sizes remain exact.
-  }, 30_000);
+    // Native ATOM assembly runs on the host emulator; target sizes remain exact.
+  }, 300_000);
 });
