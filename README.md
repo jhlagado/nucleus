@@ -160,6 +160,11 @@ ordered project dependencies. Explicit output maps preserve public symbol names;
 the former source translator is removed. Installed Nucleus packages use prebuilt
 images and do not invoke an assembler while compiling or running programs.
 
+Use Node 24 for the complete development test suite. Source-isolation tests
+execute TypeScript in separate Node processes with transformation enabled.
+The built package retains Node 20 support; a separate Linux CI job builds it
+and checks an isolated installed consumer on Node 20.
+
 ```bash
 npm ci
 npm run test:atom-source
@@ -198,6 +203,8 @@ results, not qualification of the current development branch. The
 [reconciliation report](docs/reports/atom-reconciliation.md) records the earlier
 migration, and the [source-closure report](docs/reports/atom-native-source-closure.md)
 records the native conversion, current verification and remaining release work.
+The [0.3.1 qualification checkpoint](docs/reports/atom-native-release-qualification.md)
+records the corrected CP/M candidate and its independent real-OS replay.
 
 The CP/M release build emits the exact unpadded transient plus a machine-readable
 manifest. A disk-image builder may add CP/M's final 128-byte record padding; it

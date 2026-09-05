@@ -11,7 +11,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Source-isolation tests use Node's TypeScript transformation support.
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run prepublishOnly
+
+  node20-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Verify the advertised runtime minimum without the development test loader.
+      - run: npm run build
+      - run: npm run check:runtime-boundary
+      - run: npm run test:package

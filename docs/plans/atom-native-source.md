@@ -10,6 +10,11 @@ Source conversion and translator removal are complete in the development
 branch. Stage 4 repository/package qualification and stage 5 publication and
 Triptych integration remain open.
 
+The [0.3.1 qualification checkpoint](../reports/atom-native-release-qualification.md)
+records the fresh corrected release candidate, real-OS replay and split Node
+development/runtime checks. The candidate is prepared; publication remains
+conditional on the complete release gate and clean Linux CI.
+
 ## Outcome and invariants
 
 Authoritative assembly, including normally generated assembly, must use ATOM's
