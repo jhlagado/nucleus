@@ -19,6 +19,25 @@ const runCli = (
   });
 
 describe("Nucleus CLI diagnostics", () => {
+  it("reports its package version in version and help output from another directory", async () => {
+    const manifest = JSON.parse(
+      await readFile(path.resolve("package.json"), "utf8"),
+    );
+    const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-version-"));
+    await writeFile(
+      path.join(directory, "package.json"),
+      JSON.stringify({ version: "0.0.0-unrelated" }),
+    );
+    const version = runCli(directory, ["--version"]);
+    expect(version.status).toBe(0);
+    expect(version.stdout).toBe(`${manifest.version}\n`);
+    expect(version.stderr).toBe("");
+    const help = runCli(directory, ["--help"]);
+    expect(help.status).toBe(0);
+    expect(help.stdout.startsWith(`Nucleus ${manifest.version}\n`)).toBe(true);
+    expect(help.stderr).toBe("");
+  });
+
   it("loads NOBJ through the Z80 consumer and runs it from the command line", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "nucleus-cli-run-"));
     await writeFile(

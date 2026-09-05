@@ -19,7 +19,9 @@ import {
 import { resolveNucleusImports } from "./source-imports.js";
 import { runNucleusNobj } from "./runner.js";
 
-const PACKAGE_VERSION = "0.2.0";
+const PACKAGE_VERSION: string = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+).version;
 
 const help = `Nucleus ${PACKAGE_VERSION}
 
