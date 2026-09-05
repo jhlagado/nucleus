@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Compile and execute the first Nucleus source program as direct Z80 code.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@
 AggregateCallSlices .equ 0
             .include "z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
             .include "source-adapter.asm"
             .include "tokenizer.asm"
@@ -57,22 +58,22 @@ ProgramTemplate:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 ProofSource:
             .db  "sub main() fails",10
             .db  "    writeOutputByte('A') else fail",10
             .db  "end",10
 ProofSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -94,7 +95,7 @@ ProofStart:
             CALL Reset
             XOR  A
             LD   (ServiceForceFailure),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailRunSuccess
@@ -109,7 +110,7 @@ ProofStart:
             CALL Reset
             LD   A,1
             LD   (ServiceForceFailure),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTTRAP
             JP   NZ,ProofFailTrapState

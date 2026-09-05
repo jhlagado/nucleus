@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Direct token and full-width source-position trace for comparison punctuation,
 ; slash tokens, comments, line endings, EOF, and multipart boundaries.
 
@@ -10,7 +11,7 @@ Stage7LL1            .equ 1
             .include "loop-compiler-state.asmi"
             .include "aggregate-call-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
             .include "source-adapter.asm"
             .include "loop-tokenizer.asm"
@@ -33,7 +34,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 TokenizerTracePart1:
             .db  "< <= <> > >= << >> /"
 TokenizerTracePart1End:
@@ -55,10 +56,10 @@ TokenizerTraceParts:
             .db  3
             .dw  TokenizerTracePart3,TokenizerTracePart3End
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A

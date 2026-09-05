@@ -1,0 +1,29 @@
+; Standalone source-plan provider proof: preserve all three ordered origins.
+SRCPARTS EQU 8
+SRCCHUNK EQU $7500
+MMCHKEND EQU $7800
+PPGPORT  EQU $E1
+
+            ORG $0010
+PPGATE:
+            OUT (PPGPORT),A
+            RET
+
+            ORG $4000
+PPINIT:
+            JP SPBEGIN
+PPNEXT:
+            JP SPNEXT
+PPFINISH:
+            JP SPEND
+PPRETAIN:
+            JP SPRETAIN
+PPCMP:
+            JP SPCMPNAM
+PPMAT:
+            JP SPMATNAM
+PPRET:
+            HALT
+
+            ORG $4200
+PPCODE:

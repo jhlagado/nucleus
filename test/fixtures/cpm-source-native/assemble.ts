@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { assembleNativeSource } from "../../../scripts/assemble-native-source.mjs";
+import { assembleNativeCpmProof } from "../../../scripts/assemble-native-cpm.mjs";
 
 export const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const readJson = (relative: string) =>
@@ -16,13 +16,13 @@ export const fixedBaseline = readJson("fixed-baseline.json") as {
   symbols: Record<string, number>;
 };
 
-export const assembleProviderProof = () => assembleNativeSource({
-  root: repositoryRoot,
-  entry: "test/fixtures/cpm-source-native/entry.asm",
-  target: { start: 0x4100, capacity: 0x1700 },
-  exportMap: {
-    ...readJson("../../../asm/atom-cpm-source-symbols.json"),
-    CpmHostWorkspaceLimit: "HOSTLIM",
-  },
-  requiredExports: [...Object.keys(fixedBaseline.symbols), "CpmHostWorkspaceLimit"],
-});
+export const fullSymbolBaseline = readJson("full-symbol-baseline.json") as {
+  revision: string;
+  symbols: Record<string, number>;
+  addresses: Record<string, number>;
+  commandOnlySymbols: string[];
+};
+export const frozenCommandSymbols = readJson("../cpm-native-fixed-baseline.json")
+  .proofs.command.symbols as Record<string, number>;
+
+export const assembleProviderProof = () => assembleNativeCpmProof("cpm22-source-provider-proof.asm");

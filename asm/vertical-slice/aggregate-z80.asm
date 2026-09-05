@@ -115,9 +115,9 @@ EncodeAggregateProgram:
 .endif
 .else
 .if AggregateCallSlices
-            LD   HL,GeneratedCodeLimit
+            LD   HL,MMGCEND
 .else
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
 .endif
 .endif
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY

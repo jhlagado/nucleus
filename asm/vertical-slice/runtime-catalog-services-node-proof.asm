@@ -16,10 +16,10 @@ ProofStart:
             LD   IY,$2468
 
             LD   HL,ProofRequest
-            LD   C,NucleusServiceRuntimeCatalog
+            LD   C,NSRTCAT
             RST  $10
             JP   C,ProofFail
-            LD   HL,(ProofRequest+NucleusRuntimeCatalogRequestResult)
+            LD   HL,(ProofRequest+NCFRES)
             LD   DE,2
             OR   A
             SBC  HL,DE
@@ -30,23 +30,23 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFail
 
-            LD   A,NucleusRuntimeCatalogInitial
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestOperation),A
+            LD   A,NCINIT
+            LD   (ProofRequest+NCFOPER),A
             LD   A,1
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestFlags),A
+            LD   (ProofRequest+NCFFLAG),A
             LD   A,3
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestBank),A
+            LD   (ProofRequest+NCFBANK),A
             LD   HL,5
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestLength),HL
+            LD   (ProofRequest+NCFLEN),HL
             LD   HL,0
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestOffset),HL
+            LD   (ProofRequest+NCFOFF),HL
             LD   HL,5
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestCapacity),HL
+            LD   (ProofRequest+NCFCAP),HL
             LD   HL,ProofRequest
-            LD   C,NucleusServiceRuntimeCatalog
+            LD   C,NSRTCAT
             RST  $10
             JP   C,ProofFail
-            LD   HL,(ProofRequest+NucleusRuntimeCatalogRequestResult)
+            LD   HL,(ProofRequest+NCFRES)
             LD   DE,5
             OR   A
             SBC  HL,DE
@@ -93,9 +93,9 @@ ProofEntrySp: .dw 0
 ProofResult:  .db $FF
 ProofContext: .dw $8003,$4000,$1000,$4024,$4000,$404D,$0010,0,0
 ProofRequest:
-            .db NucleusRuntimeCatalogRequestSize
-            .db NucleusRuntimeCatalogAbiVersion
-            .db NucleusRuntimeCatalogCode,0,0,0
+            .db NCRQSIZE
+            .db NCABI
+            .db NCCODE,0,0,0
             .dw $000A,4,ProofContext,1,ProofBuffer,2,0,0
 ProofBuffer:          .db 0,0,0,0,0
 ProofExpectedInitial: .db 1,2,3,3,5

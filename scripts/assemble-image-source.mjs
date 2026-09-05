@@ -2,6 +2,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assembleNativeCpmProof } from "./assemble-native-cpm.mjs";
+import { assembleNativeImportResolver } from "./assemble-native-import-resolver.mjs";
 
 const asmRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../asm");
 
@@ -12,6 +13,8 @@ export async function assembleImageSource(source) {
   }
   const result = entry === "vertical-slice/cpm22-program-provider-proof.asm"
     ? await assembleNativeCpmProof("cpm22-program-provider-proof.asm")
+    : entry === "vertical-slice/native-import-resolver-tool.asm"
+    ? await assembleNativeImportResolver()
     : await (await import("./atom-source.mjs")).assembleAtomSource(entry);
   return { hex: result.hex, symbols: result.symbols };
 }

@@ -1,10 +1,11 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeSourcePlanProof } from "../scripts/assemble-native-import-resolver.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   NodeNamedObjectServices,
@@ -17,13 +18,60 @@ interface SourceEvent {
   readonly bytes: Uint8Array;
 }
 
+const baseline = JSON.parse(readFileSync(new URL(
+  "./fixtures/native-source-plan-baseline.json", import.meta.url,
+), "utf8")) as {
+  revision: string;
+  symbols: Record<string, number>;
+  addresses: Record<string, number>;
+  highWater: number;
+  finalCursor: number;
+  segments: { start: number; end: number; hex: string; sha256: string }[];
+};
+
 describe("the native Z80 SP1 source-plan provider", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  it("preserves the original sparse image and every public symbol under native ATOM", async () => {
+    const proof = await assembleNativeSourcePlanProof();
+    const parsed = parseIntelHex(proof.hex);
+    expect(baseline.revision).toBe("abbb2bea1b20d6ccfe11bdf936f48b525b0d88a6");
+    const addresses = (ranges: readonly { start: number; end: number }[]) =>
+      ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
+    expect(baseline.segments.map(({ start, end }) => ({ start, end }))).toEqual([
+      { start: 0x0010, end: 0x0013 },
+      { start: 0x4000, end: 0x4013 },
+      { start: 0x4200, end: 0x4724 },
+    ]);
+    expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(baseline.segments));
+    for (const segment of baseline.segments) {
+      const bytes = parsed.memory.slice(segment.start, segment.end);
+      expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
+      expect(createHash("sha256").update(bytes).digest("hex")).toBe(segment.sha256);
+    }
+    expect(Object.keys(proof.symbols)).toHaveLength(181);
+    expect(proof.symbols).toEqual(baseline.symbols);
+    expect(Object.keys(proof.addresses)).toHaveLength(67);
+    expect(proof.addresses).toEqual(baseline.addresses);
+    expect(proof.generation.highWater).toBe(baseline.highWater);
+    expect(proof.generation.finalCursor).toBe(baseline.finalCursor);
+    expect(proof.generation.highWater).toBe(0x4724);
+    for (const part of proof.project.parts) {
+      const original = new TextDecoder().decode(part.originalBytes);
+      expect(new TextDecoder().decode(part.compilerBytes)).toBe(
+        original.replace(/^%INCLUDE[^\r\n]*/gm, line => " ".repeat(line.length)),
+      );
+    }
+  });
+
   it("streams ordered named sources through the four-event compiler ABI", async () => {
-    const { hex, symbols } = await assembleAtomSource(
-      "vertical-slice/native-source-plan-provider-proof.asm",
-    );
+    const { hex, symbols } = await assembleNativeSourcePlanProof();
 
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-source-provider-"));
+    roots.push(root);
     mkdirSync(path.join(root, ".nucleus"));
     writeFileSync(
       path.join(root, ".nucleus", "source-plan.sp1"),
@@ -69,6 +117,7 @@ describe("the native Z80 SP1 source-plan provider", () => {
       let guard = 0;
       while (!runtime.isHalted() && guard++ < 20_000) runtime.step();
       expect(runtime.isHalted()).toBe(true);
+      expect(runtime.cpu.pc).toBe(symbols.ProofReturnSentinel + 1);
       expect(
         runtime.cpu.flags.C,
         `entry $${entry.toString(16)} failed with A=${runtime.cpu.a}; object calls ${objectCalls.join(",")}`,

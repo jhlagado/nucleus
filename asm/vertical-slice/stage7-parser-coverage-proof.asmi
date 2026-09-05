@@ -6,7 +6,7 @@ SegmentedOutput .equ 1
             .include "aggregate-call-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
@@ -40,7 +40,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 Stage7ParserCoverageSource:
             .db "var out as u8 = 0",10
             .db "var finalI as u8 = 0",10
@@ -90,15 +90,15 @@ Stage7LL1ConstantSource:
             .db "end",10
 Stage7LL1ConstantSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofStatus),A
             LD   (ProofCase),A
@@ -142,13 +142,13 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   9
             JR   NZ,ProofOutputFailure
-            LD   A,(ProgramDataBase+1)
+            LD   A,(MMDATA+1)
             CP   3
             JR   NZ,ProofOutputFailure
-            LD   A,(ProgramDataBase+2)
+            LD   A,(MMDATA+2)
             OR   A
             JR   NZ,ProofOutputFailure
-            LD   A,(ProgramDataBase+3)
+            LD   A,(MMDATA+3)
             OR   A
             JR   NZ,ProofOutputFailure
             LD   A,$A5
@@ -195,7 +195,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A

@@ -1,8 +1,9 @@
+NativeStreamingSource .equ 0
 ; Ideal one-byte semantic dispatcher when every handler begins in one page.
 
             .include "memory-map.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 OffsetDirectSelectionStart:
 OffsetDirectPage:
@@ -56,7 +57,7 @@ OffsetDirect7: OR A
 CompilerCodeEnd:
 CompilerCoreEnd:
 
-            .org ProofBase
+            .org MMPROOF
 ProofStart:
             LD   A,$A5
             LD   (ProofStatus),A

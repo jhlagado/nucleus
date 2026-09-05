@@ -1,8 +1,9 @@
+NativeStreamingSource .equ 0
 ; One-byte semantic dispatcher with page-local trampolines to arbitrary handlers.
 
             .include "memory-map.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 OffsetTrampolineSelectionStart:
 OffsetTrampolinePage:
@@ -64,7 +65,7 @@ Dispatch7:  OR A
 CompilerCodeEnd:
 CompilerCoreEnd:
 
-            .org ProofBase
+            .org MMPROOF
 ProofStart:
             LD   A,$A5
             LD   (ProofStatus),A

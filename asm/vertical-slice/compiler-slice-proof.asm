@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; End-to-end proof of the streaming source adapter, tokenizer, predictive
 ; parser, semantic checks, positioned diagnostic, and operation sink.
 
@@ -6,7 +7,7 @@
 
 AggregateCallSlices .equ 0
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
             .include "source-adapter.asm"
             .include "tokenizer.asm"
@@ -32,7 +33,7 @@ NameWriteOutputByte:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 AcceptedSource:
             .db  "sub main() fails",10
             .db  "    writeOutputByte('A') else fail",10
@@ -44,10 +45,10 @@ MalformedSource:
             .db  "    writeOutputByte('A') else fail",10
 MalformedSourceEnd:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A

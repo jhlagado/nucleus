@@ -56,47 +56,47 @@ NodeNobjPlatformCodeStart:
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NodeNobjObjectOpen:
-            LD   C,NucleusServiceLoaderOpen
+            LD   C,NSLDOPEN
             RST  $10
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NodeNobjObjectReadByte:
             PUSH BC
-            LD   C,NucleusServiceLoaderReadByte
+            LD   C,NSLDREAD
             RST  $10
             POP  BC
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NodeNobjObjectRewind:
-            LD   C,NucleusServiceLoaderRewind
+            LD   C,NSLDREW
             RST  $10
             RET
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,BC
 NodeNobjObjectLock:
-            LD   C,NucleusServiceLoaderLock
+            LD   C,NSLDLOCK
             RST  $10
             RET
 
 .routine in A,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NodeNobjSelectTargetBank:
-            LD   C,NucleusMonBankSelect
+            LD   C,NSMONBNK
             RST  $10
             RET
 
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 NodeNobjPublishTarget:
             LD   (NodeNobjInputBC),BC
-            LD   C,NucleusServiceLoaderPublish
+            LD   C,NSLDPUBL
             RST  $10
             RET
 
 .routine in A,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
 NodeNobjEnterTarget:
             PUSH HL
-            LD   C,NucleusServiceLoaderEnter
+            LD   C,NSLDENT
             RST  $10
             POP  HL
             RET  C
@@ -104,7 +104,7 @@ NodeNobjEnterTarget:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NodeNobjObjectClose:
-            LD   C,NucleusServiceLoaderClose
+            LD   C,NSLDCLOS
             RST  $10
             RET
 NodeNobjInputBC:
@@ -128,50 +128,50 @@ NodeProgramServiceVector:
 
 NodeProgramReadInput:
             PUSH BC
-            LD   C,NucleusServiceReadInput
+            LD   C,NSRDIN
             RST  $10
             POP  BC
             RET
 NodeProgramWriteOutput:
             PUSH BC
-            LD   C,NucleusServiceWriteOutput
+            LD   C,NSWROUT
             RST  $10
             POP  BC
             RET
 NodeProgramReadStorage:
             PUSH BC
-            LD   C,NucleusServiceReadStorage
+            LD   C,NSRDSTOR
             RST  $10
             POP  BC
             RET
 NodeProgramRewindStorage:
             PUSH BC
-            LD   C,NucleusServiceRewindStorage
+            LD   C,NSREWIND
             RST  $10
             POP  BC
             RET
 NodeProgramWriteStorage:
             PUSH BC
-            LD   C,NucleusServiceWriteStorage
+            LD   C,NSWRSTOR
             RST  $10
             POP  BC
             RET
 NodeProgramSeekStorage:
             PUSH BC
-            LD   C,NucleusServiceSeekStorage
+            LD   C,NSSEEK
             RST  $10
             POP  BC
             RET
 NodeProgramSuccess:
-            LD   C,NucleusServiceExitSuccess
+            LD   C,NSSUCC
             RST  $10
             HALT
 NodeProgramFailure:
-            LD   C,NucleusServiceExitFailure
+            LD   C,NSFAIL
             RST  $10
             HALT
 NodeProgramTrap:
-            LD   C,NucleusServiceExitTrap
+            LD   C,NSTRAP
             RST  $10
             HALT
 NodeProgramFarCall:
@@ -223,7 +223,7 @@ NodeProgramFarJump:
             JP   (HL)
 NodeProgramPacket:
             LD   (NodeProgramInputBC),BC
-            LD   C,NucleusServicePacket
+            LD   C,NSPACKET
             RST  $10
             RET
 NodeProgramFarReturn:
@@ -264,7 +264,7 @@ NodeProgramFarReturn:
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,E
 NodeProgramSelectBank:
             LD   (NodeProgramTargetBank),A
-            LD   C,NucleusMonBankSelect
+            LD   C,NSMONBNK
             RST  $10
             RET  C
             PUSH HL

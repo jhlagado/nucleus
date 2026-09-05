@@ -3,11 +3,11 @@
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 EncodeSemanticProgram:
             LD   HL,ProgramTemplate
-            LD   DE,GeneratedBase
+            LD   DE,MMGEN
             LD   BC,ProgramSize
             LDIR
             LD   A,(SemanticBufferBase+2)
-            LD   (GeneratedBase+1),A
+            LD   (MMGEN+1),A
             LD   HL,ProgramSize
             LD   (GeneratedSize),HL
             OR   A

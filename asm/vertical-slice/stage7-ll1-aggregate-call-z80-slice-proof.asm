@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Prove the Stage 7 packed LL(1) parser against aggregate calls and paths.
 
             .include "memory-map.asmi"
@@ -7,7 +8,7 @@ TargetStreamingOutput .equ 0
             .include "aggregate-call-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
@@ -42,7 +43,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 Stage7CopySource:
             .db "record Counter",10
             .db "value as u8",10
@@ -165,15 +166,15 @@ Stage7CallDepthSource:
 Stage7CallDepthSourceEnd:
 
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -198,10 +199,10 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailOutput
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   1
             JP   NZ,ProofFailStorage
-            LD   A,(ProgramBssBase)
+            LD   A,(MMBSS)
             CP   2
             JP   NZ,ProofFailStorage
             LD   A,160
@@ -225,10 +226,10 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailForwardOutput
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   3
             JP   NZ,ProofFailForwardStorage
-            LD   A,(ProgramDataBase+1)
+            LD   A,(MMDATA+1)
             CP   9
             JP   NZ,ProofFailForwardStorage
             LD   A,160
@@ -252,19 +253,19 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailStringOutput
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   3
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+1)
+            LD   A,(MMDATA+1)
             CP   'A'
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+2)
+            LD   A,(MMDATA+2)
             CP   'Y'
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+3)
+            LD   A,(MMDATA+3)
             CP   'C'
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+4)    ; sealed byte at capacity+1
+            LD   A,(MMDATA+4)    ; sealed byte at capacity+1
             OR   A
             JP   NZ,ProofFailStringStorage
             LD   A,161
@@ -325,7 +326,7 @@ ProofStart:
             JP   NZ,ProofFailStringStorage
             CALL EncodeAggregateProgram
             JP   C,ProofFailStringEncode
-            LD   A,(ProgramBssBase+1019)  ; terminator in final 255-byte element
+            LD   A,(MMBSS+1019)  ; terminator in final 255-byte element
             OR   A
             JP   NZ,ProofFailStringStorage
             CALL Reset
@@ -371,16 +372,16 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailStringOutput
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   1
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+255)
+            LD   A,(MMDATA+255)
             CP   1
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+256)
+            LD   A,(MMDATA+256)
             CP   'B'
             JP   NZ,ProofFailStringStorage
-            LD   A,(ProgramDataBase+509)
+            LD   A,(MMDATA+509)
             OR   A
             JP   NZ,ProofFailStringStorage
 
@@ -410,20 +411,20 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailDataCapacityAccepted
             LD   A,$A5
-            LD   (ProgramDataLimit),A
+            LD   (MMDATEND),A
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailDataCapacityAccepted
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailDataCapacityAccepted
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             OR   A
             JP   NZ,ProofFailDataCapacityAccepted
-            LD   A,(ProgramDataLimit-1)
+            LD   A,(MMDATEND-1)
             OR   A
             JP   NZ,ProofFailDataCapacityAccepted
-            LD   A,(ProgramDataLimit)
+            LD   A,(MMDATEND)
             CP   $A5
             JP   NZ,ProofFailDataCapacityAccepted
 
@@ -460,20 +461,20 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailBssCapacityAccepted
             LD   A,$A5
-            LD   (ProgramBssLimit),A
+            LD   (MMBSSEND),A
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBssCapacityAccepted
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailBssCapacityAccepted
-            LD   A,(ProgramBssBase)
+            LD   A,(MMBSS)
             OR   A
             JP   NZ,ProofFailBssCapacityAccepted
-            LD   A,(ProgramBssLimit-1)
+            LD   A,(MMBSSEND-1)
             CP   'Y'
             JP   NZ,ProofFailBssCapacityAccepted
-            LD   A,(ProgramBssLimit)
+            LD   A,(MMBSSEND)
             CP   $A5
             JP   NZ,ProofFailBssCapacityAccepted
 
@@ -518,10 +519,10 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailWideAggregate
-            LD   A,(ProgramBssBase+499)
+            LD   A,(MMBSS+499)
             CP   'Y'
             JP   NZ,ProofFailWideAggregate
-            LD   A,(ProgramBssBase+1000)
+            LD   A,(MMBSS+1000)
             CP   'Y'
             JP   NZ,ProofFailWideAggregate
 
@@ -561,10 +562,10 @@ ProofStart:
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailWideInitializer
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   1
             JP   NZ,ProofFailWideInitializer
-            LD   A,(ProgramDataBase+255)
+            LD   A,(MMDATA+255)
             CP   1
             JP   NZ,ProofFailWideInitializer
 
@@ -633,10 +634,10 @@ ProofStart:
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailBoundsRun
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   3
             JP   NZ,ProofFailBoundsStorage
-            LD   A,(ProgramDataBase+1)
+            LD   A,(MMDATA+1)
             CP   7
             JP   NZ,ProofFailBoundsStorage
             LD   A,DiagnosticIntegerRange
@@ -853,7 +854,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailAggregateConstant
             LD   A,$A5
-            LD   (ProgramDataBase+3),A
+            LD   (MMDATA+3),A
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailAggregateConstant
@@ -866,10 +867,10 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'Y'
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   9
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(ProgramDataBase+3)
+            LD   A,(MMDATA+3)
             CP   $A5
             JP   NZ,ProofFailAggregateConstant
             LD   A,(RORDATA+3)
@@ -1092,7 +1093,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A
@@ -1179,7 +1180,7 @@ ProofRunRecursiveCapacity:
             LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   A,(ProgramBssBase)
+            LD   A,(MMBSS)
             OR   A
             RET  Z
 ProofRecursiveCapacityFailure:
@@ -1342,11 +1343,11 @@ ProofRunInvalidCopy:
             INC  HL
             LD   (HL),SemanticLoadProgramAlias
             INC  HL
-            LD   DE,ProgramDataBase
+            LD   DE,MMDATA
             LD   A,B
             OR   A
             JR   Z,ProofInvalidCopyDestinationReady
-            LD   DE,ProgramDataRegionLimit
+            LD   DE,MMREGEND
 ProofInvalidCopyDestinationReady:
             LD   (HL),E
             INC  HL
@@ -1354,11 +1355,11 @@ ProofInvalidCopyDestinationReady:
             INC  HL
             LD   (HL),SemanticLoadProgramAlias
             INC  HL
-            LD   DE,ProgramDataBase
+            LD   DE,MMDATA
             LD   A,C
             OR   A
             JR   Z,ProofInvalidCopySourceReady
-            LD   DE,ProgramDataRegionLimit
+            LD   DE,MMREGEND
 ProofInvalidCopySourceReady:
             LD   (HL),E
             INC  HL
@@ -1391,10 +1392,10 @@ ProofInvalidCopySourceReady:
             OR   A
             SBC  HL,DE
             JR   NZ,ProofInvalidCopyFailure
-            LD   A,(ProgramDataBase)
+            LD   A,(MMDATA)
             CP   $11
             JR   NZ,ProofInvalidCopyFailure
-            LD   A,(ProgramDataBase+1)
+            LD   A,(MMDATA+1)
             CP   $22
             JR   NZ,ProofInvalidCopyFailure
             OR   A
@@ -1421,7 +1422,7 @@ ProofCheckEncodeRollback:
             LD   (HL),SemanticBeginMain
             INC  HL
             LD   (HL),SemanticEndMain
-            LD   HL,GeneratedBase+4
+            LD   HL,MMGEN+4
             CALL EncodeAggregateProgramWithinLimit
             JR   NC,ProofEncodeRollbackFailure
             LD   HL,(GeneratedSize)
@@ -1435,8 +1436,8 @@ ProofCheckEncodeRollback:
             SBC  HL,DE
             JR   NZ,ProofEncodeRollbackFailure
             LD   BC,(GeneratedSize)
-            LD   HL,GeneratedBase
-            LD   DE,BackupBase
+            LD   HL,MMGEN
+            LD   DE,MMBACK
 ProofEncodeRollbackCompare:
             LD   A,B
             OR   C
@@ -1451,7 +1452,7 @@ ProofEncodeRollbackCompare:
 ProofEncodeRollbackReady:
             LD   BC,(GeneratedRoDataSize)
             LD   HL,RORDATA
-            LD   DE,BackupBase+(RORDATA-GeneratedBase)
+            LD   DE,MMBACK+(RORDATA-MMGEN)
 ProofEncodeRollbackRoDataCompare:
             LD   A,B
             OR   C
@@ -1477,10 +1478,10 @@ ProofEncodeRollbackFailure:
 ; compiler then restores the complete preceding code and rodata image.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCheckSegmentOverlap:
-            LD   HL,GeneratedCodeLimit
+            LD   HL,MMGCEND
             CALL BeginSegmentedProgram
             RET  C
-            LD   HL,GeneratedCodeBase+1
+            LD   HL,MMGENCOD+1
             LD   (SegmentRoDataEntry+SegmentEntryBase),HL
             CALL ValidateSegmentTable
             JR   NC,ProofSegmentOverlapFailure
@@ -1714,7 +1715,7 @@ Stage7RoutineCapacitySourceEnd:
 
             ; Additional adversarial source fixtures live after the Z80
             ; transaction backup rather than consuming the 2 KiB source bank.
-            .org BackupLimit
+            .org MMBKEND
 
 Stage7LargeDataSource:
             .db "var first as string[253] = \"A\"",10

@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Prove typed if/elseif/else, while, counted for, and loop transfers end to end.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -39,7 +40,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 StructuredAcceptedSource:
             .db "var out as u8 = 0",10
             .db "var finalI as u8 = 0",10
@@ -206,15 +207,15 @@ StructuredParameterMainPoint:
             .db "main as u8) as u8",10
 StructuredParameterMainSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -240,20 +241,20 @@ ProofStart:
             LD   (AcceptedObservedOutput),A
             ; The harness independently checks the observed byte while this
             ; proof continues to discriminate storage and final counters.
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             LD   (AcceptedObservedStore),A
-            LD   A,(GeneratedBase+4)
+            LD   A,(MMGEN+4)
             LD   (AcceptedObservedCounter),A
-            LD   HL,(GeneratedBase+5)
+            LD   HL,(MMGEN+5)
             LD   (AcceptedObservedDescending),HL
             LD   HL,(GeneratedSize)
             LD   (StructuredGeneratedSize),HL
 
             ; A failed Z80-emission transaction must leave the published
             ; program byte-for-byte runnable.
-            LD   A,(GeneratedBase)
+            LD   A,(MMGEN)
             LD   (AtomicObservedByte),A
-            LD   HL,GeneratedBase+1
+            LD   HL,MMGEN+1
             CALL BeginProgram
             XOR  A
             CALL EmitByte
@@ -261,7 +262,7 @@ ProofStart:
             CALL EmitByte
             JP   NC,ProofFailAtomicAccepted
             CALL AbortProgram
-            LD   A,(GeneratedBase)
+            LD   A,(MMGEN)
             LD   B,A
             LD   A,(AtomicObservedByte)
             CP   B
@@ -310,11 +311,11 @@ ProofStart:
             LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailRangeOffset
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             LD   (RangeObservedEffect),A
             CP   1
             JP   NZ,ProofFailRangeEffect
-            LD   A,(GeneratedBase+4)
+            LD   A,(MMGEN+4)
             LD   (RangeObservedAtomic),A
             CP   120
             JP   NZ,ProofFailRangeAtomic
@@ -365,7 +366,7 @@ ProofStart:
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailBooleanFlowState
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   1
             JP   NZ,ProofFailBooleanFlowValue
 
@@ -480,7 +481,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A
@@ -610,11 +611,11 @@ StepObservedOffset:          .dw 0
 AtomicObservedByte:          .db 0
 ProofStatus:                  .db 0
 ProofCase:                    .db 0
-GeneratedTypedEnd            .equ GeneratedBase+715
+GeneratedTypedEnd            .equ MMGEN+715
 ProofEnd:
 
             ; Retain the fixture at $9800 while emitting images in address order.
-            .org SpareBase
+            .org MMSPARE
 StructuredLabelCapacitySource:
             .db "sub main() fails",10
             .db "    if true",10,"    end",10

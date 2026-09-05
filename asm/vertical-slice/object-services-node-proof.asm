@@ -16,38 +16,38 @@ ProofStart:
             LD   IY,$2468
 
             LD   HL,ProofObjectRequest
-            LD   C,NucleusServiceObject
+            LD   C,NSOBJECT
             RST  $10
             JP   C,ProofFail
-            LD   HL,(ProofObjectRequest+NucleusObjectRequestHandle)
+            LD   HL,(ProofObjectRequest+NOFHAND)
             LD   A,H
             OR   L
             JP   Z,ProofFail
 
-            LD   A,NucleusObjectRead
-            LD   (ProofObjectRequest+NucleusObjectRequestOperation),A
+            LD   A,NOREAD
+            LD   (ProofObjectRequest+NOFOPER),A
             LD   HL,ProofReadBuffer
-            LD   (ProofObjectRequest+NucleusObjectRequestPointer),HL
+            LD   (ProofObjectRequest+NOFPTR),HL
             LD   HL,3
-            LD   (ProofObjectRequest+NucleusObjectRequestLength),HL
+            LD   (ProofObjectRequest+NOFLEN),HL
             LD   HL,ProofObjectRequest
-            LD   C,NucleusServiceObject
+            LD   C,NSOBJECT
             RST  $10
             JP   C,ProofFail
-            LD   HL,(ProofObjectRequest+NucleusObjectRequestResult)
+            LD   HL,(ProofObjectRequest+NOFRES)
             LD   DE,3
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFail
 
-            LD   A,NucleusObjectClose
-            LD   (ProofObjectRequest+NucleusObjectRequestOperation),A
+            LD   A,NOCLOSE
+            LD   (ProofObjectRequest+NOFOPER),A
             LD   HL,0
-            LD   (ProofObjectRequest+NucleusObjectRequestPointer),HL
-            LD   (ProofObjectRequest+NucleusObjectRequestLength),HL
-            LD   (ProofObjectRequest+NucleusObjectRequestResult),HL
+            LD   (ProofObjectRequest+NOFPTR),HL
+            LD   (ProofObjectRequest+NOFLEN),HL
+            LD   (ProofObjectRequest+NOFRES),HL
             LD   HL,ProofObjectRequest
-            LD   C,NucleusServiceObject
+            LD   C,NSOBJECT
             RST  $10
             JP   C,ProofFail
 
@@ -82,8 +82,8 @@ ProofEntrySp:      .dw 0
 ProofResult:       .db $FF
 ProofObjectName:   .db "source.nu"
 ProofObjectRequest:
-            .db NucleusObjectRequestSize,NucleusObjectAbiVersion
-            .db NucleusObjectOpenRead,0
+            .db NORQSIZE,NOABI
+            .db NOOPEN,0
             .dw 0,ProofObjectName,9,0,0,0
 ProofReadBuffer:   .db 0,0,0
 ProofEnd:

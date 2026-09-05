@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Compile general scalar symbols and a precedence expression to direct Z80.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -38,7 +39,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 ExpressionProofSource:
             .db "var bytes as u8 = 0",10
             .db "sub main() fails",10
@@ -101,15 +102,15 @@ FullScalarName:
             .db "q as u8 = 0",10
 FullScalarSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -137,7 +138,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   14
             JP   NZ,ProofFailSuccessByte
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   14
             JP   NZ,ProofFailAssignment
 
@@ -253,7 +254,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A
@@ -348,6 +349,6 @@ ProofExpectedSP:             .dw 0
 ProofEnd:
 
 ExpressionProgramSize .equ 116
-GeneratedExpressionEnd      .equ GeneratedBase+ExpressionProgramSize
+GeneratedExpressionEnd      .equ MMGEN+ExpressionProgramSize
 
             .end

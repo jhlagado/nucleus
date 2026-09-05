@@ -1,6 +1,6 @@
 ; Fixed compiler state for the scalar-local, counted-loop, and array slice.
 
-CompilerStateBase       .equ CompilerWorkBase
+CompilerStateBase       .equ MMWORK
 
 SourcePartId            .equ CompilerStateBase+$00
 ; The live source position and cursor form one eight-byte snapshot. The

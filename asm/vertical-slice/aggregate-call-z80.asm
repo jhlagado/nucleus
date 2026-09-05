@@ -888,7 +888,7 @@ Stage7EmitRegionPrefix:
 .endif
             JP   EmitLoadHl
 .else
-            LD   DE,ProgramDataRegionLimit
+            LD   DE,MMREGEND
             CALL EmitLoadDeImmediate
             RET
 .endif

@@ -250,11 +250,11 @@ BeginProgram:
             LD   A,B
             OR   C
             JR   Z,BeginProgramReady
-            LD   HL,GeneratedBase
-            LD   DE,BackupBase
+            LD   HL,MMGEN
+            LD   DE,MMBACK
             LDIR
 BeginProgramReady:
-            LD   HL,GeneratedBase
+            LD   HL,MMGEN
             LD   (EmitCursor),HL
             OR   A
             RET
@@ -265,8 +265,8 @@ AbortProgram:
             LD   A,B
             OR   C
             JR   Z,AbortProgramSize
-            LD   HL,BackupBase
-            LD   DE,GeneratedBase
+            LD   HL,MMBACK
+            LD   DE,MMGEN
             LDIR
 AbortProgramSize:
             LD   HL,(PublishedSize)
@@ -288,12 +288,12 @@ BeginSegmentedProgram:
             LD   BC,8
             LDIR
             LD   BC,(GeneratedSize)
-            LD   HL,GeneratedCodeBase
-            LD   DE,BackupBase
+            LD   HL,MMGENCOD
+            LD   DE,MMBACK
             CALL SegmentCopyIfAny
             LD   BC,(GeneratedRoDataSize)
             LD   HL,RORDATA
-            LD   DE,BackupBase+(RORDATA-GeneratedBase)
+            LD   DE,MMBACK+(RORDATA-MMGEN)
             CALL SegmentCopyIfAny
             LD   HL,SegmentInitialTable
             LD   DE,SegmentTableBase
@@ -310,10 +310,10 @@ BeginSegmentedProgram:
             RET
 
 SegmentInitialTable:
-            .dw GeneratedCodeBase,GeneratedCodeLimit
-            .dw RORDATA,GeneratedRoDataLimit
-            .dw ProgramDataBase,ProgramDataLimit
-            .dw ProgramBssBase,ProgramBssLimit
+            .dw MMGENCOD,MMGCEND
+            .dw RORDATA,MMROEND
+            .dw MMDATA,MMDATEND
+            .dw MMBSS,MMBSSEND
 
 .routine in BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 SegmentCopyIfAny:
@@ -394,11 +394,11 @@ SegmentTableFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 AbortSegmentedProgram:
             LD   BC,(PublishedSize)
-            LD   HL,BackupBase
-            LD   DE,GeneratedCodeBase
+            LD   HL,MMBACK
+            LD   DE,MMGENCOD
             CALL SegmentCopyIfAny
             LD   BC,(PublishedRoDataSize)
-            LD   HL,BackupBase+(RORDATA-GeneratedBase)
+            LD   HL,MMBACK+(RORDATA-MMGEN)
             LD   DE,RORDATA
             CALL SegmentCopyIfAny
             LD   HL,PublishedSize
@@ -411,7 +411,7 @@ AbortSegmentedProgram:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 FinishSegmentedProgram:
             LD   HL,(EmitCursor)
-            LD   DE,GeneratedCodeBase
+            LD   DE,MMGENCOD
             OR   A
             SBC  HL,DE
             LD   (GeneratedSize),HL
@@ -444,7 +444,7 @@ EncodeExpressionProgram:
             JR   EncodeProgramResult
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeArrayProgram:
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
             JR   EncodeArrayProgramWithinLimit
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeArrayProgramWithinLimit:
@@ -455,7 +455,7 @@ EncodeProgramResult:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeLoopProgramBody:
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
             CALL BeginProgram
 
             LD   A,(SemanticBufferBase+2)
@@ -831,7 +831,7 @@ PatchHere:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 FinishProgram:
             LD   HL,(EmitCursor)
-            LD   DE,GeneratedBase
+            LD   DE,MMGEN
             OR   A
             SBC  HL,DE
             LD   (GeneratedSize),HL
@@ -1097,7 +1097,7 @@ CallEndRoutine:
 ; Compile the routine slice from its variable-width semantic stream.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeCallProgramBody:
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
             CALL BeginProgram
             LD   HL,0
             LD   (EmitRoutineAddress),HL
@@ -1196,7 +1196,7 @@ ExpressionTargetAddressReady:
             CALL NextSemanticByte
             LD   E,A
             LD   D,0
-            LD   HL,GeneratedBase+3
+            LD   HL,MMGEN+3
             ADD  HL,DE
             RET
 .endif
@@ -1383,7 +1383,7 @@ ExpressionEndMain:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeExpressionProgramBody:
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
             CALL BeginProgram
             CALL EmitByteInlineChecked
             .db  $C3

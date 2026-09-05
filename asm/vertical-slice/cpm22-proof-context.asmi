@@ -1,25 +1,7 @@
-; Frozen proof-only inputs for the CP/M adapter tests, not a production map.
-; Production authority remains cpm22-target-memory-map.asmi and
-; platform-services-abi.asmi; native proof tests check the complete expressions
-; on which these selected values depend. The full transient checks the real map.
-CSWKBASE EQU $5858
+; Use the actual production memory map. Only source-part capacity remains a
+; proof setting until its compiler-state declaration is extracted.
+%INCLUDE "cpm22-target-memory-map.asmi"
 SRCPARTS EQU 8
-SRCCHUNK EQU $7500
-NSTATINV EQU 1
-NSTATNF  EQU 3
-NSTATCAP EQU 4
-NSTATIO  EQU 6
-NSTATCF  EQU 7
-DOWKBASE EQU $5820
-DOBUF    EQU $7800
-DOBUFEND EQU $D500
-DOIMG    EQU $0800
-DOIMGCAP EQU $5D00
-DOIMGEND EQU $6500
-DOOFFSET EQU $7000
-DOWRBASE EQU $5800
-PRRESLIM EQU $5800
-PRWKLIM  EQU $6000
 
-; All four adapter proofs occupy the host-code region before their own stubs.
+; All five adapter proofs occupy the host-code region before their own stubs.
             ORG $4100

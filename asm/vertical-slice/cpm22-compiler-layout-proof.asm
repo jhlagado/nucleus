@@ -7,10 +7,10 @@ NativeStreamingSource .equ 1
             .include "cpm22-target-memory-map.asmi"
             .include "nucleus-runtime-identity.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
             .include "flat-target-compiler-image.asmi"
 
-HostVectorBase .equ CpmHostVectorBase
+HostVectorBase .equ MMHOSTVC
             .org HostVectorBase
 CpmHostVectorStart:
             .db "NH",0,1,8,14,0,0

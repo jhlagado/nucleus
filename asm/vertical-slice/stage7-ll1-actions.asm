@@ -351,7 +351,7 @@ HybridLL1DataShiftReady:
             ; Target transcripts retain a segment-relative offset. Bit 15 is
             ; clear for initialized data and set for BSS.
 .else
-            LD   HL,ProgramDataBase
+            LD   HL,MMDATA
             ADD  HL,BC
             LD   B,H
             LD   C,L
@@ -372,7 +372,7 @@ HybridLL1AllocateBssObject:
 .if TargetStreamingOutput
             SET  7,B
 .else
-            LD   HL,ProgramBssBase
+            LD   HL,MMBSS
             ADD  HL,BC
             LD   B,H
             LD   C,L

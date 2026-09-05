@@ -1,8 +1,9 @@
+NativeStreamingSource .equ 0
 ; Isolated byte census for two equivalent eight-operation dispatch selectors.
 
             .include "memory-map.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 TableDispatchStart:
 .routine in A out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
@@ -78,7 +79,7 @@ Dispatch7:  OR A
 CompilerCodeEnd:
 CompilerCoreEnd:
 
-            .org ProofBase
+            .org MMPROOF
 ProofStart:
             LD   A,$A5
             LD   (ProofStatus),A

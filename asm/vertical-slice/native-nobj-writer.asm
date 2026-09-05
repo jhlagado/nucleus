@@ -45,7 +45,7 @@ NativeNobjBeginPrefix:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeNobjUnavailable:
-            LD   A,NucleusStatusUnavailable
+            LD   A,NSTATNA
             SCF
             RET
 
@@ -80,20 +80,20 @@ NativeNobjBeginValid:
 
             LD   HL,NativeNobjImageName
             LD   B,NativeNobjImageNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
+            LD   A,NOBEGIN
+            CALL OCOPEN
             JR   C,NativeNobjBeginAbort
             LD   (NativeNobjImageHandle),HL
             LD   HL,NativeNobjPatchName
             LD   B,NativeNobjPatchNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
+            LD   A,NOBEGIN
+            CALL OCOPEN
             JR   C,NativeNobjBeginAbort
             LD   (NativeNobjPatchHandle),HL
             LD   HL,NativeNobjOutputName
             LD   B,NativeNobjOutputNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
+            LD   A,NOBEGIN
+            CALL OCOPEN
             JR   C,NativeNobjBeginAbort
             LD   (NativeNobjOutputHandle),HL
 
@@ -165,13 +165,13 @@ NativeNobjSingleByte:
             CP   2
             JR   NZ,NativeNobjWritePatchRecord
             LD   HL,(NativeNobjImageHandle)
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
             LD   HL,NativeNobjImageCount
             JR   NativeNobjIncrementWord
 NativeNobjWritePatchRecord:
             LD   HL,(NativeNobjPatchHandle)
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
             LD   HL,NativeNobjPatchCount
 .routine in HL out HL,zero clobbers sign,parity,halfCarry
@@ -198,7 +198,7 @@ NativeNobjPatchWord:
             LD   HL,(NativeNobjPatchHandle)
             LD   DE,NativeNobjRecordBuffer
             LD   BC,8
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
             LD   HL,NativeNobjPatchCount
             JR   NativeNobjIncrementWord
@@ -222,60 +222,60 @@ NativeNobjRuntime:
             LD   A,(NativeHostRuntimeBank)
             LD   (NativeNobjRecordBuffer+3),A
             POP  AF
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOperation),A
-            LD   A,NucleusRuntimeCatalogRequestSize
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestSizeField),A
-            LD   A,NucleusRuntimeCatalogAbiVersion
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestAbi),A
+            LD   (NativeNobjRuntimeRequest+NCFOPER),A
+            LD   A,NCRQSIZE
+            LD   (NativeNobjRuntimeRequest+NCFSIZE),A
+            LD   A,NCABI
+            LD   (NativeNobjRuntimeRequest+NCFABI),A
             LD   A,(NativeNobjBankCount)
             DEC  A
             LD   A,0
             JR   Z,NativeNobjRuntimeFlagsReady
             INC  A
 NativeNobjRuntimeFlagsReady:
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestFlags),A
+            LD   (NativeNobjRuntimeRequest+NCFFLAG),A
             LD   A,(NativeHostRuntimeBank)
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestBank),A
+            LD   (NativeNobjRuntimeRequest+NCFBANK),A
             XOR  A
             LD   (NativeNobjRuntimeRequest+5),A
             LD   (NativeNobjRuntimeRequest+20),A
             LD   (NativeNobjRuntimeRequest+21),A
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestIdentity),DE
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestLength),BC
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestContext),IX
+            LD   (NativeNobjRuntimeRequest+NCFIDENT),DE
+            LD   (NativeNobjRuntimeRequest+NCFLEN),BC
+            LD   (NativeNobjRuntimeRequest+NCFCTX),IX
             LD   DE,0
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset),DE
+            LD   (NativeNobjRuntimeRequest+NCFOFF),DE
             LD   DE,NativeNobjTransferBuffer
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestPointer),DE
+            LD   (NativeNobjRuntimeRequest+NCFPTR),DE
             LD   DE,$0100
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestCapacity),DE
+            LD   (NativeNobjRuntimeRequest+NCFCAP),DE
             LD   HL,(NativeNobjImageHandle)
             LD   DE,NativeNobjRecordBuffer
             LD   BC,6
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
 NativeNobjRuntimeLoop:
             LD   HL,NativeNobjRuntimeRequest
-            LD   C,NucleusServiceRuntimeCatalog
+            LD   C,NSRTCAT
             RST  $10
             RET  C
-            LD   BC,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestResult)
+            LD   BC,(NativeNobjRuntimeRequest+NCFRES)
             LD   A,B
             OR   C
-            JP   Z,NativeObjectInvalid
+            JP   Z,OCINVAL
             LD   HL,(NativeNobjImageHandle)
             LD   DE,NativeNobjTransferBuffer
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
-            LD   BC,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestResult)
-            LD   HL,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset)
+            LD   BC,(NativeNobjRuntimeRequest+NCFRES)
+            LD   HL,(NativeNobjRuntimeRequest+NCFOFF)
             ADD  HL,BC
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset),HL
-            LD   DE,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestLength)
+            LD   (NativeNobjRuntimeRequest+NCFOFF),HL
+            LD   DE,(NativeNobjRuntimeRequest+NCFLEN)
             OR   A
             SBC  HL,DE
             JR   C,NativeNobjRuntimeLoop
-            JP   NZ,NativeObjectInvalid
+            JP   NZ,OCINVAL
             LD   HL,NativeNobjImageCount
             JP   NativeNobjIncrementWord
 
@@ -285,7 +285,7 @@ NativeNobjMap:
             LD   B,A
             LD   A,(NativeNobjBankCount)
             CP   B
-            JP   NZ,NativeObjectInvalid
+            JP   NZ,OCINVAL
             LD   (NativeNobjMapPointer),IX
             OR   A
             RET
@@ -296,7 +296,7 @@ NativeNobjCommit:
             LD   A,IXH
             OR   IXL
             JR   NZ,NativeNobjCommitHasMap
-            CALL NativeObjectInvalid
+            CALL OCINVAL
             RET
 NativeNobjCommitHasMap:
             LD   HL,(NativeNobjImageHandle)
@@ -334,26 +334,26 @@ NativeNobjCommitHasMap:
             LD   HL,(NativeNobjOutputHandle)
             LD   DE,NativeNobjCrc
             LD   BC,2
-            CALL NativeObjectWrite
+            CALL OCWRITE
             JR   C,NativeNobjCommitAbort
 
             LD   HL,(NativeNobjImageHandle)
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
+            LD   A,NOABORT
+            CALL OCTERM
             JR   C,NativeNobjCommitAbort
             XOR  A
             LD   (NativeNobjImageHandle),A
             LD   (NativeNobjImageHandle+1),A
             LD   HL,(NativeNobjPatchHandle)
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
+            LD   A,NOABORT
+            CALL OCTERM
             JR   C,NativeNobjCommitAbort
             XOR  A
             LD   (NativeNobjPatchHandle),A
             LD   (NativeNobjPatchHandle+1),A
             LD   HL,(NativeNobjOutputHandle)
-            LD   A,NucleusObjectCommit
-            CALL NativeObjectTerminal
+            LD   A,NOCOMMIT
+            CALL OCTERM
             JR   C,NativeNobjCommitAbort
             XOR  A
             LD   (NativeNobjOutputHandle),A
@@ -370,13 +370,13 @@ NativeNobjCommitAbort:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 NativeNobjCopySpool:
             LD   (NativeNobjCopyHandle),HL
-            CALL NativeObjectRewind
+            CALL OCREWIND
             RET  C
 NativeNobjCopyLoop:
             LD   HL,(NativeNobjCopyHandle)
             LD   DE,NativeNobjTransferBuffer
             LD   BC,NativeNobjTransferLimit-NativeNobjTransferBuffer
-            CALL NativeObjectRead
+            CALL OCREAD
             RET  C
             LD   A,B
             OR   C
@@ -591,7 +591,7 @@ NativeNobjWriteCovered:
             POP  BC
             POP  DE
             POP  HL
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET
 
 .routine in HL,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
@@ -648,8 +648,8 @@ NativeNobjAbortLoop:
             PUSH HL
             PUSH BC
             EX   DE,HL
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
+            LD   A,NOABORT
+            CALL OCTERM
             JR   NC,NativeNobjAbortRestored
             LD   (NativeNobjAbortStatus),A
 NativeNobjAbortRestored:

@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Compile and execute the exact Chapter 18 conformance corpus through the
 ; production packed LL(1) compiler and direct-Z80 backend.
 
@@ -8,7 +9,7 @@ TargetStreamingOutput .equ 0
             .include "aggregate-call-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
@@ -43,7 +44,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
@@ -814,7 +815,7 @@ CorpusSourceEnd:
             .org $D400
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofStatus),A
             LD   (ProofCase),A
@@ -1548,8 +1549,8 @@ ProofComparePublishedProgram:
             SBC  HL,DE
             JR   NZ,ProofComparePublishedNo
             LD   BC,(GeneratedSize)
-            LD   HL,GeneratedBase
-            LD   DE,BackupBase
+            LD   HL,MMGEN
+            LD   DE,MMBACK
 ProofComparePublishedLoop:
             LD   A,B
             OR   C
@@ -1564,7 +1565,7 @@ ProofComparePublishedLoop:
 ProofComparePublishedRoData:
             LD   BC,(GeneratedRoDataSize)
             LD   HL,RORDATA
-            LD   DE,BackupBase+(RORDATA-GeneratedBase)
+            LD   DE,MMBACK+(RORDATA-MMGEN)
 ProofComparePublishedRoDataLoop:
             LD   A,B
             OR   C
@@ -1701,7 +1702,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A

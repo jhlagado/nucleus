@@ -3,7 +3,7 @@
 ; All addresses are within the compiler-workspace account. The symbols make
 ; the peak writable extent directly measurable from the AZM debug map.
 
-CompilerStateBase       .equ CompilerWorkBase
+CompilerStateBase       .equ MMWORK
 
 SourcePartId            .equ CompilerStateBase+$00
 SourceCursor            .equ CompilerStateBase+$01

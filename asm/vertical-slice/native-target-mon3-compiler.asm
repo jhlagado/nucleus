@@ -15,5 +15,5 @@ NativeNobjWriterCodeStart:
             .include "native-nobj-writer.asm"
 NativeNobjWriterCodeEnd:
             .include "native-system-services.asm"
-            .org CompilerCoreBase
+            .org MMCORE
             .include "flat-target-compiler-image.asmi"

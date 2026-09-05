@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Prove the correctness-first u8/u16/boolean expression increment end to end.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -39,7 +40,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 TypedAcceptedSource:
             .db "const folded = 65535 + 2",10
             .db "var out as u8 = 0",10
@@ -182,15 +183,15 @@ TypedExpressionCapacitySource:
             .db "end",10
 TypedExpressionCapacitySourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -290,13 +291,13 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   1
             JP   NZ,ProofFailAcceptedValue
-            LD   A,(GeneratedBase+3)       ; out
+            LD   A,(MMGEN+3)       ; out
             CP   1
             JP   NZ,ProofFailAcceptedStore
-            LD   A,(GeneratedBase+6)       ; final comparison conjunction
+            LD   A,(MMGEN+6)       ; final comparison conjunction
             CP   1
             JP   NZ,ProofFailAcceptedBoolean
-            LD   HL,(GeneratedBase+4)      ; widened add wraps 65535 + 1
+            LD   HL,(MMGEN+4)      ; widened add wraps 65535 + 1
             LD   A,H
             OR   L
             JP   NZ,ProofFailAcceptedWord
@@ -322,11 +323,11 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             OR   A
             JP   NZ,ProofFailDefaultOutput
-            LD   HL,(GeneratedBase+4)      ; word defaults to zero
+            LD   HL,(MMGEN+4)      ; word defaults to zero
             LD   A,H
             OR   L
             JP   NZ,ProofFailDefaultProgram
-            LD   A,(GeneratedBase+6)       ; false, then not, becomes true
+            LD   A,(MMGEN+6)       ; false, then not, becomes true
             CP   1
             JP   NZ,ProofFailDefaultBoolean
 
@@ -351,7 +352,7 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailNarrowOffset
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   7
             JP   NZ,ProofFailNarrowAtomic
 
@@ -376,7 +377,7 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailDivideOffset
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   9
             JP   NZ,ProofFailDivideAtomic
 
@@ -560,7 +561,7 @@ ProofFillOperationCount:
             LD   A,(ServiceOutputBase)
             CP   255
             JP   NZ,ProofFailCoverageOutput
-            LD   A,(GeneratedBase+4)       ; dynamic Boolean conjunction
+            LD   A,(MMGEN+4)       ; dynamic Boolean conjunction
             CP   1
             JP   NZ,ProofFailCoverageBoolean
 
@@ -579,7 +580,7 @@ ProofFillOperationCount:
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailConversionState
-            LD   HL,(GeneratedBase+4)
+            LD   HL,(MMGEN+4)
             LD   A,H
             OR   A
             JP   NZ,ProofFailConversionValue
@@ -607,7 +608,7 @@ ProofFillOperationCount:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailNestedDivideOffset
-            LD   HL,(GeneratedBase+3)
+            LD   HL,(MMGEN+3)
             LD   DE,10
             OR   A
             SBC  HL,DE
@@ -633,7 +634,7 @@ ProofFillOperationCount:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailNestedNarrowOffset
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   7
             JP   NZ,ProofFailNestedNarrowAtomic
 
@@ -686,12 +687,12 @@ ProofFillOperationCount:
             LD   (ProofExpectedSP),HL
             XOR  A
             LD   (DiagnosticCode),A
-            LD   HL,GeneratedBase
+            LD   HL,MMGEN
             LD   (EmitCursor),HL
-            LD   HL,GeneratedBase+3
+            LD   HL,MMGEN+3
             LD   (EmitLimit),HL
             LD   A,$CC
-            LD   (GeneratedBase+3),A
+            LD   (MMGEN+3),A
             CALL TypedNegate16
             JP   NC,ProofFailUnaryEmitReturn
             LD   HL,0
@@ -704,19 +705,19 @@ ProofFillOperationCount:
             CP   DiagnosticSinkCapacity
             JP   NZ,ProofFailUnaryEmitDiagnostic
             LD   HL,(EmitCursor)
-            LD   DE,GeneratedBase+3
+            LD   DE,MMGEN+3
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailUnaryEmitCursor
-            LD   HL,(GeneratedBase)
+            LD   HL,(MMGEN)
             LD   DE,$AFE1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailUnaryEmitPrefixWord
-            LD   A,(GeneratedBase+2)
+            LD   A,(MMGEN+2)
             CP   $95
             JP   NZ,ProofFailUnaryEmitPrefixByte
-            LD   A,(GeneratedBase+3)
+            LD   A,(MMGEN+3)
             CP   $CC
             JP   NZ,ProofFailUnaryEmitCanary
 
@@ -767,7 +768,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A
@@ -1038,9 +1039,9 @@ ProofArithmeticCases:
 ProofArithmeticCasesEnd:
 ProofEnd:
 
-GeneratedTypedEnd             .equ GeneratedBase+857
+GeneratedTypedEnd             .equ MMGEN+857
 
-            .org SpareBase
+            .org MMSPARE
 TypedDynamicZeroSource:
             .db "var out as u8 = 1",10
             .db "sub main() fails",10

@@ -9,14 +9,14 @@ NativeStreamingSource .equ 1
             .include "nucleus-runtime-identity.asmi"
             .include "platform-services-abi.asmi"
 
-            .org CompilerTransientBase
+            .org MMTRANS
 CpmCompilerTransientStart:
             JP   CpmCompilerEntry
 
-            .org CompilerCoreBase
+            .org MMCORE
             .include "flat-target-compiler-image.asmi"
 
-            .org CpmHostVectorBase
+            .org MMHOSTVC
             .include "cpm22-native-host-vector.asmi"
 
             .include "cpm22-bdos-call.asm"

@@ -1,6 +1,6 @@
 ; Writable state exposed by the direct-Z80 proof target.
 
-RTSTATE         .equ ExecutionBase
+RTSTATE         .equ MMEXEC
 RunState          .equ RTSTATE+$00
 RTTRPNO        .equ RTSTATE+$01
 RTTRPRTN       .equ RTSTATE+$02
@@ -12,11 +12,11 @@ RunReady          .equ 1
 RTSUCC      .equ 2
 RTTRAP        .equ 3
 
-ServiceForceFailure     .equ ServiceBase+$00
-ServiceOutputLength     .equ ServiceBase+$01
-ServiceOutputByte       .equ ServiceBase+$02
-ServiceStateEnd         .equ ServiceBase+$03
+ServiceForceFailure     .equ MMSERV+$00
+ServiceOutputLength     .equ MMSERV+$01
+ServiceOutputByte       .equ MMSERV+$02
+ServiceStateEnd         .equ MMSERV+$03
 
 ProgramSize       .equ 37
 FailureOffset     .equ 13
-GeneratedEnd      .equ GeneratedBase+ProgramSize
+GeneratedEnd      .equ MMGEN+ProgramSize

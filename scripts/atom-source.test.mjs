@@ -105,7 +105,8 @@ test("current native source has complete mapped parts and no unresolved definiti
   assert.ok(source.parts.length > 1);
   assert.ok(source.parts.every(part => part.compilerBytes.length <= 65535));
   assert.equal(source.definitions.TargetStreamingOutput, 1);
-  assert.equal(source.limits.AddressSpaceLimit, 65536);
+  assert.equal(source.limits.AddressSpaceLimit, undefined);
+  assert.equal(source.sourceSymbols.get("MMLAST"), "AddressSpaceLimit");
   assert.ok([...source.sourceSymbols.values()].includes("EmitByte"));
   assert.ok([...source.sourceSymbols.values()].includes("Stage7ParameterSourceOffset._parameterSourceOffsetLoop"));
   assert.throws(() => prepareAtomSource("../../outside.asm"), /escapes/);

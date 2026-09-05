@@ -8,7 +8,7 @@ CpmCompilerEntry:
             ; re-entered, so retain the caller stack in one immediate operand
             ; and give the complete compilation its reserved stack.
             LD   (CpmCompilerRestoreSp+1),SP
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             CALL CpmCompilerRun
 CpmCompilerRestoreSp:
             LD   SP,0
@@ -125,7 +125,7 @@ CpmCompilerTargetDescriptor:
             .dw  DOIMG
             .dw  DOIMGCAP
             .dw  DOWRBASE
-            .dw  CpmTargetWritableCapacity
+            .dw  MMWRCAP
             .db  0,1,0
             .dw  CpmCompilerPartBanks
 CpmCompilerHostErrorText:  .db 13,10,"Nucleus host error ","$"

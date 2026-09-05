@@ -163,14 +163,14 @@ RTREGCHK:
             POP  IY
 %IF AggregateCallSlices
             PUSH HL
-            LD   DE,ProgramDataBase
+            LD   DE,MMDATA
             CALL RTREGONE
             POP  HL
             RET  NC
             LD   DE,RORDATA
-            LD   IY,GeneratedRoDataLimit
+            LD   IY,MMROEND
 %ELSE
-            LD   DE,GeneratedBase+3
+            LD   DE,MMGEN+3
 %ENDIF
             JP   RTREGONE
 %ENDIF

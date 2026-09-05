@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Prove failable signatures and explicit failure on the packed LL(1) path.
 
             .include "memory-map.asmi"
@@ -7,7 +8,7 @@ TargetStreamingOutput .equ 0
             .include "aggregate-call-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
@@ -42,7 +43,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 Stage8MainFailSource:
             .db "sub helper() as u8",10
             .db "return 7",10
@@ -202,12 +203,12 @@ Stage8ReadInputHandlerSource:
 Stage8ReadInputHandlerSourceEnd:
 
             ; Emit the runtime before the higher-address source fixtures.
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org SpareBase
+            .org MMSPARE
 Stage8ConstantsSource:
             .db "sub main() fails",10
             .db "if endOfInput = 1 and inputFailure = 2 and outputFailure = 3 and storageFailure = 4",10
@@ -322,7 +323,7 @@ Stage8IncompleteForwardSourceEnd:
 
             ; Later negative and trap sources live beyond the transactional
             ; backup region so repeated encoding cannot overwrite them.
-            .org BackupLimit
+            .org MMBKEND
 Stage8PredefinedVariableSource:
             .db "var "
 Stage8PredefinedVariablePoint:
@@ -826,7 +827,7 @@ Stage8CounterHandleNameSourceEnd:
             .org $D000
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofStatus),A
             LD   (ProofCase),A
@@ -1003,7 +1004,7 @@ ProofStart:
             LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofProgramHandlerRunFailure
-            LD   A,(ProgramBssBase)
+            LD   A,(MMBSS)
             CP   7
             JP   NZ,ProofProgramHandlerRunFailure
             LD   A,(ServiceOutputLength)
@@ -1994,7 +1995,7 @@ ProofExpectedDiagnosticFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 ProofValidatePublication:
             LD   HL,(GeneratedSize)
-            LD   DE,GeneratedBase
+            LD   DE,MMGEN
             ADD  HL,DE
             LD   DE,(EmitCursor)
             OR   A
@@ -2082,7 +2083,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A

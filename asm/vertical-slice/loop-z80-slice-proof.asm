@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Compile and execute the counted-loop source as direct Z80 code.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -27,7 +28,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 LoopProofSource:
             .db "sub main() fails",10
             .db "    var index as u8 = 0",10
@@ -46,15 +47,15 @@ ZeroLoopProofSource:
             .db "end",10
 ZeroLoopProofSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -76,7 +77,7 @@ ProofStart:
             CALL Reset
             XOR  A
             LD   (ServiceFailureCall),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,D
             CP   2
             JP   NZ,ProofFailFinalCounter
@@ -98,7 +99,7 @@ ProofCheckSuccessOutput:
             CALL Reset
             LD   A,2
             LD   (ServiceFailureCall),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTTRAP
             JP   NZ,ProofFailTrapState
@@ -130,7 +131,7 @@ ProofCheckSuccessOutput:
             CALL Reset
             XOR  A
             LD   (ServiceFailureCall),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailZeroRun

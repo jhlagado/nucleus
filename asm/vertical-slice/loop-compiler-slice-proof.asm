@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Source proof for the u8-local and counted-loop compiler slice.
 
             .include "memory-map.asmi"
@@ -5,7 +6,7 @@ SegmentedOutput .equ 0
 TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -21,7 +22,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 AcceptedLoopSource:
             .db "sub main() fails",10
             .db "    var index as u8 = 0",10
@@ -58,10 +59,10 @@ MissingEndSource:
             .db "    end",10
 MissingEndSourceEnd:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A

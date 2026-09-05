@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Compile and execute one forward-declared recursive scalar value routine.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
@@ -37,7 +38,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 CallProofSource:
             .db "forward sub descend(value as u8) as u8",10
             .db 10
@@ -73,15 +74,15 @@ BadCompletionName:
             .db "end",10
 BadCompletionSourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -107,7 +108,7 @@ ProofStart:
             JP   NZ,ProofFailTranscriptEnd
 
             CALL Reset
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTSUCC
             JP   NZ,ProofFailSuccessState
@@ -129,7 +130,7 @@ ProofStart:
             LD   (RTACTMEM+3),A
             LD   A,3
             LD   (RTACTLIM),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTTRAP
             JP   NZ,ProofFailCapacityState
@@ -157,7 +158,7 @@ ProofStart:
             CALL Reset
             LD   A,1
             LD   (ServiceFailureCall),A
-            CALL GeneratedBase
+            CALL MMGEN
             LD   A,(RunState)
             CP   RTTRAP
             JP   NZ,ProofFailOutputState

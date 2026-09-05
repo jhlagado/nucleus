@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Independently exercise the packed Stage 7 LL(1) engine and generated tables
 ; with the smallest complete main program. All semantic actions are proof-only
 ; RET aliases; this proof tests grammar selection, terminal consumption, stack
@@ -13,7 +14,7 @@ AggregateCallSlices .equ 0
 CompilerDiagnosticReturns .equ 1
 CompilerDiagnosticBranches .equ 1
 
-            .org CompilerCoreBase
+            .org MMCORE
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
             LD   A,(MockPeekFailure)
@@ -68,15 +69,15 @@ HybridLL1MeasuredStart:
             .include "stage7-ll1-parser.asm"
 HybridLL1MeasuredEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 MockTokenStream:
             .db TokenSub,TokenName,TokenLeftParen,TokenRightParen
             .db TokenFails,TokenNewline,TokenEnd,TokenNewline,TokenEof
 MockTokenStreamEnd:
 
-            .org ProofBase
+            .org MMPROOF
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             LD   HL,MockTokenStream
             LD   (MockTokenCursor),HL
             XOR  A

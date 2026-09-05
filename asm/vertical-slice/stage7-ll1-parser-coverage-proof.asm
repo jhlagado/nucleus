@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 Stage7LL1 .equ 1
 TargetStreamingOutput .equ 0
             .include "stage7-parser-coverage-proof.asmi"

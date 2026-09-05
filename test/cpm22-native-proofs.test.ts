@@ -11,8 +11,6 @@ type Baseline = {
   proofs: Record<string, {
     symbols: Record<string, number>;
     segments: { start: number; end: number; hex: string; sha256: string }[];
-    omittedInheritedSymbols: string[];
-    addedProofContextSymbols: Record<string, number>;
   }>;
 };
 // One-time capture of corrected abbb2be proofs assembled by ATOM. These are
@@ -50,24 +48,18 @@ describe("canonical native CP/M proof preservation", () => {
       expect(assembled.generation.highWater).toBe(frozen.segments.at(-1)!.end);
       expect(assembled.generation.finalCursor).toBe(frozen.segments.at(-1)!.end);
 
-      // The snapshot lists omitted, unused imports from the old whole-machine
-      // map/ABI. None may be an adapter's declaration or runtime identity.
-      for (const omitted of frozen.omittedInheritedSymbols) {
-        expect(omitted).not.toMatch(/^(CpmCommand|CpmPublish|CpmDirect|CpmSource|CpmProgram|CpmRuntime|NucleusRuntime(?!Catalog)|ZTS_CPM_)/);
-        expect(Object.hasOwn(frozen.symbols, omitted)).toBe(true);
-      }
-      const retained = Object.fromEntries(Object.entries(frozen.symbols)
-        .filter(([key]) => !frozen.omittedInheritedSymbols.includes(key)));
-      expect(assembled.symbols).toEqual({ ...retained, ...frozen.addedProofContextSymbols });
+      // Canonical maps restore every original imported name. Only the shared
+      // proof's source-part setting is additional in the three output proofs.
+      expect(assembled.symbols).toEqual({ ...frozen.symbols,
+        ...(name !== "program-provider" ? { SourcePartCapacity: 8 } : {}),
+      });
       expect(assembled.symbols.PGCLRLEN).toBeUndefined();
       if (name !== "program-provider") {
-        expect(assembled.symbols).toMatchObject(proofContext);
-        expect(frozen.addedProofContextSymbols).toEqual(Object.fromEntries(
-          Object.entries(proofContext).filter(([key]) => !Object.hasOwn(frozen.symbols, key)),
-        ));
+        expect(assembled.symbols.AddressSpaceLimit).toBe(65536);
+        const retainedContext = Object.fromEntries(Object.entries(proofContext)
+          .filter(([key]) => Object.hasOwn(assembled.symbols, key)));
+        expect(assembled.symbols).toMatchObject(retainedContext);
       } else {
-        expect(frozen.omittedInheritedSymbols).toEqual([]);
-        expect(frozen.addedProofContextSymbols).toEqual({});
         // Two adjacent unfilled DS36 FCBs are NOT source writes. The packed
         // generated prefix nevertheless contains zero-filled bytes there.
         expect(parsed.memory.slice(0x419, 0x461)).toEqual(new Uint8Array(72));
@@ -102,29 +94,13 @@ describe("canonical native CP/M proof preservation", () => {
     expect(raw.symbols.PGCLRLEN).toBe(raw.symbols.PGSTATE! - raw.symbols.PGINCUR!);
   });
 
-  it("checks all proof-only inputs against their actual map and ABI expressions", () => {
-    const source = (name: string) => readFileSync(new URL(`../asm/vertical-slice/${name}`, import.meta.url), "utf8");
-    const check = (file: string, expected: Record<string, string>) => {
-      for (const [name, expression] of Object.entries(expected)) {
-        expect(source(file).split("\n").some(line => {
-          const fields = line.split(";")[0]!.trim().split(/\s+/);
-          return fields[0] === name && [".equ", "EQU"].includes(fields[1]!) &&
-            fields.slice(2).join("") === expression.replace(/\s/g, "");
-        }), `${file}: proof input ${name} must track its complete expression`).toBe(true);
-      }
-    };
-    check("cpm22-target-memory-map.asmi", {
-      CompilerWorkBase: "$6000", SourceBase: "$7000", SourceLimit: "$7800",
-      NativeSourceTokenLimit: "SourceBase+$0500", SRCCHUNK: "NativeSourceTokenLimit",
-      CpmHostResidentLimit: "$5800", CpmHostWorkspaceBase: "$5800",
-      CpmHostWorkspaceLimit: "CompilerWorkBase", DOWKBASE: "CpmHostWorkspaceBase+$0020",
-      CSWKBASE: "CpmHostWorkspaceBase+$0058", DOIMG: "$0800", DOBUF: "SourceLimit",
-      DOBUFEND: "$D500", DOIMGCAP: "DOBUFEND-DOBUF", DOIMGEND: "DOIMG+DOIMGCAP",
-      DOOFFSET: "DOBUF-DOIMG", DOWRBASE: "$5800",
-    });
-    check("platform-services-abi.asmi", {
-      NSTATINV: "1", NSTATNF: "3", NSTATCAP: "4", NSTATIO: "6", NSTATCF: "7",
-    });
-    check("aggregate-call-state.asmi", { SRCPARTS: "8" });
+  it("uses canonical machine inputs and guards the remaining proof capacity", async () => {
+    const assembled = await assembleNativeCpmProof("cpm22-command-proof.asm");
+    const names = assembled.project.parts.map(part => part.logicalIdentity.split("/").at(-1));
+    expect(names).toContain("cpm22-target-memory-map.asmi");
+    expect(names).toContain("platform-services-abi.asmi");
+    expect(assembled.symbols).toMatchObject(proofContext);
+    const state = readFileSync(new URL("../asm/vertical-slice/aggregate-call-state.asmi", import.meta.url), "utf8");
+    expect(state).toMatch(/^SRCPARTS\s+\.equ\s+8$/m);
   });
 });

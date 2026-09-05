@@ -58,13 +58,18 @@ review. The production program-prefix generator now uses native ATOM source.
 Shared naming and build integration have one writer; independent source,
 test and review work proceeds concurrently.
 
-The next bounded production-path candidate is the standalone import resolver:
-`native-object-client.asm`, `native-source-plan-provider.asm` and
-`native-import-resolver.asm`, with their ABI constants and entry composition.
-Its generated image and resolver tests provide an independent qualification
-boundary. Shared memory/state inventory can proceed alongside that conversion.
-The source adapter, tokenizer and keyword table are the next small compiler
-family, but require coordinated state names and real streaming-host proofs.
+The [resolver and memory-map report](../reports/atom-native-resolver-memory.md)
+records the next conversion. The standalone import resolver now uses native
+ATOM in its production generator. Its three leaves, ABI constants, source-plan
+proof and four memory maps have direct native assembly checks. CP/M adapter
+proofs import the actual map and ABI; their temporary numeric copies are removed.
+The host still receives the mathematical address-space limit of 65,536.
+
+The next bounded compiler wave is state declarations alongside the source
+adapter, tokenizer and keyword table. These require coordinated shared names
+and real streaming-host proofs. The current scanner still lists 4,610 long
+names requiring migration, across 5,577 declared names; this is source-adapter
+debt, not a measure of compiler size or a percentage of work remaining.
 
 Current inventory also identifies three constraints for the later full
 compiler composition. The host-only address-space limit is 65,536 and must

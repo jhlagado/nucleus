@@ -1,3 +1,4 @@
+NativeStreamingSource .equ 0
 ; Prove Stage 6 packed aggregate layouts and atomic static-image publication.
 
             .include "memory-map.asmi"
@@ -6,7 +7,7 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
             .include "loop-z80-state.asmi"
 
-            .org CompilerCoreBase
+            .org MMCORE
 CompilerCodeStart:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 0
@@ -40,7 +41,7 @@ CompilerImmutableStart:
 CompilerImmutableEnd:
 CompilerCoreEnd:
 
-            .org SourceBase
+            .org MMSOURCE
 AggregateAcceptedSource:
             .db "record Pixel",10
             .db "r as u8",10
@@ -224,15 +225,15 @@ AggregateTypeExtentCapacitySource:
             .db "var huge as u16[128]",10
 AggregateTypeExtentCapacitySourceEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
 
-            .org ProofBase
+            .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
@@ -308,7 +309,7 @@ ProofStart:
             JP   NZ,ProofFailLayout
             CALL EncodeAggregateProgram
             JP   C,ProofFailAcceptedEncode
-            LD   HL,GeneratedBase+3
+            LD   HL,MMGEN+3
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
             CALL ProofCompareBytes
@@ -328,7 +329,7 @@ ProofStart:
             LD   (AggregateSavedSize),HL
             LD   A,$5A
             LD   (StaticImageBase),A
-            LD   HL,GeneratedBase+12
+            LD   HL,MMGEN+12
             CALL EncodeAggregateProgramWithinLimit
             JR   C,AggregateAtomicFailedAsExpected
             XOR  A
@@ -347,8 +348,8 @@ AggregateAtomicFailedAsExpected:
             OR   A
             JP   NZ,ProofFailAtomicSize
             LD   B,L
-            LD   HL,GeneratedBase
-            LD   DE,BackupBase
+            LD   HL,MMGEN
+            LD   DE,MMBACK
             CALL ProofCompareBytes
             JP   C,ProofFailAtomicBytes
 
@@ -412,7 +413,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,(AggregateTypeCount)
             CP   2
             JP   NZ,ProofFailNestedArray
-            LD   HL,GeneratedBase+3
+            LD   HL,MMGEN+3
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
             CALL ProofCompareBytes
@@ -639,7 +640,7 @@ ProofCallGenerated:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   IX,$A55A
-            CALL GeneratedBase
+            CALL MMGEN
             PUSH IX
             POP  DE
             LD   HL,$A55A

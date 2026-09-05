@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { assembleProviderProof, fixedBaseline, repositoryRoot } from "./fixtures/cpm-source-native/assemble.js";
+import { assembleProviderProof, fixedBaseline, frozenCommandSymbols, fullSymbolBaseline, repositoryRoot } from "./fixtures/cpm-source-native/assemble.js";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -200,7 +200,14 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     expect(hash(bytes)).toBe(fixedBaseline.sha256);
     expect(hash(bytes.slice(0, 25))).toBe(fixedBaseline.bdosSha256);
     expect(hash(bytes.slice(25))).toBe(fixedBaseline.providerSha256);
-    expect(symbols).toEqual({ ...fixedBaseline.symbols, CpmHostWorkspaceLimit: 0x6000 });
+    expect(Object.keys(fixedBaseline.symbols)).toHaveLength(88);
+    expect(fullSymbolBaseline.revision).toBe("abbb2bea1b20d6ccfe11bdf936f48b525b0d88a6");
+    expect(fullSymbolBaseline.symbols).toMatchObject(fixedBaseline.symbols);
+    const restoredMapAndAbi = Object.fromEntries(Object.entries(fullSymbolBaseline.symbols)
+      .filter(([name]) => !Object.hasOwn(fixedBaseline.symbols, name)));
+    expect(Object.keys(restoredMapAndAbi)).toHaveLength(129);
+    expect(symbols).toEqual({ ...fixedBaseline.symbols, ...restoredMapAndAbi });
+    expect(assembled.addresses).toEqual(fullSymbolBaseline.addresses);
     // The HEX reader reports record-sized ranges; prove their exact union
     // without requiring it to coalesce adjacent records.
     expect((parseIntelHex(assembled.hex).writeRanges ?? []).flatMap(({ start, end }) =>
@@ -208,49 +215,45 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     )).toEqual(Array.from({ length: 737 }, (_, index) => 0x4100 + index));
     expect(assembled.generation.highWater).toBe(0x43e1);
     expect(assembled.generation.finalCursor).toBe(0x43e1);
-    expect(assembled.project.parts).toHaveLength(4);
+    expect(assembled.project.parts.map(part => part.logicalIdentity.split("/").at(-1))).toEqual([
+      "cpm22-target-memory-map.asmi", "cpm22-proof-context.asmi",
+      "platform-services-abi.asmi", "cpm22-bdos-call.asm",
+      "cpm22-source-provider.asm", "cpm22-source-provider-proof.asm",
+    ]);
     for (const part of assembled.project.parts) {
-      if (part.logicalIdentity.endsWith("/entry.asm")) {
-        // ATOM itself consumes include headers, preserving their line widths.
-        expect(new TextDecoder().decode(part.compilerBytes)).toBe(
-          new TextDecoder().decode(part.originalBytes).replace(/[^\r\n]/g, " "),
-        );
-      } else {
-        expect(part.compilerBytes).toEqual(part.originalBytes);
-      }
+      // Only official ATOM include handling changes compiler-visible headers.
+      expect(new TextDecoder().decode(part.compilerBytes)).toBe(
+        new TextDecoder().decode(part.originalBytes)
+          .replace(/^%INCLUDE[^\r\n]*/gm, line => " ".repeat(line.length)),
+      );
     }
     expect(assembled.addresses.CpmSourceProviderBegin).toBe(0x4119);
     expect(assembled.addresses.CpmSourceWorkspaceBase).toBeUndefined();
   });
 
-  it("keeps the numeric proof context aligned with the actual CP/M map and ABI", () => {
-    const source = (name: string) => readFileSync(join(repositoryRoot, "asm/vertical-slice", name), "utf8");
-    const map = source("cpm22-target-memory-map.asmi");
-    // Fail on source-map drift instead of silently testing a stale machine.
-    for (const [name, expression] of [
-      ["CompilerWorkBase", "$6000"], ["SourceBase", "$7000"],
-      ["NativeSourceTokenLimit", "SourceBase+$0500"],
-      ["SRCCHUNK", "NativeSourceTokenLimit"],
-      ["CpmHostWorkspaceBase", "$5800"],
-      ["CpmHostWorkspaceLimit", "CompilerWorkBase"],
-      ["CSWKBASE", "CpmHostWorkspaceBase+$0058"],
-    ]) {
-      expect(map.split("\n").some(line => {
-        const fields = line.split(";")[0]!.trim().split(/\s+/);
-        return fields[0] === name && fields[1] === ".equ" &&
-          fields.slice(2).join("") === expression.replace(/\s/g, "");
-      }), `${name} proof input must track the production map`).toBe(true);
+  it("restores the actual map and ABI exports while retaining the configured part capacity", () => {
+    // The old command proof is this exact source proof followed by command
+    // declarations. Enumerate those omissions; never infer them from live code.
+    expect(fullSymbolBaseline.commandOnlySymbols).toHaveLength(59);
+    for (const name of fullSymbolBaseline.commandOnlySymbols) {
+      expect(name).toMatch(/^(CpmCommand|CpmCompilerOutput|CpmOutputFormat)/);
+      expect(Object.hasOwn(frozenCommandSymbols, name)).toBe(true);
     }
-    expect(source("cpm22-source-provider-proof.asm")).toMatch(/^SRCPARTS\s+\.equ\s+8$/m);
-    for (const [name, value] of [["NSTATINV", 1], ["NSTATCAP", 4], ["NSTATIO", 6]]) {
-      expect(source("platform-services-abi.asmi")).toMatch(new RegExp(`^${name}\\s+\\.equ\\s+${value}$`, "m"));
-    }
-    expect(symbols).toMatchObject({
-      CpmSourceWorkspaceBase: 0x5858, SourcePartCapacity: 8,
-      NativeSourceChunkBase: 0x7500, NucleusStatusInvalid: 1,
-      NucleusStatusCapacity: 4, NucleusStatusStorage: 6,
-      CpmHostWorkspaceLimit: 0x6000,
-    });
+    const sourceOnly = Object.fromEntries(Object.entries(frozenCommandSymbols)
+      .filter(([name]) => !fullSymbolBaseline.commandOnlySymbols.includes(name)));
+    expect(sourceOnly).toEqual(fullSymbolBaseline.symbols);
+    expect(symbols).toEqual(sourceOnly);
+    expect(symbols.AddressSpaceLimit).toBe(0x10000);
+
+    // This is the sole remaining proof configuration: the compiler-state file
+    // still owns source-part capacity, while map and ABI are direct imports.
+    const state = readFileSync(join(repositoryRoot, "asm/vertical-slice/aggregate-call-state.asmi"), "utf8");
+    expect(state.split("\n").some(line => {
+      const fields = line.split(";")[0]!.trim().split(/\s+/);
+      return fields[0] === "SRCPARTS" && [".equ", "EQU"].includes(fields[1]!) &&
+        fields.slice(2).join("") === String(symbols.SourcePartCapacity);
+    })).toBe(true);
+    expect(symbols.SourcePartCapacity).toBe(8);
   });
 
   it("streams exact one-based multipart events and resets for another command", () => {

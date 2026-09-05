@@ -2,44 +2,44 @@
 ; and target-stream services are implemented by Z80 code. Named objects and
 ; runtime-catalogue chunks continue through the narrow platform provider.
 
-NativeSystemSavedStatus .equ NativeSourceProviderWorkspaceEnd
+NativeSystemSavedStatus .equ SPWKEND
 NativeSystemSavedA      .equ NativeSystemSavedStatus+1
 
 .routine in A,C out A,BC,DE,HL,IX,IY,carry,zero clobbers sign,parity,halfCarry
 NativeSystemDispatcher:
             LD   (NativeSystemSavedA),A
             LD   A,C
-            CP   NucleusServiceCompilerFirst+0
+            CP   NSCOMPF+0
             JR   Z,NativeSystemSourceNext
-            CP   NucleusServiceCompilerFirst+1
+            CP   NSCOMPF+1
             JR   Z,NativeSystemRetainName
-            CP   NucleusServiceCompilerFirst+2
+            CP   NSCOMPF+2
             JR   Z,NativeSystemCompareName
-            CP   NucleusServiceCompilerFirst+3
+            CP   NSCOMPF+3
             JR   Z,NativeSystemMaterializeName
-            CP   NucleusServiceCompilerFirst+4
+            CP   NSCOMPF+4
             JP   Z,NativeSystemTargetBegin
-            CP   NucleusServiceCompilerFirst+5
+            CP   NSCOMPF+5
             JP   Z,NativeSystemTargetImage
-            CP   NucleusServiceCompilerFirst+6
+            CP   NSCOMPF+6
             JP   Z,NativeSystemRuntime
-            CP   NucleusServiceCompilerFirst+7
+            CP   NSCOMPF+7
             JP   Z,NativeSystemRuntime
-            CP   NucleusServiceCompilerFirst+8
+            CP   NSCOMPF+8
             JP   Z,NativeSystemPatchByte
-            CP   NucleusServiceCompilerFirst+9
+            CP   NSCOMPF+9
             JP   Z,NativeSystemPatchWord
-            CP   NucleusServiceCompilerFirst+10
+            CP   NSCOMPF+10
             JP   Z,NativeSystemMap
-            CP   NucleusServiceCompilerFirst+11
+            CP   NSCOMPF+11
             JP   Z,NativeSystemMap
-            CP   NucleusServiceCompilerFirst+12
+            CP   NSCOMPF+12
             JP   Z,NativeSystemCommit
-            CP   NucleusServiceCompilerFirst+13
+            CP   NSCOMPF+13
             JP   Z,NativeSystemAbort
-            CP   NucleusServiceCompilerFirst+14
+            CP   NSCOMPF+14
             JP   Z,NativeSystemLaunchBegin
-            CP   NucleusServiceCompilerFirst+15
+            CP   NSCOMPF+15
             JP   Z,NativeSystemLaunchEnd
 NativeSystemExternal:
             LD   A,(NativeSystemSavedA)
@@ -48,20 +48,20 @@ NativeSystemExternal:
 
 NativeSystemSourceNext:
             LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderNext
+            JP   SPNEXT
 
 NativeSystemRetainName:
             LD   A,(NativeSystemSavedA)
             LD   BC,(NativeHostMon3InputBC)
-            JP   NativeSourceProviderRetainName
+            JP   SPRETAIN
 
 NativeSystemCompareName:
             LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderCompareName
+            JP   SPCMPNAM
 
 NativeSystemMaterializeName:
             LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderMaterializeName
+            JP   SPMATNAM
 
 NativeSystemTargetBegin:
             JP   NativeNobjBegin
@@ -155,13 +155,13 @@ NativeSystemAbort:
 
 NativeSystemLaunchBegin:
             LD   A,(NativeSystemSavedA)
-            CALL NativeSourceProviderLaunchBegin
+            CALL SPBEGIN
             RET  C
-            LD   C,NucleusServiceCompilerFirst+14
+            LD   C,NSCOMPF+14
             OUT  (NativeHostMon3NodePort),A
             RET  NC
             LD   (NativeSystemSavedStatus),A
-            CALL NativeSourceProviderLaunchEnd
+            CALL SPEND
             LD   A,(NativeSystemSavedStatus)
             SCF
             RET
@@ -169,10 +169,10 @@ NativeSystemLaunchBegin:
 NativeSystemLaunchEnd:
             LD   A,(NativeSystemSavedA)
             LD   (NativeSystemSavedStatus),A
-            CALL NativeSourceProviderLaunchEnd
+            CALL SPEND
             RET  C
             LD   A,(NativeSystemSavedStatus)
-            LD   C,NucleusServiceCompilerFirst+15
+            LD   C,NSCOMPF+15
             OUT  (NativeHostMon3NodePort),A
             RET
 

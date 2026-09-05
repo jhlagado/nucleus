@@ -11,13 +11,13 @@ ProofStart:
             LD   (ProofEntrySp),SP
             CALL ProofPlatformInfoAdapter
             JP   C,ProofFail
-            CP   NucleusPlatformAbiVersion
+            CP   NSABI
             JP   NZ,ProofFail
             LD   A,D
             OR   A
             JP   NZ,ProofFail
             LD   A,E
-            CP   NucleusCapabilityExecution+NucleusCapabilityStorage+NucleusCapabilityTargetControl+NucleusCapabilityDevelopment
+            CP   NSCAPEXE+NSCAPIO+NSCAPCTL+NSCAPDEV
             JP   NZ,ProofFail
             PUSH IX
             POP  HL
@@ -42,13 +42,13 @@ ProofStart:
             LD   HL,ProofObjectRequest
             CALL ProofObjectAdapter
             JP   C,ProofFail
-            LD   HL,(ProofObjectRequest+NucleusObjectRequestHandle)
+            LD   HL,(ProofObjectRequest+NOFHAND)
             LD   DE,$3412
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFail
             LD   A,2
-            LD   (ProofObjectRequest+NucleusObjectRequestAbi),A
+            LD   (ProofObjectRequest+NOFABI),A
             LD   HL,ProofObjectRequest
             CALL ProofObjectAdapter
             JP   NC,ProofFail
@@ -81,7 +81,7 @@ ProofFail:
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofPlatformInfoAdapter:
             PUSH BC
-            LD   C,NucleusServicePlatformInfo
+            LD   C,NSINFO
             CALL ProofExpansionDispatcher
             POP  BC
             RET
@@ -89,22 +89,22 @@ ProofPlatformInfoAdapter:
 .routine in BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofPacketAdapter:
             LD   (ProofSavedBc),BC
-            LD   C,NucleusServicePacket
+            LD   C,NSPACKET
             JP   ProofExpansionDispatcher
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 ProofObjectAdapter:
-            LD   C,NucleusServiceObject
+            LD   C,NSOBJECT
             JP   ProofExpansionDispatcher
 
 .routine in C out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofExpansionDispatcher:
             LD   A,C
-            CP   NucleusServicePlatformInfo
+            CP   NSINFO
             JR   Z,ProofPlatformInfo
-            CP   NucleusServicePacket
+            CP   NSPACKET
             JR   Z,ProofPacketService
-            CP   NucleusServiceObject
+            CP   NSOBJECT
             JR   Z,ProofObjectService
             LD   A,$EE
             SCF
@@ -112,8 +112,8 @@ ProofExpansionDispatcher:
 
 .routine out A,DE,carry,zero clobbers sign,parity,halfCarry
 ProofPlatformInfo:
-            LD   A,NucleusPlatformAbiVersion
-            LD   DE,NucleusCapabilityExecution+NucleusCapabilityStorage+NucleusCapabilityTargetControl+NucleusCapabilityDevelopment
+            LD   A,NSABI
+            LD   DE,NSCAPEXE+NSCAPIO+NSCAPCTL+NSCAPDEV
             OR   A
             RET
 
@@ -127,15 +127,15 @@ ProofPacketService:
 .routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofObjectService:
             LD   A,(HL)
-            CP   NucleusObjectRequestSize
+            CP   NORQSIZE
             JR   NZ,ProofObjectInvalid
             INC  HL
             LD   A,(HL)
-            CP   NucleusObjectAbiVersion
+            CP   NOABI
             JR   NZ,ProofObjectInvalid
             INC  HL
             LD   A,(HL)
-            CP   NucleusObjectOpenRead
+            CP   NOOPEN
             JR   NZ,ProofObjectInvalid
             INC  HL
             LD   A,(HL)
@@ -181,7 +181,7 @@ ProofSelectedBank: .db 0
 ProofResult:       .db $FF
 ProofObjectName:   .db "main"
 ProofObjectRequest:
-            .db NucleusObjectRequestSize,NucleusObjectAbiVersion
-            .db NucleusObjectOpenRead,0
+            .db NORQSIZE,NOABI
+            .db NOOPEN,0
             .dw 0,ProofObjectName,4,0,0,0
 ProofEnd:

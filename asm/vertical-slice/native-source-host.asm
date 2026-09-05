@@ -159,7 +159,7 @@ SourcePinBeforeRefill:
             OR   L
             JP   NZ,SourcePinBeforeRefillLater
             LD   HL,(TokenLexemePointer)
-            LD   DE,NativeSourceTokenBase
+            LD   DE,MMTOKEN
             JP   SourcePinCopySegment
 SourcePinBeforeRefillLater:
             LD   HL,(SourcePinSegmentStart)
@@ -184,7 +184,7 @@ SourcePinCopySegment:
             RET  Z
             LDIR
             LD   (SourcePinScratchCursor),DE
-            LD   HL,NativeSourceTokenBase
+            LD   HL,MMTOKEN
             LD   (TokenLexemePointer),HL
             RET
 

@@ -1,10 +1,10 @@
 ; Prove the compact descriptor and flat append-only compiler sink end to end.
 
             .include "target-memory-map.asmi"
-            .org CompilerCoreBase
+            .org MMCORE
             .include "flat-target-compiler-image.asmi"
 
-            .org SourceBase
+            .org MMSOURCE
 FlatTargetSource:
             .db "var value as u16 = 3",10
             .db "var cleared as u8",10
@@ -279,7 +279,7 @@ BankedOtherOverflowDescriptor:
 ; window: the individual compile still observes the published source-window
 ; capacity, while the complete proof may retain many mutually exclusive input
 ; fixtures without overlapping the selected runtime.
-            .org ProofSourceCorpusBase
+            .org MMCORP
 Chapter21TargetPart1:
             .db "record Cell",10
             .db "    value as u8",10
@@ -334,7 +334,7 @@ Chapter21TargetDescriptor:
             .dw Chapter21TargetPartBanks
 Chapter21ProofCorpusEnd:
 
-            .org TargetRuntimeBase
+            .org MMRUN
 RTSTART:
             .include "proof-z80-runtime.asm"
 RTEND:
@@ -344,7 +344,7 @@ RTEND:
             ; overlapping the adapter's saved high-memory logs.
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
 ProofStart:
-            LD   SP,StackTop
+            LD   SP,STACKTOP
             XOR  A
             LD   (ProofStatus),A
             LD   (ProofCase),A
@@ -1297,7 +1297,7 @@ ProofCallTargetClassifyFlatLayout:
 ProofCompilerStackExact:
             LD   HL,0
             ADD  HL,SP
-            LD   DE,StackTop-2
+            LD   DE,STACKTOP-2
             OR   A
             SBC  HL,DE
             RET

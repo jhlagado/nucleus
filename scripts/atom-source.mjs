@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { assembleResolvedAtomProject, materializeAtomGeneration, writeAtomD8 } from "atom-z80";
 import { flattenTranslatedEntry, scanAssembly, symbolMapFromLedger } from "./atom-source-translation.mjs";
+import { restoreMemoryMapLimit } from "./restore-memory-map-limit.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Transitional output compatibility only: native source names are never
@@ -12,6 +13,8 @@ const runtimeExports = JSON.parse(readFileSync(path.join(root, "asm/atom-runtime
 const cpmSourceExports = JSON.parse(readFileSync(path.join(root, "asm/atom-cpm-source-symbols.json"), "utf8"));
 const cpmProgramExports = JSON.parse(readFileSync(path.join(root, "asm/atom-cpm-program-symbols.json"), "utf8"));
 const cpmAdapterExports = JSON.parse(readFileSync(path.join(root, "asm/atom-cpm-adapters-symbols.json"), "utf8"));
+const resolverExports = JSON.parse(readFileSync(path.join(root, "asm/atom-resolver-symbols.json"), "utf8"));
+const memoryExports = JSON.parse(readFileSync(path.join(root, "asm/atom-memory-symbols.json"), "utf8"));
 let census;
 export const assemblyCensus = () => census ??= scanAssembly({ asmRoot: path.join(root, "asm"), proofRoot: path.join(root, "proofs") });
 
@@ -179,6 +182,8 @@ export function prepareAtomSource(entry, { report = assemblyCensus(), overrides 
   for (const [publicName, nativeName] of Object.entries(cpmSourceExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(cpmProgramExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(cpmAdapterExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(resolverExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(memoryExports)) reverse.set(nativeName, publicName);
   flattenTranslatedEntry(report, entry, {
     overrides, onLine: line => {
       input.push(line);
@@ -237,5 +242,5 @@ export async function assembleAtomSource(entry, options = {}) {
     if (labels.has(alias)) addresses[original] = labels.get(alias);
   }
   Object.assign(symbols, source.limits);
-  return { hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions };
+  return restoreMemoryMapLimit({ hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions });
 }

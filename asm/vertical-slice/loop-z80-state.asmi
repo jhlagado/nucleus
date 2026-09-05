@@ -1,6 +1,6 @@
 ; Writable state for the direct-Z80 counted-loop proof target.
 
-RTSTATE         .equ ExecutionBase
+RTSTATE         .equ MMEXEC
 RunState          .equ RTSTATE+$00
 RTTRPNO        .equ RTSTATE+$01
 RTTRPRTN       .equ RTSTATE+$02
@@ -19,25 +19,25 @@ RunReady          .equ 1
 RTSUCC      .equ 2
 RTTRAP        .equ 3
 
-ServiceFailureCall      .equ ServiceBase+$00
-ServiceCallCount        .equ ServiceBase+$01
-ServiceOutputLength     .equ ServiceBase+$02
-ServiceOutputBase       .equ ServiceBase+$03
+ServiceFailureCall      .equ MMSERV+$00
+ServiceCallCount        .equ MMSERV+$01
+ServiceOutputLength     .equ MMSERV+$02
+ServiceOutputBase       .equ MMSERV+$03
 ServiceOutputCapacity   .equ 4
-ServiceInputLength      .equ ServiceBase+$07
-ServiceInputCursor      .equ ServiceBase+$08
-ServiceInputFailure     .equ ServiceBase+$09
-ServiceInputBase        .equ ServiceBase+$0A
+ServiceInputLength      .equ MMSERV+$07
+ServiceInputCursor      .equ MMSERV+$08
+ServiceInputFailure     .equ MMSERV+$09
+ServiceInputBase        .equ MMSERV+$0A
 ServiceInputCapacity    .equ 4
-ServiceStorageInputLength  .equ ServiceBase+$0E
-ServiceStorageInputCursor  .equ ServiceBase+$0F
-ServiceStorageInputFailure .equ ServiceBase+$10
-ServiceStorageInputBase    .equ ServiceBase+$11
+ServiceStorageInputLength  .equ MMSERV+$0E
+ServiceStorageInputCursor  .equ MMSERV+$0F
+ServiceStorageInputFailure .equ MMSERV+$10
+ServiceStorageInputBase    .equ MMSERV+$11
 ServiceStorageInputCapacity .equ 4
-ServiceStorageOutputLength  .equ ServiceBase+$15
-ServiceStorageOutputCursor  .equ ServiceBase+$16
-ServiceStorageOutputFailure .equ ServiceBase+$17
-ServiceStorageOutputBase    .equ ServiceBase+$18
+ServiceStorageOutputLength  .equ MMSERV+$15
+ServiceStorageOutputCursor  .equ MMSERV+$16
+ServiceStorageOutputFailure .equ MMSERV+$17
+ServiceStorageOutputBase    .equ MMSERV+$18
 ServiceStorageOutputCapacity .equ 4
 ServiceStateEnd         .equ ServiceStorageOutputBase+ServiceStorageOutputCapacity
 
@@ -45,7 +45,7 @@ ProgramSize       .equ 54
 LoopFailureOffset .equ 30
             .if TargetStreamingOutput
             .else
-GeneratedEnd      .equ GeneratedBase+ProgramSize
+GeneratedEnd      .equ MMGEN+ProgramSize
             .endif
 
 ArrayProgramSize  .equ 74
@@ -54,7 +54,7 @@ ArrayBoundsOffset .equ 10
 ArrayOutputFailureOffset .equ 22
             .if TargetStreamingOutput
             .else
-GeneratedArrayEnd       .equ GeneratedBase+ArrayProgramSize
+GeneratedArrayEnd       .equ MMGEN+ArrayProgramSize
             .endif
 
 CallProgramSize   .equ 99
@@ -62,5 +62,5 @@ CallFailureOffset .equ 95
 CallCapacityOffset .equ 203
             .if TargetStreamingOutput
             .else
-GeneratedCallEnd        .equ GeneratedBase+CallProgramSize
+GeneratedCallEnd        .equ MMGEN+CallProgramSize
             .endif

@@ -1242,7 +1242,7 @@ EncodeSegmentedProgramHeader:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,ProgramDataBase
+            LD   DE,MMDATA
             CALL EmitLoadDeImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -1262,7 +1262,7 @@ EncodeSegmentedBss:
             LD   A,H
             OR   L
             JR   Z,EncodeSegmentedEntry
-            LD   HL,ProgramBssBase
+            LD   HL,MMBSS
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1297,7 +1297,7 @@ EncodeProgramEntry:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 EncodeTypedExpressionProgram:
-            LD   HL,GeneratedLimit
+            LD   HL,MMGENLIM
             CALL EncodeProgramHeader
             JP   C,AbortProgram
 .if AggregateCallSlices
