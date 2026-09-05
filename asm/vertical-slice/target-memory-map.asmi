@@ -28,7 +28,7 @@ SourceLimit         .equ $7800
 ; the following chunk window is refilled without retaining the complete unit.
 NativeSourceTokenBase  .equ SourceBase
 NativeSourceTokenLimit .equ SourceBase+$0500
-NativeSourceChunkBase  .equ NativeSourceTokenLimit
+SRCCHUNK  .equ NativeSourceTokenLimit
 NativeSourceChunkLimit .equ SourceLimit
 
 ReleasedGeneratedStagingBase  .equ SourceLimit

@@ -207,7 +207,7 @@ NativeSourceProviderReadHeader:
             RET  C
             SUB  '1'
             JP   C,NativeSourceProviderInvalid
-            CP   SourcePartCapacity
+            CP   SRCPARTS
             JP   NC,NativeSourceProviderInvalid
             INC  A
             LD   (NativeSourceProviderPartCount),A
@@ -523,7 +523,7 @@ NativeSourceProviderRetainAppend:
             RET
 NativeSourceProviderRetainCapacity:
             POP  HL
-            LD   A,NucleusStatusCapacity
+            LD   A,NSTATCAP
             SCF
             RET
 
@@ -628,8 +628,8 @@ NativeSourceProviderNext:
             JP   NativeSourceProviderOpenNextPart
 NativeSourceProviderNextBytes:
             LD   HL,(NativeSourceProviderSourceHandle)
-            LD   DE,NativeSourceChunkBase
-            LD   BC,NativeSourceChunkLimit-NativeSourceChunkBase
+            LD   DE,SRCCHUNK
+            LD   BC,NativeSourceChunkLimit-SRCCHUNK
             CALL NativeSourceProviderRead
             RET  C
             LD   A,B
@@ -637,7 +637,7 @@ NativeSourceProviderNextBytes:
             JR   Z,NativeSourceProviderEndPart
             LD   D,B
             LD   E,C
-            LD   HL,NativeSourceChunkBase
+            LD   HL,SRCCHUNK
             LD   A,(NativeSourceProviderPartOrdinal)
             LD   C,A
             XOR  A

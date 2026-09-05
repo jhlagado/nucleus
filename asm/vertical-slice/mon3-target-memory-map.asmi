@@ -12,7 +12,7 @@ SourceBase          .equ $7000
 SourceLimit         .equ $7800
 NativeSourceTokenBase  .equ SourceBase
 NativeSourceTokenLimit .equ SourceBase+$0500
-NativeSourceChunkBase  .equ NativeSourceTokenLimit
+SRCCHUNK  .equ NativeSourceTokenLimit
 NativeSourceChunkLimit .equ SourceLimit
 
 ReleasedGeneratedStagingBase  .equ SourceLimit

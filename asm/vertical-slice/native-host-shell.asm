@@ -103,7 +103,7 @@ NucleusHostCompile:
             JP   NZ,NHInvalidLaunch
             LD   A,(IX+3)
             DEC  A
-            CP   SourcePartCapacity
+            CP   SRCPARTS
             JP   NC,NHInvalidLaunch
             INC  A
             LD   (NativeHostLaunchPartCount),A

@@ -3,13 +3,13 @@
 CpmCompilerHostVectorStart:
             .db "NH",0,1,8,14,0,0
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-HostSourceNextChunk:           JP CpmSourceProviderNext
+HostSourceNextChunk:           JP CSNEXT
 .routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-HostRetainCurrentName:         JP CpmSourceProviderRetainName
+HostRetainCurrentName:         JP CSRETAIN
 .routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-HostCompareCurrentName:        JP CpmSourceProviderCompareName
+HostCompareCurrentName:        JP CSCMPNAM
 .routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-HostMaterializeName:           JP CpmSourceProviderMaterializeName
+HostMaterializeName:           JP CSMATNAM
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkBegin:               JP CpmDirectBegin
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE

@@ -9,7 +9,7 @@ CpmCommandReadFunction    .equ 20
 CpmCommandOpenFunction    .equ 15
 CpmCommandDmaFunction     .equ 26
 
-CpmCommandWorkspaceBase   .equ CpmSourceWorkspaceEnd
+CpmCommandWorkspaceBase   .equ CSWKEND
 CpmCommandDescriptor      .equ CpmCommandWorkspaceBase
 CpmCommandLaunchResult    .equ CpmCommandDescriptor+2
 CpmCompilerOutputName     .equ CpmCommandLaunchResult+9
@@ -29,7 +29,7 @@ CpmCommandPrepare:
             LD   HL,CpmCommandDefaultInput
             CALL CpmCommandCopyNamePair
             LD   A,1
-            LD   (CpmSourcePartCount),A
+            LD   (CSPARTN),A
             LD   A,(CpmCommandLength)
             LD   B,A
             LD   HL,CpmCommandStart
@@ -61,10 +61,10 @@ CpmCommandCopyNames:
             JR   CpmCommandNamesReady
 CpmCommandCopySingleName:
             LD   HL,CpmCommandDefaultFcb1
-            LD   DE,CpmSourcePartDescriptors
+            LD   DE,CSDESCS
             LD   BC,12
             LDIR
-            LD   HL,CpmSourcePartDescriptors+9
+            LD   HL,CSDESCS+9
             LD   A,(HL)
             CP   ' '
             JR   NZ,CpmCommandSingleExtensionReady
@@ -72,7 +72,7 @@ CpmCommandCopySingleName:
             INC  HL
             LD   (HL),'U'
 CpmCommandSingleExtensionReady:
-            LD   HL,CpmSourcePartDescriptors
+            LD   HL,CSDESCS
             LD   DE,CpmCompilerOutputName
             LD   BC,12
             LDIR
@@ -85,11 +85,11 @@ CpmCommandSingleExtensionReady:
 CpmCommandNamesReady:
             CALL CpmCommandSelectOutputFormat
             JR   C,CpmCommandPrepareInvalid
-            LD   HL,CpmSourcePartDescriptors
+            LD   HL,CSDESCS
             LD   DE,CpmCompilerOutputName
             CALL CpmCommandNamesEqual
             JP   Z,CpmCommandConflict
-            LD   HL,CpmSourcePartDescriptors
+            LD   HL,CSDESCS
             CALL CpmCommandScanSource
             RET  C
             XOR  A
@@ -138,23 +138,23 @@ CpmCommandOutputTypeDifferent:
 ; Text EOF terminates a part; byte 65,536 fails before descriptor publication.
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CpmCommandScanSource:
-            LD   DE,CpmSourceStreamFcb
-            CALL CpmBuildFcb
+            LD   DE,CSSTRFCB
+            CALL FCBMAKE
             LD   (CpmCommandDescriptor),HL
-            LD   DE,CpmSourceStreamFcb
+            LD   DE,CSSTRFCB
             LD   C,CpmCommandOpenFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             INC  A
             JR   Z,CpmCommandNotFound
-            LD   DE,NativeSourceChunkBase
+            LD   DE,SRCCHUNK
             LD   C,CpmCommandDmaFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             LD   HL,0
 CpmCommandSourceRecord:
             PUSH HL
-            LD   DE,CpmSourceStreamFcb
+            LD   DE,CSSTRFCB
             LD   C,CpmCommandReadFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             POP  HL
             OR   A
             JR   Z,CpmCommandSourceScan
@@ -163,7 +163,7 @@ CpmCommandSourceRecord:
             JR   CpmCommandSourceDone
 CpmCommandSourceScan:
             LD   B,128
-            LD   DE,NativeSourceChunkBase
+            LD   DE,SRCCHUNK
 CpmCommandSourceByte:
             LD   A,(DE)
             CP   $1A
@@ -191,18 +191,18 @@ CpmCommandNotFound:
             RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 CpmCommandCapacity:
-            LD   A,NucleusStatusCapacity
+            LD   A,NSTATCAP
             SCF
             RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 CpmCommandStorage:
-            LD   A,NucleusStatusStorage
+            LD   A,NSTATIO
             SCF
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 CpmCommandInvalid:
-            LD   A,NucleusStatusInvalid
+            LD   A,NSTATINV
             SCF
             RET
 .routine out A,carry,zero clobbers sign,parity,halfCarry
@@ -312,7 +312,7 @@ CpmCommandNameByte:
 ; Copy two twelve-byte FCB name fields separated by A bytes in the source.
 .routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CpmCommandCopyNamePair:
-            LD   DE,CpmSourcePartDescriptors
+            LD   DE,CSDESCS
             LD   BC,12
             LDIR
             LD   C,A

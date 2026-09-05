@@ -6,7 +6,7 @@
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 SourceInitializeParts:
             DEC  A
-            CP   SourcePartCapacity
+            CP   SRCPARTS
             JP   NC,SourcePartCapacityFailure
             LD   B,A
             XOR  A

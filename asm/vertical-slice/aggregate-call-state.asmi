@@ -103,7 +103,7 @@ SourceMultipartWorkspaceEnd .equ SourceHostStatus+1
 SourceMultipartWorkspaceEnd .equ SourcePartsRemaining+1
 .endif
 SourcePartDescriptorSize    .equ 5
-SourcePartCapacity          .equ 8
+SRCPARTS          .equ 8
 SourcePartsRemainingMask    .equ $07
 SourcePartOrdinalShift      .equ 3
 SourcePartOrdinalStep       .equ 8

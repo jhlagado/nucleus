@@ -21,11 +21,11 @@ CpmCompilerRun:
             LD   A,(CpmCommandHelpRequested)
             OR   A
             JR   NZ,CpmCompilerPrintHelp
-            CALL CpmSourceProviderBegin
+            CALL CSBEGIN
             JR   C,CpmCompilerPrintHostError
             CALL CpmPublishPrepare
             JR   C,CpmCompilerPrintHostError
-            LD   A,(CpmSourcePartCount)
+            LD   A,(CSPARTN)
             LD   HL,0
             LD   IX,CpmCompilerTargetDescriptor
             CALL CompileTargetAggregateCallParts
@@ -83,7 +83,7 @@ CpmCompilerPrintNewline:
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmCompilerPrintText:
             LD   C,9
-            JP   CpmCallBdos
+            JP   BDOSCALL
 
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmCompilerPrintWord:
@@ -113,13 +113,13 @@ CpmCompilerPrintNibble:
 CpmCompilerPrintDigit:
             LD   E,A
             LD   C,2
-            JP   CpmCallBdos
+            JP   BDOSCALL
 CpmCompilerStartupCodeEnd:
 
             .include "cpm22-embedded-assets.asmi"
 
 CpmCompilerImmutableStart:
-CpmCompilerPartBanks .equ CpmEmbeddedPrefixEnd-SourcePartCapacity
+CpmCompilerPartBanks .equ CpmEmbeddedPrefixEnd-SRCPARTS
 CpmCompilerTargetDescriptor:
             .dw  RIABI
             .dw  CpmTargetImageBase

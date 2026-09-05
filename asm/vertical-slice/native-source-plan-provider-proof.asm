@@ -1,7 +1,7 @@
             .include "platform-services-abi.asmi"
 
-SourcePartCapacity     .equ 8
-NativeSourceChunkBase  .equ $7500
+SRCPARTS     .equ 8
+SRCCHUNK  .equ $7500
 NativeSourceChunkLimit .equ $7800
 ObjectNodeGatewayPort  .equ $E1
 

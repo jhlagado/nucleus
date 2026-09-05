@@ -1,6 +1,6 @@
 DebugHooks .equ 0
 NativeStreamingSource .equ 1
-SourcePartCapacity .equ 8
+SRCPARTS .equ 8
             .include "cpm22-target-memory-map.asmi"
             .include "platform-services-abi.asmi"
             .org $4100

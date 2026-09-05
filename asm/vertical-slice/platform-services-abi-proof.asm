@@ -52,7 +52,7 @@ ProofStart:
             LD   HL,ProofObjectRequest
             CALL ProofObjectAdapter
             JP   NC,ProofFail
-            CP   NucleusStatusInvalid
+            CP   NSTATINV
             JP   NZ,ProofFail
             LD   A,1
             LD   (ProofSelectedBank),A
@@ -148,7 +148,7 @@ ProofObjectService:
             XOR  A
             RET
 ProofObjectInvalid:
-            LD   A,NucleusStatusInvalid
+            LD   A,NSTATINV
             SCF
             RET
 

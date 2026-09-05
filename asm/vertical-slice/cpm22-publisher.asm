@@ -207,7 +207,7 @@ CpmPublishRollbackFailure:
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CpmPublishWriteRecord:
             LD   C,CpmPublishDmaFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             LD   C,CpmPublishWriteFunction
             CALL CpmPublishFcbCall
             OR   A
@@ -250,13 +250,13 @@ CpmPublishRollbackDone:
 .routine in C out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
 CpmPublishFcbCall:
             LD   DE,CpmPublishWorkFcb
-            JP   CpmCallBdos
+            JP   BDOSCALL
 
 .routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
 CpmPublishCopyOutputName:
             LD   HL,CpmCompilerOutputName
             LD   DE,CpmPublishWorkFcb
-            JP   CpmBuildFcb
+            JP   FCBMAKE
 
 .routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmPublishSetTemporary:

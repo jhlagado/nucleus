@@ -1,9 +1,13 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { assembleProviderProof, fixedBaseline, repositoryRoot } from "./fixtures/cpm-source-native/assemble.js";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
 let proofImage: Uint8Array;
 let symbols: Record<string, number>;
+let assembled: Awaited<ReturnType<typeof assembleProviderProof>>;
 
 const word = (memory: Uint8Array, address: number, value: number): void => {
   memory[address] = value & 0xff;
@@ -97,9 +101,7 @@ class SourceBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await assembleAtomSource(
-    "vertical-slice/cpm22-source-provider-proof.asm",
-  );
+  assembled = await assembleProviderProof();
   proofImage = parseIntelHex(assembled.hex).memory;
   symbols = assembled.symbols;
 });
@@ -188,6 +190,69 @@ const createProof = (parts: readonly { name: string; bytes: Uint8Array }[]) => {
 };
 
 describe("native Nucleus CP/M source and retained-name provider", () => {
+  it("assembles unchanged native leaves to the exact corrected baseline bytes and names", () => {
+    // Captured once with ATOM at the identity-repair commit, not the older
+    // released compiler. No translation adapter runs in this proof.
+    expect(fixedBaseline.revision).toBe("8f8dd7b304249fde16ad6013826675bc9aceae1e");
+    const bytes = proofImage.slice(fixedBaseline.origin, fixedBaseline.end);
+    const hash = (value: Uint8Array) => createHash("sha256").update(value).digest("hex");
+    expect(Buffer.from(bytes).toString("hex")).toBe(fixedBaseline.hex);
+    expect(hash(bytes)).toBe(fixedBaseline.sha256);
+    expect(hash(bytes.slice(0, 25))).toBe(fixedBaseline.bdosSha256);
+    expect(hash(bytes.slice(25))).toBe(fixedBaseline.providerSha256);
+    expect(symbols).toEqual({ ...fixedBaseline.symbols, CpmHostWorkspaceLimit: 0x6000 });
+    // The HEX reader reports record-sized ranges; prove their exact union
+    // without requiring it to coalesce adjacent records.
+    expect((parseIntelHex(assembled.hex).writeRanges ?? []).flatMap(({ start, end }) =>
+      Array.from({ length: end - start }, (_, index) => start + index),
+    )).toEqual(Array.from({ length: 737 }, (_, index) => 0x4100 + index));
+    expect(assembled.generation.highWater).toBe(0x43e1);
+    expect(assembled.generation.finalCursor).toBe(0x43e1);
+    expect(assembled.project.parts).toHaveLength(4);
+    for (const part of assembled.project.parts) {
+      if (part.logicalIdentity.endsWith("/entry.asm")) {
+        // ATOM itself consumes include headers, preserving their line widths.
+        expect(new TextDecoder().decode(part.compilerBytes)).toBe(
+          new TextDecoder().decode(part.originalBytes).replace(/[^\r\n]/g, " "),
+        );
+      } else {
+        expect(part.compilerBytes).toEqual(part.originalBytes);
+      }
+    }
+    expect(assembled.addresses.CpmSourceProviderBegin).toBe(0x4119);
+    expect(assembled.addresses.CpmSourceWorkspaceBase).toBeUndefined();
+  });
+
+  it("keeps the numeric proof context aligned with the actual CP/M map and ABI", () => {
+    const source = (name: string) => readFileSync(join(repositoryRoot, "asm/vertical-slice", name), "utf8");
+    const map = source("cpm22-target-memory-map.asmi");
+    // Fail on source-map drift instead of silently testing a stale machine.
+    for (const [name, expression] of [
+      ["CompilerWorkBase", "$6000"], ["SourceBase", "$7000"],
+      ["NativeSourceTokenLimit", "SourceBase+$0500"],
+      ["SRCCHUNK", "NativeSourceTokenLimit"],
+      ["CpmHostWorkspaceBase", "$5800"],
+      ["CpmHostWorkspaceLimit", "CompilerWorkBase"],
+      ["CSWKBASE", "CpmHostWorkspaceBase+$0058"],
+    ]) {
+      expect(map.split("\n").some(line => {
+        const fields = line.split(";")[0]!.trim().split(/\s+/);
+        return fields[0] === name && fields[1] === ".equ" &&
+          fields.slice(2).join("") === expression.replace(/\s/g, "");
+      }), `${name} proof input must track the production map`).toBe(true);
+    }
+    expect(source("cpm22-source-provider-proof.asm")).toMatch(/^SRCPARTS\s+\.equ\s+8$/m);
+    for (const [name, value] of [["NSTATINV", 1], ["NSTATCAP", 4], ["NSTATIO", 6]]) {
+      expect(source("platform-services-abi.asmi")).toMatch(new RegExp(`^${name}\\s+\\.equ\\s+${value}$`, "m"));
+    }
+    expect(symbols).toMatchObject({
+      CpmSourceWorkspaceBase: 0x5858, SourcePartCapacity: 8,
+      NativeSourceChunkBase: 0x7500, NucleusStatusInvalid: 1,
+      NucleusStatusCapacity: 4, NucleusStatusStorage: 6,
+      CpmHostWorkspaceLimit: 0x6000,
+    });
+  });
+
   it("streams exact one-based multipart events and resets for another command", () => {
     const first = Uint8Array.from({ length: 130 }, (_, index) => index);
     const second = Uint8Array.of(0xa1, 0xb2, 0xc3);

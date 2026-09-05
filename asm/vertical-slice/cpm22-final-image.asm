@@ -147,10 +147,10 @@ ZTS_CPM_HEX_PUT:
 ZTS_CPM_HEX_FLUSH:
             LD   DE,ZTS_CPM_FINAL_DMA
             LD   C,CpmPublishDmaFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             LD   DE,ZTS_CPM_FINAL_FCB
             LD   C,CpmPublishWriteFunction
-            CALL CpmCallBdos
+            CALL BDOSCALL
             OR   A
             JR   NZ,ZTS_CPM_HEX_WRITE_FAILED
             LD   HL,ZTS_CPM_FINAL_DMA

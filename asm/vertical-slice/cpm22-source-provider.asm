@@ -2,91 +2,91 @@
 ; The command adapter preflights and fills one fourteen-byte descriptor per
 ; part: twelve FCB-name bytes followed by the exact logical length.
 
-CpmSourceOpenFunction       .equ 15
-CpmSourceReadFunction       .equ 20
-CpmSourceDmaFunction        .equ 26
-CpmSourceRandomReadFunction .equ 33
-CpmSourceDma                .equ $0080
-CpmSourceDescriptorSize     .equ 14
-CpmSourceRetainedCapacity   .equ 255
-CpmSourceRetainedEntrySize  .equ 4
-CpmSourcePhasePart          .equ 0
-CpmSourcePhaseBytes         .equ 1
-CpmSourcePhaseDone          .equ 2
+CSFOPEN   EQU 15
+CSFREAD   EQU 20
+CSFDMA    EQU 26
+CSFRAND   EQU 33
+CSDMA     EQU $0080
+CSDESCSZ  EQU 14
+CSRETCAP  EQU 255
+CSRETSZ   EQU 4
+CSPARTPH  EQU 0
+CSBYTEPH  EQU 1
+CSDONEPH  EQU 2
 
-CpmSourcePartDescriptors    .equ CpmSourceWorkspaceBase
-CpmSourcePartDescriptorsEnd .equ CpmSourcePartDescriptors+SourcePartCapacity*CpmSourceDescriptorSize
-CpmSourceStreamFcb          .equ CpmSourcePartDescriptorsEnd
-CpmSourceRandomFcb          .equ CpmSourceStreamFcb+36
-CpmSourcePartCount          .equ CpmSourceRandomFcb+36
-CpmSourceNextPart           .equ CpmSourcePartCount+1
-CpmSourcePhase              .equ CpmSourceNextPart+1
-CpmSourceActivePart         .equ CpmSourcePhase+1
-CpmSourceRemaining          .equ CpmSourceActivePart+1
-CpmSourceRetainedCount      .equ CpmSourceRemaining+2
-CpmSourceMaterializedHandle .equ CpmSourceRetainedCount+1
-CpmSourceSavedLength        .equ CpmSourceMaterializedHandle+1
-CpmSourceSavedPart          .equ CpmSourceSavedLength+1
-CpmSourceSavedOffset        .equ CpmSourceSavedPart+1
-CpmSourceSavedEnd           .equ CpmSourceSavedOffset+2
-CpmSourceSavedPointer       .equ CpmSourceSavedEnd+2
-CpmSourceSavedHandle        .equ CpmSourceSavedPointer+2
-CpmSourceNameRemaining      .equ CpmSourceSavedLength
-CpmSourceNameOriginalLength .equ CpmSourceSavedPart
-CpmSourceNameOffset         .equ CpmSourceSavedEnd
-CpmSourceNameCursor         .equ CpmSourceSavedOffset
-CpmSourceCopyLength         .equ CpmSourceSavedHandle
-CpmSourceCompareLength      .equ CpmSourceSavedOffset
-CpmSourceStateEnd           .equ CpmSourceSavedHandle+1
-CpmSourceRetainedTable      .equ CpmSourceStateEnd
-CpmSourceRetainedTableEnd   .equ CpmSourceRetainedTable+CpmSourceRetainedCapacity*CpmSourceRetainedEntrySize
-CpmSourceNameScratch        .equ CpmSourceRetainedTableEnd
-CpmSourceNameScratchEnd     .equ CpmSourceNameScratch+255
-CpmSourceWorkspaceEnd       .equ CpmSourceNameScratchEnd
+CSDESCS   EQU CSWKBASE
+CSDESCEN  EQU CSDESCS+SRCPARTS*CSDESCSZ
+CSSTRFCB  EQU CSDESCEN
+CSRANFCB  EQU CSSTRFCB+36
+CSPARTN   EQU CSRANFCB+36
+CSNXTPRT  EQU CSPARTN+1
+CSPHASE   EQU CSNXTPRT+1
+CSACTPRT  EQU CSPHASE+1
+CSLEFT    EQU CSACTPRT+1
+CSRETN    EQU CSLEFT+2
+CSMATID   EQU CSRETN+1
+CSSVLEN   EQU CSMATID+1
+CSSVPART  EQU CSSVLEN+1
+CSSVOFF   EQU CSSVPART+1
+CSSVEND   EQU CSSVOFF+2
+CSSVPTR   EQU CSSVEND+2
+CSSVHND   EQU CSSVPTR+2
+CSNLEFT   EQU CSSVLEN
+CSNLEN    EQU CSSVPART
+CSNOFF    EQU CSSVEND
+CSNCUR    EQU CSSVOFF
+CSCOPYN   EQU CSSVHND
+CSCMPLEN  EQU CSSVOFF
+CSSTEND   EQU CSSVHND+1
+CSRETTAB  EQU CSSTEND
+CSRETEND  EQU CSRETTAB+CSRETCAP*CSRETSZ
+CSSCRAT   EQU CSRETEND
+CSSCREND  EQU CSSCRAT+255
+CSWKEND   EQU CSSCREND
 
-CpmSourceProviderCodeStart:
+CSCODE:
 ; The command adapter owns PartCount and descriptors. Reset everything whose
 ; lifetime is one compilation without paying to clear the dead table bytes.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmSourceProviderBegin:
-            LD   A,(CpmSourcePartCount)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CSBEGIN:
+            LD   A,(CSPARTN)
             OR   A
-            JP   Z,CpmSourceInvalid
-            CP   SourcePartCapacity+1
-            JP   NC,CpmSourceInvalid
-            LD   HL,CpmSourceNextPart
-            LD   DE,CpmSourceNextPart+1
-            LD   BC,CpmSourceStateEnd-CpmSourceNextPart-1
+            JP   Z,CSINVAL
+            CP   SRCPARTS+1
+            JP   NC,CSINVAL
+            LD   HL,CSNXTPRT
+            LD   DE,CSNXTPRT+1
+            LD   BC,CSSTEND-CSNXTPRT-1
             XOR  A
             LD   (HL),A
             LDIR
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmSourceProviderEnd:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CSEND:
             XOR  A
             RET
 
 ; Existing compiler event ABI: A=event, C=one-based part, HL=bytes, DE=count.
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-CpmSourceProviderNext:
-            LD   A,(CpmSourcePhase)
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+CSNEXT:
+            LD   A,(CSPHASE)
             OR   A
-            JR   Z,CpmSourceNextPartEvent
+            JR   Z,CSPARTEV
             DEC  A
-            JP   Z,CpmSourceNextBytes
-            JP   CpmSourceInvalid
-CpmSourceNextPartEvent:
-            LD   A,(CpmSourceNextPart)
+            JP   Z,CSBYTES
+            JP   CSINVAL
+CSPARTEV:
+            LD   A,(CSNXTPRT)
             LD   B,A
-            LD   A,(CpmSourcePartCount)
+            LD   A,(CSPARTN)
             CP   B
-            JR   Z,CpmSourceNextUnit
+            JR   Z,CSUNITEV
             LD   A,B
             INC  A
-            LD   (CpmSourceNextPart),A
-            LD   (CpmSourceActivePart),A
-            CALL CpmSourceDescriptor
+            LD   (CSNXTPRT),A
+            LD   (CSACTPRT),A
+            CALL CSDESC
             RET  C
             PUSH HL
             LD   DE,12
@@ -94,69 +94,69 @@ CpmSourceNextPartEvent:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (CpmSourceRemaining),DE
+            LD   (CSLEFT),DE
             POP  HL
-            LD   DE,CpmSourceStreamFcb
-            CALL CpmBuildFcb
-            LD   DE,CpmSourceStreamFcb
-            LD   C,CpmSourceOpenFunction
-            CALL CpmCallBdos
+            LD   DE,CSSTRFCB
+            CALL FCBMAKE
+            LD   DE,CSSTRFCB
+            LD   C,CSFOPEN
+            CALL BDOSCALL
             INC  A
-            JP   Z,CpmSourceStorage
-            LD   A,CpmSourcePhaseBytes
-            LD   (CpmSourcePhase),A
-            LD   A,(CpmSourceActivePart)
+            JP   Z,CSIOERR
+            LD   A,CSBYTEPH
+            LD   (CSPHASE),A
+            LD   A,(CSACTPRT)
             LD   C,A
             LD   A,1
-            JP   CpmSourceEmptyEvent
-CpmSourceNextUnit:
-            LD   A,CpmSourcePhaseDone
-            LD   (CpmSourcePhase),A
+            JP   CSEMPTY
+CSUNITEV:
+            LD   A,CSDONEPH
+            LD   (CSPHASE),A
             LD   C,0
             LD   A,3
-            JP   CpmSourceEmptyEvent
+            JP   CSEMPTY
 
-CpmSourceNextBytes:
-            LD   HL,(CpmSourceRemaining)
+CSBYTES:
+            LD   HL,(CSLEFT)
             LD   A,H
             OR   L
-            JR   Z,CpmSourceNextEnd
-            LD   DE,NativeSourceChunkBase
-            LD   C,CpmSourceDmaFunction
-            CALL CpmCallBdos
-            LD   DE,CpmSourceStreamFcb
-            LD   C,CpmSourceReadFunction
-            CALL CpmCallBdos
+            JR   Z,CSENDEV
+            LD   DE,SRCCHUNK
+            LD   C,CSFDMA
+            CALL BDOSCALL
+            LD   DE,CSSTRFCB
+            LD   C,CSFREAD
+            CALL BDOSCALL
             OR   A
-            JP   NZ,CpmSourceStorage
-            LD   HL,(CpmSourceRemaining)
+            JP   NZ,CSIOERR
+            LD   HL,(CSLEFT)
             LD   DE,128
             OR   A
             SBC  HL,DE
-            JR   C,CpmSourceNextShortRecord
-            LD   (CpmSourceRemaining),HL
-            JR   CpmSourceNextOutput
-CpmSourceNextShortRecord:
+            JR   C,CSSHORT
+            LD   (CSLEFT),HL
+            JR   CSOUTPUT
+CSSHORT:
             ADD  HL,DE
             EX   DE,HL
             LD   HL,0
-            LD   (CpmSourceRemaining),HL
-CpmSourceNextOutput:
-            LD   HL,NativeSourceChunkBase
-            LD   A,(CpmSourceActivePart)
+            LD   (CSLEFT),HL
+CSOUTPUT:
+            LD   HL,SRCCHUNK
+            LD   A,(CSACTPRT)
             LD   C,A
             XOR  A
             RET
-CpmSourceNextEnd:
+CSENDEV:
             XOR  A
-            LD   (CpmSourcePhase),A
-            LD   A,(CpmSourceActivePart)
+            LD   (CSPHASE),A
+            LD   A,(CSACTPRT)
             LD   C,A
             LD   A,2
-            JP   CpmSourceEmptyEvent
+            JP   CSEMPTY
 
-.routine in A,C out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
-CpmSourceEmptyEvent:
+; Contract: in A,C out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CSEMPTY:
             LD   HL,0
             LD   D,H
             LD   E,L
@@ -165,19 +165,19 @@ CpmSourceEmptyEvent:
 
 ; Compiler retain ABI: HL=bytes, B=length, C=part, DE=part offset. B/C/DE are
 ; caller-live; the returned nonzero HL is a one-byte handle widened to a word.
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-CpmSourceProviderRetainName:
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+CSRETAIN:
             PUSH BC
             PUSH DE
             PUSH IX
-            CALL CpmSourceRetainBody
+            CALL CSRETBOD
             POP  IX
             POP  DE
             POP  BC
             RET
 
-.routine in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX
-CpmSourceRetainBody:
+; Contract: in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX
+CSRETBOD:
             ; A materialized parameter retains its original identity even after
             ; the parser advances. Compare the actual spelling before reusing
             ; that identity; current part/offset belongs only to a fresh token.
@@ -186,45 +186,45 @@ CpmSourceRetainBody:
             PUSH BC
             PUSH DE
             PUSH HL
-            CALL CpmSourceReuseMaterialized
+            CALL CSREUSE
             POP  HL
             POP  DE
             POP  BC
             RET  C
-            JR   NZ,CpmSourceRetainFresh
+            JR   NZ,CSFRESH
             LD   L,A
             LD   H,0
             XOR  A
             RET
 
-CpmSourceRetainFresh:
-            LD   (CpmSourceSavedPointer),HL
+CSFRESH:
+            LD   (CSSVPTR),HL
             LD   A,B
-            LD   (CpmSourceSavedLength),A
+            LD   (CSSVLEN),A
             LD   A,C
-            LD   (CpmSourceSavedPart),A
-            LD   (CpmSourceSavedOffset),DE
-            CALL CpmSourceValidatePosition
+            LD   (CSSVPART),A
+            LD   (CSSVOFF),DE
+            CALL CSCHKPOS
             RET  C
-CpmSourceRetainAppend:
-            LD   A,(CpmSourceRetainedCount)
-            CP   CpmSourceRetainedCapacity
-            JP   Z,CpmSourceCapacity
+CSAPPEND:
+            LD   A,(CSRETN)
+            CP   CSRETCAP
+            JP   Z,CSCAPERR
             INC  A
-            LD   (CpmSourceRetainedCount),A
-            LD   (CpmSourceSavedHandle),A
-            CALL CpmSourceEntryFromA
-            LD   A,(CpmSourceSavedPart)
+            LD   (CSRETN),A
+            LD   (CSSVHND),A
+            CALL CSENTRY
+            LD   A,(CSSVPART)
             LD   (HL),A
             INC  HL
-            LD   DE,(CpmSourceSavedOffset)
+            LD   DE,(CSSVOFF)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   A,(CpmSourceSavedLength)
+            LD   A,(CSSVLEN)
             LD   (HL),A
-            LD   A,(CpmSourceSavedHandle)
+            LD   A,(CSSVHND)
             LD   L,A
             LD   H,0
             XOR  A
@@ -232,167 +232,167 @@ CpmSourceRetainAppend:
 
 ; Z with A=original handle means exact materialized identity; NZ means a fresh
 ; request. Carry remains a storage/invalid error, never an equality result.
-.routine in HL,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-CpmSourceReuseMaterialized:
-            LD   DE,CpmSourceNameScratch
+; Contract: in HL,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+CSREUSE:
+            LD   DE,CSSCRAT
             OR   A
             SBC  HL,DE
-            JP   NZ,CpmSourceNameUnequal
-            LD   A,(CpmSourceMaterializedHandle)
+            JP   NZ,CSNEQUAL
+            LD   A,(CSMATID)
             OR   A
-            JP   Z,CpmSourceNameUnequal
+            JP   Z,CSNEQUAL
             LD   L,A
             LD   H,0
-            LD   IX,CpmSourceNameScratch
-            CALL CpmSourceProviderCompareName
+            LD   IX,CSSCRAT
+            CALL CSCMPNAM
             RET  C
             RET  NZ
-            LD   A,(CpmSourceMaterializedHandle)
+            LD   A,(CSMATID)
             RET
 
 ; Compiler compare ABI: HL=handle, IX=current bytes, B=length; Z means equal.
-.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmSourceProviderCompareName:
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CSCMPNAM:
             LD   A,B
-            LD   (CpmSourceCompareLength),A
+            LD   (CSCMPLEN),A
             PUSH HL
             PUSH IX
             POP  HL
-            LD   (CpmSourceSavedPointer),HL
+            LD   (CSSVPTR),HL
             POP  HL
-            CALL CpmSourcePrepareName
+            CALL CSPRENAM
             RET  C
-            LD   A,(CpmSourceCompareLength)
+            LD   A,(CSCMPLEN)
             CP   B
-            JR   NZ,CpmSourceNameUnequal
-CpmSourceCompareRecord:
-            CALL CpmSourceReadNameChunk
+            JR   NZ,CSNEQUAL
+CSCMPREC:
+            CALL CSRDNAME
             RET  C
-            LD   DE,(CpmSourceSavedPointer)
+            LD   DE,(CSSVPTR)
             LD   B,C
-CpmSourceCompareLoop:
+CSCMPLOP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,CpmSourceNameUnequal
+            JR   NZ,CSNEQUAL
             INC  DE
             INC  HL
-            DJNZ CpmSourceCompareLoop
-            LD   (CpmSourceSavedPointer),DE
-            LD   A,(CpmSourceNameRemaining)
+            DJNZ CSCMPLOP
+            LD   (CSSVPTR),DE
+            LD   A,(CSNLEFT)
             OR   A
-            JR   NZ,CpmSourceCompareRecord
+            JR   NZ,CSCMPREC
             XOR  A
             RET
-CpmSourceNameUnequal:
+CSNEQUAL:
             LD   A,1
             OR   A
             RET
 
 ; Compiler materialize ABI: HL=handle; return stable HL and exact B while
 ; preserving the caller's C and DE values.
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-CpmSourceProviderMaterializeName:
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+CSMATNAM:
             PUSH BC
             PUSH DE
             LD   A,L
-            LD   (CpmSourceMaterializedHandle),A
-            CALL CpmSourceMaterializeBody
+            LD   (CSMATID),A
+            CALL CSMATBOD
             POP  DE
             POP  BC
             PUSH AF
-            LD   A,(CpmSourceNameOriginalLength)
+            LD   A,(CSNLEN)
             LD   B,A
             POP  AF
             RET
 
 ; Validate a retained handle and return its four-byte entry in HL.
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
-CpmSourceHandleEntry:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+CSHANDLE:
             LD   A,H
             OR   A
-            JP   NZ,CpmSourceInvalid
+            JP   NZ,CSINVAL
             LD   A,L
             OR   A
-            JP   Z,CpmSourceInvalid
+            JP   Z,CSINVAL
             LD   B,A
-            LD   A,(CpmSourceRetainedCount)
+            LD   A,(CSRETN)
             CP   B
-            JP   C,CpmSourceInvalid
+            JP   C,CSINVAL
             LD   A,B
-            JP   CpmSourceEntryFromA
+            JP   CSENTRY
 
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-CpmSourceEntryFromA:
+; Contract: in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+CSENTRY:
             DEC  A
             LD   L,A
             LD   H,0
             ADD  HL,HL
             ADD  HL,HL
-            LD   DE,CpmSourceRetainedTable
+            LD   DE,CSRETTAB
             ADD  HL,DE
             OR   A
             RET
 
 ; Validate and reopen the source which owns a retained name. Comparison reads
 ; each DMA record in place; materialization alone writes the stable scratch.
-.routine in HL out A,B,carry,zero clobbers sign,parity,halfCarry,C,DE,HL
-CpmSourcePrepareName:
+; Contract: in HL out A,B,carry,zero clobbers sign,parity,halfCarry,C,DE,HL
+CSPRENAM:
             LD   A,L
-            LD   (CpmSourceSavedHandle),A
-            CALL CpmSourceHandleEntry
+            LD   (CSSVHND),A
+            CALL CSHANDLE
             RET  C
             LD   A,(HL)
-            LD   (CpmSourceSavedPart),A
+            LD   (CSSVPART),A
             INC  HL
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (CpmSourceNameOffset),DE
+            LD   (CSNOFF),DE
             INC  HL
             LD   A,(HL)
-            LD   (CpmSourceNameRemaining),A
-            LD   A,(CpmSourceSavedPart)
-            CALL CpmSourceDescriptor
+            LD   (CSNLEFT),A
+            LD   A,(CSSVPART)
+            CALL CSDESC
             RET  C
-            LD   DE,CpmSourceRandomFcb
-            CALL CpmBuildFcb
-            LD   DE,CpmSourceRandomFcb
-            LD   C,CpmSourceOpenFunction
-            CALL CpmCallBdos
+            LD   DE,CSRANFCB
+            CALL FCBMAKE
+            LD   DE,CSRANFCB
+            LD   C,CSFOPEN
+            CALL BDOSCALL
             INC  A
-            JP   Z,CpmSourceStorage
-            LD   A,(CpmSourceNameRemaining)
-            LD   (CpmSourceNameOriginalLength),A
+            JP   Z,CSIOERR
+            LD   A,(CSNLEFT)
+            LD   (CSNLEN),A
             LD   B,A
             XOR  A
             RET
 
-.routine in HL out A,B,HL,carry,zero,sign,parity,halfCarry clobbers C,DE
-CpmSourceMaterializeBody:
-            CALL CpmSourcePrepareName
+; Contract: in HL out A,B,HL,carry,zero,sign,parity,halfCarry clobbers C,DE
+CSMATBOD:
+            CALL CSPRENAM
             RET  C
-            LD   HL,CpmSourceNameScratch
-            LD   (CpmSourceNameCursor),HL
-CpmSourceMaterializeRecord:
-            CALL CpmSourceReadNameChunk
+            LD   HL,CSSCRAT
+            LD   (CSNCUR),HL
+CSMATREC:
+            CALL CSRDNAME
             RET  C
-            LD   DE,(CpmSourceNameCursor)
+            LD   DE,(CSNCUR)
             LDIR
-            LD   (CpmSourceNameCursor),DE
-            LD   A,(CpmSourceNameRemaining)
+            LD   (CSNCUR),DE
+            LD   A,(CSNLEFT)
             OR   A
-            JR   NZ,CpmSourceMaterializeRecord
-            LD   A,(CpmSourceNameOriginalLength)
+            JR   NZ,CSMATREC
+            LD   A,(CSNLEN)
             LD   B,A
-            LD   HL,CpmSourceNameScratch
+            LD   HL,CSSCRAT
             XOR  A
             RET
 
 ; Read the next retained-name segment. Return HL=DMA bytes and C=count after
 ; advancing the saved logical offset and remaining length.
-.routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,DE
-CpmSourceReadNameChunk:
-            LD   HL,(CpmSourceNameOffset)
+; Contract: out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,DE
+CSRDNAME:
+            LD   HL,(CSNOFF)
             LD   A,L
             RLCA
             AND  1
@@ -400,117 +400,117 @@ CpmSourceReadNameChunk:
             LD   A,H
             ADD  A,A
             OR   E
-            LD   (CpmSourceRandomFcb+33),A
+            LD   (CSRANFCB+33),A
             LD   A,H
             RLCA
             AND  1
-            LD   (CpmSourceRandomFcb+34),A
+            LD   (CSRANFCB+34),A
             XOR  A
-            LD   (CpmSourceRandomFcb+35),A
-            LD   DE,CpmSourceDma
-            LD   C,CpmSourceDmaFunction
-            CALL CpmCallBdos
-            LD   DE,CpmSourceRandomFcb
-            LD   C,CpmSourceRandomReadFunction
-            CALL CpmCallBdos
+            LD   (CSRANFCB+35),A
+            LD   DE,CSDMA
+            LD   C,CSFDMA
+            CALL BDOSCALL
+            LD   DE,CSRANFCB
+            LD   C,CSFRAND
+            CALL BDOSCALL
             OR   A
-            JP   NZ,CpmSourceStorage
+            JP   NZ,CSIOERR
 
-            LD   HL,(CpmSourceNameOffset)
+            LD   HL,(CSNOFF)
             LD   A,L
             AND  127
             LD   E,A
             LD   A,128
             SUB  E
             LD   C,A
-            LD   A,(CpmSourceNameRemaining)
+            LD   A,(CSNLEFT)
             CP   C
-            JR   NC,CpmSourceCopyLengthReady
+            JR   NC,CSCOPYOK
             LD   C,A
-CpmSourceCopyLengthReady:
+CSCOPYOK:
             LD   A,C
-            LD   (CpmSourceCopyLength),A
+            LD   (CSCOPYN),A
             LD   B,0
-            LD   HL,CpmSourceDma
+            LD   HL,CSDMA
             LD   D,B
             ADD  HL,DE
             PUSH HL
-            LD   A,(CpmSourceCopyLength)
+            LD   A,(CSCOPYN)
             LD   C,A
             LD   B,0
-            LD   HL,(CpmSourceNameOffset)
+            LD   HL,(CSNOFF)
             ADD  HL,BC
-            LD   (CpmSourceNameOffset),HL
-            LD   A,(CpmSourceNameRemaining)
+            LD   (CSNOFF),HL
+            LD   A,(CSNLEFT)
             SUB  C
-            LD   (CpmSourceNameRemaining),A
+            LD   (CSNLEFT),A
             POP  HL
             XOR  A
             RET
 
 ; Validate the part and complete [offset, offset+length) range captured by
 ; RetainName against its preflighted descriptor.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmSourceValidatePosition:
-            LD   A,(CpmSourceSavedLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CSCHKPOS:
+            LD   A,(CSSVLEN)
             OR   A
-            JP   Z,CpmSourceInvalid
+            JP   Z,CSINVAL
             LD   E,A
             LD   D,0
-            LD   HL,(CpmSourceSavedOffset)
+            LD   HL,(CSSVOFF)
             ADD  HL,DE
-            JP   C,CpmSourceInvalid
-            LD   (CpmSourceSavedEnd),HL
-            LD   A,(CpmSourceSavedPart)
-            CALL CpmSourceDescriptor
+            JP   C,CSINVAL
+            LD   (CSSVEND),HL
+            LD   A,(CSSVPART)
+            CALL CSDESC
             RET  C
             LD   DE,12
             ADD  HL,DE
             LD   C,(HL)
             INC  HL
             LD   B,(HL)
-            LD   HL,(CpmSourceSavedEnd)
+            LD   HL,(CSSVEND)
             OR   A
             SBC  HL,BC
-            JP   C,CpmSourcePositionValid
-            JP   NZ,CpmSourceInvalid
-CpmSourcePositionValid:
+            JP   C,CSPOSOK
+            JP   NZ,CSINVAL
+CSPOSOK:
             XOR  A
             RET
 
 ; A is a one-based part ID. Return its descriptor only inside PartCount.
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
-CpmSourceDescriptor:
+; Contract: in A out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
+CSDESC:
             OR   A
-            JP   Z,CpmSourceInvalid
+            JP   Z,CSINVAL
             LD   B,A
-            LD   A,(CpmSourcePartCount)
+            LD   A,(CSPARTN)
             CP   B
-            JP   C,CpmSourceInvalid
+            JP   C,CSINVAL
             LD   A,B
             DEC  A
-            LD   HL,CpmSourcePartDescriptors
-            LD   DE,CpmSourceDescriptorSize
+            LD   HL,CSDESCS
+            LD   DE,CSDESCSZ
             RET  Z
-CpmSourceDescriptorLoop:
+CSDESCLP:
             ADD  HL,DE
             DEC  A
-            JR   NZ,CpmSourceDescriptorLoop
+            JR   NZ,CSDESCLP
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmSourceInvalid:
-            LD   A,NucleusStatusInvalid
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CSINVAL:
+            LD   A,NSTATINV
             SCF
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmSourceCapacity:
-            LD   A,NucleusStatusCapacity
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CSCAPERR:
+            LD   A,NSTATCAP
             SCF
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmSourceStorage:
-            LD   A,NucleusStatusStorage
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CSIOERR:
+            LD   A,NSTATIO
             SCF
             RET
-CpmSourceProviderCodeEnd:
+CSCODEND:

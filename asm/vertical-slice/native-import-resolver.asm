@@ -285,13 +285,13 @@ NativeImportAppendRoom:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeImportCapacity:
-            LD   A,NucleusStatusCapacity
+            LD   A,NSTATCAP
             SCF
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeImportInvalid:
-            LD   A,NucleusStatusInvalid
+            LD   A,NSTATINV
             SCF
             RET
 
@@ -965,7 +965,7 @@ NativeImportNormalizeAddSlash:
             LD   A,E
             CP   NativeImportCandidateLimit&$FF
             JR   NZ,NativeImportNormalizeSlashRoom
-            LD   A,NucleusStatusCapacity
+            LD   A,NSTATCAP
             SCF
             RET
 NativeImportNormalizeSlashRoom:
@@ -982,7 +982,7 @@ NativeImportNormalizePop:
             OR   A
             SBC  HL,DE
             JR   NZ,NativeImportNormalizePopReady
-            LD   A,NucleusStatusInvalid
+            LD   A,NSTATINV
             SCF
             RET
 NativeImportNormalizePopReady:

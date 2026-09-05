@@ -68,10 +68,14 @@ as the development loader already did.
 
 The complete generated-image check passed for all six compiler variants, all
 six runtimes, the Node runner, import resolver and CP/M embedded assets. A fresh
-run after the endpoint consistency correction and the broader manifest-driven
-assembly proofs are still running at this checkpoint. Full release/package
-qualification, Linux CI and downstream publication remain pending. No release,
-Triptych input pin or user disk was changed by this stage.
+run after the endpoint consistency correction also passed. The broader
+manifest-driven proof run at this runtime checkpoint passed 23 cases and hit
+one five-second host deadline while other assembly jobs were running. That
+tokenizer trace passed in isolation in 2.154 seconds with unchanged assertions
+and guest limits. This is a timeout plus a successful isolated rerun, not a
+claim of one completely green combined run. Full release/package qualification,
+Linux CI and downstream publication remain pending. No release, Triptych input
+pin or user disk was changed by this stage.
 
 ## Separate CP/M repair
 

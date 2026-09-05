@@ -46,6 +46,11 @@ next native source family and its parallel CP/M qualification work. Runtime
 catalog generation and development linking now bypass source translation;
 legacy compiler/proof callers remain for subsequent stages.
 
+The [CP/M source-provider report](../reports/atom-native-cpm-source.md) records
+the next two converted leaves and their direct proof. The separately reviewed
+parameter repair is integrated in this development branch; its released
+artifact and Triptych pin have not yet been replaced.
+
 ## Source inventory
 
 The baseline contains 119 assembly files and 44,764 lines under `asm/`, including

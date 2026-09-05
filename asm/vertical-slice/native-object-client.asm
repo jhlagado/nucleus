@@ -140,6 +140,6 @@ NativeSourceProviderTerminal:
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 NativeObjectInvalid:
 NativeSourceProviderInvalid:
-            LD   A,NucleusStatusInvalid
+            LD   A,NSTATINV
             SCF
             RET
