@@ -14,6 +14,17 @@ const packageRoot = path.resolve("node_modules/@jhlagado/nucleus");
 const manifest = JSON.parse(
   await readFile(path.join(packageRoot, "package.json"), "utf8"),
 );
+const cli = path.join(packageRoot, "dist/cli.js");
+const options = { encoding: "utf8", timeout: 30_000 };
+assert.equal(
+  execFileSync(process.execPath, [cli, "--version"], options),
+  `${manifest.version}\n`,
+);
+assert.ok(
+  execFileSync(process.execPath, [cli, "--help"], options).startsWith(
+    `Nucleus ${manifest.version}\n`,
+  ),
+);
 for (const subpath of Object.keys(manifest.exports)) {
   await import(
     subpath === "." ? manifest.name : manifest.name + subpath.slice(1)
@@ -37,8 +48,6 @@ assert.ok(executed.loaderInstructions > 0);
 assert.ok(executed.programInstructions > 0);
 
 await writeFile("echo.nu", source);
-const cli = path.join(packageRoot, "dist/cli.js");
-const options = { encoding: "utf8", timeout: 30_000 };
 execFileSync(
   process.execPath,
   [cli, "build", "--quiet", "-o", "echo.nobj", "echo.nu"],
