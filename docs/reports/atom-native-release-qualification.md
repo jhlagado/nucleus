@@ -63,11 +63,40 @@ assembler. This checks the prepared package; the complete Linux build remains
 a separate condition.
 
 The first complete local suite began against the old committed release artifact
-and reported its expected byte-comparison failure. After preparing 0.3.1, the
+and finished with 736 passing tests and its expected byte-comparison failure
+across 69 files in 2,021.55 seconds. After preparing 0.3.1, the
 complete focused CP/M native-compiler suite passed all nine tests, including
 the byte-comparison check, in 40.54 seconds. Source migration evidence is
 recorded in the [source-closure report](atom-native-source-closure.md); neither
 that evidence nor the private replay substitutes for the full release gate.
+
+## Linux timing correction and parallel execution
+
+[The first Linux release run](https://github.com/jhlagado/nucleus/actions/runs/33950230658)
+passed all 63 source checks, deterministic image generation and type checking.
+Its full test suite passed 719 tests but skipped 18 dependent tests after the
+native-host setup exceeded Vitest's default ten-second hook allowance. That
+suite took 11.132 seconds before reporting the timeout; no byte or execution
+assertion failed. The complete run took 45 minutes 50 seconds and did not pass
+the release gate.
+
+The setup now has an explicit 30-second allowance, matching the existing
+isolated four-profile assembly check. Guest instruction limits and all source,
+byte, register, flag and stack assertions are unchanged. The affected group
+then passed all 20 tests locally in 19.94 seconds. This existing failing suite
+is the regression check; no timing-sensitive synthetic test was added.
+
+The local release command retains its original checks through shared source
+and package stage scripts. CI runs those stages separately, splits the full
+Vitest file set into four isolated shards with one worker each, and retains
+the independent Node 20 build/consumer job. The aggregate release job requires
+success from every stage and the complete shard matrix; failure, cancellation
+or a skipped prerequisite cannot approve publication. Independent checks of
+Vitest's actual file sequencer partitioned all 69 files into groups of
+18, 17, 17 and 17, with no omissions or duplicates. Testing all 256 combinations
+of successful, failed, cancelled and skipped prerequisite results accepted only
+complete success. A fresh complete Linux run remains required after these
+changes.
 
 After qualification, publish a new immutable source tag and matching executable
 and manifest, then advance Triptych's verified-release input. Preserve the old

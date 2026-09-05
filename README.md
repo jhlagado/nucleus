@@ -165,6 +165,11 @@ execute TypeScript in separate Node processes with transformation enabled.
 The built package retains Node 20 support; a separate Linux CI job builds it
 and checks an isolated installed consumer on Node 20.
 
+`npm run prepublishOnly` runs the complete release gate locally. CI runs its
+same source and package stages independently and divides the test files among
+four isolated runners. Every shard, source check and package-compatibility job
+must succeed before the aggregate release gate passes.
+
 ```bash
 npm ci
 npm run test:atom-source

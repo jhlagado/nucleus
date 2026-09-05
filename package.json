@@ -56,7 +56,9 @@
     "test": "vitest run --dir test --maxWorkers=1",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck && npm test && npm run build && npm run build:cpm22 && npm run check:runtime-boundary && npm run test:package"
+    "check:release-source": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck",
+    "check:release-package": "npm run build && npm run build:cpm22 && npm run check:runtime-boundary && npm run test:package",
+    "prepublishOnly": "npm run check:release-source && npm test && npm run check:release-package"
   },
   "dependencies": {
     "@jhlagado/debug80-runtime": "git+https://github.com/jhlagado/debug80-runtime.git#b7343aa8c38c248abbc6ee801b4af270d4843ad6"

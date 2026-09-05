@@ -61,9 +61,12 @@ function invoke(runtime: ReturnType<typeof createZ80Runtime>, entry: number, ix 
 
 describe("native host bindings from canonical source", () => {
   const images = new Map<string, Image>();
+  // Four fresh ATOM assemblies took 11 seconds on Linux CI. Use the same
+  // host allowance as the isolated four-profile assembly below; guest limits
+  // and every byte, register, flag and stack assertion remain unchanged.
   beforeAll(async () => {
     for (const config of cases) images.set(config.name, await assembleNativeHostBindings(config));
-  });
+  }, 30_000);
 
   it("pins both transports and both debug profiles to the frozen revision", () => {
     expect(baseline.revision.startsWith(revision)).toBe(true);
