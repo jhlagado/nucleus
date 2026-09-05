@@ -222,6 +222,7 @@ const createCompiler = (
     expect(runtime.isHalted(), "native compiler did not return to CP/M").toBe(
       true,
     );
+    expect(runtime.cpu.pc).toBe(sentinel + 1);
     expect(runtime.cpu.sp).toBe(stack + 2);
     expect(runtime.hardware.memory.slice(0xe400, 0xf000)).toEqual(highMemory);
     return { a: runtime.cpu.a, instructions, tStates };
@@ -255,6 +256,7 @@ const runCom = (file: Uint8Array) => {
     instructions += 1;
   }
   expect(runtime.isHalted(), "generated COM did not return to CP/M").toBe(true);
+  expect(runtime.cpu.pc).toBe(sentinel + 1);
   expect(runtime.cpu.sp).toBe(stack + 2);
   return { instructions, output: bdos.console, tStates };
 };
