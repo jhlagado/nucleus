@@ -173,6 +173,7 @@ describe.each([false, true])("canonical diagnostics, nonlocal=%s", nonlocal => {
 it("assembles the canonical diagnostic leaf without the transitional adapter", () => {
   const refusal = "diagnostic legacy adapter unavailable";
   const loader = `export async function resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith("atom-source.mjs") || specifier.endsWith("atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)});
     const result = await nextResolve(specifier, context);
     if (result.url.endsWith("/scripts/atom-source.mjs") ||
         result.url.endsWith("/scripts/atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)});

@@ -1,0 +1,27 @@
+; Historical packed-parser compiler, without the streaming target-output layer.
+; Metadata chooses the fixed Stage 7 profile. Preserve the symbols→DGSET fallthrough.
+%INCLUDE "memory-map.asmi"
+%INCLUDE "loop-compiler-state.asmi"
+%INCLUDE "aggregate-call-state.asmi"
+%INCLUDE "loop-z80-state.asmi"
+%INCLUDE "nucleus-runtime-identity.asmi"
+%INCLUDE "stage-proof-origin.asmi"
+%INCLUDE "compiler-source-boundary.asmi"
+%INCLUDE "source-adapter.asm"
+%INCLUDE "compiler-tokenizer-boundary.asmi"
+%INCLUDE "loop-tokenizer.asm"
+%INCLUDE "compiler-semantic-boundary.asmi"
+%INCLUDE "loop-semantic-sink.asm"
+%INCLUDE "compiler-symbol-boundary.asmi"
+%INCLUDE "loop-symbols.asm"
+%INCLUDE "compiler-parser-boundary.asmi"
+%INCLUDE "loop-parser.asm"
+%INCLUDE "compiler-sink-boundary.asmi"
+%INCLUDE "loop-z80-sink.asm"
+%INCLUDE "compiler-typed-boundary.asmi"
+%INCLUDE "typed-expression-z80.asm"
+%INCLUDE "aggregate-z80.asm"
+%INCLUDE "compiler-immutable-boundary.asmi"
+%INCLUDE "loop-keywords.asmi"
+KCIMMEND:
+KCEND:

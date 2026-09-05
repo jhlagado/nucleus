@@ -1,11 +1,11 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
 import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
 import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
 const symbolsFor = async (name: string): Promise<Record<string, number>> =>
-  (await assembleAtomSource(`vertical-slice/${name}`)).symbols;
+  (await assembleNativeNobj(name)).symbols;
 
 describe("native Nucleus CP/M output candidates", () => {
   it("measures the direct sink against the existing NOBJ producer and materializer", async () => {

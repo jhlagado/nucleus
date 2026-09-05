@@ -1,0 +1,762 @@
+ORG $B000
+P9CORP:
+C1PT1:
+            DB "record Cell",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "var template as Cell = (1)",10
+            DB "var cells as Cell[4] = [(0), (0), (0), (0)]",10
+            DB 10
+C1PT1E:
+C1PT2:
+            DB "sub cellAt(index as u8) as Cell",10
+            DB "    return cells[index]",10
+            DB "end",10
+            DB 10
+            DB "sub setCell(cell as Cell, value as u8)",10
+            DB "    cell.value = value",10
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "    var index as u8",10
+            DB "    var code as u8",10
+            DB 10
+            DB "    for index = 0 until 4",10
+            DB "        cells[index] = template",10
+            DB "        setCell(template, index + 1)",10
+            DB "    end",10
+            DB 10
+            DB "    cells[0].value = cellAt(0).value",10
+            DB "    if cells[0].value = 1",10
+            DB "        writeOutputByte('Y') handle code",10
+            DB "            return",10
+            DB "        end",10
+            DB "    elseif cells[0].value = 0",10
+            DB "        writeOutputByte('N') handle code",10
+            DB "            return",10
+            DB "        end",10
+            DB "    end",10
+            DB "end",10
+C1PT2E:
+C1DSCS:
+            DB 1
+            DW C1PT1,C1PT1E
+            DB 2
+            DW C1PT2,C1PT2E
+
+C2S:
+            DB "const badByte = 10",10
+            DB 10
+            DB "sub checkedByte() as u8 fails",10
+            DB "    var value as u8 = readInputByte() else fail",10
+            DB "    if value = 0",10
+            DB "        fail badByte",10
+            DB "    end",10
+            DB "    return value",10
+            DB "end",10
+            DB 10
+            DB "sub emitByte() fails",10
+            DB "    var value as u8 = checkedByte() else fail",10
+            DB "    writeOutputByte(value) else fail",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    emitByte() else fail",10
+            DB "end",10
+C2E:
+
+C3S:
+            DB "forward sub odd(value as u16) as boolean",10
+            DB 10
+            DB "sub even(value as u16) as boolean",10
+            DB "    if value = 0",10
+            DB "        return true",10
+            DB "    end",10
+            DB "    return odd(value - 1)",10
+            DB "end",10
+            DB 10
+            DB "sub odd",10
+            DB "    while not false",10
+            DB "        if value = 0",10
+            DB "            return false",10
+            DB "        end",10
+            DB "        return even(value - 1)",10
+            DB "    end",10
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "    var index as u16",10
+            DB "    var code as u8",10
+            DB 10
+            DB "    for index = 0 to 5",10
+            DB "        if odd(index)",10
+            DB "            continue",10
+            DB "        elseif index = 4",10
+            DB "            exit",10
+            DB "        end",10
+            DB "    end",10
+            DB 10
+            DB "    writeOutputByte(u8(index)) handle code",10
+            DB "        return",10
+            DB "    end",10
+            DB "end",10
+C3E:
+
+C4S:
+            DB "var text as string[4] = \"A\\0B\"",10
+            DB "var snapshot as string[4]",10
+            DB 10
+            DB "sub textAlias() as string[4]",10
+            DB "    return text",10
+            DB "end",10
+            DB 10
+            DB "sub mutate(value as string[4])",10
+            DB "    value[1] = 'Z'",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    snapshot = textAlias()",10
+            DB 10
+            DB "    if snapshot.length = 3 and snapshot[1] = 0",10
+            DB "        mutate(textAlias())",10
+            DB "    end",10
+            DB 10
+            DB "    if text[1] = 'Z' and snapshot[1] = 0",10
+            DB "        writeOutputByte('Y') else fail",10
+            DB "    end",10
+            DB "end",10
+C4E:
+
+C5S:
+            DB "sub emitMarker() fails",10
+            DB "    writeOutputByte('R') else fail",10
+            DB "end",10
+            DB 10
+            DB "sub relayMarker() fails",10
+            DB "    emitMarker() else fail",10
+            DB "    return",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    relayMarker() else fail",10
+            DB "end",10
+C5E:
+
+C6S:
+            DB "const sampleFailure = 7",10
+            DB 10
+            DB "sub alwaysFails() as u8 fails",10
+            DB "    fail sampleFailure",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    var code as u8",10
+            DB 10
+            DB "    code = alwaysFails() handle code",10
+            DB "        writeOutputByte(code) else fail",10
+            DB "        return",10
+            DB "    end",10
+            DB 10
+            DB "    writeOutputByte(0) else fail",10
+            DB "end",10
+C6E:
+
+C7S:
+            DB "sub main() fails",10
+            DB "    writeStorageByte('A') else fail",10
+            DB "    writeStorageByte('B') else fail",10
+            DB "    seekStorageOutput(0) else fail",10
+            DB "    writeStorageByte('Z') else fail",10
+            DB "end",10
+C7E:
+
+C8S:
+            DB "sub main()",10
+            DB "    var index as u8",10
+            DB 10
+            DB "    for index = 250 to 255 step 5 + 5",10
+            DB "        exit",10
+            DB "    end",10
+            DB "end",10
+C8E:
+
+C9BNDS:
+            DB "var bytes as u8[2]",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    var index as u8 = readInputByte() else fail",10
+            DB "    bytes"
+C9BNDP:
+            DB "[index] = 1",10
+            DB "end",10
+C9BNDE:
+
+C9DIVS:
+            DB "sub divide(value as u16, divisor as u16) as u16",10
+            DB "    return value "
+C9DIVP:
+            DB "/ divisor",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    var divisor as u16 = readInputByte() else fail",10
+            DB "    var result as u16 = divide(8, divisor)",10
+            DB "end",10
+C9DIVE:
+
+C9MODS:
+            DB "sub remainder(value as u16, divisor as u16) as u16",10
+            DB "    return value "
+C9MODP:
+            DB "mod divisor",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    var divisor as u16 = readInputByte() else fail",10
+            DB "    var result as u16 = remainder(8, divisor)",10
+            DB "end",10
+C9MODE:
+
+C12S:
+            DB "forward sub render(Player as u8) as u8",10
+            DB 10
+            DB "var Player as u8 = 9",10
+            DB "var player as u8 = 1",10
+            DB "var PLAYER as u8 = 2",10
+            DB 10
+            DB "sub render",10
+            DB "    return Player + player + PLAYER",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    writeOutputByte(render(3)) else fail",10
+            DB "end",10
+C12E:
+
+C13S:
+            DB "record Counter",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "var source as Counter = (1)",10
+            DB "var destination as Counter",10
+            DB 10
+            DB "sub copyAndIncrement(input as Counter, output as Counter)",10
+            DB "    output = input",10
+            DB "    output.value = output.value + 1",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    copyAndIncrement(source, destination)",10
+            DB "    if source.value = 1 and destination.value = 2",10
+            DB "        writeOutputByte('Y') else fail",10
+            DB "    end",10
+            DB "end",10
+C13E:
+
+C14S:
+            DB "record Sample",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "var samples as Sample[2] = [(3), (7)]",10
+            DB 10
+            DB "sub choose(items as Sample[2], index as u8) as Sample",10
+            DB "    return items[index]",10
+            DB "end",10
+            DB 10
+            DB "sub forwardSelection(items as Sample[2], index as u8) as Sample",10
+            DB "    return choose(items, index)",10
+            DB "end",10
+            DB 10
+            DB "sub replace(item as Sample, value as u8)",10
+            DB "    item.value = value",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    replace(forwardSelection(samples, 1), 9)",10
+            DB "    if samples[1].value = 9",10
+            DB "        writeOutputByte('Y') else fail",10
+            DB "    end",10
+            DB "end",10
+C14E:
+
+C15S:
+            DB "const sharedValue = 200",10
+            DB "const enabled = true",10
+            DB "var byteUse as u8 = sharedValue",10
+            DB "var wordUse as u16 = sharedValue",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    if enabled and byteUse = 200 and wordUse = 200",10
+            DB "        writeOutputByte('Y') else fail",10
+            DB "    end",10
+            DB "end",10
+C15E:
+
+C16S:
+            DB "const hexMask = $FF",10
+            DB "const binaryMask = %10110000",10
+            DB "const hexMaximum = $ffff",10
+            DB "const binaryMaximum = %1111111111111111",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    if hexMask = 255 and binaryMask = 176 and hexMaximum = 65535 and binaryMaximum = 65535",10
+            DB "        writeOutputByte(binaryMask) else fail",10
+            DB "    end",10
+            DB "end",10
+C16E:
+
+C17S:
+            DB "const folded = 3 xor 1 or 1",10
+            DB "var byteValue as u8 = $a5",10
+            DB "var wordValue as u16 = $f0f0",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    byteValue = byteValue xor $ff",10
+            DB "    wordValue = wordValue xor $ffff",10
+            DB "    if folded = 3 and not byteValue = $a5 and wordValue = $0f0f",10
+            DB "        writeOutputByte(byteValue) else fail",10
+            DB "    end",10
+            DB "end",10
+C17E:
+
+C17BOOLS:
+            DB "sub main()",10
+            DB "    if true "
+C17BOOLP:
+            DB "xor false",10
+            DB "    end",10
+            DB "end",10
+C17BOOLE:
+
+C18S:
+            DB "const folded = 100 mod 7",10
+            DB "var byteValue as u8 = 250",10
+            DB "var wordValue as u16 = 1000",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    byteValue = byteValue mod 16",10
+            DB "    wordValue = wordValue mod 256",10
+            DB "    if folded = 2 and byteValue = 10 and wordValue = 232",10
+            DB "        writeOutputByte(byteValue) else fail",10
+            DB "    end",10
+            DB "end",10
+C18E:
+
+C18ZEROS:
+            DB "const bad = 1 mod "
+C18ZEROP:
+            DB $30,10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C18ZEROE:
+
+C19S:
+            DB "const Rows = 8",10
+            DB "const Columns = 16",10
+            DB "assert Rows * Columns = 128",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    writeOutputByte(Rows * Columns) else fail",10
+            DB "end",10
+C19E:
+
+C19CTRLS:
+            DB "const Rows = 8",10
+            DB "const Columns = 16",10
+            DB "// assertion placeholder   ",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    writeOutputByte(Rows * Columns) else fail",10
+            DB "end",10
+C19CTRLE:
+
+C19FALS:
+            DB "const Rows = 17",10
+C19FALP:
+            DB "assert Rows <= 16",10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C19FALE:
+
+C19TYS:
+            DB "const Rows = 8",10
+C19TYP:
+            DB "assert Rows",10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C19TYE:
+
+C20S:
+            DB "record Pair",10
+            DB "    left as u8",10
+            DB "    right as u16",10
+            DB "end",10
+            DB 10
+            DB "const Origin as Pair = (7, 300)",10
+            DB "const Clone as Pair = Origin",10
+            DB "const Values as u8[3] = [1, 2, 3]",10
+            DB "const Text as string[3] = \"A\\0B\"",10
+            DB "var target as Pair = Clone",10
+            DB 10
+            DB "sub mutate(item as Pair)",10
+            DB "    item.left = 9",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    if target.left = 7 and Values[1] = 2 and Text.length = 3 and Text[2] = 'B'",10
+            DB "        mutate(Origin)",10
+            DB "        if Origin.left = 9 and target.left = 7",10
+            DB "            writeOutputByte('Y') else fail",10
+            DB "        end",10
+            DB "    end",10
+            DB "end",10
+C20E:
+
+C20RDONS:
+            DB "record Pair",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "const Origin as Pair = (1)",10
+            DB 10
+            DB "sub main()",10
+            DB "    "
+C20RDONP:
+            DB "Origin.value = 2",10
+            DB "end",10
+C20RDONE:
+
+C21S:
+            DB "const tooLong = 5",10
+            DB "var small as u8[3] = [1, 2, 3]",10
+            DB "var large as u8[5]",10
+            DB 10
+            DB "sub sum(data as u8[]) as u16",10
+            DB "    var total as u16 = 0",10
+            DB "    var i as u16",10
+            DB 10
+            DB "    for i = 0 until data.length",10
+            DB "        total = total + u16(data[i])",10
+            DB "    end",10
+            DB 10
+            DB "    return total",10
+            DB "end",10
+            DB 10
+            DB "sub fill(data as u8[], value as u8)",10
+            DB "    var i as u16",10
+            DB 10
+            DB "    for i = 0 until data.length",10
+            DB "        data[i] = value",10
+            DB "    end",10
+            DB "end",10
+            DB 10
+            DB "sub copy(source as u8[], destination as u8[]) fails",10
+            DB "    var i as u16",10
+            DB 10
+            DB "    if source.length > destination.length",10
+            DB "        fail tooLong",10
+            DB "    end",10
+            DB 10
+            DB "    for i = 0 until source.length",10
+            DB "        destination[i] = source[i]",10
+            DB "    end",10
+            DB "end",10
+            DB 10
+            DB "sub main() fails",10
+            DB "    writeOutputByte(u8(sum(small))) else fail",10
+            DB "    fill(large, 9)",10
+            DB "    copy(small, large) else fail",10
+            DB "    writeOutputByte(large[0]) else fail",10
+            DB "    writeOutputByte(large[4]) else fail",10
+            DB "end",10
+C21E:
+
+C22S:
+            DB "sub main() fails",10
+            DB "    select u16(300)",10
+            DB "    case 1, 2",10
+            DB "        writeOutputByte(1) else fail",10
+            DB "    case 300",10
+            DB "        writeOutputByte(7) else fail",10
+            DB "    else",10
+            DB "        writeOutputByte(9) else fail",10
+            DB "    end",10
+            DB "end",10
+C22E:
+
+C22BOOLS:
+            DB "sub main()",10
+            DB "    select "
+C22BOOLP:
+            DB "true",10
+            DB "    case 1",10
+            DB "    end",10
+            DB "end",10
+C22BOOLE:
+
+C10UNCOS:
+            DB "sub readOne() as u8 fails",10
+            DB "    var value as u8 = readInputByte() else fail",10
+            DB "    return value",10
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "    var value as u8",10
+            DB "    value = readOne()"
+C10UNCOP:
+            DB 10
+            DB "end",10
+C10UNCOE:
+
+C10NOMS:
+            DB "record LeftCell",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "record RightCell",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "var left as LeftCell",10
+            DB "var right as RightCell",10
+            DB 10
+            DB "sub main()",10
+            DB "    left = "
+C10NOMP:
+            DB "right",10
+            DB "end",10
+C10NOME:
+
+C10INIS:
+            DB "record Color",10
+            DB "    red as u8",10
+            DB "    green as u8",10
+            DB "    blue as u8",10
+            DB "end",10
+            DB 10
+            DB "var color as Color = (1, 2"
+C10INIP:
+            DB $29,10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C10INIE:
+
+C10AGLOS:
+            DB "record Cell",10
+            DB "    value as u8",10
+            DB "end",10
+            DB 10
+            DB "var cell as Cell",10
+            DB 10
+            DB "sub cellAlias() as Cell",10
+            DB "    return cell",10
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "    var held as "
+C10AGLOP:
+            DB "Cell = cellAlias()",10
+            DB "end",10
+C10AGLOE:
+
+C10RTFLS:
+            DB "sub choose(flag as boolean) as u8",10
+            DB "    if flag",10
+            DB "        return 1",10
+            DB "    end",10
+C10RTFLP:
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C10RTFLE:
+
+C10LATRS:
+            DB "sub main()",10
+            DB "    "
+C10LATRP:
+            DB "later()",10
+            DB "end",10
+            DB 10
+            DB "sub later()",10
+            DB "end",10
+C10LATRE:
+
+C10MASIS:
+            DB "sub main("
+C10MASIP:
+            DB "argument as u8)",10
+            DB "end",10
+C10MASIE:
+
+C10ACCTS:
+            DB "sub main()",10
+            DB "    var index as u8",10
+            DB 10
+            DB "    for index = 0 until 4",10
+C10ACCTP:
+            DB "        "
+C10ACNAM:
+            DB "index = index + 1",10
+            DB "    end",10
+            DB "end",10
+C10ACCTE:
+
+C10EXUSS:
+            DB "const Big = 300",10
+            DB "var x as u8",10
+            DB 10
+            DB "sub main()",10
+            DB "    x = "
+C10EXUSP:
+            DB "Big",10
+            DB "end",10
+C10EXUSE:
+
+C10EXNES:
+            DB "const Big = 300",10
+            DB "var x as u8",10
+            DB 10
+            DB "sub main()",10
+            DB "    x = ("
+C10EXNEP:
+            DB "Big + 1)",10
+            DB "end",10
+C10EXNEE:
+
+C10BAINS:
+            DB "const flag = true",10
+            DB "var x as u8",10
+            DB "sub main()",10
+            DB "    x = flag"
+C10BAINP:
+            DB 10,"end",10
+C10BAINE:
+
+C10IABOS:
+            DB "const value = 1",10
+            DB "var flag as boolean",10
+            DB "sub main()",10
+            DB "    flag = value"
+C10IABOP:
+            DB 10,"end",10
+C10IABOE:
+
+C10HEXS:
+            DB "const value = "
+C10HEXP:
+            DB "$10000",10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C10HEXE:
+
+C10BINS:
+            DB "const value = "
+C10BINP:
+            DB "%10000000000000000",10
+            DB 10
+            DB "sub main()",10
+            DB "end",10
+C10BINE:
+
+C11BPT2:
+            DB "sub cellAt(index as u8) as Cell",10
+            DB "    return cells[index]",10
+            DB "end",10
+            DB 10
+            DB "sub setCell(cell as Cell, value as u8)",10
+            DB "    cell.value = value",10
+            DB "end",10
+            DB 10
+            DB "sub main()",10
+            DB "    var index as u8",10
+            DB "    var code as u8",10
+C11BADP:
+            DB "    missing = 1",10
+            DB "end",10
+C11BPT2E:
+C11BADS:
+            DB 1
+            DW C1PT1,C1PT1E
+            DB 2
+            DW C11BPT2,C11BPT2E
+
+; This split omits a physical line ending at the first part boundary. The
+; adapter must synthesize exactly one logical NEWLINE before entering part 42.
+CBNDPT1:
+            DB "var value as u8 = 1"
+CBNDPT1E:
+CBNDPT2:
+            DB "sub main() fails",10
+            DB "    writeOutputByte(value) else fail",10
+            DB "end",10
+CBNDPT2E:
+CBNDDSC:
+            DB 41
+            DW CBNDPT1,CBNDPT1E
+            DB 42
+            DW CBNDPT2,CBNDPT2E
+
+; Eight ordered parts are the implementation capacity boundary. Seven blank
+; declarations precede the final complete main routine.
+CBLNKPT:
+            DB 10
+CBLNKPTE:
+CCAPPRG:
+            DB "sub main()",10
+            DB "end",10
+CCAPPRGE:
+CCAPDSC:
+            DB 61
+            DW CBLNKPT,CBLNKPTE
+            DB 62
+            DW CBLNKPT,CBLNKPTE
+            DB 63
+            DW CBLNKPT,CBLNKPTE
+            DB 64
+            DW CBLNKPT,CBLNKPTE
+            DB 65
+            DW CBLNKPT,CBLNKPTE
+            DB 66
+            DW CBLNKPT,CBLNKPTE
+            DB 67
+            DW CBLNKPT,CBLNKPTE
+CONEDSC:
+            DB 68
+            DW CCAPPRG,CCAPPRGE
+
+COPENP1:
+            DB "sub main("
+COPENP1E:
+COPENP2:
+            DB $29,10
+            DB "end",10
+COPENP2E:
+COPENDS:
+            DB 71
+            DW COPENP1,COPENP1E
+            DB 72
+            DW COPENP2,COPENP2E
+
+P9BADHXS:
+            DB "const Text as string[1] = "
+P9BADHXP:
+            DB $22,"\\","xG0",$22,10
+            DB "sub main()",10
+            DB "end",10
+P9BADHXE:
+
+P9SHRHXS:
+            DB "const Text as string[1] = "
+P9SHRHXP:
+            DB $22,"\\","xF"
+P9SHRHXE:
+P9CORPEN:

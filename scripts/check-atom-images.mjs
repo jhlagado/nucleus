@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 import { assembleNativeCompiler, isNativeCompilerEntry } from "./assemble-native-compiler.mjs";
+import { assembleNativeNobj } from "./assemble-native-nobj.mjs";
+import { assembleNativeImportResolver } from "./assemble-native-import-resolver.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const variants = {
@@ -38,7 +40,9 @@ const expectedHex = JSON.parse(new RegExp(`${prefix}Hex: string = (.*);`).exec(t
 const expectedSymbols = JSON.parse(new RegExp(`${prefix}Symbols: Readonly<Record<string, number>> = (\\{[\\s\\S]*?\\});`).exec(text)[1]);
 const result = isNativeCompilerEntry(entry)
   ? await assembleNativeCompiler(entry)
-  : await (await import("./atom-source.mjs")).assembleAtomSource(`vertical-slice/${entry}`);
+  : entry === "node-nobj-consumer.asm"
+  ? await assembleNativeNobj(entry)
+  : await assembleNativeImportResolver();
 const actual = parseIntelHex(result.hex), expected = parseIntelHex(expectedHex);
 const actualCoverage = coverage(actual), expectedCoverage = coverage(expected);
 const byteDifferences = [], coverageDifferences = [];

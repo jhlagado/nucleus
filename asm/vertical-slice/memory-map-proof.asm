@@ -1,18 +1,7 @@
-NativeStreamingSource .equ 0
+; Native ATOM composition. Build flags are immutable entry metadata.
+
 ; Executable proof that the manifest-driven harness and vertical-slice memory
 ; profile agree with the assembly interface.
 
-            .include "memory-map.asmi"
-
-            .org MMPROOF
-FPSTART:
-            LD   SP,STACKTOP
-            LD   A,$A5
-            LD   (FPSTATUS),A
-            HALT
-FPEND:
-
-FPSTATUS:
-            .db  0
-
-            .end
+%INCLUDE "memory-map.asmi"
+%INCLUDE "early-memory-map-driver.asm"

@@ -1,0 +1,24 @@
+; Production Node reference image for the standalone NOBJ consumer.
+;
+; The consumer, its stack and its platform adapter remain outside the first
+; TEC-1-style target profile: writable RAM $4000..$5000, service adapters near
+; $7000 and the target image at $8000. Node implements the operations beneath
+; a MON3-compatible RST 10h gateway. The Node image installs an emulator shim
+; beneath that vector; native hardware already owns it in fixed monitor ROM.
+
+LVCBASE    EQU $1000
+LVCLIMIT   EQU $3000
+LVWKBASE   EQU $3000
+LVSTKBAS   EQU $5000
+LVSTKLIM   EQU $5800
+LVOBJBA    EQU 0
+LVOBJLIM   EQU 0
+LVCTLBA    EQU $5800
+LVCTLLIM   EQU $5900
+LVPLBASE   EQU $6000
+LVPCLBAS   EQU $6000
+LVPCLLIM   EQU $7200
+
+NNGWPORT   EQU $E0
+
+NNSVCBAS   EQU $7000

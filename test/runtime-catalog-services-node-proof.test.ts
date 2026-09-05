@@ -1,5 +1,5 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
 import { describe, expect, it } from "vitest";
 
 import { type RuntimeImageProvider } from "../src/nobj.js";
@@ -11,8 +11,8 @@ import { NucleusSystemStatus } from "../src/object-services.js";
 
 describe("the Node runtime-catalogue Z80 gateway", () => {
   it("returns bounded resolved chunks without replacing the Z80 client", async () => {
-    const { hex, symbols } = await assembleAtomSource(
-      "vertical-slice/runtime-catalog-services-node-proof.asm",
+    const { hex, symbols } = await assembleNativeNobj(
+      "runtime-catalog-services-node-proof.asm",
     );
     const provider: RuntimeImageProvider = {
       get: (identity) =>

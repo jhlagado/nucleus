@@ -1,7 +1,7 @@
 ; Predictive parser and fixed semantic checks for the first complete program.
 
 ; Store the first diagnostic at the current token start. Carry denotes failure.
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry,HL
+; ABI: in A out A,carry clobbers zero,sign,parity,halfCarry,HL
 DGSET:
             LD   (DGCODE),A
             LD   A,(SSPARTID)
@@ -16,7 +16,7 @@ DGSET:
             RET
 
 ; D is the diagnostic code and E the expected token ordinal.
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 PSEXPECT:
             PUSH DE
             CALL TKNEXT
@@ -27,8 +27,8 @@ PSEXPECT:
             LD   A,D
             JP   DGSET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ParserExpectMain:
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+EPEXMAIN:
             LD   D,DXMAIN
             LD   E,TNNAME
             CALL PSEXPECT
@@ -36,14 +36,14 @@ ParserExpectMain:
             LD   HL,NAMEMAIN
             LD   B,4
             CALL TKNAMEEQ
-            JR   NC,ParserExpectMainNo
+            JR   NC,EPEXMNNO
             OR   A
             RET
-ParserExpectMainNo:
+EPEXMNNO:
             LD   A,DXMAIN
             JP   DGSET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 PSXWR:
             LD   D,DXWR
             LD   E,TNNAME
@@ -52,20 +52,20 @@ PSXWR:
             LD   HL,KWWRTOUT
             LD   B,15
             CALL TKNAMEEQ
-            JR   NC,ParserExpectWriteNo
+            JR   NC,EPEXWRNO
             OR   A
             RET
-ParserExpectWriteNo:
+EPEXWRNO:
             LD   A,DXWR
             JP   DGSET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 PSPPG:
             LD   D,DXSUB
             LD   E,TOKENSUB
             CALL PSEXPECT
             RET  C
-            CALL ParserExpectMain
+            CALL EPEXMAIN
             RET  C
             LD   D,DXLPAR
             LD   E,TNLPAR
@@ -130,8 +130,8 @@ PSPPG:
             RET
 
 ; A is the stable source-part identity; HL..DE is the half-open byte range.
-.routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CompileVerticalSlice:
+; ABI: in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ECOMPSL:
             CALL SAINIT
             XOR  A
             LD   (DGCODE),A
@@ -139,5 +139,5 @@ CompileVerticalSlice:
             CALL TMRESET
             CALL PSPPG
             RET  C
-            CALL SemanticSinkEmitProgram
+            CALL ESKEMIT
             RET

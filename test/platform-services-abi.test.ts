@@ -1,11 +1,11 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
 
 describe("the Z80 platform-services ABI", () => {
   it("preserves the contracted state across executable adapter stubs", async () => {
-    const assembled = await assembleAtomSource(
-      "vertical-slice/platform-services-abi-proof.asm",
+    const assembled = await assembleNativeNobj(
+      "platform-services-abi-proof.asm",
     );
     const symbols = assembled.symbols;
     const memory = parseIntelHex(assembled.hex).memory;

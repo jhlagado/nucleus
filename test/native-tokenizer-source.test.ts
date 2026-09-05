@@ -143,6 +143,7 @@ describe("fresh native tokenizer/state source preservation", () => {
   it("builds both real tokenizer compositions with the translator unavailable", () => {
     const refusal = "legacy tokenizer source adapter is unavailable";
     const loader = `export async function resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith("atom-source.mjs") || specifier.endsWith("atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)});
       const resolved = await nextResolve(specifier, context);
       if (resolved.url.endsWith("/scripts/atom-source.mjs") ||
           resolved.url.endsWith("/scripts/atom-source-translation.mjs")) {

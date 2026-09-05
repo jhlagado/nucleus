@@ -1,4 +1,4 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
 import {
   createZ80Runtime,
   parseIntelHex,
@@ -277,7 +277,7 @@ const bankedObjectWithAlternatingImages = (): Uint8Array => {
 
 beforeAll(async () => {
   const assemble = async (name: string): Promise<ConsumerImage> => {
-    const { hex, symbols } = await assembleAtomSource(`vertical-slice/${name}.asm`);
+    const { hex, symbols } = await assembleNativeNobj(`${name}.asm`);
     return {
       memory: parseIntelHex(hex).memory,
       symbols,

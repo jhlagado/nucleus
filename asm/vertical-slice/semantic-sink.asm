@@ -1,7 +1,7 @@
 ; Checked semantic-operation transcript used by the direct-Z80 encoders. The
 ; leading byte is the operation count.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,HL
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,HL
 TMRESET:
             LD   HL,SMBUFBAS+1
             LD   (SKCUR),HL
@@ -10,7 +10,7 @@ TMRESET:
             LD   (SMBUFBAS),A
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TMPUT:
             LD   B,A
             LD   HL,(SKCUR)
@@ -32,8 +32,8 @@ TMPUTFUL:
             LD   A,DGSNKCAP
             JP   DGSET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SemanticSinkEmitProgram:
+; ABI: in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ESKEMIT:
             LD   C,A
             LD   A,SMLDU8
             CALL TMPUT

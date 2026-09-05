@@ -1,14 +1,12 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { assembleNativeCompilerRelocation } from "../scripts/assemble-native-compiler-relocation.mjs";
 
-vi.mock("../scripts/atom-source.mjs", () => {
-  throw new Error("Relocation must not import the legacy assembly adapter");
-});
-vi.mock("../scripts/atom-source-translation.mjs", () => {
-  throw new Error("Relocation must not import the legacy source translator");
+it("has no legacy assembly adapter available for relocation", () => {
+  expect(existsSync(new URL("../scripts/atom-source.mjs", import.meta.url))).toBe(false);
+  expect(existsSync(new URL("../scripts/atom-source-translation.mjs", import.meta.url))).toBe(false);
 });
 
 interface RelocatedImage {

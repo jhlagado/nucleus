@@ -2,7 +2,7 @@
 ; streaming positions and longest-name behavior while recognizing only the
 ; token families the slice can pass to its parser.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
 TKSTART:
             LD   HL,(SSOFF)
             LD   (TNSTOFF),HL
@@ -16,7 +16,7 @@ TKSTART:
             LD   (TNLEN),A
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
+; ABI: in A out A,carry,zero clobbers sign,parity,halfCarry
 TKEND:
             LD   (TNKIND),A
             LD   A,1
@@ -25,69 +25,69 @@ TKEND:
             OR   A
             RET
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,HL
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,HL
 TKLEXERR:
             LD   A,DGLEX
             JP   DGSET
 
 ; Carry is set when A can begin a Nucleus identifier.
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
+; ABI: in A out A,carry clobbers zero,sign,parity,halfCarry
 TKLETTER:
-            CP   "A"
-            JR   C,TokenIsLetterNo
-            CP   "Z"+1
-            JR   C,TokenIsLetterYes
-            CP   "a"
-            JR   C,TokenIsLetterNo
-            CP   "z"+1
-            JR   C,TokenIsLetterYes
-TokenIsLetterNo:
+            CP   $41
+            JR   C,ETLETNO
+            CP   $5A+1
+            JR   C,ETLETYES
+            CP   $61
+            JR   C,ETLETNO
+            CP   $7A+1
+            JR   C,ETLETYES
+ETLETNO:
             OR   A
             RET
-TokenIsLetterYes:
+ETLETYES:
             SCF
             RET
 
 ; Carry is set for identifier continuation bytes.
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
+; ABI: in A out A,carry clobbers zero,sign,parity,halfCarry
 TKNAMEBY:
             CALL TKLETTER
             RET  C
-            CP   "0"
-            JR   C,TokenIsNameByteUnderscore
-            CP   "9"+1
-            JR   C,TokenIsNameByteYes
-TokenIsNameByteUnderscore:
-            CP   "_"
-            JR   Z,TokenIsNameByteYes
+            CP   $30
+            JR   C,ETNAMUND
+            CP   $39+1
+            JR   C,ETNAMYES
+ETNAMUND:
+            CP   $5F
+            JR   Z,ETNAMYES
             OR   A
             RET
-TokenIsNameByteYes:
+ETNAMYES:
             SCF
             RET
 
 ; Compare the current NAME token against B bytes at HL. Carry means equal.
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TKNAMEEQ:
             LD   A,(TNLEN)
             CP   B
-            JR   NZ,TokenNameEqualsNo
+            JR   NZ,ETNEQNO
             LD   DE,(TNLEXPTR)
 TKNAMELP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,TokenNameEqualsNo
+            JR   NZ,ETNEQNO
             INC  DE
             INC  HL
             DJNZ TKNAMELP
             SCF
             RET
-TokenNameEqualsNo:
+ETNEQNO:
             OR   A
             RET
 
 ; Scan a complete name before testing the reserved-word spellings used here.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TKNAME:
             LD   B,0
 TKSCANLP:
@@ -103,45 +103,45 @@ TKNAMEEN:
             LD   A,B
             LD   (TNLEN),A
 
-            LD   HL,KeywordSub
+            LD   HL,EKWSUB
             LD   B,3
             CALL TKNAMEEQ
-            JR   C,TokenScanNameSub
-            LD   HL,KeywordFails
+            JR   C,ETNSUB
+            LD   HL,EKWFAILS
             LD   B,5
             CALL TKNAMEEQ
-            JR   C,TokenScanNameFails
-            LD   HL,KeywordElse
+            JR   C,ETNFAILS
+            LD   HL,EKWELSE
             LD   B,4
             CALL TKNAMEEQ
-            JR   C,TokenScanNameElse
-            LD   HL,KeywordFail
+            JR   C,ETNELSE
+            LD   HL,EKWFAIL
             LD   B,4
             CALL TKNAMEEQ
-            JR   C,TokenScanNameFail
-            LD   HL,KeywordEnd
+            JR   C,ETNFAIL
+            LD   HL,EKWEND
             LD   B,3
             CALL TKNAMEEQ
-            JR   C,TokenScanNameEnd
+            JR   C,ETNEND
             LD   A,TNNAME
             JP   TKEND
-TokenScanNameSub:
+ETNSUB:
             LD   A,TOKENSUB
             JP   TKEND
-TokenScanNameFails:
+ETNFAILS:
             LD   A,TNFAILS
             JP   TKEND
-TokenScanNameElse:
+ETNELSE:
             LD   A,TNELSE
             JP   TKEND
-TokenScanNameFail:
+ETNFAIL:
             LD   A,TNFAIL
             JP   TKEND
-TokenScanNameEnd:
+ETNEND:
             LD   A,TOKENEND
             JP   TKEND
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TKCHAR:
             CALL SATAKE
             JP   C,TKLEXERR
@@ -151,24 +151,24 @@ TKCHAR:
             JP   C,TKLEXERR
             CP   $7F
             JP   NC,TKLEXERR
-            CP   "'"
+            CP   $27
             JP   Z,TKLEXERR
-            CP   "\\"
+            CP   $5C
             JP   Z,TKLEXERR
             CALL SATAKE
             LD   (TNVALUE),A
             CALL SAPEEK
             JP   C,TKLEXERR
-            CP   "'"
+            CP   $27
             JP   NZ,TKLEXERR
             CALL SATAKE
             LD   A,TNCHAR
             JP   TKEND
 
 ; Skip a line comment, leaving its physical line ending for normal handling.
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-TokenSkipComment:
-TokenSkipCommentLoop:
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+ETSKPCMT:
+ETCMTLP:
             CALL SAPEEK
             RET  C
             CP   10
@@ -176,16 +176,16 @@ TokenSkipCommentLoop:
             CP   13
             RET  Z
             CALL SATAKE
-            JR   TokenSkipCommentLoop
+            JR   ETCMTLP
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 TKNEXT:
 TKNEXTLP:
             CALL TKSTART
             CALL SAPEEK
             JP   C,TKEOF
 
-            CP   " "
+            CP   $20
             JR   Z,TKSKIP
             CP   9
             JR   Z,TKSKIP
@@ -193,13 +193,13 @@ TKNEXTLP:
             JR   Z,TKLF
             CP   13
             JR   Z,TKCRLF
-            CP   "/"
+            CP   $2F
             JR   Z,TKSLASH
-            CP   "("
-            JR   Z,TokenizerLeftParen
-            CP   ")"
-            JR   Z,TokenizerRightParen
-            CP   "'"
+            CP   $28
+            JR   Z,ETLPAR
+            CP   $29
+            JR   Z,ETRPAR
+            CP   $27
             JP   Z,TKCHAR
             CALL TKLETTER
             JP   C,TKNAME
@@ -212,13 +212,13 @@ TKSKIP:
 TKSLASH:
             CALL SATAKPEK
             JP   C,TKLEXERR
-            CP   "/"
+            CP   $2F
             JP   NZ,TKLEXERR
             CALL SATAKE
-            CALL TokenSkipComment
+            CALL ETSKPCMT
             JR   TKNEXTLP
 
-TokenizerLeftParen:
+ETLPAR:
             CALL SATAKE
             LD   A,(SSDELDEP)
             INC  A
@@ -227,7 +227,7 @@ TokenizerLeftParen:
             LD   A,TNLPAR
             JP   TKEND
 
-TokenizerRightParen:
+ETRPAR:
             LD   A,(SSDELDEP)
             OR   A
             JP   Z,TKLEXERR
@@ -279,10 +279,10 @@ TKEOF:
             JP   NZ,TKLEXERR
             LD   A,(TNEOFPND)
             OR   A
-            JR   NZ,TokenizerEmitEof
+            JR   NZ,ETEOF
             LD   A,(SSLNTOK)
             OR   A
-            JR   Z,TokenizerEmitEof
+            JR   Z,ETEOF
             XOR  A
             LD   (SSLNTOK),A
             INC  A
@@ -291,7 +291,7 @@ TKEOF:
             LD   (TNKIND),A
             OR   A
             RET
-TokenizerEmitEof:
+ETEOF:
             LD   A,TOKENEOF
             LD   (TNKIND),A
             OR   A

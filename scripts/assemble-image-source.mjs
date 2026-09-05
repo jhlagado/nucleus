@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assembleNativeCpmProof } from "./assemble-native-cpm.mjs";
 import { assembleNativeImportResolver } from "./assemble-native-import-resolver.mjs";
 import { assembleNativeCompiler, isNativeCompilerEntry } from "./assemble-native-compiler.mjs";
+import { assembleNativeNobj } from "./assemble-native-nobj.mjs";
 
 const asmRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../asm");
 
@@ -19,6 +20,8 @@ export async function assembleImageSource(source) {
     ? await assembleNativeCpmProof("cpm22-program-provider-proof.asm")
     : entry === "vertical-slice/native-import-resolver-tool.asm"
     ? await assembleNativeImportResolver()
-    : await (await import("./atom-source.mjs")).assembleAtomSource(entry);
+    : entry === "vertical-slice/node-nobj-consumer.asm"
+    ? await assembleNativeNobj("node-nobj-consumer.asm")
+    : (() => { throw new Error(`Unsupported native image entry: ${entry}`); })();
   return { hex: result.hex, symbols: result.symbols };
 }

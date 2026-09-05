@@ -1,0 +1,160 @@
+ORG MMSOURCE
+P8MAINFS:
+            DB "sub helper() as u8",10
+            DB "return 7",10
+            DB "end",10
+            DB "sub main() fails",10
+P8MAINFP:
+            DB "fail helper()",10
+            DB "end",10
+P8MAINFE:
+
+P8INFFS:
+            DB "sub main()",10
+P8INFFP:
+            DB "fail 7",10
+            DB "end",10
+P8INFFE:
+
+P8ERRNGS:
+            DB "sub main() fails",10
+P8ERRNGP:
+            DB "fail 300",10
+            DB "end",10
+P8ERRNGE:
+
+P8ERFLWS:
+            DB "sub helper() as u8 fails",10
+            DB "end",10
+P8ERFLWP:
+            DB "sub main()",10
+            DB "end",10
+P8ERFLWE:
+
+P8PROOKS:
+            DB "sub pass(input as u8) as u8 fails",10
+            DB "return input",10
+            DB "end",10
+            DB "sub relay(value as u8) as u8 fails",10
+            DB "var out as u8 = pass(value) else fail",10
+            DB "return out",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8 = relay('A') else fail",10
+            DB "writeOutputByte(out) else fail",10
+            DB "end",10
+P8PROOKE:
+
+P8PRERRS:
+            DB "sub stop(input as u8) as u8 fails",10
+            DB "fail input",10
+            DB "end",10
+            DB "sub relay(value as u8) as u8 fails",10
+            DB "var out as u8 = stop(value) else fail",10
+            DB "return out",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8 = "
+P8PRERRP:
+            DB "relay(10) else fail",10
+            DB "end",10
+P8PRERRE:
+
+P8BARETS:
+            DB "var mark as u8",10
+            DB "sub stop() fails",10
+            DB "return",10
+            DB "mark = 9",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "stop() else fail",10
+            DB "writeOutputByte(mark) else fail",10
+            DB "end",10
+P8BARETE:
+
+P8SIARGS:
+            DB "sub pick(a as u8, b as u8, c as u8, d as u8, e as u8, f as u8, g as u8, h as u8, i as u8, j as u8, k as u8, l as u8, m as u8, n as u8, o as u8, p as u8) as u8",10
+            DB "return p",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8 = pick(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)",10
+            DB "writeOutputByte(out) else fail",10
+            DB "end",10
+P8SIARGE:
+
+P8LOCRTS:
+            DB "const sampleFailure = 7",10
+            DB "sub alwaysFails() as u8 fails",10
+            DB "fail sampleFailure",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "code = alwaysFails() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "writeOutputByte(0) else fail",10
+            DB "end",10
+P8LOCRTE:
+
+; A program variable is a valid handler destination. The handler performs a
+; later expression and service call so a one-byte address operand cannot pass
+; by accidentally consuming the following semantic opcode.
+P8PRHNDS:
+            DB "var saved as u8",10
+            DB "const sampleFailure = 7",10
+            DB "sub alwaysFails() as u8 fails",10
+            DB "fail sampleFailure",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var value as u8",10
+            DB "value = alwaysFails() handle saved",10
+            DB "writeOutputByte(saved + 1) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "writeOutputByte(0) else fail",10
+            DB "end",10
+P8PRHNDE:
+
+P8RINOKS:
+            DB "sub identity(value as u8) as u8",10
+            DB "return value",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var value as u8 = readInputByte() else fail",10
+P8RINSVP:
+            DB "writeOutputByte(identity(value)) else fail",10
+            DB "end",10
+P8RINOKE:
+
+P8SFRBNS:
+            DB "sub one() as u8",10
+            DB "return 1",10
+            DB "end",10
+            DB "sub two(value as u8) as u8",10
+            DB "return value",10
+            DB "end",10
+            DB "sub three(value as u8) as u8",10
+            DB "return value",10
+            DB "end",10
+            DB "sub four(value as u8) as u8",10
+            DB "return value",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "writeOutputByte(four(three(two(one())))) else fail",10
+            DB "end",10
+P8SFRBNE:
+
+P8RINHNS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "var value as u8",10
+            DB "value = readInputByte() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "writeOutputByte(value) else fail",10
+            DB "end",10
+P8RINHNE:
+
+            ; Emit the runtime before the higher-address source fixtures.

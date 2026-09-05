@@ -191,14 +191,20 @@ export async function runProofManifest(
     .split(path.sep)
     .join("/");
   const { assembleNativeCompiler, isNativeCompilerEntry } = await import("../scripts/assemble-native-compiler.mjs");
+  const { assembleNativeProof, isNativeProofEntry } = await import("../scripts/assemble-native-proof.mjs");
+  const { assembleNativeNobj, isNativeNobjEntry } = await import("../scripts/assemble-native-nobj.mjs");
   const compilerEntry = entry.startsWith("vertical-slice/") ? entry.slice("vertical-slice/".length) : "";
   const assembly = isNativeCompilerEntry(compilerEntry)
     ? assembleNativeCompiler(compilerEntry)
+    : isNativeProofEntry(compilerEntry)
+    ? assembleNativeProof(compilerEntry)
+    : isNativeNobjEntry(compilerEntry)
+    ? assembleNativeNobj(compilerEntry)
     : entry === "vertical-slice/tokenizer-trace-proof.asm"
     ? (await import("../scripts/assemble-native-tokenizer.mjs")).assembleNativeTokenizerTrace()
     : entry === "vertical-slice/stage7-ll1-engine-proof.asm"
       ? (await import("../scripts/assemble-native-grammar.mjs")).assembleNativeGrammarProof()
-      : (await import("../scripts/atom-source.mjs")).assembleAtomSource(entry);
+      : Promise.reject(new Error(`Unsupported native proof entry: ${entry}`));
   const assembled = await assembly.catch((cause: unknown) => {
     throw new ProofFailure(
       `${manifest.name}: ATOM assembly failed\n${cause instanceof Error ? cause.message : String(cause)}`,

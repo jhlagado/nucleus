@@ -6,6 +6,10 @@ Status: active, 2026-09-05. Baseline: published Nucleus main
 replacement is published. The ATOM dependency is pinned to
 `802b5c2d320bec777f427755ff2d7338e3b80a05`.
 
+Source conversion and translator removal are complete in the development
+branch. Stage 4 repository/package qualification and stage 5 publication and
+Triptych integration remain open.
+
 ## Outcome and invariants
 
 Authoritative assembly, including normally generated assembly, must use ATOM's
@@ -82,9 +86,15 @@ entry compositions until those callers are converted.
 The [production compiler report](../reports/atom-native-compiler.md) records
 the parallel frontend, backend and service conversion and the complete native
 entry compositions. The image generator, flat proof route and CP/M release
-builder now use native compiler assembly. The next source family is the Node
-NOBJ runner, followed by the remaining historical and generated proof inputs.
-Those callers must be converted before the source translator can be removed.
+builder now use native compiler assembly. At that checkpoint, the Node NOBJ
+runner and remaining historical proof inputs still used the source translator.
+
+The [source-closure report](../reports/atom-native-source-closure.md) records
+the subsequent parallel conversion of the Node runner and all remaining
+historical proof entries. The translator, its tests and obsolete compositions
+are removed. Native-source, explicit-route and collision checks now run in
+`test:atom-source`. Publication and downstream qualification remain stage 5;
+the source conversion does not replace the released `NUC.COM` by itself.
 
 The native composition keeps the host-only address-space limit of 65,536
 distinct from a wrapped Z80 value. Derived flags have explicit entry-profile
@@ -102,12 +112,12 @@ blocks and 300 textual include occurrences. Five files exceed the native
 65,535-byte source-part limit. These are migration measurements, not target
 code-size measurements.
 
-The current adapter converts directives and characters, suppresses `.routine`
-and `.end`, expands textual includes, selects mutable conditional definitions,
-shortens names, handles special proof endpoints, schedules EQUs and inserts
-temporary equates for unresolved expressions. Several tests still emit legacy
-assembly strings. All these inputs belong in the inventory;
-converting only checked-in compiler instructions would leave the migration open.
+The original adapter converted directives and characters, suppressed `.routine`
+and `.end`, expanded textual includes, selected mutable conditional definitions,
+shortened names, handled special proof endpoints, scheduled EQUs and inserted
+temporary equates for unresolved expressions. Generated test inputs were also
+part of the conversion. The source-closure report records their removal and
+the direct native replacements.
 
 ## Selected structure
 

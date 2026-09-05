@@ -1,8 +1,8 @@
 ; Direct-Z80 encoder for the first checked four-operation stream.
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-EncodeSemanticProgram:
-            LD   HL,ProgramTemplate
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+EENCODE:
+            LD   HL,EPRGTPL
             LD   DE,MMGEN
             LD   BC,PGSZ
             LDIR

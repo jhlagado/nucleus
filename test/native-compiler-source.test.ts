@@ -102,6 +102,7 @@ describe("canonical native compiler production sources", () => {
     const refusal = "legacy compiler assembly unavailable";
     const sourceRoot = new URL("../src/", import.meta.url).href;
     const loader = `export async function resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith("atom-source.mjs") || specifier.endsWith("atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)});
       let resolved;
       try { resolved = await nextResolve(specifier, context); }
       catch (error) {

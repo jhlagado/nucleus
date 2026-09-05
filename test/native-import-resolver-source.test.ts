@@ -32,6 +32,7 @@ describe("standalone native import resolver source preservation", () => {
     // runs the generator entry with both source-adaptation modules unavailable.
     const refusal = "legacy source adapter is unavailable";
     const loader = `export async function resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith("atom-source.mjs") || specifier.endsWith("atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)});
       const resolved = await nextResolve(specifier, context);
       if (resolved.url.endsWith("/scripts/atom-source.mjs") ||
           resolved.url.endsWith("/scripts/atom-source-translation.mjs")) {

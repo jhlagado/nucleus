@@ -39,7 +39,7 @@
     "README.md"
   ],
   "scripts": {
-    "test:atom-source": "node --test scripts/atom-source.test.mjs scripts/assemble-native-source.test.mjs scripts/assemble-native-runtime.test.mjs scripts/assemble-native-cpm.test.mjs scripts/assemble-native-memory-map.test.mjs scripts/omit-tokenizer-displacements.test.mjs scripts/omit-grammar-displacements.test.mjs scripts/omit-cpm-publisher-extents.test.mjs scripts/compiler-profile.test.mjs",
+    "test:atom-source": "node --test scripts/native-source-closure.test.mjs scripts/image-comparison.test.mjs scripts/assemble-native-source.test.mjs scripts/assemble-native-runtime.test.mjs scripts/assemble-native-cpm.test.mjs scripts/assemble-native-memory-map.test.mjs scripts/omit-tokenizer-displacements.test.mjs scripts/omit-grammar-displacements.test.mjs scripts/omit-cpm-publisher-extents.test.mjs scripts/omit-slice-proof-offsets.test.mjs scripts/omit-stage-proof-offsets.test.mjs scripts/compiler-profile.test.mjs",
     "test:host-images": "vitest run --config vitest.host.config.mjs",
     "test:atom-boundaries": "vitest run test/atom-runtime-link.test.ts test/nobj.test.ts test/platform-services-abi.test.ts test/service-gateway.test.ts test/cpm22-command.test.ts test/cpm22-program-provider.test.ts --maxWorkers=1",
     "test:atom-cpm": "vitest run test/cpm22-native-proofs.test.ts test/cpm22-command.test.ts test/cpm22-program-provider.test.ts test/cpm22-source-provider.test.ts test/cpm22-bdos-call.test.ts test/cpm22-runtime-provider.test.ts test/cpm22-publisher.test.ts test/cpm22-output-candidates.test.ts test/cpm22-layout.test.ts test/cpm22-native-compiler.test.ts --maxWorkers=1",

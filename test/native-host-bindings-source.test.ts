@@ -144,7 +144,8 @@ describe("native host bindings from canonical source", () => {
 
   it("assembles all four host profiles with both historical translators blocked", () => {
     const refusal = "legacy host assembly disabled";
-    const loader = `export async function resolve(s,c,next) { const r=await next(s,c); if (/\\/scripts\\/atom-source(?:-translation)?\\.mjs$/.test(r.url)) throw Error(${JSON.stringify(refusal)}); return r; }`;
+    const loader = `export async function resolve(s,c,next) {
+    if (s.endsWith("atom-source.mjs") || s.endsWith("atom-source-translation.mjs")) throw new Error(${JSON.stringify(refusal)}); const r=await next(s,c); if (/\\/scripts\\/atom-source(?:-translation)?\\.mjs$/.test(r.url)) throw Error(${JSON.stringify(refusal)}); return r; }`;
     const helper = new URL("../scripts/assemble-native-host-bindings.mjs", import.meta.url).href;
     const legacy = new URL("../scripts/atom-source.mjs", import.meta.url).href;
     const script = `let blocked=false; try { await import(${JSON.stringify(legacy)}); } catch(e) { if(e.message!==${JSON.stringify(refusal)}) throw e; blocked=true; } if(!blocked) throw Error('guard inactive'); const {assembleNativeHostBindings}=await import(${JSON.stringify(helper)}); const out=[]; for(const mon3 of [0,1]) for(const debug of [0,1]) { const a=await assembleNativeHostBindings({mon3,debug}); out.push({hex:a.hex,symbols:a.symbols,addresses:a.addresses}); } process.stdout.write(JSON.stringify(out));`;
