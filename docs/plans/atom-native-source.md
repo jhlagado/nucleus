@@ -1,19 +1,20 @@
 # Native ATOM source migration
 
-Status: active, 2026-09-05. Baseline: published Nucleus main
-`6045257a11d791e34fccba607b60e79f629d3019`. The released CP/M artifact remains
-`nucleus-v0.3.0` at `52cca195d1b557ebfbbc3a6d924ca3d6ea657829` until a qualified
-replacement is published. The ATOM dependency is pinned to
+Status: complete, 2026-09-05. Baseline: published Nucleus main
+`6045257a11d791e34fccba607b60e79f629d3019`. The qualified replacement is
+`nucleus-v0.3.1` at `b5276a85fd36600a10dbd65039f0af3afc033f0d`; the prior
+0.3.0 release remains available. The ATOM dependency is pinned to
 `802b5c2d320bec777f427755ff2d7338e3b80a05`.
 
-Source conversion and translator removal are complete in the development
-branch. Stage 4 repository/package qualification and stage 5 publication and
-Triptych integration remain open.
+Stages 1–5 are complete, including translator removal, full repository/package
+qualification, publication and Triptych's exact hosted-artifact verification.
+The [completion report](../reports/atom-native-release-completion.md) records
+the final revisions, release identities, tests and remaining cross-project tasks.
 
 The [0.3.1 qualification checkpoint](../reports/atom-native-release-qualification.md)
-records the fresh corrected release candidate, real-OS replay and split Node
-development/runtime checks. The candidate is prepared; publication remains
-conditional on the complete release gate and clean Linux CI.
+records the corrected candidate, real-OS replay and split Node development/runtime
+checks before final Linux qualification. Its pending-publication statements
+describe that earlier checkpoint; the completion report records the outcome.
 
 ## Outcome and invariants
 
@@ -50,15 +51,17 @@ continues. Shared generated outputs and package locks have one writer. Final
 release, downstream pin updates and hosted verification follow integration.
 Physical ESP32 and mobile-device measurements remain separate work.
 
+The following reports describe successive source-conversion checkpoints.
+
 The [runtime conversion report](../reports/atom-native-runtime.md) records the
 next native source family and its parallel CP/M qualification work. Runtime
 catalog generation and development linking now bypass source translation;
-legacy compiler/proof callers remain for subsequent stages.
+legacy compiler/proof callers remained for subsequent stages at that checkpoint.
 
 The [CP/M source-provider report](../reports/atom-native-cpm-source.md) records
 the next two converted leaves and their direct proof. The separately reviewed
-parameter repair is integrated in this development branch; its released
-artifact and Triptych pin have not yet been replaced.
+parameter repair was integrated in the development branch before its released
+artifact and Triptych pin were replaced during final qualification.
 
 The [CP/M adapter report](../reports/atom-native-cpm-adapters.md) records the
 next parallel conversion: program/runtime providers and command/output/
@@ -85,8 +88,8 @@ The [grammar, host and diagnostic report](../reports/atom-native-grammar-host.md
 records native generated tables, the packed engine, both reference host
 transports, the CP/M vector and the shared diagnostic leaf. The ordinary engine
 proof now bypasses the source translator. Derived native build flags have one
-explicit profile helper; the historical derivation remains isolated for legacy
-entry compositions until those callers are converted.
+explicit profile helper; the historical derivation remained isolated for legacy
+entry compositions until those callers were converted.
 
 The [production compiler report](../reports/atom-native-compiler.md) records
 the parallel frontend, backend and service conversion and the complete native
@@ -98,7 +101,7 @@ The [source-closure report](../reports/atom-native-source-closure.md) records
 the subsequent parallel conversion of the Node runner and all remaining
 historical proof entries. The translator, its tests and obsolete compositions
 are removed. Native-source, explicit-route and collision checks now run in
-`test:atom-source`. Publication and downstream qualification remain stage 5;
+`test:atom-source`. Publication and downstream qualification are stage 5;
 the source conversion does not replace the released `NUC.COM` by itself.
 
 The native composition keeps the host-only address-space limit of 65,536
