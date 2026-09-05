@@ -2,22 +2,22 @@
 ; Parser frames live only during source checking. Z80 emission reuses their
 ; workspace after the complete semantic transcript has been published.
 
-.if HybridLL1Full
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-ControlReset:
+%IF HybridLL1Full
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+CFRST:
             XOR  A
             LD   (CTDEP),A
-.if AggregateCallSlices
+%IF AggregateCallSlices
             RET
-.else
+%ELSE
             LD   (CTNXLBL),A
             RET
-.endif
-.endif
+%ENDIF
+%ENDIF
 
-.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
-ControlFrameAddress:
+; Contract: in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CFFRADR:
             LD   L,A
             LD   H,0
             ADD  HL,HL
@@ -32,24 +32,24 @@ ControlFrameAddress:
             RET
 
 ; A is ControlKind*. Return the new frame base in HL.
-.routine in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-ControlPushFrame:
+; Contract: in A out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+CFPSHFR:
             LD   B,A
             LD   A,(CTDEP)
             CP   CFCAP
-            JR   NC,ControlCapacityFailure
+            JR   NC,CFCAPER
             INC  A
             LD   (CTDEP),A
             DEC  A
-            CALL ControlFrameAddress
+            CALL CFFRADR
             LD   (HL),B
             INC  HL
             LD   B,CFSZ-1
             XOR  A
-ControlClearFrame:
+CFCLRFR:
             LD   (HL),A
             INC  HL
-            DJNZ ControlClearFrame
+            DJNZ CFCLRFR
             LD   DE,CFCTR-CFSZ
             ADD  HL,DE
             DEC  (HL)                    ; cleared zero -> ControlNoCounter
@@ -57,317 +57,317 @@ ControlClearFrame:
             ADD  HL,DE
             OR   A
             RET
-ControlCapacityFailure:
+CFCAPER:
             CALL DGINLINE
-            .db  DGCTLCAP
+            DB  DGCTLCAP
 
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
-ControlTopFrame:
+; Contract: out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CFTOPFR:
             LD   A,(CTDEP)
             OR   A
-            JR   Z,ControlLoopFailure
+            JR   Z,CFLPER
             DEC  A
-            JR   ControlFrameAddress
+            JR   CFFRADR
 
-.routine in B out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
-ControlTopFrameField:
-            CALL ControlTopFrame
-.if CompilerDiagnosticReturns
+; Contract: in B out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CFTOFRFL:
+            CALL CFTOPFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   E,B
             LD   D,0
             ADD  HL,DE
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-ControlPopFrame:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+CFPOPFR:
             LD   HL,CTDEP
             LD   A,(HL)
             OR   A
-            JR   Z,ControlLoopFailure
+            JR   Z,CFLPER
             DEC  (HL)
             XOR  A
             RET
 
-.if HybridLL1Full
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-ControlAllocateExit:
+%IF HybridLL1Full
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+CFALCEXT:
             LD   B,CFEXIT
-.endif
-.routine in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
-ControlAllocateInto:
+%ENDIF
+; Contract: in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CFALCTO:
             LD   A,(CTNXLBL)
-.if AggregateCallSlices
+%IF AggregateCallSlices
             CP   S7CTLLIM
-.else
+%ELSE
             ; Ordinal 31 is the retained routine entry.
             CP   CRLBL
-.endif
-            JR   NC,ControlLabelFailure
+%ENDIF
+            JR   NC,CFLABER
             LD   C,A
             INC  A
             LD   (CTNXLBL),A
-            CALL ControlTopFrameField
-.if CompilerDiagnosticReturns
+            CALL CFTOFRFL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (HL),C
             RET
 
-.if HybridLL1Full
-.routine in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-HybridLL1PushFlowFrameAndLabelA:
-            CALL HybridLL1PushFlowFrame
-.if CompilerDiagnosticReturns
+%IF HybridLL1Full
+; Contract: in B out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+LFFLOWLA:
+            CALL LFPSFLFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.routine out A,B,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
-ControlAllocateLabelA:
+%ENDIF
+; Contract: out A,B,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
+CFALLABA:
             LD   B,CFLBLA
-.if TargetStreamingOutput
-            JR   ControlAllocateInto
-.else
-            JP   ControlAllocateInto
-.endif
-.endif
+%IF TargetStreamingOutput
+            JR   CFALCTO
+%ELSE
+            JP   CFALCTO
+%ENDIF
+%ENDIF
 
-ControlLabelFailure:
+CFLABER:
             CALL DGINLINE
-            .db  DGCLBCAP
-ControlLoopFailure:
+            DB  DGCLBCAP
+CFLPER:
             CALL DGINLINE
-            .db  DXLOOP
+            DB  DXLOOP
 
 ; Emit operation D followed by byte C.
-.routine in C,D out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ControlEmitOperationByte:
+; Contract: in C,D out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+CFEOPBY:
             LD   A,D
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticReturns
+            CALL TMOPER
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JP   SemanticSinkPut
+            JP   TMPUT
 
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-ControlEmitLabel:
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+CFELAB:
             LD   D,SMCTLLBL
-            JR   ControlEmitOperationByte
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-ControlEmitBranchFalse:
+            JR   CFEOPBY
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+CFEBRFAL:
             LD   D,SMBRFALS
-            JR   ControlEmitOperationByte
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-ControlEmitJump:
+            JR   CFEOPBY
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+CFEJP:
             LD   D,SMJUMP
-            JR   ControlEmitOperationByte
+            JR   CFEOPBY
 
 ; Return the nearest enclosing while/for frame in HL. A syntactic exit marks
 ; the particular while frame it targets; continues and counted loops retain
 ; their existing state.
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-ControlFindLoop:
+; Contract: out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
+CFFINDLP:
             LD   A,(CTDEP)
             OR   A
-            JR   Z,ControlLoopFailure
-ControlFindLoopNext:
+            JR   Z,CFLPER
+CFFILPNX:
             DEC  A
             PUSH AF
-            CALL ControlFrameAddress
+            CALL CFFRADR
             LD   A,(HL)
             CP   CKWHILE
-            JR   Z,ControlFindLoopFound
+            JR   Z,CFFILPFN
             CP   CKFOR
-            JR   Z,ControlFindLoopFound
+            JR   Z,CFFILPFN
             POP  AF
             OR   A
-            JR   NZ,ControlFindLoopNext
-            JR   ControlLoopFailure
-ControlFindLoopFound:
+            JR   NZ,CFFILPNX
+            JR   CFLPER
+CFFILPFN:
             LD   E,A
             LD   A,(DCINFO)
             ADD  A,E
             CP   CKWHILE+TNEXIT
-            JR   NZ,ControlFindLoopReady
+            JR   NZ,CFFILPRD
             PUSH HL
             LD   DE,CFMODE
             ADD  HL,DE
             LD   (HL),0
             POP  HL
-ControlFindLoopReady:
+CFFILPRD:
             POP  AF
             OR   A
             RET
 
 ; C is a local byte offset. Reject a source write or nested counter reuse while
 ; that exact local is the counter of any active counted loop.
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-ControlCheckActiveCounter:
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+CFCKACCN:
             LD   A,(CTDEP)
             OR   A
             RET  Z
-ControlCheckCounterNext:
+CFCKCNNX:
             DEC  A
             PUSH AF
-            CALL ControlFrameAddress
+            CALL CFFRADR
             LD   A,(HL)
             CP   CKFOR
-            JR   NZ,ControlCheckCounterContinue
+            JR   NZ,CFCKCNCT
             LD   DE,CFCTR
             ADD  HL,DE
             LD   A,(HL)
             CP   C
-            JR   Z,ControlActiveCounterFailure
-ControlCheckCounterContinue:
+            JR   Z,CFACCNER
+CFCKCNCT:
             POP  AF
             OR   A
-            JR   NZ,ControlCheckCounterNext
+            JR   NZ,CFCKCNNX
             RET
-ControlActiveCounterFailure:
+CFACCNER:
             POP  AF
             CALL DGINLINE
-            .db  DGACTCTR
+            DB  DGACTCTR
 
-.if HybridLL1Full
-.else
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredParseBooleanHeader:
+%IF HybridLL1Full
+%ELSE
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCPBLHDR:
             LD   A,TYBOOL
-            CALL TypedExpressionBeginRuntime
-.if CompilerDiagnosticReturns
+            CALL TYEXBGRU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   E,TYBOOL
-            CALL TypedCheckAssignable
-.if CompilerDiagnosticReturns
+            CALL TYCKASG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   ParserExpectLine
+%ENDIF
+            JP   PSXLN
 
 ; Parse an if/elseif/else chain. TokenIf has already been consumed.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredParseIf:
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCPIF:
             LD   A,CKIF
-            CALL ControlPushFrame
-.if CompilerDiagnosticReturns
+            CALL CFPSHFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlAllocateInto
-.if CompilerDiagnosticReturns
+            CALL CFALCTO
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFLBLA
-            CALL ControlAllocateInto
-.if CompilerDiagnosticReturns
+            CALL CFALCTO
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,CFCTR-1
             ADD  HL,DE
             LD   (HL),1
-StructuredParseIfCondition:
-            CALL StructuredParseBooleanHeader
-.if CompilerDiagnosticReturns
+SCPIFCON:
+            CALL SCPBLHDR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ControlTopFrame
+%ENDIF
+            CALL CFTOPFR
             INC  HL
             LD   C,(HL)
-            CALL ControlEmitBranchFalse
-.if CompilerDiagnosticReturns
+            CALL CFEBRFAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedParseStatements
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYPSTM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL StructuredRecordIfClause
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SCREIFCL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CALL PSPEEK
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TNELSEIF
-            JR   Z,StructuredParseElseIf
+            JR   Z,SCPELSIF
             CP   TNELSE
-            JR   Z,StructuredParseElse
+            JR   Z,SCPELS
             CP   TOKENEND
-            JP   NZ,ParserExpectedScalar
-            CALL ControlTopFrame
+            JP   NZ,PSXSC
+            CALL CFTOPFR
             INC  HL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   StructuredParseIfEnd
-StructuredParseElseIf:
-            CALL StructuredEmitFrameExitAndLabel
-.if CompilerDiagnosticReturns
+%ENDIF
+            JR   SCPIFEND
+SCPELSIF:
+            CALL SCEXITLA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFLBLA
-            CALL ControlAllocateInto
-.if CompilerDiagnosticReturns
+            CALL CFALCTO
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   StructuredParseIfCondition
-StructuredParseElse:
-            CALL StructuredEmitFrameExitAndLabel
-.if CompilerDiagnosticReturns
+%ENDIF
+            JR   SCPIFCON
+SCPELS:
+            CALL SCEXITLA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedParseStatements
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYPSTM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL StructuredRecordIfClause
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SCREIFCL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFMODE
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   (HL),1
             CALL PSPEEK
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TOKENEND
-            JP   NZ,ParserExpectedScalar
-StructuredParseIfEnd:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+            JP   NZ,PSXSC
+SCPIFEND:
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFCTR
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             PUSH HL
             LD   A,(HL)
             POP  HL
@@ -376,29 +376,29 @@ StructuredParseIfEnd:
             AND  (HL)
             XOR  1
             PUSH AF
-            CALL ControlPopFrame
+            CALL CFPOPFR
             POP  AF
             RET
 
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-StructuredEmitFrameExitAndLabel:
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+SCEXITLA:
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitJump
-.if CompilerDiagnosticReturns
+            CALL CFEJP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ControlTopFrame
+%ENDIF
+            CALL CFTOPFR
             INC  HL
             LD   C,(HL)
-            JP   ControlEmitLabel
-.endif
+            JP   CFELAB
+%ENDIF
 
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-StructuredRecordIfClause:
+; Contract: out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+SCREIFCL:
             LD   B,CFCTR
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   A,(CTFALLS)
             OR   A
             RET  Z
@@ -407,307 +407,307 @@ StructuredRecordIfClause:
             RET
 
 ; TokenWhile has already been consumed.
-.if HybridLL1Full
-.else
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredParseWhile:
+%IF HybridLL1Full
+%ELSE
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCPWH:
             LD   A,CKWHILE
-            CALL ControlPushFrame
-.if CompilerDiagnosticReturns
+            CALL CFPSHFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFLBLA
-            CALL ControlAllocateInto
-.if CompilerDiagnosticReturns
+            CALL CFALCTO
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL
             LD   (HL),C
             LD   B,CFEXIT
-            CALL ControlAllocateInto
-.if CompilerDiagnosticReturns
+            CALL CFALCTO
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ControlTopFrame
+%ENDIF
+            CALL CFTOPFR
             INC  HL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL StructuredParseBooleanHeader
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SCPBLHDR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitBranchFalse
-.if CompilerDiagnosticReturns
+            CALL CFEBRFAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedParseStatements
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYPSTM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CALL PSPEEK
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TOKENEND
-            JP   NZ,ParserExpectedScalar
+            JP   NZ,PSXSC
             LD   B,CFCONT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitJump
-.if CompilerDiagnosticReturns
+            CALL CFEJP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredCompleteLoop:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+SCCMPLP:
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   ControlPopFrame
+%ENDIF
+            JP   CFPOPFR
 
 ; Parse bare exit/continue. The token has already been consumed.
-.routine in A out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredParseLoopTransfer:
+; Contract: in A out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCPLPXF:
             LD   (DCINFO),A
-            CALL ControlFindLoop
-.if CompilerDiagnosticReturns
+            CALL CFFINDLP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,CFEXIT
             LD   A,(DCINFO)
             CP   TNEXIT
-            JR   Z,StructuredLoopTransferSelected
+            JR   Z,SCLPXFSE
             LD   DE,CFCONT
-StructuredLoopTransferSelected:
+SCLPXFSE:
             ADD  HL,DE
             LD   C,(HL)
-            CALL ControlEmitJump
-.if CompilerDiagnosticReturns
+            CALL CFEJP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   ParserExpectLine
-.endif
+%ENDIF
+            JP   PSXLN
+%ENDIF
 
 ; Parse one compile-time integer expression. B returns direction bit 1 and DE
 ; returns the nonzero magnitude.
-.routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
-StructuredParseStep:
+; Contract: out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
+SCPSTEP:
             CALL PSPEEK
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,0
             CP   TNPLUS
-            JR   Z,StructuredStepTakeSign
+            JR   Z,SCSTTKSG
             CP   TNMIN
-            JR   NZ,StructuredStepExpression
+            JR   NZ,SCSTEPEX
             LD   B,2
-StructuredStepTakeSign:
+SCSTTKSG:
             PUSH BC
-            CALL ParserTake
+            CALL PSTK
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredStepExpression:
+%ENDIF
+SCSTEPEX:
             PUSH BC
             XOR  A
-            CALL TypedExpressionBeginConstant
+            CALL TYEXBGK
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   D,A
             AND  MTCONST
-            JR   Z,StructuredStepFailure
+            JR   Z,SCSTEPER
             LD   A,D
             AND  MTTYPMSK
             CP   TYBOOL
-            JR   Z,StructuredStepFailure
+            JR   Z,SCSTEPER
             LD   A,D
-            CALL TypedInferredConstantType
+            CALL TYINFKTY
             OR   A
-            JR   NZ,StructuredStepFailure
+            JR   NZ,SCSTEPER
             LD   A,H
             OR   L
-            JR   Z,StructuredStepFailure
+            JR   Z,SCSTEPER
             EX   DE,HL
             OR   A
             RET
-StructuredStepFailure:
+SCSTEPER:
             LD   HL,EXVALPOS
             CALL DGRESTTK
             CALL DGINLINE
-            .db  DGLOPSTP
+            DB  DGLOPSTP
 
 ; TokenFor has already been consumed.
-.if HybridLL1Full
-.else
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredParseFor:
+%IF HybridLL1Full
+%ELSE
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCPFOR:
             LD   E,TNNAME
             CALL PSEXPECT
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(TNSTOFF)
             LD   (EXCALOFF),HL
-            CALL SymbolLookupCurrent
-.if CompilerDiagnosticReturns
+            CALL SBLOOKUP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (DCINFO),A
             LD   (DCPAY),BC
             LD   D,A
             AND  SCMSK
             CP   SCLOC
-            JP   NZ,StructuredCounterFailure
+            JP   NZ,SCCNTER
             LD   A,D
             AND  MTTYPMSK
             CP   TYBOOL
-            JP   Z,StructuredCounterFailure
-            CALL ControlCheckActiveCounter
-.if CompilerDiagnosticReturns
+            JP   Z,SCCNTER
+            CALL CFCKACCN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectEqual
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXEQ
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(DCINFO)
             AND  MTTYPMSK
-            CALL TypedExpressionBeginRuntime
-.if CompilerDiagnosticReturns
+            CALL TYEXBGRU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   D,A
             LD   A,(DCINFO)
             AND  MTTYPMSK
             LD   E,A
             LD   A,D
-            CALL TypedCheckAssignable
-.if CompilerDiagnosticReturns
+            CALL TYCKASG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TOKENTO
             LD   B,1
-            JR   Z,StructuredForBound
+            JR   Z,SCFORBND
             CP   TNUNT
-            JP   NZ,StructuredCounterFailure
+            JP   NZ,SCCNTER
             LD   B,0
-StructuredForBound:
+SCFORBND:
             PUSH BC
             LD   A,(DCINFO)
             AND  MTTYPMSK
-            CALL TypedExpressionBeginRuntime
+            CALL TYEXBGRU
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   D,A
             PUSH BC
             LD   A,(DCINFO)
             AND  MTTYPMSK
             LD   E,A
             LD   A,D
-            CALL TypedCheckAssignable
+            CALL TYCKASG
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,1
             PUSH BC
             PUSH DE
             CALL PSPEEK
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TNSTEP
-            JR   NZ,StructuredForStepReady
+            JR   NZ,SCFOSTRD
             PUSH BC
-            CALL ParserTake
+            CALL PSTK
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
-            CALL StructuredParseStep
+            CALL SCPSTEP
             LD   A,B
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             OR   B
             LD   B,A
-StructuredForStepReady:
+SCFOSTRD:
             PUSH BC
             PUSH DE
-            CALL ParserExpectLine
+            CALL PSXLN
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
             PUSH DE
             LD   A,CKFOR
-            CALL ControlPushFrame
+            CALL CFPSHFR
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
             PUSH DE
             LD   B,CFLBLA
-            CALL ControlAllocateInto
+            CALL CFALCTO
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
             PUSH DE
             LD   B,CFCONT
-            CALL ControlAllocateInto
+            CALL CFALCTO
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
             PUSH DE
             LD   B,CFEXIT
-            CALL ControlAllocateInto
+            CALL CFALCTO
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH DE
-            CALL ControlTopFrame
+            CALL CFTOPFR
             POP  DE
             PUSH HL
             INC  HL
@@ -721,13 +721,13 @@ StructuredForStepReady:
             AND  MTTYPMSK
             LD   C,A
             BIT  4,C
-            JR   Z,StructuredForUnsignedMode
+            JR   Z,SCFOUSMD
             SET  3,B
-StructuredForUnsignedMode:
+SCFOUSMD:
             BIT  1,A
-            JR   Z,StructuredForModeReady
+            JR   Z,SCFOMDRD
             SET  2,B
-StructuredForModeReady:
+SCFOMDRD:
             LD   A,B
             LD   (HL),A
             INC  HL
@@ -740,172 +740,172 @@ StructuredForModeReady:
             INC  HL
             LD   (HL),D
             POP  HL
-            CALL StructuredEmitForSetup
-.if CompilerDiagnosticReturns
+            CALL SCEFOSET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ControlTopFrame
+%ENDIF
+            CALL CFTOPFR
             INC  HL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL StructuredEmitForTest
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SCEFOTST
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedParseStatements
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYPSTM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CALL PSPEEK
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   TOKENEND
-            JP   NZ,ParserExpectedScalar
+            JP   NZ,PSXSC
             LD   B,CFCONT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL StructuredEmitForNext
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SCEFORNX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   C,(HL)
-            CALL ControlEmitLabel
-.if CompilerDiagnosticReturns
+            CALL CFELAB
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,SMFCLEAN
-            CALL SemanticSinkOperation
-.if CompilerDiagnosticReturns
+            CALL TMOPER
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   StructuredCompleteLoop
-.endif
-StructuredCounterFailure:
+%ENDIF
+            JP   SCCMPLP
+%ENDIF
+SCCNTER:
             CALL DGINLINE
-            .db  DGLOPCTR
+            DB  DGLOPCTR
 
 ; Emit the fixed-width counted-loop records from the current frame.
-.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredEmitForPrefix:
+; Contract: in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCEFOPFX:
             PUSH HL
-            CALL SemanticSinkOperation
+            CALL TMOPER
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,CFCTR
             ADD  HL,DE
             LD   A,(HL)
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
-.else
-            CALL SemanticSinkPutPreserveHL
-.endif
-.if CompilerDiagnosticReturns
+%ELSE
+            CALL TMPUTHL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL
             RET
 
-.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredEmitForSetup:
+; Contract: in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCEFOSET:
             LD   A,SMFORSET
-            CALL StructuredEmitForPrefix
-.if CompilerDiagnosticReturns
+            CALL SCEFOPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(HL)
-            JP   SemanticSinkPut
+            JP   TMPUT
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredEmitForTest:
-            CALL ControlTopFrame
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCEFOTST:
+            CALL CFTOPFR
             LD   A,SMFTEST
-            CALL StructuredEmitForPrefix
-.if CompilerDiagnosticReturns
+            CALL SCEFOPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(HL)                  ; mode
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
-.else
-            CALL SemanticSinkPutPreserveHL
-.endif
-.if CompilerDiagnosticReturns
+%ELSE
+            CALL TMPUTHL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,CFEXIT
-            CALL ControlTopFrameField
+            CALL CFTOFRFL
             LD   A,(HL)                  ; exit label
-            JP   SemanticSinkPut
-StructuredEmitFrameBytes:
+            JP   TMPUT
+SCEFRBY:
             LD   A,(HL)
             PUSH BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
-.else
-            CALL SemanticSinkPutPreserveHL
-.endif
+%ELSE
+            CALL TMPUTHL
+%ENDIF
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL
-            DJNZ StructuredEmitFrameBytes
+            DJNZ SCEFRBY
             RET
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-StructuredEmitForNext:
-            CALL ControlTopFrame
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+SCEFORNX:
+            CALL CFTOPFR
             PUSH HL
             LD   A,SMFNEXT
-            CALL SemanticSinkOperation
+            CALL TMOPER
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,CFLBLA
             ADD  HL,DE
             LD   A,(HL)                  ; test label
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
-.else
-            CALL SemanticSinkPutPreserveHL
-.endif
-.if CompilerDiagnosticReturns
+%ELSE
+            CALL TMPUTHL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL                     ; continue label
             INC  HL                     ; exit label
             LD   A,(HL)
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
-.else
-            CALL SemanticSinkPutPreserveHL
-.endif
-.if CompilerDiagnosticReturns
+%ELSE
+            CALL TMPUTHL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL                     ; counter
             LD   B,6                    ; counter, mode, step, trap offset
-            JR   StructuredEmitFrameBytes
+            JR   SCEFRBY

@@ -4,6 +4,13 @@
 
 DebugHooks .equ 0
 NativeStreamingSource .equ 1
+SegmentedOutput .equ 1
+TargetStreamingOutput .equ 1
+LegacyCompilerSlices .equ 0
+AggregateCallSlices .equ 1
+Stage7LL1 .equ 1
+LegacyEncoders .equ 0
+            .include "compiler-profile-legacy.asmi"
             .include "cpm22-target-memory-map.asmi"
             .include "nucleus-runtime-identity.asmi"
 

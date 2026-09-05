@@ -7,38 +7,39 @@ SegmentedOutput .equ 1
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
             .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 Stage7ParserCoverageSource:
@@ -92,24 +93,26 @@ Stage7LL1ConstantSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofStatus),A
-            LD   (ProofCase),A
+            LD   (FPSTATUS),A
+            LD   (FPCASE),A
             LD   A,160
             LD   HL,Stage7LL1ConstantSource
             LD   DE,Stage7LL1ConstantSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofConstantCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofConstantEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofConstantFrameFailure
             LD   A,(RUNSTATE)
@@ -124,13 +127,13 @@ ProofStart:
             LD   A,160
             LD   HL,Stage7ParserCoverageSource
             LD   DE,Stage7ParserCoverageSourceEnd
-            CALL CompileAggregateCallSlice
-            JR   C,ProofCompileFailure
-            CALL EncodeAggregateProgram
+            CALL CPAGCLSL
+            JR   C,FPCOMPFL
+            CALL ZGPROG
             JR   C,ProofEncodeFailure
             LD   HL,(GNSZ)
             LD   (ProofGeneratedSize),HL
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JR   C,ProofFrameFailure
             LD   A,(RUNSTATE)
@@ -152,10 +155,10 @@ ProofStart:
             OR   A
             JR   NZ,ProofOutputFailure
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
-ProofCompileFailure:
+FPCOMPFL:
             LD   A,1
             JR   ProofFailed
 ProofEncodeFailure:
@@ -185,7 +188,7 @@ ProofConstantRunFailure:
 ProofConstantOutputFailure:
             LD   A,10
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 ; The generated program must restore both the root hardware stack and IX.
@@ -214,6 +217,6 @@ ProofCallGeneratedFailure:
 
 ProofExpectedSP:   .dw 0
 ProofGeneratedSize: .dw 0
-ProofStatus:        .db 0
-ProofCase:          .db 0
-ProofEnd:
+FPSTATUS:        .db 0
+FPCASE:          .db 0
+FPEND:

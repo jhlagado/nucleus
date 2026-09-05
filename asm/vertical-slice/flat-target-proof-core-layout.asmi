@@ -1,0 +1,2 @@
+; The production compiler starts at the selected deployment origin.
+            ORG MMCORE

@@ -9,39 +9,40 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
 Stage7LL1            .equ 1
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
             .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 Stage8MainFailSource:
@@ -205,6 +206,8 @@ Stage8ReadInputHandlerSourceEnd:
             ; Emit the runtime before the higher-address source fixtures.
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
@@ -826,20 +829,20 @@ Stage8CounterHandleNameSourceEnd:
             ; proof partition but remains below the machine stack.
             .org $D000
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofStatus),A
-            LD   (ProofCase),A
+            LD   (FPSTATUS),A
+            LD   (FPCASE),A
 
             LD   A,170
             LD   HL,Stage8MainFailSource
             LD   DE,Stage8MainFailSourceEnd
-            CALL CompileAggregateCallSlice
-            JP   C,ProofCompileFailure
-            CALL EncodeAggregateProgram
+            CALL CPAGCLSL
+            JP   C,FPCOMPFL
+            CALL ZGPROG
             JP   C,ProofEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFrameFailure
             LD   A,(RUNSTATE)
@@ -886,11 +889,11 @@ ProofStart:
             LD   A,172
             LD   HL,Stage8PropagationSuccessSource
             LD   DE,Stage8PropagationSuccessSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofPropagationSuccessCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofPropagationSuccessEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofPropagationSuccessRunFailure
             LD   A,(RUNSTATE)
@@ -906,11 +909,11 @@ ProofStart:
             LD   A,173
             LD   HL,Stage8PropagationFailureSource
             LD   DE,Stage8PropagationFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofPropagationFailureCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofPropagationFailureEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofPropagationFailureRunFailure
             LD   A,(RUNSTATE)
@@ -931,11 +934,11 @@ ProofStart:
             LD   A,174
             LD   HL,Stage8BareReturnSource
             LD   DE,Stage8BareReturnSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofBareReturnCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofBareReturnEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofBareReturnRunFailure
             LD   A,(RUNSTATE)
@@ -951,11 +954,11 @@ ProofStart:
             LD   A,175
             LD   HL,Stage8SixteenArgumentsSource
             LD   DE,Stage8SixteenArgumentsSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofSixteenCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofSixteenEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofSixteenRunFailure
             LD   A,(RUNSTATE)
@@ -971,11 +974,11 @@ ProofStart:
             LD   A,176
             LD   HL,Stage8LocalHandlerSource
             LD   DE,Stage8LocalHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofHandlerCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofHandlerEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofHandlerRunFailure
             LD   A,(RUNSTATE)
@@ -991,11 +994,11 @@ ProofStart:
             LD   A,204
             LD   HL,Stage8ProgramHandlerSource
             LD   DE,Stage8ProgramHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofProgramHandlerCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofProgramHandlerEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofProgramHandlerRunFailure
             LD   A,(RUNSTATE)
@@ -1017,11 +1020,11 @@ ProofStart:
             LD   A,177
             LD   HL,Stage8ReadInputSuccessSource
             LD   DE,Stage8ReadInputSuccessSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofReadSuccessCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofReadSuccessEncodeFailure
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (VINLEN),A
             LD   A,'Q'
@@ -1037,7 +1040,7 @@ ProofStart:
             LD   A,(VOUTBAS)
             CP   'Q'
             JP   NZ,ProofReadSuccessRunFailure
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (VINLEN),A
             LD   A,'Q'
@@ -1059,15 +1062,15 @@ ProofStart:
             JP   NZ,ProofReadSuccessRunFailure
 
             LD   A,117
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,178
             LD   HL,Stage8ServiceFrameBoundarySource
             LD   DE,Stage8ServiceFrameBoundarySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRedesignFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRedesignFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
             LD   A,(RUNSTATE)
@@ -1086,11 +1089,11 @@ ProofStart:
             LD   A,178
             LD   HL,Stage8ReadInputHandlerSource
             LD   DE,Stage8ReadInputHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofReadHandlerCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofReadHandlerEncodeFailure
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINLEN),A
             CALL ProofCallGenerated
@@ -1110,7 +1113,7 @@ ProofStart:
 
             ; The same handler must receive inputFailure without advancing the
             ; cursor or converting the recoverable error into a trap.
-            CALL Reset
+            CALL RESET
             LD   A,2
             LD   (VINFAIL),A
             CALL ProofCallGenerated
@@ -1126,7 +1129,7 @@ ProofStart:
             JP   NZ,ProofReadHandlerRunFailure
 
             ; A distinct reset run must not inherit the configured failure.
-            CALL Reset
+            CALL RESET
             LD   A,(VINFAIL)
             OR   A
             JP   NZ,ProofReadHandlerRunFailure
@@ -1149,11 +1152,11 @@ ProofStart:
             LD   A,179
             LD   HL,Stage8ConstantsSource
             LD   DE,Stage8ConstantsSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofConstantsCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofConstantsEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofConstantsRunFailure
             LD   A,(RUNSTATE)
@@ -1166,11 +1169,11 @@ ProofStart:
             LD   A,180
             LD   HL,Stage8StorageSuccessSource
             LD   DE,Stage8StorageSuccessSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofStorageCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofStorageEncodeFailure
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VSIFAIL),A
             LD   (VSOFAIL),A
@@ -1205,11 +1208,11 @@ ProofStart:
             LD   A,181
             LD   HL,Stage8WriteFailureSource
             LD   DE,Stage8WriteFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofWriteFailureCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofWriteFailureEncode
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (VSOFAIL),A
             LD   (VSOCUR),A
@@ -1243,11 +1246,11 @@ ProofStart:
             LD   A,182
             LD   HL,Stage8SeekFailureSource
             LD   DE,Stage8SeekFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofSeekFailureCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofSeekFailureEncode
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VSOFAIL),A
             INC  A
@@ -1269,11 +1272,11 @@ ProofStart:
             LD   A,183
             LD   HL,Stage8RewindFailureSource
             LD   DE,Stage8RewindFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRewindFailureCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRewindFailureEncode
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (VSIFAIL),A
             INC  A
@@ -1293,11 +1296,11 @@ ProofStart:
             LD   A,184
             LD   HL,Stage8ReadStorageFailureSource
             LD   DE,Stage8ReadStorageFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofReadStorageFailureCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofReadStorageFailureEncode
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VSIFAIL),A
             LD   (VSILEN),A
@@ -1316,11 +1319,11 @@ ProofStart:
             LD   A,185
             LD   HL,Stage8WriteOutputFailureSource
             LD   DE,Stage8WriteOutputFailureSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofWriteOutputFailureCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofWriteOutputFailureEncode
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (SVFAIL),A
             CALL ProofCallGenerated
@@ -1337,11 +1340,11 @@ ProofStart:
             LD   A,186
             LD   HL,Stage8MutualForwardSource
             LD   DE,Stage8MutualForwardSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofMutualCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofMutualEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofMutualRunFailure
             LD   A,(RUNSTATE)
@@ -1472,11 +1475,11 @@ ProofStart:
             LD   A,192
             LD   HL,Stage8NestedFrameSource
             LD   DE,Stage8NestedFrameSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofNestedFrameCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofNestedFrameEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofNestedFrameRunFailure
             LD   A,(RUNSTATE)
@@ -1495,11 +1498,11 @@ ProofStart:
             LD   A,193
             LD   HL,Stage8PredefinedStepSource
             LD   DE,Stage8PredefinedStepSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofPredefinedStepCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofPredefinedStepEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofPredefinedStepRunFailure
             LD   A,(RUNSTATE)
@@ -1516,11 +1519,11 @@ ProofStart:
             JP   NZ,ProofPredefinedStepRunFailure
 
             LD   A,115
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,198
             LD   HL,Stage8RetainedFieldSource
             LD   DE,Stage8RetainedFieldSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRetainedFieldCompileFailure
             LD   HL,(M8PTR)
             INC  HL
@@ -1536,11 +1539,11 @@ ProofStart:
             LD   A,194
             LD   HL,Stage8IndirectHandlerSource
             LD   DE,Stage8IndirectHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofIndirectHandlerCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofIndirectHandlerEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofIndirectHandlerRunFailure
             LD   A,(RUNSTATE)
@@ -1562,11 +1565,11 @@ ProofStart:
             LD   A,195
             LD   HL,Stage8AggregateCopyHandlerSource
             LD   DE,Stage8AggregateCopyHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofAggregateCopyHandlerCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofAggregateCopyHandlerEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofAggregateCopyHandlerRunFailure
             LD   A,(RUNSTATE)
@@ -1591,11 +1594,11 @@ ProofStart:
             LD   A,196
             LD   HL,Stage8RetainedResetSource
             LD   DE,Stage8RetainedResetSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRetainedResetCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRetainedResetEncodeFailure
-            CALL Reset
+            CALL RESET
             LD   A,4
             LD   (VSIFAIL),A
             CALL ProofCallGenerated
@@ -1616,11 +1619,11 @@ ProofStart:
             LD   A,197
             LD   HL,Stage8IndirectServiceHandlerSource
             LD   DE,Stage8IndirectServiceHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofIndirectServiceCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofIndirectServiceEncodeFailure
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINLEN),A
             CALL ProofCallGenerated
@@ -1644,11 +1647,11 @@ ProofStart:
             LD   A,187
             LD   HL,Stage8TrapBypassesHandlerSource
             LD   DE,Stage8TrapBypassesHandlerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofTrapBypassCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofTrapBypassEncodeFailure
-            CALL Reset
+            CALL RESET
             LD   A,2
             LD   (RTACTLIM),A
             CALL ProofCallGenerated
@@ -1674,11 +1677,11 @@ ProofStart:
             LD   A,188
             LD   HL,Stage8ResultFreeReturnSource
             LD   DE,Stage8ResultFreeReturnSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofResultFreeReturnCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofResultFreeReturnEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofResultFreeReturnRunFailure
             LD   A,(RUNSTATE)
@@ -1697,13 +1700,13 @@ ProofStart:
             LD   A,189
             LD   HL,Stage8ForwardMainSource
             LD   DE,Stage8ForwardMainSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofForwardMainCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofForwardMainEncodeFailure
             CALL ProofValidatePublication
             JP   C,ProofPublicationFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofForwardMainRunFailure
             LD   A,(RUNSTATE)
@@ -1722,11 +1725,11 @@ ProofStart:
             LD   A,191
             LD   HL,Stage8RecursiveMainSource
             LD   DE,Stage8RecursiveMainSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRecursiveMainCompileFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRecursiveMainEncodeFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofRecursiveMainRunFailure
             LD   A,(RUNSTATE)
@@ -1779,11 +1782,11 @@ ProofStart:
             LD   A,198
             LD   HL,Stage8ImmediateConsumerSource
             LD   DE,Stage8ImmediateConsumerSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRedesignFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRedesignFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
             LD   A,(RUNSTATE)
@@ -1803,15 +1806,15 @@ ProofStart:
             JP   NZ,ProofRedesignFailure
 
             LD   A,116
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,199
             LD   HL,Stage8HandlerPropagatesSource
             LD   DE,Stage8HandlerPropagatesSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofRedesignFailure
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofRedesignFailure
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (SVFAIL),A
             CALL ProofCallGenerated
@@ -1835,7 +1838,7 @@ ProofStart:
             JP   NZ,ProofRedesignFailure
 
             LD   A,117
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGFAICTX
             LD   BC,Stage8BareLocalPoint-Stage8BareLocalSource
             LD   HL,Stage8BareLocalSource
@@ -1843,7 +1846,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,118
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGHDLINE
             LD   BC,Stage8BareAssignmentPoint-Stage8BareAssignmentSource
             LD   HL,Stage8BareAssignmentSource
@@ -1851,7 +1854,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,119
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGFAICTX
             LD   BC,Stage8LegacyOrFailPoint-Stage8LegacyOrFailSource
             LD   HL,Stage8LegacyOrFailSource
@@ -1859,7 +1862,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,120
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGHDLINE
             LD   BC,Stage8LegacyOnErrorPoint-Stage8LegacyOnErrorSource
             LD   HL,Stage8LegacyOnErrorSource
@@ -1867,7 +1870,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,121
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGFAICTX
             LD   BC,Stage8InfalliblePropagationPoint-Stage8InfalliblePropagationSource
             LD   HL,Stage8InfalliblePropagationSource
@@ -1875,7 +1878,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,122
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGHDLINE
             LD   BC,Stage8InfallibleHandlePoint-Stage8InfallibleHandleSource
             LD   HL,Stage8InfallibleHandleSource
@@ -1883,7 +1886,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,123
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGFAICTX
             LD   BC,Stage8DoubleConsumerPoint-Stage8DoubleConsumerSource
             LD   HL,Stage8DoubleConsumerSource
@@ -1891,7 +1894,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,124
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DXLINE
             LD   BC,Stage8LocalHandlePoint-Stage8LocalHandleSource
             LD   HL,Stage8LocalHandleSource
@@ -1899,7 +1902,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,125
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGFAICTX
             LD   BC,Stage8ResultReturnPropagationPoint-Stage8ResultReturnPropagationSource
             LD   HL,Stage8ResultReturnPropagationSource
@@ -1907,7 +1910,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,126
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGRTNFLW
             LD   BC,Stage8FreeReturnPropagationPoint-Stage8FreeReturnPropagationSource
             LD   HL,Stage8FreeReturnPropagationSource
@@ -1916,7 +1919,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
 
             LD   A,127
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DXNAME
             LD   BC,Stage8MissingHandleNamePoint-Stage8MissingHandleNameSource
             LD   HL,Stage8MissingHandleNameSource
@@ -1924,7 +1927,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,128
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGUNKNAM
             LD   BC,Stage8UnknownHandleNamePoint-Stage8UnknownHandleNameSource
             LD   HL,Stage8UnknownHandleNameSource
@@ -1932,7 +1935,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,129
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGTYPMIS
             LD   BC,Stage8WideHandleNamePoint-Stage8WideHandleNameSource
             LD   HL,Stage8WideHandleNameSource
@@ -1940,7 +1943,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,130
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGTYPMIS
             LD   BC,Stage8ConstantHandleNamePoint-Stage8ConstantHandleNameSource
             LD   HL,Stage8ConstantHandleNameSource
@@ -1948,7 +1951,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,131
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGTYPMIS
             LD   BC,Stage8AggregateHandleNamePoint-Stage8AggregateHandleNameSource
             LD   HL,Stage8AggregateHandleNameSource
@@ -1956,7 +1959,7 @@ ProofStart:
             CALL ProofExpectDiagnostic
             JP   C,ProofRedesignFailure
             LD   A,132
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,DGACTCTR
             LD   BC,Stage8CounterHandleNamePoint-Stage8CounterHandleNameSource
             LD   HL,Stage8CounterHandleNameSource
@@ -1965,9 +1968,9 @@ ProofStart:
             JP   C,ProofRedesignFailure
 
             XOR  A
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ; A is the expected diagnostic, BC its offset, HL/DE the source range.
@@ -1976,7 +1979,7 @@ ProofExpectDiagnostic:
             LD   (ProofExpectedDiagnostic),A
             LD   (ProofExpectedOffset),BC
             LD   A,171
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JR   NC,ProofExpectedDiagnosticFailure
             LD   A,(ProofExpectedDiagnostic)
             LD   HL,DGCODE
@@ -2011,11 +2014,11 @@ ProofExpectRuntimeTrap:
             LD   (ProofExpectedTrap),A
             LD   (ProofExpectedOffset),BC
             LD   A,190
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             RET  C
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             RET  C
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (VINLEN),A
             LD   A,(ProofExpectedTrap)
@@ -2053,11 +2056,11 @@ ProofExpectedRuntimeTrapFailure:
 ; must complete without a trap, output, or leaked activation.
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofExpectRuntimeSuccess:
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             RET  C
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             RET  C
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             RET  C
             LD   A,(RUNSTATE)
@@ -2100,7 +2103,7 @@ ProofCallGeneratedFailure:
             SCF
             RET
 
-ProofCompileFailure:     LD A,1
+FPCOMPFL:     LD A,1
                          JP ProofFailed
 ProofEncodeFailure:      LD A,2
                          JP ProofFailed
@@ -2331,7 +2334,7 @@ ProofProgramHandlerRunFailure: LD A,114
 ProofRedesignFailure:
             HALT
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 ProofExpectedSP:         .dw 0
@@ -2340,6 +2343,6 @@ ProofExpectedTrapOffset: .dw 0
 ProofExpectedOffset:     .dw 0
 ProofExpectedDiagnostic: .db 0
 ProofExpectedTrap:       .db 0
-ProofStatus:             .db 0
-ProofCase:               .db 0
-ProofEnd:
+FPSTATUS:             .db 0
+FPCASE:               .db 0
+FPEND:

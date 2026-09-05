@@ -9,7 +9,7 @@ ObjectNodeGateway:
             RET
 
             .org $4000
-ProofStart:
+FPSTART:
             LD   SP,ProofStackTop
             LD   (ProofEntrySp),SP
             LD   IX,$1357
@@ -18,11 +18,11 @@ ProofStart:
             LD   HL,ProofObjectRequest
             LD   C,NSOBJECT
             RST  $10
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofObjectRequest+NOFHAND)
             LD   A,H
             OR   L
-            JP   Z,ProofFail
+            JP   Z,FPFAIL
 
             LD   A,NOREAD
             LD   (ProofObjectRequest+NOFOPER),A
@@ -33,12 +33,12 @@ ProofStart:
             LD   HL,ProofObjectRequest
             LD   C,NSOBJECT
             RST  $10
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofObjectRequest+NOFRES)
             LD   DE,3
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
 
             LD   A,NOCLOSE
             LD   (ProofObjectRequest+NOFOPER),A
@@ -49,31 +49,31 @@ ProofStart:
             LD   HL,ProofObjectRequest
             LD   C,NSOBJECT
             RST  $10
-            JP   C,ProofFail
+            JP   C,FPFAIL
 
             PUSH IX
             POP  HL
             LD   DE,$1357
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             PUSH IY
             POP  HL
             LD   DE,$2468
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,0
             ADD  HL,SP
             LD   DE,(ProofEntrySp)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             XOR  A
             LD   (ProofResult),A
             HALT
 
-ProofFail:
+FPFAIL:
             LD   A,1
             LD   (ProofResult),A
             HALT
@@ -86,4 +86,4 @@ ProofObjectRequest:
             .db NOOPEN,0
             .dw 0,ProofObjectName,9,0,0,0
 ProofReadBuffer:   .db 0,0,0
-ProofEnd:
+FPEND:

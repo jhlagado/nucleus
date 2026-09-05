@@ -8,18 +8,18 @@ AggregateCallSlices .equ 0
             .include "z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
             .include "source-adapter.asm"
             .include "tokenizer.asm"
             .include "semantic-sink.asm"
             .include "parser.asm"
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCCOMEND:
+KCSINK:
             .include "z80-sink.asm"
-SinkCodeEnd:
-CompilerCodeEnd:
+KCSNKEND:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
 KeywordSub:
             .db  "sub"
 KeywordFails:
@@ -55,8 +55,8 @@ ProgramTemplate:
             .db  $3E,RTTRAP,$32
             .dw  RUNSTATE
             .db  $C9
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 ProofSource:
@@ -72,11 +72,11 @@ RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (ServiceForceFailure),A
 
             LD   A,7
@@ -92,7 +92,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailSize
 
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (ServiceForceFailure),A
             CALL MMGEN
@@ -107,7 +107,7 @@ ProofStart:
             JP   NZ,ProofFailOutputByte
             LD   (ProofSuccessOutput),A
 
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (ServiceForceFailure),A
             CALL MMGEN
@@ -133,7 +133,7 @@ ProofStart:
             JP   NZ,ProofFailTrapError
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ProofFailCompile:
@@ -172,17 +172,17 @@ ProofFailTrapOffset:
 ProofFailTrapError:
             LD   A,12
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
-ProofStatus:
+FPSTATUS:
             .db  0
-ProofCase:
+FPCASE:
             .db  0
 ProofSuccessOutput:
             .db  0
-ProofEnd:
+FPEND:
 
             .end

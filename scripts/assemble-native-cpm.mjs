@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { assembleNativeSource } from "./assemble-native-source.mjs";
 import { restoreMemoryMapLimit } from "./restore-memory-map-limit.mjs";
+import { omitCpmPublisherExtents } from "./omit-cpm-publisher-extents.mjs";
 
 const root = fileURLToPath(new URL("../asm/", import.meta.url));
 const exportMap = Object.assign({}, ...[
@@ -30,5 +31,7 @@ export async function assembleNativeCpmProof(entry) {
       ...(["cpm22-command-proof.asm", "cpm22-source-provider-proof.asm"].includes(entry)
         ? { NativeStreamingSource: 1 } : {}),
     };
-  return { ...result, symbols };
+  const published = { ...result, symbols };
+  return entry === "cpm22-publisher-proof.asm"
+    ? omitCpmPublisherExtents(published) : published;
 }

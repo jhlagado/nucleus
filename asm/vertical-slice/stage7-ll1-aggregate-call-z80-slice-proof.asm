@@ -9,39 +9,40 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
 Stage7LL1            .equ 1
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
             .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 Stage7CopySource:
@@ -168,26 +169,28 @@ Stage7CallDepthSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   A,160
             LD   HL,Stage7CopySource
             LD   DE,Stage7CopySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailParameterCapacity
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailEncode
             LD   HL,(GNSZ)
             LD   (ProofCopyGeneratedSize),HL
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -208,13 +211,13 @@ ProofStart:
             LD   A,160
             LD   HL,Stage7ForwardSource
             LD   DE,Stage7ForwardSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailForwardCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailForwardEncode
             LD   HL,(GNSZ)
             LD   (ProofForwardGeneratedSize),HL
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailForwardFrame
             LD   A,(RUNSTATE)
@@ -235,13 +238,13 @@ ProofStart:
             LD   A,160
             LD   HL,Stage7StringSource
             LD   DE,Stage7StringSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailStringCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailStringEncode
             LD   HL,(GNSZ)
             LD   (ProofStringGeneratedSize),HL
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RUNSTATE)
@@ -271,13 +274,13 @@ ProofStart:
             LD   A,161
             LD   HL,Stage7CorruptStringSource
             LD   DE,Stage7CorruptStringSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailBoundsCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailBoundsEncode
             LD   A,$FF                    ; L=255 remains invalid
             LD   (RORDATA),A
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RUNSTATE)
@@ -294,13 +297,13 @@ ProofStart:
             LD   A,163
             LD   HL,Stage7CorruptStringIndexSource
             LD   DE,Stage7CorruptStringIndexSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailBoundsCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailBoundsEncode
             LD   A,$FF                    ; indexing rejects the same corruption
             LD   (RORDATA),A
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RUNSTATE)
@@ -317,19 +320,19 @@ ProofStart:
             LD   A,162
             LD   HL,Stage7SealedArraySource
             LD   DE,Stage7SealedArraySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailStringCompile
             LD   HL,(PGBSSLEN)
             LD   DE,1020
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringStorage
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailStringEncode
             LD   A,(MMBSS+1019)  ; terminator in final 255-byte element
             OR   A
             JP   NZ,ProofFailStringStorage
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RUNSTATE)
@@ -344,14 +347,14 @@ ProofStart:
             LD   A,166
             LD   HL,Stage7LargeDataSource
             LD   DE,Stage7LargeDataSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailStringCompile
             LD   HL,(IMGLEN)
             LD   DE,510
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringStorage
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailStringEncode
             LD   HL,(GNROSZ)
             LD   DE,510
@@ -363,7 +366,7 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringStorage
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RUNSTATE)
@@ -391,14 +394,14 @@ ProofStart:
             LD   A,167
             LD   HL,Stage7DataCapacityAcceptedSource
             LD   DE,Stage7DataCapacityAcceptedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailDataCapacityAccepted
             LD   HL,(IMGLEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailDataCapacityAccepted
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailDataCapacityAccepted
             LD   HL,(GNROSZ)
             LD   DE,1024
@@ -412,7 +415,7 @@ ProofStart:
             JP   NZ,ProofFailDataCapacityAccepted
             LD   A,$A5
             LD   (MMDATEND),A
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailDataCapacityAccepted
             LD   A,(RUNSTATE)
@@ -438,7 +441,7 @@ ProofStart:
             LD   A,169
             LD   HL,Stage7DataCapacityAcceptedSource
             LD   DE,Stage7DataCapacityAcceptedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailDataCapacityRejected
 
             ; The same exact-fill and first-rejection boundary applies
@@ -446,14 +449,14 @@ ProofStart:
             LD   A,170
             LD   HL,Stage7BssCapacityAcceptedSource
             LD   DE,Stage7BssCapacityAcceptedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailBssCapacityAccepted
             LD   HL,(PGBSSLEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBssCapacityAccepted
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailBssCapacityAccepted
             LD   HL,(GNBSSSZ)
             LD   DE,1024
@@ -462,7 +465,7 @@ ProofStart:
             JP   NZ,ProofFailBssCapacityAccepted
             LD   A,$A5
             LD   (MMBSSEND),A
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailBssCapacityAccepted
             LD   A,(RUNSTATE)
@@ -488,7 +491,7 @@ ProofStart:
             LD   A,172
             LD   HL,Stage7BssCapacityAcceptedSource
             LD   DE,Stage7BssCapacityAcceptedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailBssCapacityRejected
 
             ; One record may exceed 255 bytes. Its word field offset, array
@@ -498,16 +501,16 @@ ProofStart:
             LD   A,173
             LD   HL,Stage7WideAggregateSource
             LD   DE,Stage7WideAggregateSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailWideAggregate
             LD   HL,(PGBSSLEN)
             LD   DE,1002
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailWideAggregate
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailWideAggregate
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailWideAggregate
             LD   A,(RUNSTATE)
@@ -541,7 +544,7 @@ ProofStart:
             LD   A,175
             LD   HL,Stage7WideInitializedSource
             LD   DE,Stage7WideInitializedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailWideInitializer
             LD   HL,(IMGLEN)
             LD   DE,256
@@ -554,9 +557,9 @@ ProofStart:
             LD   A,(IMGBAS+255)
             CP   1
             JP   NZ,ProofFailWideInitializer
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailWideInitializer
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailWideInitializer
             LD   A,(RUNSTATE)
@@ -572,7 +575,7 @@ ProofStart:
             LD   A,176
             LD   HL,Stage7WordLengthInterningSource
             LD   DE,Stage7WordLengthInterningSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailWordLengthInterning
             LD   A,(ATCNT)
             CP   2
@@ -583,7 +586,7 @@ ProofStart:
             LD   A,164
             LD   HL,Stage7SealedArraySource
             LD   DE,Stage7SealedArraySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   NC,ProofFailStringCapacity
             LD   A,(DGCODE)
             CP   DGSTRCAP
@@ -598,7 +601,7 @@ ProofStart:
             LD   A,165
             LD   HL,Stage7SealedArraySource
             LD   DE,Stage7SealedArraySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   NC,ProofFailStringCapacity
             LD   A,(DGCODE)
             CP   DGSTRCAP
@@ -611,13 +614,13 @@ ProofStart:
             LD   A,160
             LD   HL,Stage7BoundsSource
             LD   DE,Stage7BoundsSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailBoundsCompile
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailBoundsEncode
             LD   HL,(GNSZ)
             LD   (ProofBoundsGeneratedSize),HL
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RUNSTATE)
@@ -709,7 +712,7 @@ ProofStart:
             LD   A,160
             LD   HL,Stage7RoutineFailsSource
             LD   DE,Stage7RoutineFailsSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailRoutineFails
             LD   A,DXTOPLVL
             LD   BC,12
@@ -814,7 +817,7 @@ ProofStart:
             ; writable parameter deliberately permits target mutation.
             LD   HL,Stage7AggregateConstantSource
             LD   DE,Stage7AggregateConstantSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailAggregateConstant
             LD   HL,(IMGLEN)
             LD   DE,3
@@ -841,7 +844,7 @@ ProofStart:
             LD   A,(IMGBAS+11)
             OR   A
             JP   NZ,ProofFailAggregateConstant
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailAggregateConstant
             LD   HL,(GNROSZ)
             LD   DE,14
@@ -855,7 +858,7 @@ ProofStart:
             JP   NZ,ProofFailAggregateConstant
             LD   A,$A5
             LD   (MMDATA+3),A
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailAggregateConstant
             LD   A,(RUNSTATE)
@@ -929,14 +932,14 @@ ProofStart:
 
             LD   HL,Stage7ReadOnlyCapacityAcceptedSource
             LD   DE,Stage7ReadOnlyCapacityAcceptedSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailReadOnlyCapacity
             LD   HL,(ROILEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailReadOnlyCapacity
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailReadOnlyCapacity
             LD   HL,(GNROSZ)
             LD   DE,1024
@@ -971,7 +974,7 @@ ProofStart:
             ; The failed declaration must not poison the next compilation.
             LD   HL,Stage7AggregateConstantSource
             LD   DE,Stage7AggregateConstantSourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JP   C,ProofFailReadOnlyCapacity
             LD   B,0
             LD   C,2
@@ -988,7 +991,7 @@ ProofStart:
             CALL ProofCheckAggregateCapacityBoundaries
             JP   C,ProofFailAggregateCapacityBoundaries
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ; Exercise both public segmented-capacity entries directly. The three accepted
@@ -999,7 +1002,7 @@ ProofStart:
 ProofCheckAggregateCapacityBoundaries:
             LD   HL,0
             ADD  HL,SP
-            LD   (ProofCapacityExpectedSP),HL
+            LD   (FPCAPSP),HL
             LD   HL,$0000
             CALL ProofCheckProgramCapacityAccepted
             RET  C
@@ -1036,21 +1039,21 @@ ProofCheckAggregateCapacityBoundaries:
 .routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofCheckProgramCapacityAccepted:
             LD   BC,$A55A
-            CALL AggregateCheckExtentCapacity
+            CALL APCKEXCA
             JR   C,ProofCapacityStateFailure
             JR   ProofCheckCapacityState
 
 .routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofCheckReadOnlyCapacityAccepted:
             LD   BC,$A55A
-            CALL AggregateCheckReadOnlyCapacity
+            CALL APCRDOCA
             JR   C,ProofCapacityStateFailure
             JR   ProofCheckCapacityState
 
 .routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofCheckProgramCapacityRejected:
             LD   BC,$A55A
-            CALL AggregateCheckExtentCapacity
+            CALL APCKEXCA
             JR   NC,ProofCapacityStateFailure
             LD   A,(DGCODE)
             CP   DGPDCAP
@@ -1060,7 +1063,7 @@ ProofCheckProgramCapacityRejected:
 .routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ProofCheckReadOnlyCapacityRejected:
             LD   BC,$A55A
-            CALL AggregateCheckReadOnlyCapacity
+            CALL APCRDOCA
             JR   NC,ProofCapacityStateFailure
             LD   A,(DGCODE)
             CP   DGROCAP
@@ -1077,7 +1080,7 @@ ProofCheckCapacityState:
             JR   NZ,ProofCapacityStateFailure
             LD   HL,2
             ADD  HL,SP
-            LD   DE,(ProofCapacityExpectedSP)
+            LD   DE,(FPCAPSP)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofCapacityStateFailure
@@ -1117,7 +1120,7 @@ ProofExpectCompileDiagnostic:
             LD   (ProofExpectedDiagnostic),A
             LD   (ProofExpectedOffset),BC
             LD   A,160
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JR   NC,ProofExpectedDiagnosticFailure
             LD   A,(ProofExpectedDiagnostic)
             LD   HL,DGCODE
@@ -1139,11 +1142,11 @@ ProofExpectedDiagnosticFailure:
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCompileAndRunSuccess:
             LD   A,160
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             RET  C
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             RET  C
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             RET  C
             LD   A,(RUNSTATE)
@@ -1159,11 +1162,11 @@ ProofRunRecursiveCapacity:
             LD   A,160
             LD   HL,Stage7RecursiveCapacitySource
             LD   DE,Stage7RecursiveCapacitySourceEnd
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             RET  C
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             RET  C
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             RET  C
             LD   A,(RUNSTATE)
@@ -1277,7 +1280,7 @@ ProofRunSuffixFailures:
 
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofPrepareSuffix:
-            CALL CompileSliceInitialize
+            CALL CPSLINIT
             LD   A,1
             LD   (EXEMITON),A
             LD   A,TYU16
@@ -1294,7 +1297,7 @@ ProofExpectSuffixCapacity:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   A,(S7PATHT)
-            CALL Stage7ParsePathSuffix
+            CALL S7PPTSFX
             JR   NC,ProofSuffixFailure
             LD   A,(DGCODE)
             CP   DGSNKCAP
@@ -1308,7 +1311,7 @@ ProofExpectSuffixTypeFailure:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             LD   A,(S7PATHT)
-            CALL Stage7ParsePathSuffix
+            CALL S7PPTSFX
             JR   NC,ProofSuffixFailure
             LD   A,(DGCODE)
             CP   DGTYPMIS
@@ -1376,9 +1379,9 @@ ProofInvalidCopySourceReady:
             LD   (HL),$12
             INC  HL
             LD   (HL),SMENMAIN
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JR   C,ProofInvalidCopyFailure
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JR   C,ProofInvalidCopyFailure
             LD   A,(RUNSTATE)
@@ -1423,7 +1426,7 @@ ProofCheckEncodeRollback:
             INC  HL
             LD   (HL),SMENMAIN
             LD   HL,MMGEN+4
-            CALL EncodeAggregateProgramWithinLimit
+            CALL ZGPRGLIM
             JR   NC,ProofEncodeRollbackFailure
             LD   HL,(GNSZ)
             LD   DE,(ProofExpectedOffset)
@@ -1479,16 +1482,16 @@ ProofEncodeRollbackFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCheckSegmentOverlap:
             LD   HL,MMGCEND
-            CALL BeginSegmentedProgram
+            CALL ZESEGBEG
             RET  C
             LD   HL,MMGENCOD+1
             LD   (SGROENT+SGENTBAS),HL
-            CALL ValidateSegmentTable
+            CALL ZESEGVAL
             JR   NC,ProofSegmentOverlapFailure
             LD   A,(DGCODE)
             CP   DGOUTSEG
             JR   NZ,ProofSegmentOverlapFailure
-            CALL AbortSegmentedProgram
+            CALL ZESEGABT
             OR   A
             RET
 ProofSegmentOverlapFailure:
@@ -1496,7 +1499,7 @@ ProofSegmentOverlapFailure:
             RET
 
 ProofFailCompile: LD A,(DGCODE)
-                  LD (ProofStatus),A
+                  LD (FPSTATUS),A
                   LD A,(DGOFF)
                   JP ProofFailed
 ProofFailEncode:  LD A,2
@@ -1643,20 +1646,20 @@ ProofFailAggregateConstantScalarType: LD A,71
                   JP ProofFailed
 ProofFailAggregateCapacityBoundaries: LD A,72
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 ProofExpectedSP: .dw 0
 ProofExpectedOffset: .dw 0
 ProofExpectedRoDataSize: .dw 0
 ProofExpectedDiagnostic: .db 0
-ProofCapacityExpectedSP: .dw 0
+FPCAPSP: .dw 0
 ProofCopyGeneratedSize: .dw 0
 ProofForwardGeneratedSize: .dw 0
 ProofStringGeneratedSize: .dw 0
 ProofBoundsGeneratedSize: .dw 0
-ProofStatus:     .db 0
-ProofCase:       .db 0
+FPSTATUS:     .db 0
+FPCASE:       .db 0
 Stage7CorruptStringSource:
             .db "var text as string[3] = \"\"",10
             .db "sub main() fails",10
@@ -1687,7 +1690,7 @@ Stage7SealedArrayCapacityPoint:
             .db "writeOutputByte('Y') else fail",10
             .db "end",10,"end",10
 Stage7SealedArraySourceEnd:
-ProofEnd:
+FPEND:
 
 ; Large capacity fixtures live with proof data rather than consuming the
 ; bounded resident source window used by the behavioral corpus above.

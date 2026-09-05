@@ -79,17 +79,19 @@ proof now bypasses the source translator. Derived native build flags have one
 explicit profile helper; the historical derivation remains isolated for legacy
 entry compositions until those callers are converted.
 
-The next bounded wave is the larger parser/backend families and remaining
-native host services. The current scanner still lists
-3,300 long names requiring migration, across 5,731 declared names; this is
-source-adapter debt, not compiler size or a percentage of work remaining.
+The [production compiler report](../reports/atom-native-compiler.md) records
+the parallel frontend, backend and service conversion and the complete native
+entry compositions. The image generator, flat proof route and CP/M release
+builder now use native compiler assembly. The next source family is the Node
+NOBJ runner, followed by the remaining historical and generated proof inputs.
+Those callers must be converted before the source translator can be removed.
 
-Current inventory also identifies three constraints for the later full
-compiler composition. The host-only address-space limit is 65,536 and must
-remain distinct from a wrapped Z80 value. Derived conditional flags need
-explicit entry-profile definitions. Grammar generators must emit native source
-while preserving their logical token vocabulary and analysis API. Oversized
-parser files require measured source-part splits after renaming.
+The native composition keeps the host-only address-space limit of 65,536
+distinct from a wrapped Z80 value. Derived flags have explicit entry-profile
+definitions, and grammar generators emit native source while preserving their
+logical vocabulary and analysis API. Named parser and backend parts remain
+within ATOM's source-size limit; relocation and source-provenance tests cover
+the actual production composition.
 
 ## Source inventory
 

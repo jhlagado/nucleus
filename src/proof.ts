@@ -190,7 +190,11 @@ export async function runProofManifest(
     .relative(fileURLToPath(new URL("../asm/", import.meta.url)), sourcePath)
     .split(path.sep)
     .join("/");
-  const assembly = entry === "vertical-slice/tokenizer-trace-proof.asm"
+  const { assembleNativeCompiler, isNativeCompilerEntry } = await import("../scripts/assemble-native-compiler.mjs");
+  const compilerEntry = entry.startsWith("vertical-slice/") ? entry.slice("vertical-slice/".length) : "";
+  const assembly = isNativeCompilerEntry(compilerEntry)
+    ? assembleNativeCompiler(compilerEntry)
+    : entry === "vertical-slice/tokenizer-trace-proof.asm"
     ? (await import("../scripts/assemble-native-tokenizer.mjs")).assembleNativeTokenizerTrace()
     : entry === "vertical-slice/stage7-ll1-engine-proof.asm"
       ? (await import("../scripts/assemble-native-grammar.mjs")).assembleNativeGrammarProof()

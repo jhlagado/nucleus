@@ -1,5 +1,6 @@
 import { assembleAtomSource } from "../scripts/atom-source.mjs";
 import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
+import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
@@ -10,7 +11,7 @@ describe("native Nucleus CP/M output candidates", () => {
   it("measures the direct sink against the existing NOBJ producer and materializer", async () => {
     const [direct, producer, consumer] = await Promise.all([
       assembleNativeCpmProof("cpm22-direct-output-proof.asm").then(proof => proof.symbols),
-      symbolsFor("native-target-mon3-compiler.asm"),
+      assembleNativeCompiler("native-target-mon3-compiler.asm").then(proof => proof.symbols),
       symbolsFor("nobj-consumer-flat-proof.asm"),
     ]);
 

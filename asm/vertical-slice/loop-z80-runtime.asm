@@ -4,7 +4,7 @@
 
 %IF RuntimeProofServices
 ; Contract: out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
-Reset:
+RESET:
             XOR  A
             LD   HL,RTTRPNO
             LD   B,STATEEND-RTTRPNO

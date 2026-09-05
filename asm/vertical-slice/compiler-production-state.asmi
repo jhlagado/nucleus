@@ -1,0 +1,5 @@
+; Zero-byte workspace declarations shared by production entries.
+%INCLUDE "loop-compiler-state.asmi"
+%INCLUDE "aggregate-call-state.asmi"
+%INCLUDE "target-output-state.asmi"
+%INCLUDE "loop-z80-state.asmi"

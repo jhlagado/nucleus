@@ -1,7 +1,7 @@
 ; Minimal direct-Z80 runtime and target-independent output service adapter.
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
-Reset:
+RESET:
             XOR  A
             LD   (RTTRPNO),A
             LD   (RTTRPRTN),A

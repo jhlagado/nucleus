@@ -3,77 +3,77 @@
 ProofStackTop .equ $7F00
 
             .org $4000
-ProofStart:
+FPSTART:
             LD   SP,ProofStackTop
             LD   IX,$1357
             LD   IY,$2468
             LD   BC,$A55A
             LD   (ProofEntrySp),SP
             CALL ProofPlatformInfoAdapter
-            JP   C,ProofFail
+            JP   C,FPFAIL
             CP   NSABI
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   A,D
             OR   A
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   A,E
             CP   NSCAPEXE+NSCAPIO+NSCAPCTL+NSCAPDEV
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             PUSH IX
             POP  HL
             LD   DE,$1357
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             PUSH IY
             POP  HL
             LD   DE,$2468
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   BC,$1234
             CALL ProofPacketAdapter
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofPacketBc)
             LD   DE,$1234
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,ProofObjectRequest
             CALL ProofObjectAdapter
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofObjectRequest+NOFHAND)
             LD   DE,$3412
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   A,2
             LD   (ProofObjectRequest+NOFABI),A
             LD   HL,ProofObjectRequest
             CALL ProofObjectAdapter
-            JP   NC,ProofFail
+            JP   NC,FPFAIL
             CP   NSTATINV
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   A,1
             LD   (ProofSelectedBank),A
             CALL ProofNestedBankCall
-            JP   C,ProofFail
+            JP   C,FPFAIL
             CP   $5A
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   A,(ProofSelectedBank)
             CP   1
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,0
             ADD  HL,SP
             LD   DE,(ProofEntrySp)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             XOR  A
             LD   (ProofResult),A
             HALT
 
-ProofFail:
+FPFAIL:
             LD   A,1
             LD   (ProofResult),A
             HALT
@@ -184,4 +184,4 @@ ProofObjectRequest:
             .db NORQSIZE,NOABI
             .db NOOPEN,0
             .dw 0,ProofObjectName,4,0,0,0
-ProofEnd:
+FPEND:

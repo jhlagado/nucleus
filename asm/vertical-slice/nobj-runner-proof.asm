@@ -4,7 +4,7 @@ ProofMemoryStart .equ $0000
 ProofMemoryEnd   .equ $10000
 
             .org $0100
-ProofStart:
+FPSTART:
             HALT
 
             .org $1000

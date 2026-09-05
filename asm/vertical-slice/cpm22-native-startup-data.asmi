@@ -1,0 +1,22 @@
+
+
+CUIMM:
+CUBANKS EQU EMBPFXEN-SRCPARTS
+CUTARG:
+            DW  RIABI
+            DW  DOIMG
+            DW  DOIMGCAP
+            DW  DOWRBASE
+            DW  MMWRCAP
+            DB  0,1,0
+            DW  CUBANKS
+CUHTEXT:  DB 13,10,"Nucleus host error ","$"
+CUDTEXT: DB 13,10,"Nucleus error ","$"
+CUPTEXT:       DB " P=","$"
+CUOTEXT:     DB " O=","$"
+CULTEXT:       DB " L=","$"
+CUCTEXT:     DB " C=","$"
+CUHELPXT:       DB 13,10,"NUC [SOURCE [OUTPUT.COM|OUTPUT.BIN|OUTPUT.HEX]]",13,10,"$"
+CUNL:        DB 13,10,"$"
+CUIMMEND:
+CURESEND:

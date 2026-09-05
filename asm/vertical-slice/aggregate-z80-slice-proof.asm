@@ -8,38 +8,39 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
             .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 AggregateAcceptedSource:
@@ -227,20 +228,22 @@ AggregateTypeExtentCapacitySourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   A,130
             LD   HL,AggregateAcceptedSource
             LD   DE,AggregateAcceptedSourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailAcceptedCompile
             LD   A,(IMGLEN)
             CP   AggregateExpectedImageEnd-AggregateExpectedImage
@@ -307,14 +310,14 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailLayout
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailAcceptedEncode
             LD   HL,MMGEN+3
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
             CALL ProofCompareBytes
             JP   C,ProofFailPublishedBytes
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -330,7 +333,7 @@ ProofStart:
             LD   A,$5A
             LD   (IMGBAS),A
             LD   HL,MMGEN+12
-            CALL EncodeAggregateProgramWithinLimit
+            CALL ZGPRGLIM
             JR   C,AggregateAtomicFailedAsExpected
             XOR  A
             LD   (IMGBAS),A
@@ -356,7 +359,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,151
             LD   HL,AggregateBooleanSource
             LD   DE,AggregateBooleanSourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailBoolean
             LD   A,(IMGLEN)
             CP   2
@@ -371,7 +374,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,152
             LD   HL,AggregateIdentitySource
             LD   DE,AggregateIdentitySourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailIdentity
             LD   A,(SYTABBAS+4)
             CP   AGDYNTYP
@@ -398,7 +401,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,157
             LD   HL,AggregateNestedArraySource
             LD   DE,AggregateNestedArraySourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailNestedArray
             LD   HL,(IMGLEN)
             LD   DE,6
@@ -528,7 +531,7 @@ AggregateAtomicFailedAsExpected:
             LD   A,155
             LD   HL,AggregateSealedStringBoundarySource
             LD   DE,AggregateSealedStringBoundarySourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailStringExtentCapacity
             LD   HL,(IMGLEN)
             LD   DE,255
@@ -579,12 +582,12 @@ AggregateSealedStringZeroLoop:
             LD   A,146
             LD   HL,AggregateElementCapacityAcceptedSource
             LD   DE,AggregateElementCapacityAcceptedSourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailElementBoundary
             LD   A,147
             LD   HL,AggregateElementCapacityRejectedSource
             LD   DE,AggregateElementCapacityRejectedSourceEnd
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             JP   C,ProofFailElementBoundary
             LD   A,136
             LD   HL,AggregateDataCapacitySource
@@ -605,13 +608,13 @@ AggregateSealedStringZeroLoop:
             JP   C,ProofFailTypeExtentCapacity
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 .routine in A,B,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofExpectDiagnostic:
             PUSH BC
-            CALL CompileAggregateSlice
+            CALL CPAGSL
             POP  BC
             RET  NC
             LD   A,(DGCODE)
@@ -727,13 +730,13 @@ ProofFailDuplicateField:   LD A,24
                            JP ProofFailed
 ProofFailTypeExtentCapacity: LD A,25
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 ProofExpectedSP:       .dw 0
 AggregateSavedSize:   .dw 0
-ProofStatus:           .db 0
-ProofCase:             .db 0
+FPSTATUS:           .db 0
+FPCASE:             .db 0
 AggregateExpectedImage:
             ; zero Entry
             .db 0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -754,4 +757,4 @@ AggregateSealedStringBoundarySource:
             .db "var full as string[253]",10
             .db "sub main() fails",10,"end",10
 AggregateSealedStringBoundarySourceEnd:
-ProofEnd:
+FPEND:

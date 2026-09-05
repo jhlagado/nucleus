@@ -8,37 +8,38 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
 StructuredSinkStart:
             .include "typed-expression-z80.asm"
 StructuredSinkEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 StructuredAcceptedSource:
@@ -209,26 +210,28 @@ StructuredParameterMainSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (SVFAIL),A
 
             LD   A,110
             LD   HL,StructuredAcceptedSource
             LD   DE,StructuredAcceptedSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailAcceptedCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailAcceptedEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailAcceptedFrame
             LD   A,(RUNSTATE)
@@ -255,13 +258,13 @@ ProofStart:
             LD   A,(MMGEN)
             LD   (AtomicObservedByte),A
             LD   HL,MMGEN+1
-            CALL BeginProgram
+            CALL ZEBEGIN
             XOR  A
-            CALL EmitByte
+            CALL EMITBYTE
             JP   C,ProofFailAtomicSetup
-            CALL EmitByte
+            CALL EMITBYTE
             JP   NC,ProofFailAtomicAccepted
-            CALL AbortProgram
+            CALL ZEABORT
             LD   A,(MMGEN)
             LD   B,A
             LD   A,(AtomicObservedByte)
@@ -275,7 +278,7 @@ ProofStart:
 
             ; The same program must unwind a capacity trap from recursive
             ; routine depth back to the outer machine frame.
-            CALL Reset
+            CALL RESET
             LD   A,3
             LD   (RTACTLIM),A
             CALL ProofCallGenerated
@@ -298,11 +301,11 @@ ProofStart:
             LD   A,111
             LD   HL,StructuredRangeSource
             LD   DE,StructuredRangeSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailRangeCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailRangeEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailRangeFrame
             LD   A,(RUNSTATE)
@@ -356,11 +359,11 @@ ProofStart:
             LD   A,115
             LD   HL,StructuredBooleanFlowSource
             LD   DE,StructuredBooleanFlowSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailBooleanFlowCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailBooleanFlowEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailBooleanFlowFrame
             LD   A,(RUNSTATE)
@@ -450,7 +453,7 @@ ProofStart:
             JP   C,ProofFailLabelCapacity
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ; A part, HL..DE source, B diagnostic, IX expected offset.
@@ -458,7 +461,7 @@ ProofStart:
 ProofExpectDiagnostic:
             PUSH BC
             PUSH IX
-            CALL CompileSlice
+            CALL CPSL
             POP  IX
             POP  BC
             RET  NC
@@ -589,9 +592,9 @@ ProofFailLocalMain:           LD A,44
                               JR ProofFailed
 ProofFailParameterMain:       LD A,45
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ProofExpectedSP:              .dw 0
@@ -609,10 +612,10 @@ ExitObservedOffset:          .dw 0
 StepObservedDiagnostic:      .db 0
 StepObservedOffset:          .dw 0
 AtomicObservedByte:          .db 0
-ProofStatus:                  .db 0
-ProofCase:                    .db 0
+FPSTATUS:                  .db 0
+FPCASE:                    .db 0
 GeneratedTypedEnd            .equ MMGEN+715
-ProofEnd:
+FPEND:
 
             ; Retain the fixture at $9800 while emitting images in address order.
             .org MMSPARE

@@ -8,14 +8,14 @@ NativeStreamingSource .equ 0
 AggregateCallSlices .equ 0
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
             .include "source-adapter.asm"
             .include "tokenizer.asm"
             .include "semantic-sink.asm"
             .include "parser.asm"
-CompilerCodeEnd:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
 KeywordSub:
             .db  "sub"
 KeywordFails:
@@ -30,8 +30,8 @@ NAMEMAIN:
             .db  "main"
 KWWRTOUT:
             .db  "writeOutputByte"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 AcceptedSource:
@@ -47,11 +47,11 @@ MalformedSourceEnd:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
 
             LD   A,7
             LD   HL,AcceptedSource
@@ -98,7 +98,7 @@ ProofStart:
             JP   NZ,ProofFailMalformedOutput
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 .routine in B,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -145,19 +145,19 @@ ProofFailMalformedColumn:
 ProofFailMalformedOutput:
             LD   A,10
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ExpectedOperations:
             .db  4,SMLDU8,"A",SMWROBYT
             .db  SMPROP,SMRET
 
-ProofStatus:
+FPSTATUS:
             .db  0
-ProofCase:
+FPCASE:
             .db  0
-ProofEnd:
+FPEND:
 
             .end

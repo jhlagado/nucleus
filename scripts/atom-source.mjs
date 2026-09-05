@@ -7,6 +7,7 @@ import { flattenTranslatedEntry, scanAssembly, symbolMapFromLedger } from "./ato
 import { restoreMemoryMapLimit } from "./restore-memory-map-limit.mjs";
 import { omitTokenizerDisplacements } from "./omit-tokenizer-displacements.mjs";
 import { omitGrammarDisplacements } from "./omit-grammar-displacements.mjs";
+import { omitCpmPublisherExtents } from "./omit-cpm-publisher-extents.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Transitional output compatibility only: native source names are never
@@ -22,6 +23,10 @@ const tokenizerExports = JSON.parse(readFileSync(path.join(root, "asm/atom-token
 const grammarExports = JSON.parse(readFileSync(path.join(root, "asm/atom-grammar-symbols.json"), "utf8"));
 const hostExports = JSON.parse(readFileSync(path.join(root, "asm/atom-host-symbols.json"), "utf8"));
 const diagnosticExports = JSON.parse(readFileSync(path.join(root, "asm/atom-diagnostic-symbols.json"), "utf8"));
+const compilerExports = Object.assign({}, ...[
+  "atom-frontend-symbols.json", "atom-backend-symbols.json", "atom-services-symbols.json",
+  "atom-compiler-symbols.json", "atom-compiler-proof-symbols.json",
+].map(name => JSON.parse(readFileSync(path.join(root, "asm", name), "utf8"))));
 let census;
 export const assemblyCensus = () => census ??= scanAssembly({ asmRoot: path.join(root, "asm"), proofRoot: path.join(root, "proofs") });
 
@@ -196,6 +201,7 @@ export function prepareAtomSource(entry, { report = assemblyCensus(), overrides 
   for (const [publicName, nativeName] of Object.entries(grammarExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(hostExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(diagnosticExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(compilerExports)) reverse.set(nativeName, publicName);
   flattenTranslatedEntry(report, entry, {
     overrides, onLine: line => {
       input.push(line);
@@ -254,5 +260,5 @@ export async function assembleAtomSource(entry, options = {}) {
     if (labels.has(alias)) addresses[original] = labels.get(alias);
   }
   Object.assign(symbols, source.limits);
-  return omitGrammarDisplacements(omitTokenizerDisplacements(restoreMemoryMapLimit({ hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions })));
+  return omitCpmPublisherExtents(omitGrammarDisplacements(omitTokenizerDisplacements(restoreMemoryMapLimit({ hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions }))));
 }

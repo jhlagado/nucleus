@@ -7,20 +7,21 @@ TargetStreamingOutput .equ 0
             .include "loop-compiler-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
             .include "source-adapter.asm"
             .include "loop-tokenizer.asm"
             .include "loop-semantic-sink.asm"
             .include "loop-symbols.asm"
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-CompilerCodeEnd:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 AcceptedLoopSource:
@@ -61,16 +62,16 @@ MissingEndSourceEnd:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
 
             LD   A,10
             LD   HL,AcceptedLoopSource
             LD   DE,AcceptedLoopSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   C,ProofFailAccepted
             LD   HL,SMBUFBAS
             LD   DE,ExpectedLoopOperations
@@ -81,7 +82,7 @@ ProofStart:
             LD   A,11
             LD   HL,ZeroLoopSource
             LD   DE,ZeroLoopSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   C,ProofFailZero
             LD   A,(SMBUFBAS+5)
             OR   A
@@ -90,7 +91,7 @@ ProofStart:
             LD   A,12
             LD   HL,CounterWriteSource
             LD   DE,CounterWriteSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   NC,ProofFailCounterAccepted
             LD   A,(DGCODE)
             CP   DGACTCTR
@@ -104,7 +105,7 @@ ProofStart:
             LD   A,13
             LD   HL,MissingEndSource
             LD   DE,MissingEndSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   NC,ProofFailMissingAccepted
             LD   A,(DGCODE)
             CP   DXEND
@@ -129,7 +130,7 @@ ProofStart:
             JP   NZ,ProofFailMissingPosition
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 .routine in B,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -168,17 +169,17 @@ ProofFailMissingPart:    LD A,10
                          JR ProofFailed
 ProofFailMissingPosition: LD A,11
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ExpectedLoopOperations:
             .db 6,SMDECLU8,0,SMFORU8,0,3
             .db SMWROBYT,"A",SMPROP
             .db SMENDLP,SMRET
-ProofStatus:             .db 0
-ProofCase:               .db 0
-ProofEnd:
+FPSTATUS:             .db 0
+FPCASE:               .db 0
+FPEND:
 
             .end

@@ -4,7 +4,7 @@ NativeStreamingSource .equ 0
             .include "memory-map.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 OffsetTrampolineSelectionStart:
 OffsetTrampolinePage:
             .db OffsetTrampoline0-OffsetTrampolinePage
@@ -62,15 +62,15 @@ Dispatch6:  OR A
 .routine out carry,zero clobbers sign,parity,halfCarry,A
 Dispatch7:  OR A
             RET
-CompilerCodeEnd:
-CompilerCoreEnd:
+KCCODEND:
+KCEND:
 
             .org MMPROOF
-ProofStart:
+FPSTART:
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
-ProofStatus: .db 0
-ProofEnd:
+FPSTATUS: .db 0
+FPEND:
 
             .end

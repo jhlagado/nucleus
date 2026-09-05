@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assembleNativeCpmProof } from "./assemble-native-cpm.mjs";
 import { assembleNativeImportResolver } from "./assemble-native-import-resolver.mjs";
+import { assembleNativeCompiler, isNativeCompilerEntry } from "./assemble-native-compiler.mjs";
 
 const asmRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../asm");
 
@@ -11,7 +12,10 @@ export async function assembleImageSource(source) {
   if (entry === ".." || entry.startsWith("../") || path.isAbsolute(entry)) {
     throw new Error(`Unsupported assembly entry outside the source tree: ${source}`);
   }
-  const result = entry === "vertical-slice/cpm22-program-provider-proof.asm"
+  const compilerEntry = entry.startsWith("vertical-slice/") ? entry.slice("vertical-slice/".length) : "";
+  const result = isNativeCompilerEntry(compilerEntry)
+    ? await assembleNativeCompiler(compilerEntry)
+    : entry === "vertical-slice/cpm22-program-provider-proof.asm"
     ? await assembleNativeCpmProof("cpm22-program-provider-proof.asm")
     : entry === "vertical-slice/native-import-resolver-tool.asm"
     ? await assembleNativeImportResolver()

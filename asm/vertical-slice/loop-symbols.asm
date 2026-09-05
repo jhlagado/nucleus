@@ -1,21 +1,21 @@
 ; Bounded exact-name table for the first general scalar slice.
 
-.if AggregateCallSlices
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-SymbolReset:
+%IF AggregateCallSlices
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+SBRESET:
             XOR  A
             LD   (SYCNT),A
             LD   (NXLOCAL),A
             LD   (NXPROG),A
             RET
-.endif
+%ENDIF
 
 ; Compare the current NAME token with committed entries, newest first so a
 ; routine binding naturally precedes the program binding it shadows. Carry
 ; returns a matching entry in HL. The provisional entry is invisible.
-.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-SymbolFindCurrent:
+; Contract: out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SBFIND:
             LD   A,(SYCNT)
             OR   A
             RET  Z
@@ -23,61 +23,61 @@ SymbolFindCurrent:
             LD   B,A
             LD   HL,SYTABBAS-SYENTSZ
             LD   DE,SYENTSZ
-SymbolFindCurrentAdvance:
+SBFINDAD:
             ADD  HL,DE
-            DJNZ SymbolFindCurrentAdvance
-SymbolFindCurrentLoop:
+            DJNZ SBFINDAD
+SBFINDLP:
             CALL TKRECEQ
             RET  C
             LD   DE,-SYENTSZ
             ADD  HL,DE
             DEC  C
-            JR   NZ,SymbolFindCurrentLoop
+            JR   NZ,SBFINDLP
             OR   A
             RET
 
 ; Compatibility entry for the older slices: D is class/type information and E
 ; is a byte-sized payload. New typed declarations call the word entry below.
-.if LegacyCompilerSlices
-.routine in D,E out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-SymbolPrepareCurrent:
+%IF LegacyCompilerSlices
+; Contract: in D,E out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SBPREP:
             LD   B,0
             LD   C,E
-.endif
-.routine in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-SymbolPrepareCurrentWord:
+%ENDIF
+; Contract: in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SBPREPW:
             PUSH BC
             PUSH DE
-            CALL SymbolFindCurrent
+            CALL SBFIND
             POP  DE
             POP  BC
-            JP   C,TypedDuplicateNameFailure
-            JR   SymbolAppendCurrentWord
+            JP   C,TYDUNMER
+            JR   SBAPPEND
 
 ; Routine bindings may repeat an older program symbol, but not a parameter or
 ; local already installed in this routine. The newest match is the routine
 ; binding when one exists; bit 3 identifies both local symbol classes.
-.if AggregateCallSlices
-.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-SymbolPrepareRoutineWord:
-            CALL SymbolFindCurrent
-            JR   NC,SymbolPrepareRoutineReady
+%IF AggregateCallSlices
+; Contract: out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SBPREPRW:
+            CALL SBFIND
+            JR   NC,SBPREPRD
             INC  HL
             INC  HL
             INC  HL
             BIT  3,(HL)
-            JP   NZ,TypedDuplicateNameFailure
-SymbolPrepareRoutineReady:
+            JP   NZ,TYDUNMER
+SBPREPRD:
             LD   A,(DCINFO)
             LD   D,A
             LD   BC,(DCPAY)
-            JP   SymbolAppendCurrentWord
-.endif
-.routine in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
-SymbolAppendCurrentWord:
+            JP   SBAPPEND
+%ENDIF
+; Contract: in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
+SBAPPEND:
             LD   A,(SYCNT)
             CP   SYCAP
-            JR   NC,SymbolPrepareFull
+            JR   NC,SBPREPFL
             PUSH BC
             LD   C,A
             LD   B,0
@@ -100,28 +100,28 @@ SymbolAppendCurrentWord:
             LD   (HL),B
             OR   A
             RET
-SymbolPrepareFull:
+SBPREPFL:
             LD   A,DGSYMCAP
             JR   DGSET
 
 ; Retain A as the exact type ordinal in the prepared symbol entry. HL points
 ; at the high byte of its payload until the symbol is committed.
-.routine in A,BC,HL out A,BC,carry,zero clobbers sign,parity,halfCarry,HL
-SymbolCommitTyped:
+; Contract: in A,BC,HL out A,BC,carry,zero clobbers sign,parity,halfCarry,HL
+SBCOMTY:
             INC  HL
             LD   (HL),A
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-SymbolCommit:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+SBCOMMIT:
             LD   HL,SYCNT
             INC  (HL)
             XOR  A
             RET
 
 ; Return the current name's class/type in A and word payload in BC.
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-SymbolLookupCurrent:
-            CALL SymbolFindCurrent
-            JR   NC,SymbolLookupMissing
+; Contract: out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+SBLOOKUP:
+            CALL SBFIND
+            JR   NC,SBLOOKNO
             INC  HL
             INC  HL
             INC  HL
@@ -132,5 +132,5 @@ SymbolLookupCurrent:
             LD   B,(HL)
             OR   A
             RET
-SymbolLookupMissing:
+SBLOOKNO:
             LD   A,DGUNKNAM

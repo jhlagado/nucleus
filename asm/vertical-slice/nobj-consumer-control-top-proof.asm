@@ -17,7 +17,7 @@ NobjConsumerControlLimit      .equ 0
 
             .org $0100
 .routine noreturn
-ProofStart:
+FPSTART:
             LD   SP,NobjConsumerStackLimit
             LD   IX,NobjRunDescriptor
             LD   (NobjStateDescriptorPointer),IX
@@ -30,7 +30,7 @@ ProofStart:
 ProofFailed:
             XOR  A
 ProofFinished:
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
             .org NobjConsumerCodeBase
@@ -51,5 +51,5 @@ NobjDeploymentProfile:
             .dw  0
 NobjResult:
             .db  0,0,0,0
-ProofStatus:
+FPSTATUS:
             .db  0

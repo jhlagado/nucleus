@@ -2,6 +2,7 @@
 %INCLUDE "nucleus-runtime-identity.asmi"
 %INCLUDE "cpm22-direct-output.asm"
 %INCLUDE "cpm22-embedded-assets.asmi"
+%INCLUDE "cpm22-publisher-extents.asmi"
 %INCLUDE "cpm22-bdos-call.asm"
 %INCLUDE "cpm22-publisher.asm"
 

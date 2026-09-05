@@ -44,7 +44,7 @@ ParserExpectMainNo:
             JP   DGSET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ParserExpectWrite:
+PSXWR:
             LD   D,DXWR
             LD   E,TNNAME
             CALL PSEXPECT
@@ -60,7 +60,7 @@ ParserExpectWriteNo:
             JP   DGSET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ParserParseProgram:
+PSPPG:
             LD   D,DXSUB
             LD   E,TOKENSUB
             CALL PSEXPECT
@@ -84,7 +84,7 @@ ParserParseProgram:
             CALL PSEXPECT
             RET  C
 
-            CALL ParserExpectWrite
+            CALL PSXWR
             RET  C
             LD   D,DXLPAR
             LD   E,TNLPAR
@@ -136,8 +136,8 @@ CompileVerticalSlice:
             XOR  A
             LD   (DGCODE),A
             LD   (DGPARTID),A
-            CALL SemanticSinkReset
-            CALL ParserParseProgram
+            CALL TMRESET
+            CALL PSPPG
             RET  C
             CALL SemanticSinkEmitProgram
             RET

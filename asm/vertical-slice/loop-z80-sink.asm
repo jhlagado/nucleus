@@ -1,13 +1,13 @@
 ; Streaming direct-Z80 encoder for the counted-loop semantic stream.
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitByte:
-.if TargetStreamingOutput
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+EMITBYTE:
+%IF TargetStreamingOutput
             LD   B,A
             LD   HL,(EMLIM)
             LD   A,H
             OR   L
-            JP   Z,TargetCapacityFailure
+            JP   Z,ZTCAPERR
             DEC  HL
             LD   (EMLIM),HL
             LD   HL,(EMCUR)
@@ -19,152 +19,152 @@ EmitByte:
             CALL TSBYTE
             POP  HL
             POP  BC
-            JP   C,TargetOutputFailure
+            JP   C,ZTOUTERR
             INC  HL
             LD   (EMCUR),HL
             OR   A
             RET
-.else
+%ELSE
             LD   B,A
             LD   HL,(EMCUR)
             LD   DE,(EMLIM)
             OR   A
             SBC  HL,DE
             ADD  HL,DE
-            JP   Z,SemanticSinkPutFull
-EmitByteRoom:
+            JP   Z,TMPUTFUL
+ZEBROOM:
             LD   A,B
             LD   (HL),A
             INC  HL
             LD   (EMCUR),HL
             OR   A
             RET
-.endif
+%ENDIF
 
-.routine noreturn
-EmitByteInline:
+; Contract: noreturn
+ZEBINL:
             POP  HL
             LD   A,(HL)
-            JR   EmitByte
+            JR   EMITBYTE
 
-.routine noreturn
-EmitByteInlineChecked:
+; Contract: noreturn
+ZEBINCHK:
             POP  HL
             LD   A,(HL)
             INC  HL
             PUSH HL
-.if CompilerDiagnosticReturns
-            CALL EmitByte
+%IF CompilerDiagnosticReturns
+            CALL EMITBYTE
             RET  NC
             POP  HL
             RET
-.else
-            JR   EmitByte
-.endif
+%ELSE
+            JR   EMITBYTE
+%ENDIF
 
-.routine noreturn
-EmitPairIndexedInline:
+; Contract: noreturn
+ZEPINLIN:
             POP  HL
             LD   A,(HL)
             INC  HL
             PUSH HL
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitPairIndexed:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEPINDEX:
             ADD  A,A
             LD   L,A
             LD   H,0
-            LD   DE,EmitPairInlineTable
+            LD   DE,ZEPAIRT
             ADD  HL,DE
-.if TargetStreamingOutput
-            JR   EmitPair
-.else
-            JP   EmitPair
-.endif
+%IF TargetStreamingOutput
+            JR   EMITPAIR
+%ELSE
+            JP   EMITPAIR
+%ENDIF
 
-EmitPairDecSp2          .equ 0
-EmitPairLoadIXL         .equ 1
-EmitPairLoadIXH         .equ 2
-EmitPairStoreIXL        .equ 3
-EmitPairStoreIXH        .equ 4
-EmitPairPopDEHL         .equ 5
-EmitPairPopDEPushDE     .equ 6
-EmitPairTestL           .equ 7
-EmitPairTestH           .equ 8
-EmitPairPopHLToA        .equ 9
-EmitPairPopHLLoadDE     .equ 10
-EmitPairPopHLDE         .equ 11
-EmitPairZeroH           .equ 12
-EmitPairLDIR            .equ 13
-EmitPairAdd8            .equ 14
-EmitPairSubtract8       .equ 15
-EmitPairAnd8            .equ 16
-EmitPairOr8             .equ 17
-EmitPairXor8            .equ 18
-EmitPairPopHLBC         .equ 19
-EmitPairInlineTable:
-            .db  $3B,$3B                 ; DEC SP / DEC SP
-            .db  $DD,$6E                 ; LD L,(IX+n)
-            .db  $DD,$66                 ; LD H,(IX+n)
-            .db  $DD,$75                 ; LD (IX+n),L
-            .db  $DD,$74                 ; LD (IX+n),H
-            .db  $D1,$E1                 ; POP DE / POP HL
-            .db  $D1,$D5                 ; POP DE / PUSH DE
-            .db  $7D,$B7                 ; LD A,L / OR A
-            .db  $7C,$B7                 ; LD A,H / OR A
-            .db  $E1,$7D                 ; POP HL / LD A,L
-            .db  $E1,$11                 ; POP HL / LD DE,nn
-            .db  $E1,$D1                 ; POP HL / POP DE
-            .db  $26,$00                 ; LD H,0
-            .db  $ED,$B0                 ; LDIR
-            .db  $7D,$83                 ; LD A,L / ADD A,E
-            .db  $7D,$93                 ; LD A,L / SUB E
-            .db  $7D,$A3                 ; LD A,L / AND E
-            .db  $7D,$B3                 ; LD A,L / OR E
-            .db  $7D,$AB                 ; LD A,L / XOR E
-            .db  $E1,$C1                 ; POP HL / POP BC
+ZEDECSP    EQU 0
+ZELDIXL    EQU 1
+ZELDIXH    EQU 2
+ZESTIXL    EQU 3
+ZESTIXH    EQU 4
+ZEPOPDEH   EQU 5
+ZEPDEPSD   EQU 6
+ZETESTL    EQU 7
+ZETESTH    EQU 8
+ZEPHLTOA   EQU 9
+ZEPHLLDD   EQU 10
+ZEPHLDE    EQU 11
+ZEZEROH    EQU 12
+ZELDIR     EQU 13
+ZEADD8     EQU 14
+ZESUB8     EQU 15
+ZEAND8     EQU 16
+ZEOR8      EQU 17
+ZEXOR8     EQU 18
+ZEPHLBC    EQU 19
+ZEPAIRT:
+            DB  $3B,$3B                 ; DEC SP / DEC SP
+            DB  $DD,$6E                 ; LD L,(IX+n)
+            DB  $DD,$66                 ; LD H,(IX+n)
+            DB  $DD,$75                 ; LD (IX+n),L
+            DB  $DD,$74                 ; LD (IX+n),H
+            DB  $D1,$E1                 ; POP DE / POP HL
+            DB  $D1,$D5                 ; POP DE / PUSH DE
+            DB  $7D,$B7                 ; LD A,L / OR A
+            DB  $7C,$B7                 ; LD A,H / OR A
+            DB  $E1,$7D                 ; POP HL / LD A,L
+            DB  $E1,$11                 ; POP HL / LD DE,nn
+            DB  $E1,$D1                 ; POP HL / POP DE
+            DB  $26,$00                 ; LD H,0
+            DB  $ED,$B0                 ; LDIR
+            DB  $7D,$83                 ; LD A,L / ADD A,E
+            DB  $7D,$93                 ; LD A,L / SUB E
+            DB  $7D,$A3                 ; LD A,L / AND E
+            DB  $7D,$B3                 ; LD A,L / OR E
+            DB  $7D,$AB                 ; LD A,L / XOR E
+            DB  $E1,$C1                 ; POP HL / POP BC
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitWord:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+EMITWORD:
             LD   C,H
             LD   A,L
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JR   EmitByte
+            JR   EMITBYTE
 
 ; Copy B retained opcode bytes. Shared fixed sequences are cheaper as data
 ; once two or more encoder paths need four or more emitted bytes.
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitBytes:
-.if TargetStreamingOutput
+; Contract: in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEBYTES:
+%IF TargetStreamingOutput
             PUSH BC
             LD   C,B
             LD   B,0
-            CALL EmitBlock
+            CALL ZEBLOCK
             POP  BC
             RET
-.else
+%ELSE
             LD   A,(HL)
             INC  HL
             PUSH BC
             PUSH HL
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            DJNZ EmitBytes
+%ENDIF
+            DJNZ ZEBYTES
             OR   A
             RET
-.endif
+%ENDIF
 
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
 ; Copy the complete BC-byte region through the checked output sink.
-.routine in BC,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitBlock:
+; Contract: in BC,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEBLOCK:
             LD   A,B
             OR   C
             RET  Z
@@ -172,42 +172,42 @@ EmitBlock:
             INC  HL
             PUSH BC
             PUSH HL
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  BC
-            JR   EmitBlock
-.endif
+            JR   ZEBLOCK
+%ENDIF
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitEight:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEEIGHT:
             LD   B,8
-            JR   EmitGo
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitFive:
+            JR   EMITGO
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+EMITFIVE:
             LD   B,5
-            JR   EmitGo
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitFour:
+            JR   EMITGO
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+EMITFOUR:
             LD   B,4
-            JR   EmitGo
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitThree:
+            JR   EMITGO
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZETHREE:
             LD   B,3
-            JR   EmitGo
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitPair:
+            JR   EMITGO
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+EMITPAIR:
             LD   B,2
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitGo:
-            JR   EmitBytes
+; Contract: in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+EMITGO:
+            JR   ZEBYTES
 
 ; Patch one Z80 relative displacement. DE is the operand and HL the target.
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-PatchRelative:
+; Contract: in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZEPREL:
             LD   (EMPATCH),DE
             INC  DE
             OR   A
@@ -217,71 +217,71 @@ PatchRelative:
             ADD  A,A
             SBC  A,A
             CP   H
-            JR   NZ,PatchInvalid
-PatchStore:
-.if TargetStreamingOutput
+            JR   NZ,ZEPINVAL
+ZEPSTORE:
+%IF TargetStreamingOutput
             LD   B,C
             LD   HL,(EMPATCH)
             LD   A,(TGOUTBNK)
             LD   C,A
             LD   A,B
             CALL TSPATBYT
-            JP   C,TargetOutputFailure
+            JP   C,ZTOUTERR
             OR   A
             RET
-.else
+%ELSE
             LD   DE,(EMPATCH)
             LD   A,C
             LD   (DE),A
             OR   A
             RET
-.endif
-PatchInvalid:
+%ENDIF
+ZEPINVAL:
             CALL DGINLINE
-            .db  DGFIXRNG
+            DB  DGFIXRNG
 
-.if TargetStreamingOutput
-.else
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-BeginProgram:
+%IF TargetStreamingOutput
+%ELSE
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ZEBEGIN:
             LD   (EMLIM),HL
             LD   BC,(GNSZ)
             LD   (PUSZ),BC
             LD   A,B
             OR   C
-            JR   Z,BeginProgramReady
+            JR   Z,ZEBEGOK
             LD   HL,MMGEN
             LD   DE,MMBACK
             LDIR
-BeginProgramReady:
+ZEBEGOK:
             LD   HL,MMGEN
             LD   (EMCUR),HL
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-AbortProgram:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ZEABORT:
             LD   BC,(PUSZ)
             LD   A,B
             OR   C
-            JR   Z,AbortProgramSize
+            JR   Z,ZEABSIZE
             LD   HL,MMBACK
             LD   DE,MMGEN
             LDIR
-AbortProgramSize:
+ZEABSIZE:
             LD   HL,(PUSZ)
             LD   (GNSZ),HL
             SCF
             RET
-.endif
+%ENDIF
 
-.if AggregateCallSlices
-.if TargetStreamingOutput
-.else
+%IF AggregateCallSlices
+%IF TargetStreamingOutput
+%ELSE
 ; Initialize the fixed adapter table, retain all previously published segment
 ; sizes, and back up both image-bearing segments before tentative emission.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-BeginSegmentedProgram:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZESEGBEG:
             PUSH HL
             LD   HL,GNSZ
             LD   DE,PUSZ
@@ -290,33 +290,33 @@ BeginSegmentedProgram:
             LD   BC,(GNSZ)
             LD   HL,MMGENCOD
             LD   DE,MMBACK
-            CALL SegmentCopyIfAny
+            CALL ZESEGCOP
             LD   BC,(GNROSZ)
             LD   HL,RORDATA
             LD   DE,MMBACK+(RORDATA-MMGEN)
-            CALL SegmentCopyIfAny
-            LD   HL,SegmentInitialTable
+            CALL ZESEGCOP
+            LD   HL,ZESEGINI
             LD   DE,SGTABBAS
             LD   BC,SGENTSZ*SGCAP
             LDIR
             POP  HL
             LD   (SGCDENT+SGENTLIM),HL
 
-            CALL ValidateSegmentTable
-.if CompilerDiagnosticReturns
+            CALL ZESEGVAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             XOR  A
             RET
 
-SegmentInitialTable:
-            .dw MMGENCOD,MMGCEND
-            .dw RORDATA,MMROEND
-            .dw MMDATA,MMDATEND
-            .dw MMBSS,MMBSSEND
+ZESEGINI:
+            DW MMGENCOD,MMGCEND
+            DW RORDATA,MMROEND
+            DW MMDATA,MMDATEND
+            DW MMBSS,MMBSSEND
 
-.routine in BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SegmentCopyIfAny:
+; Contract: in BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ZESEGCOP:
             LD   A,B
             OR   C
             RET  Z
@@ -328,17 +328,17 @@ SegmentCopyIfAny:
 ; an internal SegmentCode/SegmentRoData ordinal supplied at the two call sites.
 ; Their current cursors remain cached in EmitCursor/EmitLimit and are written
 ; back to the bounded table at each segment switch and at publication.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-SelectOutputSegment:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZESEGSEL:
             OR   A
-            JR   NZ,SelectOutputSegmentRoData
+            JR   NZ,ZESEGRO
             LD   DE,(EMCUR)
             LD   (SGROCUR),DE
             LD   HL,SGCDENT
-            JR   SelectOutputSegmentReady
-SelectOutputSegmentRoData:
+            JR   ZESEGOK
+ZESEGRO:
             LD   HL,SGROENT
-SelectOutputSegmentReady:
+ZESEGOK:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
@@ -354,53 +354,53 @@ SelectOutputSegmentReady:
 ; The adapter owns two ordered ROM-image segments and two ordered RAM
 ; segments. Reject malformed or overlapping target maps before one byte can
 ; be published.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-ValidateSegmentTable:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZESEGVAL:
             LD   IX,SGTABBAS
             LD   B,SGCAP
-ValidateSegmentEntryLoop:
+ZESEGENT:
             LD   L,(IX+SGENTBAS)
             LD   H,(IX+SGENTBAS+1)
             LD   E,(IX+SGENTLIM)
             LD   D,(IX+SGENTLIM+1)
             OR   A
             SBC  HL,DE
-            JR   NC,SegmentTableFailure
+            JR   NC,ZESEGERR
             LD   DE,SGENTSZ
             ADD  IX,DE
-            DJNZ ValidateSegmentEntryLoop
+            DJNZ ZESEGENT
             LD   HL,(SGCDENT+SGENTLIM)
             LD   DE,(SGROENT+SGENTBAS)
-            CALL SegmentRequireOrder
-.if CompilerDiagnosticReturns
+            CALL ZESEGRQR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(SGDATENT+SGENTLIM)
             LD   DE,(SGBSSENT+SGENTBAS)
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-SegmentRequireOrder:
+; Contract: in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZESEGRQR:
             OR   A
             SBC  HL,DE
-            JR   C,SegmentOrderReady
+            JR   C,ZESEGORD
             RET  Z
-            JR   SegmentTableFailure
-SegmentOrderReady:
+            JR   ZESEGERR
+ZESEGORD:
             OR   A
             RET
-SegmentTableFailure:
+ZESEGERR:
             CALL DGINLINE
-            .db  DGOUTSEG
+            DB  DGOUTSEG
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-AbortSegmentedProgram:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+ZESEGABT:
             LD   BC,(PUSZ)
             LD   HL,MMBACK
             LD   DE,MMGENCOD
-            CALL SegmentCopyIfAny
+            CALL ZESEGCOP
             LD   BC,(PUROSZ)
             LD   HL,MMBACK+(RORDATA-MMGEN)
             LD   DE,RORDATA
-            CALL SegmentCopyIfAny
+            CALL ZESEGCOP
             LD   HL,PUSZ
             LD   DE,GNSZ
             LD   BC,8
@@ -408,8 +408,8 @@ AbortSegmentedProgram:
             SCF
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-FinishSegmentedProgram:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+ZESEGFIN:
             LD   HL,(EMCUR)
             LD   DE,MMGENCOD
             OR   A
@@ -426,391 +426,391 @@ FinishSegmentedProgram:
             LD   (GNBSSSZ),HL
             OR   A
             RET
-.endif
-.endif
+%ENDIF
+%ENDIF
 
-.if LegacyEncoders
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeLoopProgram:
-            CALL EncodeLoopProgramBody
-            JR   EncodeProgramResult
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeCallProgram:
-            CALL EncodeCallProgramBody
-            JR   EncodeProgramResult
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeExpressionProgram:
-            CALL EncodeExpressionProgramBody
-            JR   EncodeProgramResult
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeArrayProgram:
+%IF LegacyEncoders
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZELOOP:
+            CALL ZELOOPBD
+            JR   ZERESULT
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZECALLPG:
+            CALL ZECPBODY
+            JR   ZERESULT
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZEEXPRPG:
+            CALL ZEXPBODY
+            JR   ZERESULT
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZEARRAY:
             LD   HL,MMGENLIM
-            JR   EncodeArrayProgramWithinLimit
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeArrayProgramWithinLimit:
-            CALL EncodeArrayProgramBody
-EncodeProgramResult:
+            JR   ZEARRLIM
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZEARRLIM:
+            CALL ZEARRBD
+ZERESULT:
             RET  NC
-            JP   AbortProgram
+            JP   ZEABORT
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeLoopProgramBody:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZELOOPBD:
             LD   HL,MMGENLIM
-            CALL BeginProgram
+            CALL ZEBEGIN
 
             LD   A,(SMBUFBAS+2)
-            CALL EmitLoadDImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDDI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(SMBUFBAS+4)
-            CALL EmitLoadDImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDDI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
             LD   HL,(EMCUR)
             LD   (EMLOOP),HL
-            CALL EmitByteInlineChecked
-            .db  $7A
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $7A
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(SMBUFBAS+5)
-            CALL EmitCompareImmediate
-.if CompilerDiagnosticReturns
+            CALL ZECMPI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
 
             LD   A,(SMBUFBAS+7)
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTWRITE
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$38
-            CALL EmitRelativePlaceholder
-.if CompilerDiagnosticReturns
+            CALL ZEREL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMFAIL),DE
-            CALL EmitByteInlineChecked
-            .db  $7A
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $7A
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(SMBUFBAS+5)
             DEC  A
-            CALL EmitCompareImmediate
-.if CompilerDiagnosticReturns
+            CALL ZECMPI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMUPEXIT),DE
-            CALL EmitByteInlineChecked
-            .db  $14
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $14
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMLOOP)
-            CALL PatchRelative
-.if CompilerDiagnosticReturns
+            CALL ZEPREL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
             LD   DE,(EMEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMUPEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitSuccessReturn
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZESUCRET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
             LD   DE,(EMFAIL)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,LPFAIL
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitTrapEnding
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZETRPEND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
-            JP   FinishProgram
-.endif
+            JP   ZEFINISH
+%ENDIF
 
 ; Small instruction emitters shared by the direct back end. Multiple entry
 ; points share the opcode-plus-operand tails rather than repeating them in
 ; every semantic operation.
-.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitOpcodeWord:
+; Contract: in A,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEOPWORD:
             PUSH HL
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
-            JR   EmitWord
-.else
-            JP   EmitWord
-.endif
+%ENDIF
+%IF TargetStreamingOutput
+            JR   EMITWORD
+%ELSE
+            JP   EMITWORD
+%ENDIF
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitCall:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+EMITCALL:
             LD   A,$CD
-            JR   EmitOpcodeWord
+            JR   ZEOPWORD
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitLoadHl:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZELDHL:
             LD   A,$21
-            JR   EmitOpcodeWord
+            JR   ZEOPWORD
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitLoadBcImmediate:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZELDBCI:
             LD   A,$01
-            JR   EmitOpcodeWord
+            JR   ZEOPWORD
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitStoreA:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZESTA:
             LD   A,$32
-            JR   EmitOpcodeWord
+            JR   ZEOPWORD
 
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
 ; Emit LD (state-base+DE),A through the target-linked writable-state address.
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitStoreTargetStateA:
-            CALL TargetStateAddress
-            JR   EmitStoreA
-.endif
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZESTSTA:
+            CALL ZTSTADR
+            JR   ZESTA
+%ENDIF
 
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-EmitOpcodeByte:
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+; Contract: in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEOPBYTE:
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitLoadAImmediate:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZELDAI:
             LD   C,A
             LD   A,$3E
-            JR   EmitOpcodeByte
+            JR   ZEOPBYTE
 
-.if LegacyEncoders
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitLoadDImmediate:
+%IF LegacyEncoders
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZELDDI:
             LD   C,A
             LD   A,$16
-            JP   EmitOpcodeByte
+            JP   ZEOPBYTE
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitCompareImmediate:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECMPI:
             LD   C,A
             LD   A,$FE
-            JP   EmitOpcodeByte
-.endif
+            JP   ZEOPBYTE
+%ENDIF
 
-.if LegacyEncoders
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitLoadScalar:
+%IF LegacyEncoders
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZELDSCAL:
             LD   HL,RTSCALAR
             LD   A,$3A
-            JP   EmitOpcodeWord
+            JP   ZEOPWORD
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitRestoreAfterCall:
-            CALL EmitByteInlineChecked
-            .db  $F5
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZERSTCAL:
+            CALL ZEBINCHK
+            DB  $F5
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTAPOP
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$F1
-            JP   EmitByte
-.endif
+            JP   EMITBYTE
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitSuccessReturn:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZESUCRET:
             LD   A,RTSUCC
-            JR   EmitRunEnding
+            JR   ZERUNEND
 
 ; At runtime A carries the trap number and HL carries the source offset.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitTrapEnding:
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZETRPEND:
+%IF TargetStreamingOutput
             LD   DE,RTTRPNO-RTSTATE
-            CALL EmitStoreTargetStateA
-.else
+            CALL ZESTSTA
+%ELSE
             LD   HL,RTTRPNO
-            CALL EmitStoreA
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZESTA
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $AF
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $AF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,RTTRPRTN-RTSTATE
-            CALL EmitStoreTargetStateA
-.else
+            CALL ZESTSTA
+%ELSE
             LD   HL,RTTRPRTN
-            CALL EmitStoreA
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZESTA
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,RTTRPOFF-RTSTATE
-            CALL TargetStateAddress
-.else
+            CALL ZTSTADR
+%ELSE
             LD   HL,RTTRPOFF
-.endif
+%ENDIF
             LD   A,$22
-            CALL EmitOpcodeWord
-.if CompilerDiagnosticReturns
+            CALL ZEOPWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,RTTRAP
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitRunEnding:
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZERUNEND:
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,RUNSTATE-RTSTATE
-            CALL EmitStoreTargetStateA
-.else
+            CALL ZESTSTA
+%ELSE
             LD   HL,RUNSTATE
-            CALL EmitStoreA
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZESTA
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   A,(TDENTVAL)
             LD   D,A
             LD   A,(TGOUTBNK)
             CP   D
-            JR   Z,EmitRunEndingLocal
+            JR   Z,ZERUNLOC
             LD   A,D
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(TGTERM)
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,10                     ; far-jump vector ordinal
-            JP   EmitTargetVectorJump
-EmitRunEndingLocal:
+            JP   ZTVCJUMP
+ZERUNLOC:
             LD   HL,(TGTERM)
             LD   A,$C3
-            JR   EmitOpcodeWord
-.else
+            JR   ZEOPWORD
+%ELSE
             LD   A,$C9
-            JP   EmitByte
-.endif
+            JP   EMITBYTE
+%ENDIF
 
 ; At runtime A carries an unhandled error and HL the failing source offset.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-EmitUnhandledTrapPrefix:
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEUNHPFX:
+%IF TargetStreamingOutput
             LD   DE,RTTRPERR-RTSTATE
-            CALL EmitStoreTargetStateA
-.else
+            CALL ZESTSTA
+%ELSE
             LD   HL,RTTRPERR
-            CALL EmitStoreA
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZESTA
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,6
-            JR   EmitLoadAImmediate
+            JR   ZELDAI
 
-.routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
-EmitJrPlaceholder:
+; Contract: out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
+ZEJR:
             LD   A,$18
-            JR   EmitRelativePlaceholder
-.routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
-EmitJrNcPlaceholder:
+            JR   ZEREL
+; Contract: out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
+ZEJRNC:
             LD   A,$30
-.routine in A out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
-EmitRelativePlaceholder:
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+; Contract: in A out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
+ZEREL:
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMCUR)
             PUSH HL
             XOR  A
-            CALL EmitByte
+            CALL EMITBYTE
             POP  DE
             RET
 
-.if LegacyEncoders
-.routine out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
-EmitJrCPlaceholder:
+%IF LegacyEncoders
+; Contract: out A,carry,zero,DE clobbers sign,parity,halfCarry,B,HL
+ZEJRC:
             LD   A,$38
-            JP   EmitRelativePlaceholder
-.endif
+            JP   ZEREL
+%ENDIF
 
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-PatchWord:
-.if TargetStreamingOutput
+; Contract: in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+ZEPWORD:
+%IF TargetStreamingOutput
             PUSH BC
             LD   A,(TGOUTBNK)
             LD   C,A
             CALL TSPATWRD
             POP  BC
-            JP   C,TargetOutputFailure
+            JP   C,ZTOUTERR
             OR   A
             RET
-.else
+%ELSE
             LD   A,L
             LD   (DE),A
             INC  DE
@@ -818,18 +818,18 @@ PatchWord:
             LD   (DE),A
             OR   A
             RET
-.endif
+%ENDIF
 
 ; Patch a stored displacement to the current output position.
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-PatchHere:
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZEPHERE:
             LD   HL,(EMCUR)
-            JP   PatchRelative
+            JP   ZEPREL
 
-.if TargetStreamingOutput
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-FinishProgram:
+%IF TargetStreamingOutput
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+ZEFINISH:
             LD   HL,(EMCUR)
             LD   DE,MMGEN
             OR   A
@@ -837,13 +837,13 @@ FinishProgram:
             LD   (GNSZ),HL
             OR   A
             RET
-.endif
+%ENDIF
 
 ; Read one operand from the checked semantic transcript. The operation count
 ; bounds dispatch; individual handlers know the fixed width of their operands.
-CallBackendStart:
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-NextSemanticByte:
+ZECBEGIN:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+ZENEXTB:
             LD   HL,(SMRDCUR)
             LD   A,(HL)
             INC  HL
@@ -851,11 +851,11 @@ NextSemanticByte:
             OR   A
             RET
 
-.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
-ReadSemanticWord:
-            CALL NextSemanticByte
+; Contract: out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+ZEREADW:
+            CALL ZENEXTB
             LD   E,A
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   D,A
             RET
 
@@ -863,731 +863,731 @@ ReadSemanticWord:
 ; continuation turns the Z80's JP (HL) into a compact indirect call. This
 ; entry is post-parse only: SemanticSinkFinish must have published the complete
 ; transcript before emitter scratch overlays the retained forward signature.
-.if LegacyEncoders
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-DispatchCallOperations:
+%IF LegacyEncoders
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZECDISP:
             LD   HL,SMPAYBAS
             LD   (SMRDCUR),HL
             LD   A,(SMBUFBAS)
             OR   A
             RET  Z
             LD   B,A
-DispatchCallNext:
+ZECNEXT:
             PUSH BC
-            CALL NextSemanticByte
+            CALL ZENEXTB
             SUB  SMCLITU8
-            CP   CallOperationCount
-            JR   NC,DispatchCallInvalid
+            CP   ZECOPCNT
+            JR   NC,ZECINVAL
             ADD  A,A
             LD   E,A
             LD   D,0
-            LD   HL,CallOperationTable
+            LD   HL,ZECOPTAB
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
             EX   DE,HL
-            LD   DE,DispatchCallReturn
+            LD   DE,ZECRET
             PUSH DE
             JP   (HL)
-DispatchCallReturn:
+ZECRET:
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            DJNZ DispatchCallNext
+%ENDIF
+            DJNZ ZECNEXT
             OR   A
             RET
-DispatchCallInvalid:
+ZECINVAL:
             POP  BC
             CALL DGINLINE
-            .db  DGSNKCAP
+            DB  DGSNKCAP
 
-CallOperationTable:
-            .dw CallLiteral
-            .dw CallWriteLocal
-            .dw CallBeginForward
-            .dw CallIfParameterZero
-            .dw CallReturnParameter
-            .dw CallEndIf
-            .dw CallReturnSelfMinus
-            .dw CallEndRoutine
-CallOperationCount .equ 8
+ZECOPTAB:
+            DW ZECLIT
+            DW ZECWRLOC
+            DW ZECFWDB
+            DW ZECIFPZ
+            DW ZECRPARM
+            DW ZECENDIF
+            DW ZECRSELF
+            DW ZECENDRT
+ZECOPCNT   EQU 8
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-CallLiteral:
-            CALL NextSemanticByte
-            CALL NextSemanticByte
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZECLIT:
+            CALL ZENEXTB
+            CALL ZENEXTB
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTAPUSH
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrCPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
-            CALL EmitByteInlineChecked
-            .db  $CD
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $CD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMCUR)
             LD   (EMRTNCFX),HL
             LD   HL,0
-            CALL EmitWord
-.if CompilerDiagnosticReturns
+            CALL EMITWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitRestoreAfterCall
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZERSTCAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrCPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMUPEXIT),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-CallWriteLocal:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECWRLOC:
             LD   HL,RTWRITE
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrCPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMFAIL),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-CallBeginForward:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECFWDB:
+            CALL ZENEXTB
             LD   HL,(EMCUR)
             LD   (EMRTNADR),HL
             LD   DE,(EMRTNCFX)
-            JP   PatchWord
+            JP   ZEPWORD
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-CallIfParameterZero:
-            CALL NextSemanticByte
-            CALL EmitLoadScalar
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECIFPZ:
+            CALL ZENEXTB
+            CALL ZELDSCAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $B7
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $B7
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$20
-            CALL EmitRelativePlaceholder
-.if CompilerDiagnosticReturns
+            CALL ZEREL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMIFFIX),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-CallReturnParameter:
-            CALL EmitLoadScalar
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECRPARM:
+            CALL ZELDSCAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$C9
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-CallEndIf:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZECENDIF:
             LD   DE,(EMIFFIX)
-            JP   PatchHere
+            JP   ZEPHERE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-CallReturnSelfMinus:
-            CALL NextSemanticByte
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZECRSELF:
+            CALL ZENEXTB
+            CALL ZENEXTB
             LD   C,A
             PUSH BC
-            CALL EmitLoadScalar
+            CALL ZELDSCAL
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$D6
-            CALL EmitOpcodeByte
-.if CompilerDiagnosticReturns
+            CALL ZEOPBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTAPUSH
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $D8
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $D8
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMRTNADR)
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitRestoreAfterCall
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZERSTCAL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$C9
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-CallEndRoutine:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZECENDRT:
             LD   HL,(EMRTNADR)
             LD   A,H
             OR   L
             RET  NZ
-            CALL EmitSuccessReturn
-.if CompilerDiagnosticReturns
+            CALL ZESUCRET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMUPEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,CLCAPOFF
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitTrapEnding
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZETRPEND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMFAIL)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,CLFAIL
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   EmitTrapEnding
+%ENDIF
+            JP   ZETRPEND
 
 ; Compile the routine slice from its variable-width semantic stream.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeCallProgramBody:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZECPBODY:
             LD   HL,MMGENLIM
-            CALL BeginProgram
+            CALL ZEBEGIN
             LD   HL,0
             LD   (EMRTNADR),HL
-            CALL DispatchCallOperations
-.if CompilerDiagnosticReturns
+            CALL ZECDISP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   FinishProgram
-CallBackendEnd:
-.endif
+%ENDIF
+            JP   ZEFINISH
+ZECEND:
+%ENDIF
 
 ; Dense postfix-expression backend. Program data follows an initial JP, so its
 ; address is known before the code entry is patched. Scalar locals use an IX
 ; frame and therefore remain per activation; the evaluation stack lies below
 ; that frame and is empty at every statement boundary.
-.if LegacyEncoders
-ExpressionBackendStart:
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-DispatchExpressionOperations:
+%IF LegacyEncoders
+ZEXBEGIN:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZEXDISP:
             LD   HL,SMPAYBAS
             LD   (SMRDCUR),HL
             LD   A,(SMBUFBAS)
             OR   A
             RET  Z
             LD   B,A
-DispatchExpressionNext:
+ZEXNEXT:
             PUSH BC
-            CALL NextSemanticByte
+            CALL ZENEXTB
             SUB  SMDEFPU8
-            CP   ExpressionOperationCount
-            JR   NC,DispatchExpressionInvalid
+            CP   ZEXOPCNT
+            JR   NC,ZEXINVAL
             ADD  A,A
             LD   E,A
             LD   D,0
-            LD   HL,ExpressionOperationTable
+            LD   HL,ZEXOPTAB
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
             EX   DE,HL
-            LD   DE,DispatchExpressionReturn
+            LD   DE,ZEXRET
             PUSH DE
             JP   (HL)
-DispatchExpressionReturn:
+ZEXRET:
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            DJNZ DispatchExpressionNext
+%ENDIF
+            DJNZ ZEXNEXT
             OR   A
             RET
-DispatchExpressionInvalid:
+ZEXINVAL:
             POP  BC
             CALL DGINLINE
-            .db  DGSNKCAP
+            DB  DGSNKCAP
 
-ExpressionOperationTable:
-            .dw ExpressionDefineProgram
-            .dw ExpressionBeginMain
-            .dw ExpressionDeclareLocal
-            .dw ExpressionLiteral
-            .dw ExpressionLoadProgram
-            .dw ExpressionLoadLocal
-            .dw ExpressionMultiply
-            .dw ExpressionAdd
-            .dw ExpressionStoreProgram
-            .dw ExpressionStoreLocal
-            .dw ExpressionWrite
-            .dw ExpressionEndMain
-ExpressionOperationCount .equ 12
-.endif
+ZEXOPTAB:
+            DW ZEXDEFPG
+            DW ZEXMAIN
+            DW ZEXDLOC
+            DW ZEXLIT
+            DW ZEXLDPRG
+            DW ZEXLDLOC
+            DW ZEXMUL
+            DW ZEXADD
+            DW ZEXSTPRG
+            DW ZEXSTLOC
+            DW ZEXWRITE
+            DW ZEXENDM
+ZEXOPCNT   EQU 12
+%ENDIF
 
-.routine out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,E,IX,IY
-ExpressionProgramAddress:
-.if AggregateCallSlices
-            CALL ReadSemanticWord
-.if TargetStreamingOutput
+; Contract: out A,HL,carry,zero clobbers sign,parity,halfCarry,B,C,D,E,IX,IY
+ZEXPGADR:
+%IF AggregateCallSlices
+            CALL ZEREADW
+%IF TargetStreamingOutput
             BIT  7,D
-            JR   Z,ExpressionTargetDataAddress
+            JR   Z,ZEXTDADR
             RES  7,D
             LD   HL,(TGBSSBAS)
-            JR   ExpressionTargetAddressReady
-ExpressionTargetDataAddress:
+            JR   ZEXTAOK
+ZEXTDADR:
             LD   HL,(TCDATBAS)
-ExpressionTargetAddressReady:
+ZEXTAOK:
             ADD  HL,DE
             OR   A
             RET
-.else
+%ELSE
             LD   H,D
             LD   L,E
             OR   A
             RET
-.endif
-.else
-            CALL NextSemanticByte
+%ENDIF
+%ELSE
+            CALL ZENEXTB
             LD   E,A
             LD   D,0
             LD   HL,MMGEN+3
             ADD  HL,DE
             RET
-.endif
+%ENDIF
 
-.if LegacyEncoders
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ExpressionDefineProgram:
-            CALL NextSemanticByte
-            CALL NextSemanticByte
-            JP   EmitByte
+%IF LegacyEncoders
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEXDEFPG:
+            CALL ZENEXTB
+            CALL ZENEXTB
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionBeginMain:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXMAIN:
             LD   DE,(EMDATFIX)
             LD   HL,(EMCUR)
-            CALL PatchWord
-            LD   HL,ExpressionFrameBytes
-            JP   EmitEight
+            CALL ZEPWORD
+            LD   HL,ZEXFRBYT
+            JP   ZEEIGHT
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ExpressionDeclareLocal:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEXDLOC:
+            CALL ZENEXTB
             LD   A,$3B
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionLiteral:
-            CALL NextSemanticByte
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXLIT:
+            CALL ZENEXTB
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ExpressionPushA:
+%ENDIF
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEXPUSHA:
             LD   A,$F5
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-ExpressionLoadProgram:
-            CALL NextSemanticByte
-            CALL ExpressionProgramAddress
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZEXLDPRG:
+            CALL ZENEXTB
+            CALL ZEXPGADR
             LD   A,$3A
-            CALL EmitOpcodeWord
-.if CompilerDiagnosticReturns
+            CALL ZEOPWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   ExpressionPushA
+%ENDIF
+            JP   ZEXPUSHA
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionLoadLocal:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXLDLOC:
+            CALL ZENEXTB
             CPL
             LD   C,A
-            CALL EmitByteInlineChecked
-            .db  $DD
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $DD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$7E
-            CALL EmitOpcodeByte
-.if CompilerDiagnosticReturns
+            CALL ZEOPBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   ExpressionPushA
+%ENDIF
+            JP   ZEXPUSHA
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionMultiply:
-            CALL EmitByteInlineChecked
-            .db  $C1
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXMUL:
+            CALL ZEBINCHK
+            DB  $C1
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $F1
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $F1
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTMUL8
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$F5
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ExpressionAdd:
-            LD   HL,ExpressionAddBytes
-            JP   EmitFour
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEXADD:
+            LD   HL,ZEXADDB
+            JP   EMITFOUR
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-ExpressionStoreProgram:
-            CALL NextSemanticByte
-            CALL ExpressionProgramAddress
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZEXSTPRG:
+            CALL ZENEXTB
+            CALL ZEXPGADR
             PUSH HL
             LD   A,$F1
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$32
-            JP   EmitOpcodeWord
+            JP   ZEOPWORD
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionStoreLocal:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXSTLOC:
+            CALL ZENEXTB
             CPL
             LD   C,A
-            CALL EmitByteInlineChecked
-            .db  $F1
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $F1
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $DD
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $DD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$77
-            JP   EmitOpcodeByte
+            JP   ZEOPBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionWrite:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXWRITE:
+            CALL ZENEXTB
             LD   C,A
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   H,A
             LD   L,C
             LD   (EMLOOP),HL
-            CALL EmitByteInlineChecked
-            .db  $F1
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $F1
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTWRITE
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrCPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMFAIL),DE
             RET
-.endif
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-ExpressionRestoreFrame:
-            LD   HL,ExpressionRestoreBytes
-            JP   EmitFour
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZEXRSTFR:
+            LD   HL,ZEXRSTB
+            JP   EMITFOUR
 
-.if LegacyEncoders
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-ExpressionEndMain:
-            CALL ExpressionRestoreFrame
-.if CompilerDiagnosticReturns
+%IF LegacyEncoders
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZEXENDM:
+            CALL ZEXRSTFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitSuccessReturn
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZESUCRET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMFAIL)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ExpressionRestoreFrame
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEXRSTFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMLOOP)
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   EmitTrapEnding
+%ENDIF
+            JP   ZETRPEND
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeExpressionProgramBody:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZEXPBODY:
             LD   HL,MMGENLIM
-            CALL BeginProgram
-            CALL EmitByteInlineChecked
-            .db  $C3
-.if CompilerDiagnosticReturns
+            CALL ZEBEGIN
+            CALL ZEBINCHK
+            DB  $C3
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMCUR)
             LD   (EMDATFIX),HL
             LD   HL,0
-            CALL EmitWord
-.if CompilerDiagnosticReturns
+            CALL EMITWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL DispatchExpressionOperations
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEXDISP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   FinishProgram
-.endif
-ExpressionFrameBytes:
-            .db $DD,$E5,$DD,$21,$00,$00,$DD,$39
-.if LegacyEncoders
-ExpressionAddBytes:
-            .db $C1,$F1,$80,$F5
-.endif
-ExpressionRestoreBytes:
-            .db $DD,$F9,$DD,$E1
-.if LegacyEncoders
-ExpressionBackendEnd:
+%ENDIF
+            JP   ZEFINISH
+%ENDIF
+ZEXFRBYT:
+            DB $DD,$E5,$DD,$21,$00,$00,$DD,$39
+%IF LegacyEncoders
+ZEXADDB:
+            DB $C1,$F1,$80,$F5
+%ENDIF
+ZEXRSTB:
+            DB $DD,$F9,$DD,$E1
+%IF LegacyEncoders
+ZEXEND:
 
 ; Default entry and proof-only bounded entry for the checked-array program.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-EncodeArrayProgramBody:
-            CALL BeginProgram
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZEARRBD:
+            CALL ZEBEGIN
 
             LD   HL,RTREADIN
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
             LD   HL,ARYIFAIL
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMFAIL),DE
 
             LD   DE,(EMEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(SMBUFBAS+2)
-            CALL EmitCompareImmediate
-.if CompilerDiagnosticReturns
+            CALL ZECMPI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMUPEXIT),DE
-            CALL EmitByteInlineChecked
-            .db  $5F
-.if CompilerDiagnosticReturns
+            CALL ZEBINCHK
+            DB  $5F
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             XOR  A
-            CALL EmitLoadDImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDDI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $21
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $21
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(EMCUR)
             LD   (EMDATFIX),HL
             LD   HL,0
-            CALL EmitWord
-.if CompilerDiagnosticReturns
+            CALL EMITWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $19
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $19
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $7E
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $7E
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTWRITE
-            CALL EmitCall
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMLOOP),DE
             LD   HL,ARYOFAIL
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMCODST),DE
 
             LD   DE,(EMLOOP)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitSuccessReturn
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZESUCRET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
             LD   DE,(EMUPEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,ARYBOFF
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $AF
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $AF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,RTTRPERR
-            CALL EmitStoreA
-.if CompilerDiagnosticReturns
+            CALL ZESTA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,1
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitJrPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEJR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
 
             LD   DE,(EMFAIL)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMCODST)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMEXIT)
-            CALL PatchHere
-.if CompilerDiagnosticReturns
+            CALL ZEPHERE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitTrapEnding
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZETRPEND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
             LD   HL,(EMCUR)
             LD   DE,(EMDATFIX)
-            CALL PatchWord
+            CALL ZEPWORD
             LD   HL,SMBUFBAS+3
             LD   C,4
-EmitArrayData:
+ZEARRDAT:
             LD   A,(HL)
             PUSH HL
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  HL
             DEC  C
-            JR   NZ,EmitArrayData
-            JP   FinishProgram
-.endif
+            JR   NZ,ZEARRDAT
+            JP   ZEFINISH
+%ENDIF

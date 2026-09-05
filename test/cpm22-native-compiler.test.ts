@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -158,8 +158,8 @@ class NativeCompilerBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await assembleAtomSource(
-    "vertical-slice/cpm22-native-compiler.asm",
+  const assembled = await assembleNativeCompiler(
+    "cpm22-native-compiler.asm",
   );
   compilerImage = parseIntelHex(assembled.hex).memory;
   symbols = assembled.symbols;

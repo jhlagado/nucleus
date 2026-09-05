@@ -8,37 +8,38 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 TypedAcceptedSource:
@@ -185,16 +186,18 @@ TypedExpressionCapacitySourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (SVFAIL),A
 
             ; TokenEof shares zero with the empty lookahead marker. Repeated
@@ -220,7 +223,7 @@ ProofStart:
             LD   A,B
             OR   C
             JP   NZ,ProofFailEofLookahead
-            CALL ParserTake
+            CALL PSTK
             JP   C,ProofFailEofLookahead
             JP   NZ,ProofFailEofLookahead
             LD   A,(PSLOOK)
@@ -260,7 +263,7 @@ ProofStart:
             OR   L
             JP   NZ,ProofFailEofLookahead
             LD   A,TNPLUS
-            CALL TypedTakeOperator
+            CALL TYTKOP
             JP   C,ProofFailEofLookahead
             JP   Z,ProofFailEofLookahead
             CP   $FF
@@ -275,11 +278,11 @@ ProofStart:
             LD   A,80
             LD   HL,TypedAcceptedSource
             LD   DE,TypedAcceptedSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailAcceptedCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailAcceptedEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -307,11 +310,11 @@ ProofStart:
             LD   A,90
             LD   HL,TypedDefaultSource
             LD   DE,TypedDefaultSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailDefaultCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailDefaultEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -334,11 +337,11 @@ ProofStart:
             LD   A,81
             LD   HL,TypedNarrowTrapSource
             LD   DE,TypedNarrowTrapSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailNarrowCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailNarrowEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -359,11 +362,11 @@ ProofStart:
             LD   A,82
             LD   HL,TypedDivideTrapSource
             LD   DE,TypedDivideTrapSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailDivideCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailDivideEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -428,11 +431,11 @@ ProofStart:
             ; but the independently published operation count does not. Lock
             ; the exact count and cursor before the 256th operation; its
             ; terminal diagnostic intentionally overlays that dead sink state.
-            CALL SemanticSinkReset
+            CALL TMRESET
             LD   C,255
 ProofFillOperationCount:
             LD   A,SMLIT16
-            CALL SemanticSinkOperation
+            CALL TMOPER
             JP   C,ProofFailOperationCapacityFill
             DEC  C
             JR   NZ,ProofFillOperationCount
@@ -445,7 +448,7 @@ ProofFillOperationCount:
             SBC  HL,DE
             JP   NZ,ProofFailOperationCapacityBoundary
             LD   A,SMLIT16
-            CALL SemanticSinkOperation
+            CALL TMOPER
             JP   NC,ProofFailOperationCapacityAccept
             LD   A,(DGCODE)
             CP   DGSNKCAP
@@ -530,13 +533,13 @@ ProofFillOperationCount:
             LD   HL,TypedDefaultLocalCapacitySource
             LD   DE,TypedDefaultLocalCapacitySourceEnd
             CALL SAINIT
-            CALL SemanticSinkReset
+            CALL TMRESET
             XOR  A
             LD   (PSLOOK),A
-            CALL SymbolReset
+            CALL SBRESET
             LD   HL,SMBUFLIM-3
             LD   (SKCUR),HL
-            CALL TypedParseLocalDeclaration
+            CALL TYPLOCDC
             JP   NC,ProofFailDefaultLocalCapacity
             LD   A,(DGCODE)
             CP   DGSNKCAP
@@ -548,11 +551,11 @@ ProofFillOperationCount:
             LD   A,97
             LD   HL,TypedCoverageSource
             LD   DE,TypedCoverageSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCoverageCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailCoverageEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -570,11 +573,11 @@ ProofFillOperationCount:
             LD   A,98
             LD   HL,TypedConversionContextSource
             LD   DE,TypedConversionContextSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailConversionCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailConversionEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -593,11 +596,11 @@ ProofFillOperationCount:
             LD   A,99
             LD   HL,TypedNestedDivideTrapSource
             LD   DE,TypedNestedDivideTrapSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailNestedDivideCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailNestedDivideEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -619,11 +622,11 @@ ProofFillOperationCount:
             LD   A,100
             LD   HL,TypedNestedNarrowTrapSource
             LD   DE,TypedNestedNarrowTrapSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailNestedNarrowCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailNestedNarrowEncode
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RUNSTATE)
@@ -644,7 +647,7 @@ ProofFillOperationCount:
             LD   (EXSTKDEP),A
             LD   HL,1
             LD   A,MTCONST+TYU8
-            CALL TypedRestoreOperands
+            CALL TYRSTOPS
             JP   NC,ProofFailExpressionUnderflow
             LD   A,(DGCODE)
             CP   DGINTOP
@@ -653,7 +656,7 @@ ProofFillOperationCount:
             LD   A,EBFCAP
             LD   (EBFDEP),A
             LD   DE,0
-            CALL TypedPushBooleanFixup
+            CALL ZXBLPUSH
             JP   NC,ProofFailBooleanCapacity
             LD   A,(DGCODE)
             CP   DGBFXCAP
@@ -662,7 +665,7 @@ ProofFillOperationCount:
             XOR  A
             LD   (EBFDEP),A
             LD   B,A
-            CALL TypedPopBooleanFixup
+            CALL ZXBLPOP
             JP   NC,ProofFailBooleanUnderflow
             LD   A,(DGCODE)
             CP   DGINTOP
@@ -672,7 +675,7 @@ ProofFillOperationCount:
             LD   (SMBUFBAS),A
             LD   A,SMLITU8
             LD   (SMPAYBAS),A
-            CALL TypedDispatch
+            CALL ZXDISP
             JP   NC,ProofFailRetiredOperation
             LD   A,(DGCODE)
             CP   DGINTOP
@@ -693,7 +696,7 @@ ProofFillOperationCount:
             LD   (EMLIM),HL
             LD   A,$CC
             LD   (MMGEN+3),A
-            CALL TypedNegate16
+            CALL ZXNEG16
             JP   NC,ProofFailUnaryEmitReturn
             LD   HL,0
             ADD  HL,SP
@@ -723,7 +726,7 @@ ProofFillOperationCount:
 
             LD   A,1
             LD   (EBFDEP),A
-            CALL TypedEndMain
+            CALL ZXENDM
             JP   NC,ProofFailUnbalancedBoolean
             LD   A,(DGCODE)
             CP   DGINTOP
@@ -736,19 +739,19 @@ ProofFillOperationCount:
             LD   A,80
             LD   HL,TypedAcceptedSource
             LD   DE,TypedAcceptedSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailAcceptedCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailAcceptedEncode
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ; A=part, HL..DE source, C=expected diagnostic. Carry means mismatch.
 .routine in A,C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofExpectDiagnostic:
             PUSH BC
-            CALL CompileSlice
+            CALL CPSL
             POP  BC
             JR   NC,ProofExpectedDiagnosticNo
             LD   A,(DGCODE)
@@ -1020,15 +1023,15 @@ ProofFailNestedNarrowAtomic:  LD A,64
                               JR ProofFailed
 ProofFailArithmeticRuntime:   LD A,71
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 TypedGeneratedSize:           .dw 0
 ProofExpectedSP:              .dw 0
-ProofStatus:                  .db 0
-ProofCase:                    .db 0
+FPSTATUS:                  .db 0
+FPCASE:                    .db 0
 ProofArithmeticCases:
             .dw 1000,1,1000,0,1000
             .dw 1000,2,500,0,2000
@@ -1037,7 +1040,7 @@ ProofArithmeticCases:
             .dw 1000,257,3,229,60392
             .dw 65535,65535,1,0,1
 ProofArithmeticCasesEnd:
-ProofEnd:
+FPEND:
 
 GeneratedTypedEnd             .equ MMGEN+857
 

@@ -8,35 +8,36 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 1
             .include "loop-z80-sink.asm"
-SinkCodeEnd:
-CompilerCodeEnd:
+KCSNKEND:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 CallProofSource:
@@ -76,25 +77,27 @@ BadCompletionSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   A,60
             LD   HL,CallProofSource
             LD   DE,CallProofSourceEnd
-            CALL CompileCallSlice
+            CALL CPCLSL
             JP   C,ProofFailCompile
             LD   A,(SMBUFBAS)
             CP   9
             JP   NZ,ProofFailOperations
-            CALL EncodeCallProgram
+            CALL ZECALLPG
             JP   C,ProofFailEncode
             LD   HL,(GNSZ)
             LD   DE,CLPROGSZ
@@ -107,7 +110,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailTranscriptEnd
 
-            CALL Reset
+            CALL RESET
             CALL MMGEN
             LD   A,(RUNSTATE)
             CP   RTSUCC
@@ -125,7 +128,7 @@ ProofStart:
             CP   1
             JP   NZ,ProofFailSuccessPeak
 
-            CALL Reset
+            CALL RESET
             LD   A,$A5
             LD   (RTACTMEM+3),A
             LD   A,3
@@ -155,7 +158,7 @@ ProofStart:
             CP   $A5
             JP   NZ,ProofFailCapacityAtomic
 
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (SVFAIL),A
             CALL MMGEN
@@ -183,7 +186,7 @@ ProofStart:
             LD   A,61
             LD   HL,BadCompletionSource
             LD   DE,BadCompletionSourceEnd
-            CALL CompileCallSlice
+            CALL CPCLSL
             JP   NC,ProofFailBadAccepted
             LD   A,(DGCODE)
             CP   DGFWDMIS
@@ -198,13 +201,13 @@ ProofStart:
             LD   A,60
             LD   HL,CallProofSource
             LD   DE,CallProofSourceEnd
-            CALL CompileCallSlice
+            CALL CPCLSL
             JP   C,ProofFailCompile
-            CALL EncodeCallProgram
+            CALL ZECALLPG
             JP   C,ProofFailEncode
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ProofFailCompile:             LD A,1
@@ -259,13 +262,13 @@ ProofFailOutputBytes:         LD A,25
                               JR ProofFailed
 ProofFailOutputActivation:   LD A,26
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
-ProofStatus:            .db 0
-ProofCase:              .db 0
-ProofEnd:
+FPSTATUS:            .db 0
+FPCASE:              .db 0
+FPEND:
 
             .end

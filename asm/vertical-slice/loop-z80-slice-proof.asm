@@ -8,25 +8,26 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
             .include "source-adapter.asm"
             .include "loop-tokenizer.asm"
             .include "loop-semantic-sink.asm"
             .include "loop-symbols.asm"
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 1
             .include "loop-z80-sink.asm"
-SinkCodeEnd:
-CompilerCodeEnd:
+KCSNKEND:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 LoopProofSource:
@@ -49,24 +50,26 @@ ZeroLoopProofSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (SVFAIL),A
 
             LD   A,30
             LD   HL,LoopProofSource
             LD   DE,LoopProofSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   C,ProofFailCompile
-            CALL EncodeLoopProgram
+            CALL ZELOOP
             JP   C,ProofFailEncode
             LD   HL,(GNSZ)
             LD   DE,PGSZ
@@ -74,7 +77,7 @@ ProofStart:
             SBC  HL,DE
             JP   NZ,ProofFailSize
 
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (SVFAIL),A
             CALL MMGEN
@@ -96,7 +99,7 @@ ProofCheckSuccessOutput:
             INC  HL
             DJNZ ProofCheckSuccessOutput
 
-            CALL Reset
+            CALL RESET
             LD   A,2
             LD   (SVFAIL),A
             CALL MMGEN
@@ -124,11 +127,11 @@ ProofCheckSuccessOutput:
             LD   A,31
             LD   HL,ZeroLoopProofSource
             LD   DE,ZeroLoopProofSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   C,ProofFailZeroCompile
-            CALL EncodeLoopProgram
+            CALL ZELOOP
             JP   C,ProofFailZeroEncode
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (SVFAIL),A
             CALL MMGEN
@@ -143,13 +146,13 @@ ProofCheckSuccessOutput:
             LD   A,30
             LD   HL,LoopProofSource
             LD   DE,LoopProofSourceEnd
-            CALL CompileLoopSlice
+            CALL CPLPSL
             JP   C,ProofFailCompile
-            CALL EncodeLoopProgram
+            CALL ZELOOP
             JP   C,ProofFailEncode
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ProofFailCompile:       LD A,1
@@ -184,13 +187,13 @@ ProofFailZeroRun:       LD A,15
                         JR ProofFailed
 ProofFailZeroOutput:    LD A,16
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
-ProofStatus:            .db 0
-ProofCase:              .db 0
-ProofEnd:
+FPSTATUS:            .db 0
+FPCASE:              .db 0
+FPEND:
 
             .end

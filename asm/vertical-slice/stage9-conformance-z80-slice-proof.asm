@@ -10,42 +10,45 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 0
 AggregateCallSlices  .equ 1
 Stage7LL1            .equ 1
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 0
             .include "loop-z80-sink.asm"
-TypedSinkCodeStart:
+KCTYPED:
             .include "typed-expression-z80.asm"
             .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
+KCTYPEND:
+KCSNKEND:
+KCCODEND:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
@@ -814,22 +817,22 @@ CorpusSourceEnd:
 
             .org $D400
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofStatus),A
-            LD   (ProofCase),A
+            LD   (FPSTATUS),A
+            LD   (FPCASE),A
             LD   (ProofMaxGenerated),A
             LD   (ProofMaxGenerated+1),A
 
             LD   A,2
             LD   HL,Chapter21_1Descriptors
-            CALL CompileAggregateCallParts
-            JP   C,ProofCompileFailure
-            CALL EncodeAggregateProgram
+            CALL CPAGCLPT
+            JP   C,FPCOMPFL
+            CALL ZGPROG
             JP   C,ProofEncodeFailure
             CALL ProofUpdateMaxGenerated
-            CALL Reset
+            CALL RESET
             CALL ProofCallGenerated
             JP   C,ProofRunFailure
             LD   A,(RUNSTATE)
@@ -846,7 +849,7 @@ ProofStart:
             JP   NZ,ProofRunFailure
 
             LD   A,2
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,12
             LD   HL,Chapter21_2Source
             LD   DE,Chapter21_2SourceEnd
@@ -864,7 +867,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,3
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,13
             LD   HL,Chapter21_3Source
             LD   DE,Chapter21_3SourceEnd
@@ -875,7 +878,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,4
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,14
             LD   HL,Chapter21_4Source
             LD   DE,Chapter21_4SourceEnd
@@ -886,7 +889,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,5
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,15
             LD   HL,Chapter21_5Source
             LD   DE,Chapter21_5SourceEnd
@@ -897,7 +900,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,6
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,16
             LD   HL,Chapter21_6Source
             LD   DE,Chapter21_6SourceEnd
@@ -908,7 +911,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,7
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,17
             LD   HL,Chapter21_7Source
             LD   DE,Chapter21_7SourceEnd
@@ -930,7 +933,7 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,8
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,18
             LD   HL,Chapter21_8Source
             LD   DE,Chapter21_8SourceEnd
@@ -940,7 +943,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,9
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,19
             LD   HL,Chapter21_9BoundsSource
             LD   DE,Chapter21_9BoundsSourceEnd
@@ -959,7 +962,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,10
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,20
             LD   HL,Chapter21_9DivideSource
             LD   DE,Chapter21_9DivideSourceEnd
@@ -978,7 +981,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,21
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,51
             LD   B,DGHDLINE
             LD   IX,Chapter21_10UnconsumedPoint-Chapter21_10UnconsumedSource
@@ -988,7 +991,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,22
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,52
             LD   B,DGTYPMIS
             LD   IX,Chapter21_10NominalPoint+5-Chapter21_10NominalSource
@@ -998,7 +1001,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,23
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,53
             LD   B,DGINICNT
             LD   IX,Chapter21_10InitializerPoint-Chapter21_10InitializerSource
@@ -1008,7 +1011,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,24
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,54
             LD   B,DXTYP
             LD   IX,Chapter21_10AggregateLocalPoint-Chapter21_10AggregateLocalSource
@@ -1018,7 +1021,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,25
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,55
             LD   B,DGRTNFLW
             LD   IX,Chapter21_10RoutineFlowPoint+3-Chapter21_10RoutineFlowSource
@@ -1028,7 +1031,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,26
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,56
             LD   B,DGUNKNAM
             LD   IX,Chapter21_10LaterPoint-Chapter21_10LaterSource
@@ -1038,7 +1041,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,27
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,57
             LD   B,DXRPAR
             LD   IX,Chapter21_10MainSignaturePoint-Chapter21_10MainSignatureSource
@@ -1048,7 +1051,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,28
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,58
             LD   B,DGACTCTR
             LD   IX,Chapter21_10ActiveCounterName-Chapter21_10ActiveCounterSource
@@ -1058,7 +1061,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,60
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,69
             LD   B,DGINTRNG
             LD   IX,Chapter21_10ExactUsePoint-Chapter21_10ExactUseSource
@@ -1078,7 +1081,7 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,61
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,70
             LD   B,DGINTRNG
             LD   IX,Chapter21_10ExactNestedPoint-Chapter21_10ExactNestedSource
@@ -1098,7 +1101,7 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,62
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,71
             LD   B,DGTYPMIS
             LD   IX,Chapter21_10BooleanAsIntegerPoint-Chapter21_10BooleanAsIntegerSource
@@ -1108,7 +1111,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,63
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,72
             LD   B,DGTYPMIS
             LD   IX,Chapter21_10IntegerAsBooleanPoint-Chapter21_10IntegerAsBooleanSource
@@ -1118,7 +1121,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,29
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,59
             LD   B,DGLEX
             LD   IX,Chapter21_10HexPoint-Chapter21_10HexSource
@@ -1128,7 +1131,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,64
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,73
             LD   B,DGLEX
             LD   IX,Chapter21_10BinaryPoint-Chapter21_10BinarySource
@@ -1138,7 +1141,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,30
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,2
             LD   B,DGUNKNAM
             LD   C,2
@@ -1158,12 +1161,12 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,31
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,2
             LD   HL,Chapter21BoundaryDescriptors
-            CALL CompileAggregateCallParts
+            CALL CPAGCLPT
             JP   C,ProofFailed
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailed
             CALL ProofUpdateMaxGenerated
             CALL ProofResetServices
@@ -1174,12 +1177,12 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,32
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,8
             LD   HL,Chapter21CapacityDescriptors
-            CALL CompileAggregateCallParts
+            CALL CPAGCLPT
             JP   C,ProofFailed
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailed
             CALL ProofUpdateMaxGenerated
             CALL ProofResetServices
@@ -1189,7 +1192,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,33
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,9
             LD   B,DGSPTCAP
             LD   C,0
@@ -1199,12 +1202,12 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,36
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,1
             LD   HL,Chapter21SingleDescriptor
-            CALL CompileAggregateCallParts
+            CALL CPAGCLPT
             JP   C,ProofFailed
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailed
             CALL ProofUpdateMaxGenerated
             CALL ProofResetServices
@@ -1214,7 +1217,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,34
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,2
             LD   B,DGLEX
             LD   C,71
@@ -1224,12 +1227,12 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,35
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,2
             LD   HL,Chapter21BoundaryDescriptors
-            CALL CompileAggregateCallParts
+            CALL CPAGCLPT
             JP   C,ProofFailed
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             JP   C,ProofFailed
             CALL ProofUpdateMaxGenerated
             CALL ProofResetServices
@@ -1240,7 +1243,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,12
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,22
             LD   HL,Chapter21_12Source
             LD   DE,Chapter21_12SourceEnd
@@ -1251,7 +1254,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,13
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,23
             LD   HL,Chapter21_13Source
             LD   DE,Chapter21_13SourceEnd
@@ -1262,7 +1265,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,14
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,24
             LD   HL,Chapter21_14Source
             LD   DE,Chapter21_14SourceEnd
@@ -1273,7 +1276,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,15
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,25
             LD   HL,Chapter21_15Source
             LD   DE,Chapter21_15SourceEnd
@@ -1284,7 +1287,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,65
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,74
             LD   HL,Chapter21_16Source
             LD   DE,Chapter21_16SourceEnd
@@ -1295,7 +1298,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,66
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,75
             LD   HL,Chapter21_17Source
             LD   DE,Chapter21_17SourceEnd
@@ -1306,7 +1309,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,67
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,76
             LD   B,DGTYPMIS
             LD   IX,Chapter21_17BooleanPoint-Chapter21_17BooleanSource
@@ -1316,7 +1319,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,68
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,77
             LD   HL,Chapter21_18Source
             LD   DE,Chapter21_18SourceEnd
@@ -1327,7 +1330,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,69
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,78
             LD   B,DGDIVZER
             LD   IX,Chapter21_18ZeroPoint-Chapter21_18ZeroSource
@@ -1337,7 +1340,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,70
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,79
             LD   HL,Chapter21_9ModuloSource
             LD   DE,Chapter21_9ModuloSourceEnd
@@ -1356,7 +1359,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,71
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,80
             LD   HL,Chapter21_19Source
             LD   DE,Chapter21_19SourceEnd
@@ -1374,7 +1377,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,72
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,81
             LD   B,DGASSERT
             LD   IX,Chapter21_19FalsePoint-Chapter21_19FalseSource
@@ -1384,7 +1387,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,73
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,82
             LD   B,DGTYPMIS
             LD   IX,Chapter21_19TypePoint-Chapter21_19TypeSource
@@ -1394,7 +1397,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,74
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,83
             LD   HL,Chapter21_20Source
             LD   DE,Chapter21_20SourceEnd
@@ -1405,7 +1408,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,75
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,84
             LD   B,DGROASGN
             LD   IX,Chapter21_20ReadOnlyPoint-Chapter21_20ReadOnlySource
@@ -1415,7 +1418,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,76
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,85
             LD   B,DGLEX
             LD   IX,HistoricalBadHexEscapePoint-HistoricalBadHexEscapeSource
@@ -1435,7 +1438,7 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,77
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,86
             LD   B,DGLEX
             LD   IX,HistoricalShortHexEscapePoint-HistoricalShortHexEscapeSource
@@ -1455,7 +1458,7 @@ ProofStart:
             JP   NZ,ProofFailed
 
             LD   A,78
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,87
             LD   HL,Chapter21_22Source
             LD   DE,Chapter21_22SourceEnd
@@ -1466,7 +1469,7 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,79
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,88
             LD   B,DGTYPMIS
             LD   IX,Chapter21_22BooleanPoint+4-Chapter21_22BooleanSource
@@ -1476,16 +1479,16 @@ ProofStart:
             JP   C,ProofFailed
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             XOR  A
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofBuildSingle:
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             RET  C
-            CALL EncodeAggregateProgram
+            CALL ZGPROG
             RET  C
             JR   ProofUpdateMaxGenerated
 
@@ -1591,7 +1594,7 @@ ProofExpectDiagnosticSingle:
             LD   (ProofExpectedOffset),BC
             LD   A,(ProofExpectedPart)
             LD   (ProofExpectedSP),SP
-            CALL CompileAggregateCallSlice
+            CALL CPAGCLSL
             JR   NC,ProofDiagnosticFailure
             LD   HL,0
             ADD  HL,SP
@@ -1612,7 +1615,7 @@ ProofExpectDiagnosticParts:
             POP  BC
             LD   (ProofExpectedOffset),BC
             LD   A,(ProofPartCount)
-            CALL CompileAggregateCallParts
+            CALL CPAGCLPT
             JR   NC,ProofDiagnosticFailure
 ProofCheckDiagnostic:
             LD   A,(ProofExpectedDiagnostic)
@@ -1634,7 +1637,7 @@ ProofDiagnosticFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 ProofResetServices:
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINLEN),A
             LD   (VSILEN),A
@@ -1719,13 +1722,13 @@ ProofCallGeneratedFailure:
             SCF
             RET
 
-ProofCompileFailure: LD A,1
+FPCOMPFL: LD A,1
                      JR ProofFailed
 ProofEncodeFailure:  LD A,2
                      JR ProofFailed
 ProofRunFailure:     LD A,3
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             HALT
 
 ProofExpectedSP: .dw 0
@@ -1739,6 +1742,6 @@ ProofMaxGeneratedBss: .dw 0
 ProofExpectedDiagnostic: .db 0
 ProofExpectedPart: .db 0
 ProofPartCount: .db 0
-ProofStatus:     .db 0
-ProofCase:       .db 0
-ProofEnd:
+FPSTATUS:     .db 0
+FPCASE:       .db 0
+FPEND:

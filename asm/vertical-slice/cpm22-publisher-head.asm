@@ -130,12 +130,12 @@ PBHEX:
             CALL HXBEGIN
             LD   HL,EMBPFX
             LD   (HXFSRC),HL
-            LD   HL,EMBPFXEN-EMBPFX
+            LD   HL,PBPFXLEN
             LD   (HXFLEFT),HL
             LD   HL,$0100
             LD   (HXFADDR),HL
             CALL HXSEG
-            LD   HL,DOIMG-$0100-(EMBPFXEN-EMBPFX)
+            LD   HL,PBPFXPAD
             LD   (PBHGAPN),HL
 PBHGAPLP:
             LD   HL,(PBHGAPN)

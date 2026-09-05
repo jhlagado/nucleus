@@ -8,35 +8,36 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 1
             .include "loop-z80-sink.asm"
-SinkCodeEnd:
-CompilerCodeEnd:
+KCSNKEND:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 ArrayProofSource:
@@ -60,30 +61,32 @@ BadArraySourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (VINFAIL),A
             LD   (SVFAIL),A
 
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCompile
             LD   HL,SMBUFBAS
             LD   DE,ExpectedArrayOperations
             LD   B,14
             CALL ProofCompareBytes
             JP   C,ProofFailOperations
-            CALL EncodeArrayProgram
+            CALL ZEARRAY
             JP   C,ProofFailEncode
             LD   HL,(GNSZ)
             LD   DE,ARYPGSZ
@@ -177,7 +180,7 @@ ProofStart:
             LD   A,41
             LD   HL,BadArraySource
             LD   DE,BadArraySourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   NC,ProofFailBadAccepted
             LD   A,(DGCODE)
             CP   DXCOMMA
@@ -203,10 +206,10 @@ ProofStart:
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCompile
             LD   HL,MMGEN+10
-            CALL EncodeArrayProgramWithinLimit
+            CALL ZEARRLIM
             JP   NC,ProofFailCapacityAccepted
             LD   A,(DGCODE)
             CP   DGSNKCAP
@@ -229,18 +232,18 @@ ProofStart:
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCompile
-            CALL EncodeArrayProgram
+            CALL ZEARRAY
             JP   C,ProofFailEncode
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureSuccessInput:
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINFAIL),A
             LD   (SVFAIL),A
@@ -251,7 +254,7 @@ ProofConfigureSuccessInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureBoundsInput:
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINFAIL),A
             LD   (SVFAIL),A
@@ -263,7 +266,7 @@ ProofConfigureBoundsInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureNoInput:
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINFAIL),A
             LD   (SVFAIL),A
@@ -272,7 +275,7 @@ ProofConfigureNoInput:
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureOutputFailure:
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (VINFAIL),A
             INC  A
@@ -360,9 +363,9 @@ ProofFailCapacityState:     LD A,31
                             JR ProofFailed
 ProofFailSuccessByte:       LD A,32
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ExpectedArrayOperations:
@@ -371,8 +374,8 @@ ExpectedArrayOperations:
             .db SMLDAU8,SMWROU8
             .db SMPROP,SMRET
 ExpectedArrayBytes:     .db 65,66,67,68
-ProofStatus:            .db 0
-ProofCase:              .db 0
-ProofEnd:
+FPSTATUS:            .db 0
+FPCASE:              .db 0
+FPEND:
 
             .end

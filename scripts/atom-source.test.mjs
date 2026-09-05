@@ -100,11 +100,11 @@ test("real Atom resolves a forward label difference in a CP immediate", async ()
   assert.deepEqual([...program.memory.slice(0x100, 0x103)], [0xfe, 1, 0]);
   assert.equal(schedule("CP (IX+LAST-FIRST)", "FIRST:", "LAST:")[0].text, "CP (IX+LAST-FIRST)");
 });
-test("current native source has complete mapped parts and no unresolved definitions", () => {
-  const source = prepareAtomSource("vertical-slice/native-target-compiler.asm");
+test("remaining historical source has complete mapped parts and no unresolved definitions", () => {
+  const source = prepareAtomSource("vertical-slice/stage7-ll1-aggregate-call-z80-slice-proof.asm");
   assert.ok(source.parts.length > 1);
   assert.ok(source.parts.every(part => part.compilerBytes.length <= 65535));
-  assert.equal(source.definitions.TargetStreamingOutput, 1);
+  assert.equal(source.definitions.TargetStreamingOutput, 0);
   assert.equal(source.limits.AddressSpaceLimit, undefined);
   assert.equal(source.sourceSymbols.get("MMLAST"), "AddressSpaceLimit");
   assert.ok([...source.sourceSymbols.values()].includes("EmitByte"));

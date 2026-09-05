@@ -2,7 +2,7 @@
 ; leading byte is the operation count.
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
-SemanticSinkReset:
+TMRESET:
             LD   HL,SMBUFBAS+1
             LD   (SKCUR),HL
             XOR  A
@@ -11,24 +11,24 @@ SemanticSinkReset:
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-SemanticSinkPut:
+TMPUT:
             LD   B,A
             LD   HL,(SKCUR)
             LD   DE,SMBUFLIM
             LD   A,H
             CP   D
-            JR   NZ,SemanticSinkPutRoom
+            JR   NZ,TMPUTOK
             LD   A,L
             CP   E
-            JR   Z,SemanticSinkPutFull
-SemanticSinkPutRoom:
+            JR   Z,TMPUTFUL
+TMPUTOK:
             LD   A,B
             LD   (HL),A
             INC  HL
             LD   (SKCUR),HL
             OR   A
             RET
-SemanticSinkPutFull:
+TMPUTFUL:
             LD   A,DGSNKCAP
             JP   DGSET
 
@@ -36,19 +36,19 @@ SemanticSinkPutFull:
 SemanticSinkEmitProgram:
             LD   C,A
             LD   A,SMLDU8
-            CALL SemanticSinkPut
+            CALL TMPUT
             RET  C
             LD   A,C
-            CALL SemanticSinkPut
+            CALL TMPUT
             RET  C
             LD   A,SMWROBYT
-            CALL SemanticSinkPut
+            CALL TMPUT
             RET  C
             LD   A,SMPROP
-            CALL SemanticSinkPut
+            CALL TMPUT
             RET  C
             LD   A,SMRET
-            CALL SemanticSinkPut
+            CALL TMPUT
             RET  C
             LD   A,4
             LD   (SKOPCNT),A

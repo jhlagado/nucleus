@@ -2,353 +2,353 @@
 ; scalar and alias carrier occupies one canonical word on the evaluation
 ; stack; declared storage widths remain unchanged.
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX
-Stage7BeginRoutine:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX
+ZABEGRT:
             LD   C,A
-            CALL NextSemanticByte     ; retained parameter count
-.if TargetStreamingOutput
-            CALL NextSemanticByte     ; target bank
+            CALL ZENEXTB     ; retained parameter count
+%IF TargetStreamingOutput
+            CALL ZENEXTB     ; target bank
             PUSH BC
-            CALL TargetSelectOutputBank
+            CALL ZTSELBK
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.endif
-Stage7DefineRoutineFrame:
-            CALL StructuredDefineLabel
-.if CompilerDiagnosticReturns
+%ENDIF
+%ENDIF
+ZADEFRT:
+            CALL ZCDEFLBL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,ExpressionFrameBytes
-            JP   EmitEight
+%ENDIF
+            LD   HL,ZEXFRBYT
+            JP   ZEEIGHT
 
 ; Operands are exact type, negative-frame byte offset, and positive caller
 ; displacement. The prologue copies one canonical argument into this
 ; activation before any body statement runs.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7BindParameter:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZABINDP:
             LD   (S7PATHT),A
-            CALL NextSemanticByte
+            CALL ZENEXTB
             CPL
             LD   (S7PATHOF),A       ; -(destination + 1)
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   (S7ARGIDX),A    ; positive source displacement
-            CALL Stage7PathCompareOpenString
-            JR   Z,Stage7BindOpenString
+            CALL S7PCOPST
+            JR   Z,ZABINDOS
             CP   AGDYNTYP
-            JR   NC,Stage7BindWord
+            JR   NC,ZABINDW
             BIT  1,A
-            JR   NZ,Stage7BindWord
-            CALL EmitByteInlineChecked
-            .db  $3B                      ; DEC SP
-.if CompilerDiagnosticReturns
+            JR   NZ,ZABINDW
+            CALL ZEBINCHK
+            DB  $3B                      ; DEC SP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7LoadIXL
-            CALL Stage7EmitPairArgumentIndex
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZALDIXL
+            CALL ZAARGIDX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7StoreIXL
-            JR   Stage7EmitPairPathOffset
-Stage7BindOpenString:
-            CALL EmitByteInlineChecked
-            .db  $3B                      ; third activation byte
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZASTIXL
+            JR   ZAPATOFF
+ZABINDOS:
+            CALL ZEBINCHK
+            DB  $3B                      ; third activation byte
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage7BindWord:
-            CALL EmitPairIndexedInline
-            .db  EmitPairDecSp2
-.if CompilerDiagnosticReturns
+%ENDIF
+ZABINDW:
+            CALL ZEPINLIN
+            DB  ZEDECSP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7LoadIXL
-            CALL Stage7EmitPairArgumentIndex
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZALDIXL
+            CALL ZAARGIDX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairLoadIXH
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZELDIXH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGIDX)
             INC  A
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7StoreIXL
-            CALL Stage7EmitPairPathOffset
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZASTIXL
+            CALL ZAPATOFF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairStoreIXH
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZESTIXH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7PATHOF)
             DEC  A
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7PathCompareOpenString
-            JR   Z,Stage7BindOpenCapacity
+%ENDIF
+            CALL S7PCOPST
+            JR   Z,ZABINDCP
             OR   A
             RET
-Stage7BindOpenCapacity:
-            CALL EmitPairIndexedInline
-            .db  EmitPairLoadIXL
-.if CompilerDiagnosticReturns
+ZABINDCP:
+            CALL ZEPINLIN
+            DB  ZELDIXL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGIDX)
             INC  A
             INC  A
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairStoreIXL
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZESTIXL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7PATHOF)
             DEC  A
             DEC  A
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-Stage7EmitPairArgumentIndex:
-            CALL EmitPair
-.if CompilerDiagnosticReturns
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZAARGIDX:
+            CALL EMITPAIR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGIDX)
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-Stage7EmitPairPathOffset:
-            CALL EmitPair
-.if CompilerDiagnosticReturns
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZAPATOFF:
+            CALL EMITPAIR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7PATHOF)
-            JP   EmitByte
+            JP   EMITBYTE
 
 ; Emit a bounds trap after a target helper has returned carry. The branch
 ; around the trap is patched before normal lowering continues.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7BoundsGuard:
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZABOUNDS:
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMFAIL),DE
             LD   HL,(S7CALOFF)
             LD   A,1
-            CALL TypedEmitTrapBody
-.if CompilerDiagnosticReturns
+            CALL ZXTRBODY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,(EMFAIL)
-            JP   PatchHere
+            JP   ZEPHERE
 
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
-Stage7ReadCallOffset:
-            CALL ReadSemanticWord
+; Contract: out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ZACALOFF:
+            CALL ZEREADW
             LD   (S7CALOFF),DE
             RET
 
 ; Retain the source position of a propagated failure. The root wrapper uses
 ; the last propagation site when failure finally leaves callable main.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-Stage8EmitFailureOffset:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+ZAFAILOF:
             LD   HL,(S7CALOFF)
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,RTTRPOFF-RTSTATE
-            CALL TargetStateAddress
-.else
+            CALL ZTSTADR
+%ELSE
             LD   HL,RTTRPOFF
-.endif
+%ENDIF
             LD   A,$22                    ; LD (nn),HL
-            JP   EmitOpcodeWord
+            JP   ZEOPWORD
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-Stage8ReadArgumentCount:
-            CALL NextSemanticByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+ZARARGCT:
+            CALL ZENEXTB
             LD   (S7ARGCNT),A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-Stage8PatchExitHere:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
+ZAPEXIT:
             LD   DE,(EMEXIT)
-            JP   PatchHere
+            JP   ZEPHERE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7Call:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZACALL:
             LD   (S7CALLBL),A
             AND  C8SVCFLG
-            JR   NZ,Stage8ReadServiceCall
-            CALL Stage8ReadArgumentCount
-            CALL NextSemanticByte
+            JR   NZ,ZARSVC
+            CALL ZARARGCT
+            CALL ZENEXTB
             LD   (S7CALRES),A
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   (E8CALFLG),A
-            JR   Stage8ReadCallCommon
-Stage8ReadServiceCall:
+            JR   ZARCALL
+ZARSVC:
             LD   A,(S7CALLBL)
             AND  V8RESU8
             RLCA
             RLCA
             RLCA
             LD   (S7CALRES),A
-Stage8ReadCallCommon:
-            CALL Stage7ReadCallOffset
+ZARCALL:
+            CALL ZACALOFF
             LD   DE,E8CALMOD
             LD   B,3
-Stage8ReadCallStateLoop:
-            CALL NextSemanticByte          ; mode, handler, retained carriers
+ZARCLOOP:
+            CALL ZENEXTB          ; mode, handler, retained carriers
             LD   (DE),A
             INC  DE
-            DJNZ Stage8ReadCallStateLoop
+            DJNZ ZARCLOOP
             LD   A,(S7CALLBL)
             AND  C8SVCFLG
-            JP   NZ,Stage8InvokeService
-.if TargetStreamingOutput
+            JP   NZ,ZAINVSVC
+%IF TargetStreamingOutput
             LD   DE,ROACLM
-            CALL TypedEmitFailableRuntimeCall
-.else
+            CALL ZXFAILRT
+%ELSE
             LD   HL,RTACLM
-            CALL TypedEmitFailableCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZXFAILCL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
             LD   HL,(S7CALOFF)
             LD   A,5
-            CALL TypedEmitTrapBody
-.if CompilerDiagnosticReturns
+            CALL ZXTRBODY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage8PatchExitHere
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAPEXIT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7CALLBL)
             AND  C8SRCMSK
             LD   C,A
-.if TargetStreamingOutput
-            CALL Stage7EmitSourceCall
-.else
+%IF TargetStreamingOutput
+            CALL ZASRCCL
+%ELSE
             LD   A,$CD
-            CALL StructuredEmitFixup
-.endif
-.if CompilerDiagnosticReturns
+            CALL ZCEMFIX
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(E8CALFLG)
             AND  R7FAILS
-            JR   NZ,Stage8CallableSourceFailable
-.if TargetStreamingOutput
+            JR   NZ,ZASRCFAL
+%IF TargetStreamingOutput
             LD   DE,ROAREL
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTAREL
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage8CallableSuccess
+%ENDIF
+            JR   ZACSUCC
 
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
 ; Emit an ordinary local CALL when the target routine shares the current bank.
 ; A cross-bank call supplies destination bank A and address HL to vector 9;
 ; the adapter switches, calls, restores the caller bank, and preserves the
 ; ordinary source-routine result/failure ABI.
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7EmitSourceCall:
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZASRCCL:
             LD   A,(E8CALFLG)
-            CALL TargetUnpackBank
+            CALL FTUPKBK
             LD   D,A
             LD   A,(TGOUTBNK)
             CP   D
-            JR   NZ,Stage7EmitFarSourceCall
+            JR   NZ,ZAFARCL
             LD   A,$CD
-            JP   StructuredEmitFixup
-Stage7EmitFarSourceCall:
+            JP   ZCEMFIX
+ZAFARCL:
             PUSH BC
             PUSH DE
             LD   C,D
             LD   A,C                      ; destination bank
-            CALL EmitLoadAImmediate
+            CALL ZELDAI
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$21                    ; LD HL,target address
-            CALL StructuredEmitFarFixup
-.if CompilerDiagnosticReturns
+            CALL ZCFARFIX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,9                      ; far-call vector ordinal
-            JP   EmitTargetVectorCall
-.endif
-Stage8CallableSourceFailable:
-            CALL EmitByteInlineChecked
-            .db  $F5                    ; PUSH AF result discriminant/code
-.if CompilerDiagnosticReturns
+            JP   ZTVCCALL
+%ENDIF
+ZASRCFAL:
+            CALL ZEBINCHK
+            DB  $F5                    ; PUSH AF result discriminant/code
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROAREL
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTAREL
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $F1                    ; POP AF
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $F1                    ; POP AF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8CallableFailable:
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+%ENDIF
+ZACFAIL:
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
-            CALL Stage8EmitFailureOutcome
-.if CompilerDiagnosticReturns
+            CALL ZAFAIL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8CallableFailureReady:
-            CALL Stage8PatchExitHere
-.if CompilerDiagnosticReturns
+%ENDIF
+ZACFLRDY:
+            CALL ZAPEXIT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8CallableSuccess:
+%ENDIF
+ZACSUCC:
             LD   A,(S7ARGCNT)
             LD   C,A
-            CALL Stage8DiscardCarriers
-.if CompilerDiagnosticReturns
+            CALL ZADISCAR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7CALRES)
             OR   A
             RET  Z
@@ -357,931 +357,913 @@ Stage8CallableSuccess:
             RET  Z
             LD   A,(S7CALLBL)
             AND  C8SVCFLG
-            JR   NZ,Stage8CallableServiceResult
-            CALL EmitByteInline
-            .db  $E5                      ; PUSH HL result carrier
-Stage8CallableServiceResult:
-            LD   HL,Stage8ErrorCarrierBytes
-            JP   EmitFour
+            JR   NZ,ZASVCRSL
+            CALL ZEBINL
+            DB  $E5                      ; PUSH HL result carrier
+ZASVCRSL:
+            LD   HL,ZAERRCRB
+            JP   EMITFOUR
 
-.routine in C out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-Stage8DiscardCarriers:
+; Contract: in C out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+ZADISCAR:
             LD   A,C
             OR   A
             RET  Z
-Stage8DiscardCarrier:
-            CALL EmitByteInlineChecked
-            .db  $D1                    ; POP DE carrier
-.if CompilerDiagnosticReturns
+ZADISC:
+            CALL ZEBINCHK
+            DB  $D1                    ; POP DE carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  C
-            JR   Stage8DiscardCarriers
+            JR   ZADISCAR
 
-Stage7ReturnAggregate .equ TypedReturnScalar
 
 ; Failable completion uses carry plus A privately: carry clear denotes success;
 ; carry set carries one u8 error code in A. Source code cannot inspect this ABI.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8FailRoutine:
-            CALL Stage7ReadCallOffset
-            CALL Stage8EmitFailureOffset
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZAFAILRT:
+            CALL ZACALOFF
+            CALL ZAFAILOF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLToA
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPHLTOA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage8FailureReturnTail
+%ENDIF
+            JR   ZAFAILTL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage8FailMain:
-            CALL Stage7ReadCallOffset
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLToA
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAFAILM:
+            CALL ZACALOFF
+            CALL ZEPINLIN
+            DB  ZEPHLTOA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7CALOFF)
-            CALL EmitLoadHl
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   TypedEmitTrapEnding
+%ENDIF
+            JP   ZXTREND
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8ReturnSuccess:
-            CALL TypedEmitPopHL           ; result carrier
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZARETOK:
+            CALL ZXPOPHL           ; result carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage8SuccessTail
+%ENDIF
+            JR   ZASUCTL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage8EndFailableRoutine:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAENDFRT:
             OR   A
             RET  NZ
-Stage8SuccessTail:
-            CALL ExpressionRestoreFrame
-.if CompilerDiagnosticReturns
+ZASUCTL:
+            CALL ZEXRSTFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage8SuccessReturnBytes
-            JP   EmitPair
+%ENDIF
+            LD   HL,ZASRETB
+            JP   EMITPAIR
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8BeginHandler:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZABEGHDL:
             LD   C,A
-            CALL StructuredDefineLabel
-.if CompilerDiagnosticReturns
+            CALL ZCDEFLBL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL NextSemanticByte
+%ENDIF
+            CALL ZENEXTB
             LD   (E8CALFLG),A
-            LD   HL,Stage8ErrorCarrierBytes
-            CALL EmitFour
-.if CompilerDiagnosticReturns
+            LD   HL,ZAERRCRB
+            CALL EMITFOUR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(E8CALFLG)
             AND  SCMSK
             CP   SCPROG
-            JP   Z,TypedStoreProgram8
-            JP   TypedStoreLocal8
+            JP   Z,ZXSTPR8
+            JP   ZXSTLC8
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage8EndHandler:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAENDHDL:
             LD   C,A
-            JP   StructuredDefineLabel
+            JP   ZCDEFLBL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8EmitFailureOutcome:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZAFAIL:
             LD   A,(E8CALMOD)
             OR   A
-            JP   Z,TypedInternalOperation
+            JP   Z,ZXINTOP
             CP   M8HDL
-            JR   Z,Stage8FailureHandle
-            CALL Stage8EmitFailureOffset
-.if CompilerDiagnosticReturns
+            JR   Z,ZAFAILH
+            CALL ZAFAILOF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8FailureReturnTail:
-            CALL ExpressionRestoreFrame
-.if CompilerDiagnosticReturns
+%ENDIF
+ZAFAILTL:
+            CALL ZEXRSTFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage8FailureReturnBytes
-            JP   EmitPair
-Stage8FailureHandle:
-            CALL EmitByteInlineChecked
-            .db  $4F                    ; LD C,A error code
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZAFRETB
+            JP   EMITPAIR
+ZAFAILH:
+            CALL ZEBINCHK
+            DB  $4F                    ; LD C,A error code
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGCNT)
             LD   HL,E8CARR
             ADD  A,(HL)
             LD   C,A
-            CALL Stage8DiscardCarriers
-.if CompilerDiagnosticReturns
+            CALL ZADISCAR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $79                    ; LD A,C
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $79                    ; LD A,C
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(E8HDLLBL)
-            JP   Stage8SkipHandler
+            JP   ZCSKIPH
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8InvokeService:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZAINVSVC:
             LD   A,(S7CALLBL)
             AND  V8ARGMSK
-            JR   Z,Stage8ServiceAddress
+            JR   Z,ZASVCADR
             CP   V8ARGU16
-            JR   Z,Stage8ServiceWordArgument
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLToA
-.if CompilerDiagnosticReturns
+            JR   Z,ZASVCARG
+            CALL ZEPINLIN
+            DB  ZEPHLTOA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage8ServiceAddress
-Stage8ServiceWordArgument:
-            CALL TypedEmitPopHL           ; offset
-.if CompilerDiagnosticReturns
+%ENDIF
+            JR   ZASVCADR
+ZASVCARG:
+            CALL ZXPOPHL           ; offset
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8ServiceAddress:
+%ENDIF
+ZASVCADR:
             LD   A,(S7CALLBL)
             AND  C8SVCMSK
-.if TargetStreamingOutput
-            CALL EmitTargetVectorCall
-.else
+%IF TargetStreamingOutput
+            CALL ZTVCCALL
+%ELSE
             ADD  A,A
             LD   E,A
             LD   D,0
-            LD   HL,Stage8ServiceAddressTable
+            LD   HL,ZASVCTAB
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
             EX   DE,HL
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             XOR  A
-Stage8NoArgumentFailable:
+ZANOARG:
             LD   (S7ARGCNT),A
-            JP   Stage8CallableFailable
+            JP   ZACFAIL
 
-.if TargetStreamingOutput
-.else
-Stage8ServiceAddressTable:
-            .dw RTREADIN
-            .dw RTWRITE
-            .dw RTREADST
-            .dw RTREWIND
-            .dw RTWRSTOR
-            .dw RTSEEK
-.endif
+%IF TargetStreamingOutput
+%ELSE
+ZASVCTAB:
+            DW RTREADIN
+            DW RTWRITE
+            DW RTREADST
+            DW RTREWIND
+            DW RTWRSTOR
+            DW RTSEEK
+%ENDIF
 
 ; Startup is a terminal wrapper around main's ordinary callable body. The
 ; source body therefore has the same frame, return, recursion, and failure ABI
 ; as every other result-free routine; only this wrapper converts final failure
 ; into unhandled-error and final success into host completion.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage8BeginCallableMain:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZAMAIN:
             LD   (E8CALFLG),A
-.if TargetStreamingOutput
-            CALL NextSemanticByte
-            CALL TargetSelectOutputBank
-.if CompilerDiagnosticReturns
+%IF TargetStreamingOutput
+            CALL ZENEXTB
+            CALL ZTSELBK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.endif
-            CALL TypedBeginProgramFrame
-.if CompilerDiagnosticReturns
+%ENDIF
+%ENDIF
+            CALL ZXPGFRAM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   C,S7MAINLB
             LD   A,$CD
-            CALL StructuredEmitFixup
-.if CompilerDiagnosticReturns
+            CALL ZCEMFIX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(E8CALFLG)
             AND  R7FAILS
-            JR   Z,Stage8MainWrapperSuccess
-            CALL EmitJrNcPlaceholder
-.if CompilerDiagnosticReturns
+            JR   Z,ZAMAINOK
+            CALL ZEJRNC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   (EMEXIT),DE
-.if TargetStreamingOutput
-            CALL EmitByteInlineChecked
-            .db  $F5                    ; PUSH AF
-.if CompilerDiagnosticReturns
+%IF TargetStreamingOutput
+            CALL ZEBINCHK
+            DB  $F5                    ; PUSH AF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   DE,RTTRPOFF-RTSTATE
-            CALL TargetStateAddress
+            CALL ZTSTADR
             LD   A,$2A                    ; LD HL,(nn)
-            CALL EmitOpcodeWord
-.if CompilerDiagnosticReturns
+            CALL ZEOPWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $F1                    ; POP AF
-.else
-            LD   HL,Stage8ReloadFailureOffsetBytes
-            CALL EmitFive
-.endif
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $F1                    ; POP AF
+%ELSE
+            LD   HL,ZARFLOFB
+            CALL EMITFIVE
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitUnhandledTrapPrefix
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEUNHPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedEmitTrapEnding
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZXTREND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage8PatchExitHere
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAPEXIT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-Stage8MainWrapperSuccess:
-            CALL TypedRestoreRootFrame
-.if CompilerDiagnosticReturns
+%ENDIF
+ZAMAINOK:
+            CALL ZXRSTRT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitSuccessReturn
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZESUCRET
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   C,S7MAINLB
-            JP   Stage7DefineRoutineFrame
+            JP   ZADEFRT
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EndRoutine:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAENDRT:
             OR   A
             RET  NZ
-            CALL ExpressionRestoreFrame
-.if CompilerDiagnosticReturns
+            CALL ZEXRSTFR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInline
-            .db  $C9
+%ENDIF
+            CALL ZEBINL
+            DB  $C9
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7LoadProgramAlias:
-            CALL ExpressionProgramAddress
-            JR   Stage7LoadAliasReady
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZALDPRAL:
+            CALL ZEXPGADR
+            JR   ZALDALOK
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7LoadReadOnlyAlias:
-            CALL ReadSemanticWord
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZALDROAL:
+            CALL ZEREADW
+%IF TargetStreamingOutput
             LD   HL,(TGCRBAS)
             ADD  HL,DE
-.else
+%ELSE
             LD   HL,(IMGLEN)
             ADD  HL,DE
             LD   DE,RORDATA
             ADD  HL,DE
-.endif
-Stage7LoadAliasReady:
+%ENDIF
+ZALDALOK:
             LD   A,$21                    ; LD HL,nn
-            JP   TypedEmitOpcodeWordPushHL
+            JP   ZXOPWPHL
 
-Stage7LoadParameterAlias .equ TypedLoadLocal16
 
-.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
-Stage7ReadPathOffset:
-            CALL ReadSemanticWord
+; Contract: out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+ZARPATH:
+            CALL ZEREADW
             LD   (S7PATHOF),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7SelectField:
-            CALL Stage7ReadPathOffset
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLLoadDE
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAFIELD:
+            CALL ZARPATH
+            CALL ZEPINLIN
+            DB  ZEPHLLDD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHOF)
-            CALL EmitWord
-.if CompilerDiagnosticReturns
+            CALL EMITWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7AddDEPush
-            JP   EmitPair
+%ENDIF
+            LD   HL,ZAADDEPS
+            JP   EMITPAIR
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7SelectIndex:
-            CALL Stage7ReadPathOffset      ; length
-            CALL Stage7ReadExtentAndOffset ; stride and source position
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAINDEX:
+            CALL ZARPATH      ; length
+            CALL ZAREXTOF ; stride and source position
+            CALL ZEPINLIN
+            DB  ZEPOPDEH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHOF)
-            CALL EmitLoadBcImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDBCI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage7SelectIndexBoundReady
+%ENDIF
+            JR   ZAIDXBND
 
 ; Open arrays use the retained caller count for the bound, but retain the
 ; concrete element extent in the semantic stream for ordinary scaling.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7OpenArrayIndex:
-            CALL Stage8ReadArgumentCount
-            CALL Stage7ReadExtentAndOffset
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAOAIDX:
+            CALL ZARARGCT
+            CALL ZAREXTOF
+            CALL ZEPINLIN
+            DB  ZEPOPDEH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7LoadIXC
-            CALL Stage7EmitOpenDisplacedCapacity
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZALDIXC
+            CALL ZAODCAP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,S7ARGCNT
             INC  (HL)
-            LD   HL,Stage7LoadIXB
-            CALL Stage7EmitOpenDisplacedCapacity
-.if CompilerDiagnosticReturns
+            LD   HL,ZALDIXB
+            CALL ZAODCAP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7SelectIndexBoundReady:
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAIDXBND:
+%IF TargetStreamingOutput
             LD   DE,ROARRIX
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTARRIX
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7BoundsGuard
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZABOUNDS
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $E5                    ; retain base
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $E5                    ; retain base
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHEX)
-            CALL EmitLoadHl               ; LD HL,nn stride
-.if CompilerDiagnosticReturns
+            CALL ZELDHL               ; LD HL,nn stride
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROMUL16
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTMUL16
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7PopDEAddPush
-            JP   EmitThree
+%ENDIF
+            LD   HL,ZAPDEADD
+            JP   ZETHREE
 
 ; Concrete array length is static, but its base carrier has already been
 ; evaluated. Discard that carrier before producing the canonical u16 count.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7ArrayLength:
-            CALL ReadSemanticWord
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAARRLEN:
+            CALL ZEREADW
             LD   (S7PATHEX),DE
-            CALL TypedEmitPopHL
-.if CompilerDiagnosticReturns
+            CALL ZXPOPHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHEX)
             LD   A,$21                    ; LD HL,nn
-            JP   TypedEmitOpcodeWordPushHL
+            JP   ZXOPWPHL
 
 ; Open array length is the retained u16 word in the parameter activation.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7OpenArrayLength:
-            CALL TypedEmitPopHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAOALEN:
+            CALL ZXPOPHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   TypedLoadLocal16
+%ENDIF
+            JP   ZXLDLC16
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7LoadIndirect8:
-            LD   HL,Stage7LoadIndirect8Bytes
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZALDIND8:
+            LD   HL,ZALDI8B
             LD   B,6
-            JP   EmitBytes
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7LoadIndirect16:
-            LD   HL,Stage7LoadIndirect16Bytes
-            JP   EmitFive
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7StoreIndirect8:
-            LD   HL,Stage7StoreIndirect8Bytes
-            JP   EmitThree
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7StoreIndirect16:
-            LD   HL,Stage7StoreIndirect16Bytes
-            JP   EmitFive
+            JP   ZEBYTES
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZALDINDW:
+            LD   HL,ZALDI16B
+            JP   EMITFIVE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTIND8:
+            LD   HL,ZASTI8B
+            JP   ZETHREE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTINDW:
+            LD   HL,ZASTI16B
+            JP   EMITFIVE
 
 ; Both full-region calls complete before LDIR is emitted. A failed first or
 ; second check reaches bounds with the destination still untouched.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7CopyAggregate:
-            CALL Stage7ReadExtentAndOffset
-            LD   HL,Stage7CopyPrepare
-            CALL   EmitFour
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZACOPY:
+            CALL ZAREXTOF
+            LD   HL,ZACPYPRE
+            CALL   EMITFOUR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAREGCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7PreserveCarrierRegion
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZASAVREG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLDE
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPHLDE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHEX)
-            CALL EmitLoadBcImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDBCI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,EmitPairLDIR
-            JP   EmitPairIndexed
+%ENDIF
+            LD   A,ZELDIR
+            JP   ZEPINDEX
 
-.routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
-Stage7ReadExtentAndOffset:
-            CALL ReadSemanticWord
+; Contract: out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
+ZAREXTOF:
+            CALL ZEREADW
             LD   (S7PATHEX),DE
-            JP   Stage7ReadCallOffset
+            JP   ZACALOFF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7PreserveCarrierRegion:
-            CALL TypedEmitPopHL           ; source
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASAVREG:
+            CALL ZXPOPHL           ; source
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $E5                    ; retain source
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $E5                    ; retain source
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitRegionCheck:
-            CALL Stage7EmitRegionPrefix
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAREGCHK:
+            CALL ZAREGPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(S7PATHEX)
-            CALL EmitLoadBcImmediate
-.if CompilerDiagnosticReturns
+            CALL ZELDBCI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   Stage7EmitRegionInvoke
+%ENDIF
+            JR   ZAREGINV
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitRegionPrefix:
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAREGPFX:
+%IF TargetStreamingOutput
             LD   DE,(TGCRBAS)
-            CALL EmitLoadDeImmediate
-.if CompilerDiagnosticReturns
+            CALL ZCLDDEI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,(TGCROCAP)
             PUSH HL
-            CALL EmitByteInlineChecked
-            .db  $FD
+            CALL ZEBINCHK
+            DB  $FD
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   EmitLoadHl
-.else
+%ENDIF
+            JP   ZELDHL
+%ELSE
             LD   DE,MMREGEND
-            CALL EmitLoadDeImmediate
+            CALL ZCLDDEI
             RET
-.endif
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitRegionInvoke:
-.if TargetStreamingOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAREGINV:
+%IF TargetStreamingOutput
             LD   DE,ROREGCHK
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTREGCHK
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   Stage7BoundsGuard
+%ENDIF
+            JP   ZABOUNDS
 
-.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
-Stage7ReadStringExtent:
-            CALL Stage8ReadArgumentCount
+; Contract: out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+ZARSTREX:
+            CALL ZARARGCT
             LD   L,A
             LD   H,0
             INC  HL
             INC  HL
             LD   (S7PATHEX),HL
-            JP   Stage7ReadCallOffset
+            JP   ZACALOFF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7StringLength:
-            CALL Stage7ReadStringExtent
-            CALL Stage7PreserveCarrierRegion
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTRLEN:
+            CALL ZARSTREX
+            CALL ZASAVREG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedEmitPopHL           ; carrier
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZXPOPHL           ; carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROSTRLEN
-.else
+%ELSE
             LD   HL,RTSTRLEN
-.endif
-            JP   Stage7EmitStringCheck
+%ENDIF
+            JP   ZASTRCHK
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7StringIndex:
-            CALL Stage7ReadStringExtent
-            CALL Stage7EmitStringIndexPrefix
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTRIDX:
+            CALL ZARSTREX
+            CALL ZASTRIPF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAREGCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLDE
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPHLDE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROSTRIDX
-.else
+%ELSE
             LD   HL,RTSTRIDX
-.endif
-            JP   Stage7EmitStringCheck
+%ENDIF
+            JP   ZASTRCHK
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitStringIndexPrefix:
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTRIPF:
+            CALL ZEPINLIN
+            DB  ZEPOPDEH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7PushDEHL
-            JP   EmitPair
+%ENDIF
+            LD   HL,ZAPSHDEH
+            JP   EMITPAIR
 
 ; Open string operations read the caller-supplied concrete capacity from the
 ; hidden activation byte. The ordinary source value remains one address path.
-.routine out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
-Stage7ReadOpenStringOffset:
-            CALL Stage8ReadArgumentCount
-            JP   Stage7ReadCallOffset
+; Contract: out A,DE,carry,zero clobbers sign,parity,halfCarry,HL
+ZAROSOFF:
+            CALL ZARARGCT
+            JP   ZACALOFF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7OpenStringLength:
-            CALL Stage7ReadOpenStringOffset
-            CALL TypedEmitPopHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAOSLEN:
+            CALL ZAROSOFF
+            CALL ZXPOPHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $E5                    ; retain carrier
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $E5                    ; retain carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAORCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedEmitPopHL
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZXPOPHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROSTRLEN
-.else
+%ELSE
             LD   HL,RTSTRLEN
-.endif
-            JR   Stage7EmitOpenStringCheck
+%ENDIF
+            JR   ZAOSCHK
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7OpenStringIndex:
-            CALL Stage7ReadOpenStringOffset
-            CALL Stage7EmitStringIndexPrefix
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAOSIDX:
+            CALL ZAROSOFF
+            CALL ZASTRIPF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAORCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLDE
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPHLDE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,ROSTRIDX
-.else
+%ELSE
             LD   HL,RTSTRIDX
-.endif
+%ENDIF
 
-.if TargetStreamingOutput
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.else
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.endif
-Stage7EmitOpenStringCheck:
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ELSE
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ENDIF
+ZAOSCHK:
+%IF TargetStreamingOutput
             PUSH DE
-.else
+%ELSE
             PUSH HL
-.endif
-            CALL Stage7EmitOpenCapacityC
-.if TargetStreamingOutput
+%ENDIF
+            CALL ZAOCAPC
+%IF TargetStreamingOutput
             POP  DE
-.else
+%ELSE
             POP  HL
-.endif
+%ENDIF
 
-.if TargetStreamingOutput
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.else
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.endif
-Stage7EmitStringCheckFinish:
-.if CompilerDiagnosticReturns
+%IF TargetStreamingOutput
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ELSE
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ENDIF
+ZASTRCFN:
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
-            CALL EmitRuntimeCall
-.else
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+%ENDIF
+%IF TargetStreamingOutput
+            CALL ZTRTCALL
+%ELSE
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7BoundsGuard
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZABOUNDS
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInline
-            .db  $E5                      ; push length or addressed byte
+%ENDIF
+            CALL ZEBINL
+            DB  $E5                      ; push length or addressed byte
 
 ; Emit BC = hidden concrete capacity + two representation bytes, then perform
 ; the ordinary complete-region guard before a generic string may be touched.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitOpenRegionCheck:
-            CALL Stage7EmitRegionPrefix
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAORCHK:
+            CALL ZAREGPFX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenCapacityC
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAOCAPC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7OpenExtentBytes
-            CALL EmitFour
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZAOEXTB
+            CALL EMITFOUR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   Stage7EmitRegionInvoke
+%ENDIF
+            JP   ZAREGINV
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitOpenCapacityC:
-            LD   HL,Stage7LoadIXC
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAOCAPC:
+            LD   HL,ZALDIXC
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitOpenDisplacedCapacity:
-            CALL EmitPair
-.if CompilerDiagnosticReturns
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZAODCAP:
+            CALL EMITPAIR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGCNT)
             CPL
-            JP   EmitByte
+            JP   EMITBYTE
 
 ; Convert a just-evaluated address carrier into the internal open-argument
 ; pair. Modes zero/one carry or forward a string capacity byte. Modes two/three
 ; carry or forward a complete array count word.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7PrepareOpenArgument:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZAOARG:
             LD   (S7ARGIDX),A
             CP   2
-            JR   NC,Stage7ReadOpenArrayArgument
-            CALL Stage8ReadArgumentCount
-            JR   Stage7PrepareOpenArgumentPayloadReady
-Stage7ReadOpenArrayArgument:
-            CALL Stage7ReadPathOffset
-Stage7PrepareOpenArgumentPayloadReady:
-            CALL EmitByteInlineChecked
-            .db  $D1                    ; POP DE address carrier
-.if CompilerDiagnosticReturns
+            JR   NC,ZAROARG
+            CALL ZARARGCT
+            JR   ZAOARGOK
+ZAROARG:
+            CALL ZARPATH
+ZAOARGOK:
+            CALL ZEBINCHK
+            DB  $D1                    ; POP DE address carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,(S7ARGIDX)
             CP   2
-            JR   NC,Stage7PrepareOpenArrayArgument
+            JR   NC,ZAOAARG
             OR   A
-            JR   NZ,Stage7PrepareForwardedOpenArgument
+            JR   NZ,ZAFWDARG
             LD   A,(S7ARGCNT)
             LD   L,A
             LD   H,0
-            CALL EmitLoadHl
-            JR   Stage7PrepareOpenArgumentPush
-Stage7PrepareForwardedOpenArgument:
-            LD   HL,Stage7LoadIXL
-            CALL Stage7EmitOpenDisplacedCapacity
-.if CompilerDiagnosticReturns
+            CALL ZELDHL
+            JR   ZAOARGPS
+ZAFWDARG:
+            LD   HL,ZALDIXL
+            CALL ZAODCAP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairZeroH
-Stage7PrepareOpenArgumentPush:
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEZEROH
+ZAOARGPS:
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7PushHLDE
-            JP   EmitPair
+%ENDIF
+            LD   HL,ZAPSHHLD
+            JP   EMITPAIR
 
-Stage7PrepareOpenArrayArgument:
+ZAOAARG:
             AND  1
-            JR   NZ,Stage7PrepareForwardedOpenArray
+            JR   NZ,ZAFWDARR
             LD   HL,(S7PATHOF)
-            CALL EmitLoadHl
-            JR   Stage7PrepareOpenArgumentPush
-Stage7PrepareForwardedOpenArray:
+            CALL ZELDHL
+            JR   ZAOARGPS
+ZAFWDARR:
             LD   A,(S7PATHOF)
             LD   (S7ARGCNT),A
-            LD   HL,Stage7LoadIXL
-            CALL Stage7EmitOpenDisplacedCapacity
-.if CompilerDiagnosticReturns
+            LD   HL,ZALDIXL
+            CALL ZAODCAP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   HL,S7ARGCNT
             INC  (HL)
-            LD   HL,Stage7LoadIXH
-            CALL Stage7EmitOpenDisplacedCapacity
-            JR   Stage7PrepareOpenArgumentPush
+            LD   HL,ZALDIXH
+            CALL ZAODCAP
+            JR   ZAOARGPS
 
-.if TargetStreamingOutput
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.else
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-.endif
-Stage7EmitStringCheck:
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ELSE
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+%ENDIF
+ZASTRCHK:
+%IF TargetStreamingOutput
             PUSH DE
-.else
+%ELSE
             PUSH HL
-.endif
+%ENDIF
             LD   A,(S7ARGCNT)
             LD   C,A
             LD   A,$0E                    ; LD C,n capacity
-            CALL EmitOpcodeByte
-.if TargetStreamingOutput
+            CALL ZEOPBYTE
+%IF TargetStreamingOutput
             POP  DE
-.else
+%ELSE
             POP  HL
-.endif
-            JP   Stage7EmitStringCheckFinish
+%ENDIF
+            JP   ZASTRCFN
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage7EmitStringCapacityValue:
-            CALL Stage8ReadArgumentCount
-            CALL TypedEmitPopHL
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZASTRCAP:
+            CALL ZARARGCT
+            CALL ZXPOPHL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAORCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenCapacityC
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAOCAPC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7CapacityToCarrier
-            JP   EmitFour
+%ENDIF
+            LD   HL,ZACAPCAR
+            JP   EMITFOUR
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-Stage7StringResize:
-            CALL Stage8ReadArgumentCount
-            CALL Stage7ReadCallOffset
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEHL           ; new length, carrier
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZASTRSIZ:
+            CALL ZARARGCT
+            CALL ZACALOFF
+            CALL ZEPINLIN
+            DB  ZEPOPDEH           ; new length, carrier
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,Stage7PushDEHL         ; preserve both across region check
-            CALL EmitPair
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZAPSHDEH         ; preserve both across region check
+            CALL EMITPAIR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenRegionCheck
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAORCHK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopHLDE           ; carrier, new length
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPHLDE           ; carrier, new length
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL Stage7EmitOpenCapacityC
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZAOCAPC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             LD   DE,RORESIZE
-            CALL EmitRuntimeCall
-.else
+            CALL ZTRTCALL
+%ELSE
             LD   HL,RTRESIZE
-            CALL EmitCall
-.endif
-.if CompilerDiagnosticReturns
+            CALL EMITCALL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   Stage7BoundsGuard
+%ENDIF
+            JP   ZABOUNDS
 
-Stage7IndexToA            .equ TypedLoadSPPrefix+1
-Stage7LoadBImmediate:     .db $06
-Stage7OffsetAddress:      .db $5F,$16,$00,$19,$E5
-Stage7LoadIndirect8Bytes  .equ Stage7LoadIndirect8Prefix
-Stage7LoadIndirect16Bytes:.db $E1,$5E,$23,$56,$D5
-Stage7StoreIndirect16Bytes:.db $D1,$E1,$73,$23,$72
-Stage7CopyPrepare         .equ TypedPopOperandsBytes
-Stage7PopDEAddPush:       .db $D1,$19,$E5
-Stage7PushDEHL:           .db $D5,$E5
-Stage7PushHLDE            .equ TypedPopOperandsBytes+2
-Stage7LoadIXC:            .db $DD,$4E
+ZALDBI:     DB $06
+ZAOFFSET:      DB $5F,$16,$00,$19,$E5
+ZALDI16B:DB $E1,$5E,$23,$56,$D5
+ZASTI16B:DB $D1,$E1,$73,$23,$72
+ZAPDEADD:       DB $D1,$19,$E5
+ZAPSHDEH:           DB $D5,$E5
+ZALDIXC:            DB $DD,$4E
 ; This target template is written as a normal Z80 instruction. The compiler
 ; copies its two-byte opcode prefix and emits the retained-count displacement.
-Stage7LoadIXB:
+ZALDIXB:
             LD   B,(IX+0)
-Stage7ZeroHighBytes       .equ TypedZeroHigh
-Stage7OpenExtentBytes:    .db $06,$00,$03,$03
+ZAOEXTB:    DB $06,$00,$03,$03
 ; Target template assembled from ordinary Z80 mnemonics: capacity C becomes
 ; the canonical word carrier pushed on the generated evaluation stack.
-Stage7CapacityToCarrier:
+ZACAPCAR:
             LD   L,C
             LD   H,0
             PUSH HL
-Stage7LDIR                .equ SegmentedCopyBytes
 
-Stage7DecSP2              .equ TypedParameter16Bytes
-Stage7LoadIXL             .equ TypedLoadLocalLow
-Stage7LoadIXH             .equ TypedLoadLocalHigh
-Stage7StoreIXL            .equ TypedStoreLocalLow
-Stage7StoreIXH            .equ TypedStoreLocalHigh
-Stage7AddDEPush           .equ Stage7OffsetAddress+3
-Stage7PopIndexBase        .equ TypedPopOperandsBytes
-Stage7StoreIndirect8Bytes .equ Stage7StoreIndirect16Bytes
-Stage8PopErrorBytes       .equ TypedNot8Bytes ; POP HL / LD A,L prefix
-Stage8FailureReturnBytes: .db $37,$C9      ; SCF / RET
-Stage8SuccessReturnBytes: .db $B7,$C9      ; OR A / RET
-Stage8ErrorCarrierBytes .equ TypedAtoHL       ; LD L,A / LD H,0 / PUSH HL
-.if TargetStreamingOutput
-.else
-Stage8ReloadFailureOffsetBytes:
-            .db $F5,$2A                   ; PUSH AF / LD HL,(nn)
-            .dw RTTRPOFF
-            .db $F1                       ; POP AF
-.endif
+ZAFRETB: DB $37,$C9      ; SCF / RET
+ZASRETB: DB $B7,$C9      ; OR A / RET
+%IF TargetStreamingOutput
+%ELSE
+ZARFLOFB:
+            DB $F5,$2A                   ; PUSH AF / LD HL,(nn)
+            DW RTTRPOFF
+            DB $F1                       ; POP AF
+%ENDIF

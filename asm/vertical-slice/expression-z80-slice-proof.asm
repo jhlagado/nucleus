@@ -8,36 +8,37 @@ TargetStreamingOutput .equ 0
             .include "loop-z80-state.asmi"
 
             .org MMCORE
-CompilerCodeStart:
+KCSTART:
 LegacyCompilerSlices .equ 1
 AggregateCallSlices  .equ 0
-SourceAdapterCodeStart:
+KCSRC:
             .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
+KCSRCEND:
+KCTOKEN:
             .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
+KCTOKEND:
+KCSEM:
             .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
+KCSEMEND:
+KCSYM:
             .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
+KCSYMEND:
+KCPARSER:
+            .include "compiler-profile-legacy.asmi"
             .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
+KCPAREND:
+KCCOMEND:
+KCSINK:
 LegacyEncoders .equ 1
             .include "loop-z80-sink.asm"
             .include "typed-expression-z80.asm"
-SinkCodeEnd:
-CompilerCodeEnd:
+KCSNKEND:
+KCCODEND:
 
-CompilerImmutableStart:
+KCIMM:
             .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+KCIMMEND:
+KCEND:
 
             .org MMSOURCE
 ExpressionProofSource:
@@ -104,27 +105,29 @@ FullScalarSourceEnd:
 
             .org MMRUN
 RTSTART:
+RuntimeProofServices .equ 1
+RuntimePacketGateway .equ 0
             .include "proof-z80-runtime.asm"
 RTEND:
 
             .org MMPROOF
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (FPCASE),A
+            LD   (FPSTATUS),A
             LD   (SVFAIL),A
 
             LD   A,70
             LD   HL,ExpressionProofSource
             LD   DE,ExpressionProofSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailEncode
 
-            CALL Reset
+            CALL RESET
             XOR  A
             LD   (SVFAIL),A
             CALL ProofCallGenerated
@@ -142,7 +145,7 @@ ProofStart:
             CP   14
             JP   NZ,ProofFailAssignment
 
-            CALL Reset
+            CALL RESET
             LD   A,1
             LD   (SVFAIL),A
             CALL ProofCallGenerated
@@ -168,7 +171,7 @@ ProofStart:
             LD   A,71
             LD   HL,DuplicateScalarSource
             LD   DE,DuplicateScalarSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   NC,ProofFailDuplicateAccepted
             LD   A,(DGCODE)
             CP   DGDUPNAM
@@ -182,7 +185,7 @@ ProofStart:
             LD   A,72
             LD   HL,UnknownScalarSource
             LD   DE,UnknownScalarSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   NC,ProofFailUnknownAccepted
             LD   A,(DGCODE)
             CP   DGUNKNAM
@@ -196,7 +199,7 @@ ProofStart:
             LD   A,73
             LD   HL,MalformedExpressionSource
             LD   DE,MalformedExpressionSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   NC,ProofFailMalformedAccepted
             LD   A,(DGCODE)
             CP   DXSCA
@@ -210,7 +213,7 @@ ProofStart:
             LD   A,74
             LD   HL,FullScalarSource
             LD   DE,FullScalarSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   NC,ProofFailFullAccepted
             LD   A,(DGCODE)
             CP   DGSYMCAP
@@ -225,13 +228,13 @@ ProofStart:
             LD   A,70
             LD   HL,ExpressionProofSource
             LD   DE,ExpressionProofSourceEnd
-            CALL CompileSlice
+            CALL CPSL
             JP   C,ProofFailCompile
-            CALL EncodeTypedExpressionProgram
+            CALL ZXPROG
             JP   C,ProofFailEncode
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 .routine in B,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -323,9 +326,9 @@ ProofFailMalformedPosition:   LD A,25
                               JR ProofFailed
 ProofFailFrame:               LD A,26
 ProofFailed:
-            LD   (ProofCase),A
+            LD   (FPCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
 
 ExpectedExpressionOperations:
@@ -343,10 +346,10 @@ ExpectedExpressionOperations:
             .db SMWRVU8
             .dw ExpressionOutputCall-ExpressionProofSource
             .db SMENMAIN
-ProofStatus:                 .db 0
-ProofCase:                   .db 0
+FPSTATUS:                 .db 0
+FPCASE:                   .db 0
 ProofExpectedSP:             .dw 0
-ProofEnd:
+FPEND:
 
 ExpressionProgramSize .equ 116
 GeneratedExpressionEnd      .equ MMGEN+ExpressionProgramSize

@@ -17,7 +17,7 @@ NobjConsumerControlLimit  .equ $4900
 
             .org $0100
 .routine noreturn
-ProofStart:
+FPSTART:
             LD   SP,NobjConsumerStackLimit
             XOR  A
             LD   (ProofPublished),A

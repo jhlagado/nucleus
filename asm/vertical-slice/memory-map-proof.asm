@@ -5,14 +5,14 @@ NativeStreamingSource .equ 0
             .include "memory-map.asmi"
 
             .org MMPROOF
-ProofStart:
+FPSTART:
             LD   SP,STACKTOP
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (FPSTATUS),A
             HALT
-ProofEnd:
+FPEND:
 
-ProofStatus:
+FPSTATUS:
             .db  0
 
             .end

@@ -1,0 +1,3 @@
+; Zero-byte target-output alias. Compose after typed-expression-z80.asm,
+; whenever target-output.asm is selected.
+ZTSELBT    EQU ZXBEGADB+3 ; JR NZ across one JP

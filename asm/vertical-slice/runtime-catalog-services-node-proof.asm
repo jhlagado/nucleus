@@ -9,7 +9,7 @@ RuntimeCatalogNodeGateway:
             RET
 
             .org $4000
-ProofStart:
+FPSTART:
             LD   SP,ProofStackTop
             LD   (ProofEntrySp),SP
             LD   IX,$1357
@@ -18,17 +18,17 @@ ProofStart:
             LD   HL,ProofRequest
             LD   C,NSRTCAT
             RST  $10
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofRequest+NCFRES)
             LD   DE,2
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,(ProofBuffer)
             LD   DE,$3322
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
 
             LD   A,NCINIT
             LD   (ProofRequest+NCFOPER),A
@@ -45,19 +45,19 @@ ProofStart:
             LD   HL,ProofRequest
             LD   C,NSRTCAT
             RST  $10
-            JP   C,ProofFail
+            JP   C,FPFAIL
             LD   HL,(ProofRequest+NCFRES)
             LD   DE,5
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,ProofExpectedInitial
             LD   DE,ProofBuffer
             LD   B,5
 ProofCompare:
             LD   A,(DE)
             CP   (HL)
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             INC  DE
             INC  HL
             DJNZ ProofCompare
@@ -67,24 +67,24 @@ ProofCompare:
             LD   DE,$1357
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             PUSH IY
             POP  HL
             LD   DE,$2468
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,0
             ADD  HL,SP
             LD   DE,(ProofEntrySp)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             XOR  A
             LD   (ProofResult),A
             HALT
 
-ProofFail:
+FPFAIL:
             LD   A,1
             LD   (ProofResult),A
             HALT
