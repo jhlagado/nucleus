@@ -169,13 +169,35 @@ CpmSourceEmptyEvent:
 CpmSourceProviderRetainName:
             PUSH BC
             PUSH DE
+            PUSH IX
             CALL CpmSourceRetainBody
+            POP  IX
             POP  DE
             POP  BC
             RET
 
-.routine in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+.routine in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX
 CpmSourceRetainBody:
+            ; A materialized parameter retains its original identity even after
+            ; the parser advances. Compare the actual spelling before reusing
+            ; that identity; current part/offset belongs only to a fresh token.
+            ; Comparison overlays provider scratch, so retain the complete
+            ; original request on the stack until the outcome is known.
+            PUSH BC
+            PUSH DE
+            PUSH HL
+            CALL CpmSourceReuseMaterialized
+            POP  HL
+            POP  DE
+            POP  BC
+            RET  C
+            JR   NZ,CpmSourceRetainFresh
+            LD   L,A
+            LD   H,0
+            XOR  A
+            RET
+
+CpmSourceRetainFresh:
             LD   (CpmSourceSavedPointer),HL
             LD   A,B
             LD   (CpmSourceSavedLength),A
@@ -184,45 +206,6 @@ CpmSourceRetainBody:
             LD   (CpmSourceSavedOffset),DE
             CALL CpmSourceValidatePosition
             RET  C
-
-            LD   HL,(CpmSourceSavedPointer)
-            LD   DE,CpmSourceNameScratch
-            OR   A
-            SBC  HL,DE
-            JR   NZ,CpmSourceRetainAppend
-            LD   A,(CpmSourceMaterializedHandle)
-            OR   A
-            JR   Z,CpmSourceRetainAppend
-            LD   (CpmSourceSavedHandle),A
-            LD   L,A
-            LD   H,0
-            CALL CpmSourceHandleEntry
-            RET  C
-            LD   A,(CpmSourceSavedPart)
-            CP   (HL)
-            JR   NZ,CpmSourceRetainAppend
-            INC  HL
-            LD   E,(HL)
-            INC  HL
-            LD   D,(HL)
-            INC  HL
-            PUSH HL
-            LD   HL,(CpmSourceSavedOffset)
-            OR   A
-            SBC  HL,DE
-            JR   NZ,CpmSourceRetainAppendDrop
-            POP  HL
-            LD   A,(CpmSourceSavedLength)
-            CP   (HL)
-            JR   NZ,CpmSourceRetainAppend
-            LD   A,(CpmSourceSavedHandle)
-            LD   L,A
-            LD   H,0
-            XOR  A
-            RET
-
-CpmSourceRetainAppendDrop:
-            POP  HL
 CpmSourceRetainAppend:
             LD   A,(CpmSourceRetainedCount)
             CP   CpmSourceRetainedCapacity
@@ -245,6 +228,26 @@ CpmSourceRetainAppend:
             LD   L,A
             LD   H,0
             XOR  A
+            RET
+
+; Z with A=original handle means exact materialized identity; NZ means a fresh
+; request. Carry remains a storage/invalid error, never an equality result.
+.routine in HL,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+CpmSourceReuseMaterialized:
+            LD   DE,CpmSourceNameScratch
+            OR   A
+            SBC  HL,DE
+            JP   NZ,CpmSourceNameUnequal
+            LD   A,(CpmSourceMaterializedHandle)
+            OR   A
+            JP   Z,CpmSourceNameUnequal
+            LD   L,A
+            LD   H,0
+            LD   IX,CpmSourceNameScratch
+            CALL CpmSourceProviderCompareName
+            RET  C
+            RET  NZ
+            LD   A,(CpmSourceMaterializedHandle)
             RET
 
 ; Compiler compare ABI: HL=handle, IX=current bytes, B=length; Z means equal.

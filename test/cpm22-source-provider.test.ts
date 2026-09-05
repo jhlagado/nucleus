@@ -147,7 +147,10 @@ const createProof = (parts: readonly { name: string; bytes: Uint8Array }[]) => {
     zero: number;
     instructions: number;
     tStates: number;
+    stackBytes: number;
   } => {
+    const stackCanary = new Uint8Array(32).fill(0xa5);
+    activeMemory.set(stackCanary, stack - 64);
     word(activeMemory, stack, sentinel);
     runtime.cpu.sp = stack;
     runtime.cpu.pc = symbols[name]!;
@@ -155,13 +158,17 @@ const createProof = (parts: readonly { name: string; bytes: Uint8Array }[]) => {
     setup?.(runtime);
     let instructions = 0;
     let tStates = 0;
+    let minimumSp = stack;
     while (!runtime.isHalted() && instructions < 100_000) {
       tStates += runtime.step().cycles ?? 0;
       instructions += 1;
+      minimumSp = Math.min(minimumSp, runtime.cpu.sp);
     }
     expect(runtime.isHalted(), `${name} did not return`).toBe(true);
     expect(runtime.cpu.pc).toBe(sentinel + 1);
     expect(runtime.cpu.sp).toBe(stack + 2);
+    expect(minimumSp).toBeGreaterThanOrEqual(stack - 32);
+    expect(activeMemory.slice(stack - 64, stack - 32)).toEqual(stackCanary);
     return {
       a: runtime.cpu.a,
       b: runtime.cpu.b,
@@ -174,6 +181,7 @@ const createProof = (parts: readonly { name: string; bytes: Uint8Array }[]) => {
       zero: runtime.cpu.flags.Z,
       instructions,
       tStates,
+      stackBytes: stack - minimumSp,
     };
   };
   return { bdos, call, memory: activeMemory };
@@ -294,85 +302,227 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
   it.each([
     ["another source position", 2, 0],
     ["past the parser's source end", 1, 0xffff],
-  ])("reuses unchanged materialized name identity at %s", (_name, part, offset) => {
-    const source = new Uint8Array(256);
-    source.set(Buffer.from("ABC"), 127);
-    const { call, memory } = createProof([
-      { name: "FIRST.NU", bytes: source },
-      { name: "SECOND.NU", bytes: Buffer.from("XYZ") },
-    ]);
-    call("CpmSourceProviderBegin");
-    memory.set(Buffer.from("ABC"), 0x7500);
-    const first = call("CpmSourceProviderRetainName", (active) => {
-      active.cpu.h = 0x75;
-      active.cpu.l = 0;
-      active.cpu.b = 3;
-      active.cpu.c = 1;
-      active.cpu.d = 0;
-      active.cpu.e = 127;
-    });
-    expect(first).toMatchObject({ hl: 1, carry: 0 });
-    const materialized = call("CpmSourceProviderMaterializeName", (active) => {
-      active.cpu.h = 0;
-      active.cpu.l = 1;
-    });
-    const retained = call("CpmSourceProviderRetainName", (active) => {
-      active.cpu.h = materialized.hl >>> 8;
-      active.cpu.l = materialized.hl & 0xff;
-      active.cpu.b = 3;
-      active.cpu.c = part;
-      active.cpu.d = offset >>> 8;
-      active.cpu.e = offset & 0xff;
-      active.cpu.ix = 0x1234;
-      active.cpu.iy = 0x5678;
-    });
-    expect(retained).toMatchObject({ hl: 1, b: 3, c: part, de: offset, ix: 0x1234, iy: 0x5678, carry: 0 });
-    expect(memory[symbols.CpmSourceRetainedCount!]).toBe(1);
-    const again = call("CpmSourceProviderMaterializeName", (active) => {
-      active.cpu.h = retained.hl >>> 8;
-      active.cpu.l = retained.hl & 0xff;
-    });
-    expect(memory.slice(again.hl, again.hl + 3)).toEqual(Uint8Array.from(Buffer.from("ABC")));
-  });
+  ])(
+    "reuses unchanged materialized name identity at %s",
+    (_name, part, offset) => {
+      const source = new Uint8Array(256);
+      source.set(Buffer.from("ABC"), 127);
+      const { call, memory } = createProof([
+        { name: "FIRST.NU", bytes: source },
+        { name: "SECOND.NU", bytes: Buffer.from("XYZ") },
+      ]);
+      call("CpmSourceProviderBegin");
+      memory.set(Buffer.from("ABC"), 0x7500);
+      const first = call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = 0x75;
+        active.cpu.l = 0;
+        active.cpu.b = 3;
+        active.cpu.c = 1;
+        active.cpu.d = 0;
+        active.cpu.e = 127;
+      });
+      expect(first).toMatchObject({ hl: 1, carry: 0 });
+      const materialized = call(
+        "CpmSourceProviderMaterializeName",
+        (active) => {
+          active.cpu.h = 0;
+          active.cpu.l = 1;
+        },
+      );
+      const retained = call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = materialized.hl >>> 8;
+        active.cpu.l = materialized.hl & 0xff;
+        active.cpu.b = 3;
+        active.cpu.c = part;
+        active.cpu.d = offset >>> 8;
+        active.cpu.e = offset & 0xff;
+        active.cpu.ix = 0x1234;
+        active.cpu.iy = 0x5678;
+      });
+      expect(retained).toMatchObject({
+        hl: 1,
+        b: 3,
+        c: part,
+        de: offset,
+        ix: 0x1234,
+        iy: 0x5678,
+        carry: 0,
+      });
+      // Includes the proof BDOS shim, not a real operating system's own stack.
+      expect(retained).toMatchObject({
+        instructions: 368,
+        tStates: 3_646,
+        stackBytes: 28,
+      });
+      expect(memory[symbols.CpmSourceRetainedCount!]).toBe(1);
+      const again = call("CpmSourceProviderMaterializeName", (active) => {
+        active.cpu.h = retained.hl >>> 8;
+        active.cpu.l = retained.hl & 0xff;
+      });
+      expect(memory.slice(again.hl, again.hl + 3)).toEqual(
+        Uint8Array.from(Buffer.from("ABC")),
+      );
+    },
+  );
 
   it.each([
     ["a different length", "AB", 127],
     ["modified scratch bytes", "XYZ", 140],
-  ])("does not reuse materialized identity for %s", (_name, spelling, offset) => {
-    const source = new Uint8Array(256);
-    source.set(Buffer.from("ABC"), 127);
-    source.set(Buffer.from("XYZ"), 140);
-    const { call, memory } = createProof([{ name: "NAME.NU", bytes: source }]);
+  ])(
+    "does not reuse materialized identity for %s",
+    (_name, spelling, offset) => {
+      const source = new Uint8Array(256);
+      source.set(Buffer.from("ABC"), 127);
+      source.set(Buffer.from("XYZ"), 140);
+      const { call, memory } = createProof([
+        { name: "NAME.NU", bytes: source },
+      ]);
+      call("CpmSourceProviderBegin");
+      memory.set(Buffer.from("ABC"), 0x7500);
+      call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = 0x75;
+        active.cpu.l = 0;
+        active.cpu.b = 3;
+        active.cpu.c = 1;
+        active.cpu.d = 0;
+        active.cpu.e = 127;
+      });
+      const materialized = call(
+        "CpmSourceProviderMaterializeName",
+        (active) => {
+          active.cpu.h = 0;
+          active.cpu.l = 1;
+        },
+      );
+      memory.set(Buffer.from(spelling), materialized.hl);
+      const retained = call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = materialized.hl >>> 8;
+        active.cpu.l = materialized.hl & 0xff;
+        active.cpu.b = spelling.length;
+        active.cpu.c = 1;
+        active.cpu.d = offset >>> 8;
+        active.cpu.e = offset & 0xff;
+      });
+      expect(retained).toMatchObject({ hl: 2, carry: 0 });
+      const again = call("CpmSourceProviderMaterializeName", (active) => {
+        active.cpu.h = 0;
+        active.cpu.l = 2;
+      });
+      expect(again.b).toBe(spelling.length);
+      expect(memory.slice(again.hl, again.hl + again.b)).toEqual(
+        Uint8Array.from(Buffer.from(spelling)),
+      );
+    },
+  );
+
+  it.each([
+    ["changed bytes", "XYZ", 3],
+    ["changed length", "ABC", 2],
+    ["empty name", "ABC", 0],
+  ])(
+    "does not bypass fresh-source bounds after materialization with %s",
+    (_name, spelling, length) => {
+      const source = Buffer.from("ABC");
+      const { call, memory } = createProof([
+        { name: "NAME.NU", bytes: source },
+      ]);
+      call("CpmSourceProviderBegin");
+      memory.set(source, 0x7500);
+      call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = 0x75;
+        active.cpu.l = 0;
+        active.cpu.b = 3;
+        active.cpu.c = 1;
+        active.cpu.d = 0;
+        active.cpu.e = 0;
+      });
+      const materialized = call(
+        "CpmSourceProviderMaterializeName",
+        (active) => {
+          active.cpu.h = 0;
+          active.cpu.l = 1;
+        },
+      );
+      memory.set(Buffer.from(spelling), materialized.hl);
+      const table = memory.slice(
+        symbols.CpmSourceRetainedTable!,
+        symbols.CpmSourceRetainedTableEnd!,
+      );
+      expect(
+        call("CpmSourceProviderRetainName", (active) => {
+          active.cpu.h = materialized.hl >>> 8;
+          active.cpu.l = materialized.hl & 0xff;
+          active.cpu.b = length;
+          active.cpu.c = 1;
+          active.cpu.d = 0xff;
+          active.cpu.e = 0xff;
+        }),
+      ).toMatchObject({ a: 1, carry: 1 });
+      expect(memory[symbols.CpmSourceRetainedCount!]).toBe(1);
+      expect(
+        memory.slice(
+          symbols.CpmSourceRetainedTable!,
+          symbols.CpmSourceRetainedTableEnd!,
+        ),
+      ).toEqual(table);
+    },
+  );
+
+  it("preserves retained identities after a comparison read failure and retries successfully", () => {
+    const source = Buffer.from("ABC");
+    const { bdos, call, memory } = createProof([
+      { name: "NAME.NU", bytes: source },
+    ]);
     call("CpmSourceProviderBegin");
-    memory.set(Buffer.from("ABC"), 0x7500);
+    memory.set(source, 0x7500);
     call("CpmSourceProviderRetainName", (active) => {
       active.cpu.h = 0x75;
       active.cpu.l = 0;
       active.cpu.b = 3;
       active.cpu.c = 1;
       active.cpu.d = 0;
-      active.cpu.e = 127;
+      active.cpu.e = 0;
     });
     const materialized = call("CpmSourceProviderMaterializeName", (active) => {
       active.cpu.h = 0;
       active.cpu.l = 1;
     });
-    memory.set(Buffer.from(spelling), materialized.hl);
-    const retained = call("CpmSourceProviderRetainName", (active) => {
-      active.cpu.h = materialized.hl >>> 8;
-      active.cpu.l = materialized.hl & 0xff;
-      active.cpu.b = spelling.length;
-      active.cpu.c = 1;
-      active.cpu.d = offset >>> 8;
-      active.cpu.e = offset & 0xff;
+    const files = new Map(bdos.files);
+    bdos.files.clear();
+    const table = memory.slice(
+      symbols.CpmSourceRetainedTable!,
+      symbols.CpmSourceRetainedTableEnd!,
+    );
+    const retain = () =>
+      call("CpmSourceProviderRetainName", (active) => {
+        active.cpu.h = materialized.hl >>> 8;
+        active.cpu.l = materialized.hl & 0xff;
+        active.cpu.b = 3;
+        active.cpu.c = 1;
+        active.cpu.d = 0xff;
+        active.cpu.e = 0xff;
+        active.cpu.ix = 0x1234;
+        active.cpu.iy = 0x5678;
+      });
+    expect(retain()).toMatchObject({
+      a: 6,
+      carry: 1,
+      b: 3,
+      c: 1,
+      de: 0xffff,
+      ix: 0x1234,
+      iy: 0x5678,
     });
-    expect(retained).toMatchObject({ hl: 2, carry: 0 });
-    const again = call("CpmSourceProviderMaterializeName", (active) => {
-      active.cpu.h = 0;
-      active.cpu.l = 2;
-    });
-    expect(again.b).toBe(spelling.length);
-    expect(memory.slice(again.hl, again.hl + again.b)).toEqual(Uint8Array.from(Buffer.from(spelling)));
+    expect(memory[symbols.CpmSourceRetainedCount!]).toBe(1);
+    expect(
+      memory.slice(
+        symbols.CpmSourceRetainedTable!,
+        symbols.CpmSourceRetainedTableEnd!,
+      ),
+    ).toEqual(table);
+    for (const [name, bytes] of files) bdos.files.set(name, bytes);
+    expect(retain()).toMatchObject({ a: 0, hl: 1, carry: 0 });
+    expect(memory[symbols.CpmSourceRetainedCount!]).toBe(1);
   });
 
   it("materializes the maximum 255-byte name across three records", () => {
@@ -480,7 +630,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
   it("reports exact code and simultaneous workspace accounts", () => {
     expect(
       symbols.CpmSourceProviderCodeEnd! - symbols.CpmSourceProviderCodeStart!,
-    ).toBe(722);
+    ).toBe(712);
     expect(symbols.CpmBdosCallCodeEnd! - symbols.CpmBdosCallCodeStart!).toBe(
       25,
     );

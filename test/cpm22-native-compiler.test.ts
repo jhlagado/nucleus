@@ -322,7 +322,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
 
     const executed = runCom(output!);
     expect(Buffer.from(executed.output).toString()).toBe("OK");
-    expect(compiled).toEqual({ a: 0, instructions: 35_469, tStates: 965_911 });
+    expect(compiled).toEqual({ a: 0, instructions: 35_482, tStates: 966_040 });
     expect(executed).toEqual({
       instructions: 270,
       output: [0x4f, 0x4b],
@@ -392,17 +392,20 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
         "",
       ].join("\n"),
     ],
-  ])("compiles and runs a %s through the full CP/M transient", (_name, source) => {
-    const { bdos, compileOnce } = createCompiler(source);
-    compileOnce();
-    expect(bdos.text()).not.toContain("Nucleus error");
-    expect(bdos.text()).not.toContain("Nucleus host error");
-    const output = bdos.files.get(canonicalName("OUTPUT.COM"));
-    expect(output, bdos.text()).toBeDefined();
-    expect(runCom(output!).output).toEqual([0x41]);
-    expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
-    expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
-  });
+  ])(
+    "compiles and runs a %s through the full CP/M transient",
+    (_name, source) => {
+      const { bdos, compileOnce } = createCompiler(source);
+      compileOnce();
+      expect(bdos.text()).not.toContain("Nucleus error");
+      expect(bdos.text()).not.toContain("Nucleus host error");
+      const output = bdos.files.get(canonicalName("OUTPUT.COM"));
+      expect(output, bdos.text()).toBeDefined();
+      expect(runCom(output!).output).toEqual([0x41]);
+      expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
+      expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
+    },
+  );
 
   it("returns from an invalid counted-loop bound without replacing output and accepts the next command", () => {
     const source = [
@@ -423,9 +426,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     // compileOnce asserts the real return sentinel, exact SP, and high-memory
     // canary. A diagnostic followed by runaway execution is not a valid error.
     compileOnce();
-    expect(bdos.text()).toContain(
-      "Nucleus error 39 P=01 O=0037 L=0003 C=0011",
-    );
+    expect(bdos.text()).toContain("Nucleus error 39 P=01 O=0037 L=0003 C=0011");
     expect(bdos.files.get(canonicalName("OUTPUT.COM"))).toEqual(old);
     expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
     expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
@@ -447,22 +448,16 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     ]);
     const { bdos, compileOnce } = createCompiler("", undefined, files);
     expect(compileOnce(undefined, " hello").a, bdos.text()).toBe(0);
-    expect(runCom(bdos.files.get(canonicalName("HELLO.COM"))!).output).toEqual(
-      [0x4f, 0x4b],
-    );
+    expect(runCom(bdos.files.get(canonicalName("HELLO.COM"))!).output).toEqual([
+      0x4f, 0x4b,
+    ]);
 
-    expect(
-      compileOnce(undefined, " hello.nu made.bin").a,
-      bdos.text(),
-    ).toBe(0);
+    expect(compileOnce(undefined, " hello.nu made.bin").a, bdos.text()).toBe(0);
     expect(runCom(bdos.files.get(canonicalName("MADE.BIN"))!).output).toEqual([
       0x4f, 0x4b,
     ]);
 
-    expect(
-      compileOnce(undefined, " hello.nu made.hex").a,
-      bdos.text(),
-    ).toBe(0);
+    expect(compileOnce(undefined, " hello.nu made.hex").a, bdos.text()).toBe(0);
     const physicalHex = bdos.files.get(canonicalName("MADE.HEX"))!;
     const textEnd = physicalHex.indexOf(0x1a);
     const hexText = Buffer.from(
@@ -494,7 +489,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     );
     expect(
       symbols.CpmSourceProviderCodeEnd - symbols.CpmSourceProviderCodeStart,
-    ).toBe(722);
+    ).toBe(712);
     expect(symbols.CpmCommandCodeEnd - symbols.CpmCommandCodeStart).toBe(427);
     expect(
       symbols.CpmCommandImmutableEnd - symbols.CpmCommandImmutableStart,
@@ -518,9 +513,9 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
         .slice(symbols.CpmCompilerPartBanks!, symbols.CpmCompilerPartBanks! + 8)
         .every((byte) => byte === 0),
     ).toBe(true);
-    expect(symbols.CpmCompilerResidentEnd).toBe(0x5421);
+    expect(symbols.CpmCompilerResidentEnd).toBe(0x5417);
     expect(symbols.CpmHostResidentLimit - symbols.CpmCompilerResidentEnd).toBe(
-      991,
+      1_001,
     );
     expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e35);
     expect(symbols.CpmHostWorkspaceLimit - symbols.CpmCommandWorkspaceEnd).toBe(
