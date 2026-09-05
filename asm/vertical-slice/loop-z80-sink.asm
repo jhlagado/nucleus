@@ -292,8 +292,8 @@ BeginSegmentedProgram:
             LD   DE,BackupBase
             CALL SegmentCopyIfAny
             LD   BC,(GeneratedRoDataSize)
-            LD   HL,GeneratedRoDataBase
-            LD   DE,BackupBase+(GeneratedRoDataBase-GeneratedBase)
+            LD   HL,RORDATA
+            LD   DE,BackupBase+(RORDATA-GeneratedBase)
             CALL SegmentCopyIfAny
             LD   HL,SegmentInitialTable
             LD   DE,SegmentTableBase
@@ -311,7 +311,7 @@ BeginSegmentedProgram:
 
 SegmentInitialTable:
             .dw GeneratedCodeBase,GeneratedCodeLimit
-            .dw GeneratedRoDataBase,GeneratedRoDataLimit
+            .dw RORDATA,GeneratedRoDataLimit
             .dw ProgramDataBase,ProgramDataLimit
             .dw ProgramBssBase,ProgramBssLimit
 
@@ -398,8 +398,8 @@ AbortSegmentedProgram:
             LD   DE,GeneratedCodeBase
             CALL SegmentCopyIfAny
             LD   BC,(PublishedRoDataSize)
-            LD   HL,BackupBase+(GeneratedRoDataBase-GeneratedBase)
-            LD   DE,GeneratedRoDataBase
+            LD   HL,BackupBase+(RORDATA-GeneratedBase)
+            LD   DE,RORDATA
             CALL SegmentCopyIfAny
             LD   HL,PublishedSize
             LD   DE,GeneratedSize
@@ -416,7 +416,7 @@ FinishSegmentedProgram:
             SBC  HL,DE
             LD   (GeneratedSize),HL
             LD   HL,(SegmentRoDataCursor)
-            LD   DE,GeneratedRoDataBase
+            LD   DE,RORDATA
             OR   A
             SBC  HL,DE
             LD   (GeneratedRoDataSize),HL
@@ -492,7 +492,7 @@ EncodeLoopProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,WriteOutputByte
+            LD   HL,RTWRITE
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -648,7 +648,7 @@ EmitCompareImmediate:
 .if LegacyEncoders
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitLoadScalar:
-            LD   HL,ScalarSlot
+            LD   HL,RTSCALAR
             LD   A,$3A
             JP   EmitOpcodeWord
 
@@ -659,7 +659,7 @@ EmitRestoreAfterCall:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,ActivationPop
+            LD   HL,RTAPOP
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -670,17 +670,17 @@ EmitRestoreAfterCall:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitSuccessReturn:
-            LD   A,RunSucceeded
+            LD   A,RTSUCC
             JR   EmitRunEnding
 
 ; At runtime A carries the trap number and HL carries the source offset.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitTrapEnding:
 .if TargetStreamingOutput
-            LD   DE,TrapNumber-StateBase
+            LD   DE,RTTRPNO-RTSTATE
             CALL EmitStoreTargetStateA
 .else
-            LD   HL,TrapNumber
+            LD   HL,RTTRPNO
             CALL EmitStoreA
 .endif
 .if CompilerDiagnosticReturns
@@ -692,27 +692,27 @@ EmitTrapEnding:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,TrapRoutine-StateBase
+            LD   DE,RTTRPRTN-RTSTATE
             CALL EmitStoreTargetStateA
 .else
-            LD   HL,TrapRoutine
+            LD   HL,RTTRPRTN
             CALL EmitStoreA
 .endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,TrapOffset-StateBase
+            LD   DE,RTTRPOFF-RTSTATE
             CALL TargetStateAddress
 .else
-            LD   HL,TrapOffset
+            LD   HL,RTTRPOFF
 .endif
             LD   A,$22
             CALL EmitOpcodeWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,RunTrapped
+            LD   A,RTTRAP
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitRunEnding:
             CALL EmitLoadAImmediate
@@ -720,7 +720,7 @@ EmitRunEnding:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,RunState-StateBase
+            LD   DE,RunState-RTSTATE
             CALL EmitStoreTargetStateA
 .else
             LD   HL,RunState
@@ -760,10 +760,10 @@ EmitRunEndingLocal:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitUnhandledTrapPrefix:
 .if TargetStreamingOutput
-            LD   DE,TrapError-StateBase
+            LD   DE,RTTRPERR-RTSTATE
             CALL EmitStoreTargetStateA
 .else
-            LD   HL,TrapError
+            LD   HL,RTTRPERR
             CALL EmitStoreA
 .endif
 .if CompilerDiagnosticReturns
@@ -922,7 +922,7 @@ CallLiteral:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,ActivationPush
+            LD   HL,RTAPUSH
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -962,7 +962,7 @@ CallLiteral:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 CallWriteLocal:
-            LD   HL,WriteOutputByte
+            LD   HL,RTWRITE
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1032,7 +1032,7 @@ CallReturnSelfMinus:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,ActivationPush
+            LD   HL,RTAPUSH
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1274,7 +1274,7 @@ ExpressionMultiply:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,MultiplyU8
+            LD   HL,RTMUL8
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1332,7 +1332,7 @@ ExpressionWrite:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,WriteOutputByte
+            LD   HL,RTWRITE
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1419,7 +1419,7 @@ ExpressionBackendEnd:
 EncodeArrayProgramBody:
             CALL BeginProgram
 
-            LD   HL,ReadInputByte
+            LD   HL,RTREADIN
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1487,7 +1487,7 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,WriteOutputByte
+            LD   HL,RTWRITE
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1533,7 +1533,7 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,TrapError
+            LD   HL,RTTRPERR
             CALL EmitStoreA
 .if CompilerDiagnosticReturns
             RET  C

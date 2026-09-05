@@ -1,10 +1,14 @@
 // Build-time source adaptation only. Atom, not this module, resolves addresses.
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { assembleResolvedAtomProject, materializeAtomGeneration, writeAtomD8 } from "atom-z80";
 import { flattenTranslatedEntry, scanAssembly, symbolMapFromLedger } from "./atom-source-translation.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// Transitional output compatibility only: native source names are never
+// rewritten by this map. Remove this use with the remaining legacy callers.
+const runtimeExports = JSON.parse(readFileSync(path.join(root, "asm/atom-runtime-symbols.json"), "utf8"));
 let census;
 export const assemblyCensus = () => census ??= scanAssembly({ asmRoot: path.join(root, "asm"), proofRoot: path.join(root, "proofs") });
 
@@ -168,6 +172,7 @@ export function prepareAtomSource(entry, { report = assemblyCensus(), overrides 
   report = { ...report, ledger };
   const input = [], definitions = {}, sourceSymbols = new Map(), limits = {};
   const reverse = new Map([...symbolMapFromLedger(report.ledger)].map(([name, alias]) => [alias.toUpperCase(), name]));
+  for (const [publicName, nativeName] of Object.entries(runtimeExports)) reverse.set(nativeName, publicName);
   flattenTranslatedEntry(report, entry, {
     overrides, onLine: line => {
       input.push(line);

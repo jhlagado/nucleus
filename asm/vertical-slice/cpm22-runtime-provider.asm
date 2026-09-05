@@ -7,9 +7,9 @@ CpmRuntimeWorkspaceEnd .equ CpmRuntimeContext+2
 
 CpmRuntimeCodePhysical    .equ CpmOutputBufferBase+3
 CpmRuntimeInitialPhysical .equ CpmOutputBufferBase+(CpmTargetWritableBase-CpmTargetImageBase)
-CpmRuntimeInitialLength   .equ NucleusRuntimeVectorLength+NucleusRuntimeStateLength
-CpmRuntimeDataBaseOffset  .equ NucleusRuntimeVectorLength+NucleusRuntimeProgramDataBaseOffset
-CpmRuntimeDataCapacityOffset .equ NucleusRuntimeVectorLength+NucleusRuntimeProgramDataCapacityOffset
+CpmRuntimeInitialLength   .equ RIVECBYT+RISTBYT
+CpmRuntimeDataBaseOffset  .equ RIVECBYT+RODBASE
+CpmRuntimeDataCapacityOffset .equ RIVECBYT+RODCAP
 CpmRuntimeDiagnosticConfiguration .equ 95
 
 CpmRuntimeProviderCodeStart:
@@ -22,7 +22,7 @@ CpmDirectRuntimeProvider:
             OR   A
             JR   NZ,CpmRuntimeProviderInvalidPop
             LD   A,E
-            CP   NucleusRuntimeIdentity
+            CP   RIABI
             JR   NZ,CpmRuntimeProviderInvalidPop
             POP  AF
             OR   A
@@ -41,7 +41,7 @@ CpmDirectRuntimeProvider:
             LD   HL,CpmEmbeddedInitial
             JR   CpmRuntimeProviderCopyInitial
 CpmRuntimeProviderCode:
-            LD   HL,NucleusRuntimeExpectedLength
+            LD   HL,RIBYTES
             OR   A
             SBC  HL,BC
             JR   NZ,CpmRuntimeProviderInvalid
@@ -52,7 +52,7 @@ CpmRuntimeProviderCode:
             JR   NZ,CpmRuntimeProviderInvalid
             LD   HL,CpmEmbeddedRuntime
             LD   DE,(CpmRuntimeDestination)
-            LD   BC,NucleusRuntimeExpectedLength
+            LD   BC,RIBYTES
             LDIR
             XOR  A
             RET

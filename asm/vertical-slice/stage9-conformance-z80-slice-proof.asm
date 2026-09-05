@@ -44,9 +44,9 @@ CompilerImmutableEnd:
 CompilerCoreEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org $B000
 CorpusSourceStart:
@@ -832,7 +832,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -840,7 +840,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   "Y"
             JP   NZ,ProofRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRunFailure
 
@@ -1563,8 +1563,8 @@ ProofComparePublishedLoop:
             JR   ProofComparePublishedLoop
 ProofComparePublishedRoData:
             LD   BC,(GeneratedRoDataSize)
-            LD   HL,GeneratedRoDataBase
-            LD   DE,BackupBase+(GeneratedRoDataBase-GeneratedBase)
+            LD   HL,RORDATA
+            LD   DE,BackupBase+(RORDATA-GeneratedBase)
 ProofComparePublishedRoDataLoop:
             LD   A,B
             OR   C
@@ -1643,7 +1643,7 @@ ProofResetServices:
 ProofCheckOutput:
             LD   B,A
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JR   NZ,ProofCheckFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1651,7 +1651,7 @@ ProofCheckOutput:
             LD   A,(ServiceOutputBase)
             CP   B
             JR   NZ,ProofCheckFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             RET  Z
 ProofCheckFailure:
@@ -1661,12 +1661,12 @@ ProofCheckFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 ProofCheckSuccessNoOutput:
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JR   NZ,ProofCheckFailure
             LD   A,(ServiceOutputLength)
             OR   A
             JR   NZ,ProofCheckFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             RET  Z
             SCF
@@ -1677,18 +1677,18 @@ ProofCheckTrap:
             LD   (ProofExpectedTrap),A
             LD   (ProofExpectedOffset),BC
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JR   NZ,ProofCheckFailure
             LD   A,(ProofExpectedTrap)
-            LD   HL,TrapNumber
+            LD   HL,RTTRPNO
             CP   (HL)
             JR   NZ,ProofCheckFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofCheckFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             RET  Z
             SCF

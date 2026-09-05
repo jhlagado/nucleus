@@ -121,7 +121,7 @@ CpmCompilerStartupCodeEnd:
 CpmCompilerImmutableStart:
 CpmCompilerPartBanks .equ CpmEmbeddedPrefixEnd-SourcePartCapacity
 CpmCompilerTargetDescriptor:
-            .dw  NucleusRuntimeIdentity
+            .dw  RIABI
             .dw  CpmTargetImageBase
             .dw  CpmTargetImageCapacity
             .dw  CpmTargetWritableBase

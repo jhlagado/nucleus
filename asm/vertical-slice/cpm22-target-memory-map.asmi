@@ -63,7 +63,7 @@ ProgramBssBase                 .equ CpmTargetWritableBase
 ProgramBssLimit                .equ CpmTargetWritableLimit
 ProgramDataRegionLimit         .equ CpmTargetWritableLimit
 ProgramDataRegionCapacity      .equ CpmTargetWritableCapacity
-GeneratedRoDataCapacity        .equ $0400
+RORDCAP        .equ $0400
 ServiceBase                    .equ CpmTargetPrefixBase
 ServiceLimit                   .equ CpmTargetImageBase
 ProofBase                      .equ CpmHostWorkspaceBase

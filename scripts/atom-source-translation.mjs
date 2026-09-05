@@ -13,11 +13,11 @@ function scanAssembly({ asmRoot, proofRoot }) {
       for (const symbol of collectSourceIdentifiers(maskQuoted(code))) {
         occurrences.push({ symbol, file, line: index + 1 });
       }
-      const conditional = /^\s*\.if\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(code);
+      const conditional = /^\s*[.%]if\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(code);
       if (conditional) conditionals.add(conditional[1]);
       const label = /^\s*([A-Za-z_.$?][A-Za-z0-9_.$?]*):/.exec(code);
       if (label) recordSymbol(symbols, label[1], file, index + 1, proofSymbols, "label");
-      const equ = /^\s*([A-Za-z_.$?][A-Za-z0-9_.$?]*)(?::\s*|\s+)\.equ\b/i.exec(code);
+      const equ = /^\s*([A-Za-z_.$?][A-Za-z0-9_.$?]*)(?::\s*|\s+)\.?equ\b/i.exec(code);
       if (equ) recordSymbol(symbols, equ[1], file, index + 1, proofSymbols, "equ");
     }
   }
@@ -106,7 +106,7 @@ function findAssemblyFiles(root) {
 }
 
 function includeSpecifier(source) {
-  const match = /^\s*\.include\s+"([^"\r\n]+)"\s*$/i.exec(source);
+  const match = /^\s*[.%]include\s+"([^"\r\n]+)"\s*$/i.exec(source);
   return match?.[1];
 }
 
@@ -430,7 +430,7 @@ function flattenTranslatedEntry(report, entry, { overrides = new Map(), onLine, 
       return true;
     }
 
-    const directive = /^\s*\.(if|else|endif)\b\s*(.*)$/i.exec(source);
+    const directive = /^\s*[.%](if|else|endif)\b\s*(.*)$/i.exec(source);
     if (directive === null) return false;
     const name = directive[1].toLowerCase();
     const argument = directive[2].trim();

@@ -166,9 +166,9 @@ Stage7CallDepthSourceEnd:
 
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -190,7 +190,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -217,7 +217,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailForwardFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailForwardRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -244,7 +244,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailStringRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -275,17 +275,17 @@ ProofStart:
             CALL EncodeAggregateProgram
             JP   C,ProofFailBoundsEncode
             LD   A,$FF                    ; L=255 remains invalid
-            LD   (GeneratedRoDataBase),A
+            LD   (RORDATA),A
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   1
             JP   NZ,ProofFailBoundsRun
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage7CorruptStringLengthPoint-Stage7CorruptStringSource
             OR   A
             SBC  HL,DE
@@ -298,17 +298,17 @@ ProofStart:
             CALL EncodeAggregateProgram
             JP   C,ProofFailBoundsEncode
             LD   A,$FF                    ; indexing rejects the same corruption
-            LD   (GeneratedRoDataBase),A
+            LD   (RORDATA),A
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   1
             JP   NZ,ProofFailBoundsRun
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage7CorruptStringIndexPoint-Stage7CorruptStringIndexSource
             OR   A
             SBC  HL,DE
@@ -332,7 +332,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailStringRun
             LD   A,(ServiceOutputLength)
             CP   1
@@ -366,7 +366,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailStringRun
             LD   A,(ServiceOutputBase)
             CP   'Y'
@@ -415,7 +415,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailDataCapacityAccepted
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailDataCapacityAccepted
             LD   A,(ProgramDataBase)
             OR   A
@@ -465,7 +465,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailBssCapacityAccepted
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailBssCapacityAccepted
             LD   A,(ProgramBssBase)
             OR   A
@@ -510,7 +510,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailWideAggregate
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailWideAggregate
             LD   A,(ServiceOutputLength)
             CP   1
@@ -559,7 +559,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailWideInitializer
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailWideInitializer
             LD   A,(ProgramDataBase)
             CP   1
@@ -620,12 +620,12 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   1
             JP   NZ,ProofFailBoundsRun
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,134
             OR   A
             SBC  HL,DE
@@ -858,7 +858,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailAggregateConstant
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailAggregateConstant
             LD   A,(ServiceOutputLength)
             CP   1
@@ -872,7 +872,7 @@ ProofStart:
             LD   A,(ProgramDataBase+3)
             CP   $A5
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(GeneratedRoDataBase+3)
+            LD   A,(RORDATA+3)
             CP   9
             JP   NZ,ProofFailAggregateConstant
 
@@ -947,9 +947,9 @@ ProofStart:
             OR   L
             JP   NZ,ProofFailReadOnlyCapacity
             LD   A,$A5
-            LD   (GeneratedRoDataBase),A
+            LD   (RORDATA),A
             LD   A,$5A
-            LD   (GeneratedRoDataBase+1023),A
+            LD   (RORDATA+1023),A
             LD   A,DiagnosticReadOnlyCapacity
             LD   BC,Stage7ReadOnlyCapacityRejectedPoint-Stage7ReadOnlyCapacityRejectedSource
             LD   HL,Stage7ReadOnlyCapacityRejectedSource
@@ -961,10 +961,10 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailReadOnlyCapacity
-            LD   A,(GeneratedRoDataBase)
+            LD   A,(RORDATA)
             CP   $A5
             JP   NZ,ProofFailReadOnlyCapacity
-            LD   A,(GeneratedRoDataBase+1023)
+            LD   A,(RORDATA+1023)
             CP   $5A
             JP   NZ,ProofFailReadOnlyCapacity
             ; The failed declaration must not poison the next compilation.
@@ -1146,7 +1146,7 @@ ProofCompileAndRunSuccess:
             CALL ProofCallGenerated
             RET  C
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             RET  Z
             SCF
             RET
@@ -1166,17 +1166,17 @@ ProofRunRecursiveCapacity:
             CALL ProofCallGenerated
             RET  C
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   5
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,71
             OR   A
             SBC  HL,DE
             JR   NZ,ProofRecursiveCapacityFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofRecursiveCapacityFailure
             LD   A,(ProgramBssBase)
@@ -1381,12 +1381,12 @@ ProofInvalidCopySourceReady:
             CALL ProofCallGenerated
             JR   C,ProofInvalidCopyFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JR   NZ,ProofInvalidCopyFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   1
             JR   NZ,ProofInvalidCopyFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,$1234
             OR   A
             SBC  HL,DE
@@ -1450,8 +1450,8 @@ ProofEncodeRollbackCompare:
             JR   ProofEncodeRollbackCompare
 ProofEncodeRollbackReady:
             LD   BC,(GeneratedRoDataSize)
-            LD   HL,GeneratedRoDataBase
-            LD   DE,BackupBase+(GeneratedRoDataBase-GeneratedBase)
+            LD   HL,RORDATA
+            LD   DE,BackupBase+(RORDATA-GeneratedBase)
 ProofEncodeRollbackRoDataCompare:
             LD   A,B
             OR   C
@@ -1464,7 +1464,7 @@ ProofEncodeRollbackRoDataCompare:
             DEC  BC
             JR   ProofEncodeRollbackRoDataCompare
 ProofEncodeRollbackRoDataReady:
-            LD   A,(GeneratedRoDataBase)
+            LD   A,(RORDATA)
             CP   $11
             JR   NZ,ProofEncodeRollbackFailure
             OR   A

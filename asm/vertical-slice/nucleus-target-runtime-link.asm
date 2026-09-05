@@ -1,9 +1,9 @@
-; Deterministic operating-layer entry for one fully resolved target runtime.
-; The provider supplies nucleus-runtime-link-context.asmi before assembling.
+; Transitional legacy-adapter test entry. Production catalog generation and
+; development links use scripts/assemble-native-runtime.mjs with native parts.
 
             .include "nucleus-runtime-link-context.asmi"
 
-            .org RuntimeLinkBase
-RuntimeCodeStart:
+            .org RTORIGIN
+RTSTART:
             .include "target-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:

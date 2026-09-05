@@ -527,10 +527,10 @@ TypedMultiply:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeMultiplyU16Offset
+            LD   DE,ROMUL16
             JP   EmitRuntimeCall
 .else
-            LD   HL,MultiplyU16
+            LD   HL,RTMUL16
             JP   EmitCall
 .endif
 
@@ -602,9 +602,9 @@ TypedDivide:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeDivideU16Offset
+            LD   DE,RODIV16
 .else
-            LD   HL,DivideU16
+            LD   HL,RTDIV16
 .endif
             LD   A,(EmitTypedWidth)
             BIT  6,A
@@ -612,9 +612,9 @@ TypedDivide:
             BIT  0,A
             JR   Z,TypedDivideCall
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeModuloU16Offset
+            LD   DE,ROMOD16
 .else
-            LD   HL,ModuloU16
+            LD   HL,RTMOD16
 .endif
 TypedDivideCall:
 .if TargetStreamingOutput
@@ -648,9 +648,9 @@ TypedDivideSignedCall:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeDivideSignedOffset
+            LD   DE,ROSDIV
 .else
-            LD   HL,DivideSigned
+            LD   HL,RTSDIV
 .endif
             JR   TypedDivideCall
 
@@ -670,10 +670,10 @@ TypedPromoteI8Pair:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimePromoteI8PairOffset
+            LD   DE,ROI8PAIR
             CALL EmitRuntimeCall
 .else
-            LD   HL,RuntimePromoteI8Pair
+            LD   HL,RTI8PAIR
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -760,10 +760,10 @@ TypedEmitCompare:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCompareU16Offset
+            LD   DE,ROCMP16
             JP   EmitRuntimeCall
 .else
-            LD   HL,CompareU16
+            LD   HL,RTCMP16
             JP   EmitCall
 .endif
 
@@ -836,10 +836,10 @@ TypedConvertInteger:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeConvertIntegerOffset
+            LD   DE,ROCONV
             CALL TypedEmitFailableRuntimeCall
 .else
-            LD   HL,ConvertInteger
+            LD   HL,RTCONV
             CALL TypedEmitFailableCall
 .endif
 .if CompilerDiagnosticReturns
@@ -912,7 +912,7 @@ TypedWrite8:
 .endif
             CALL EmitJrNcPlaceholder
 .else
-            LD   HL,WriteOutputByte
+            LD   HL,RTWRITE
             CALL TypedEmitFailableCall
 .endif
 .if CompilerDiagnosticReturns
@@ -948,10 +948,10 @@ TypedEmitTrapEnding:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,ActivationDepth-StateBase
+            LD   DE,RTDEPTH-RTSTATE
             CALL EmitStoreTargetStateA
 .else
-            LD   HL,ActivationDepth
+            LD   HL,RTDEPTH
             CALL EmitStoreA
 .endif
 .if CompilerDiagnosticReturns
@@ -1041,7 +1041,7 @@ TypedRootFrameReady:
 .endif
             PUSH HL
 .if TargetStreamingOutput
-            LD   DE,RootSP-StateBase
+            LD   DE,RootSP-RTSTATE
             CALL TargetStateAddress
 .else
             LD   HL,RootSP
@@ -1058,7 +1058,7 @@ TypedRootFrameReady:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,RootIX-StateBase
+            LD   DE,RootIX-RTSTATE
             CALL TargetStateAddress
 .else
             LD   HL,RootIX
@@ -1103,10 +1103,10 @@ TypedCallScalar:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeActivationClaimOffset
+            LD   DE,ROACLM
             CALL TypedEmitFailableRuntimeCall
 .else
-            LD   HL,ActivationClaim
+            LD   HL,RTACLM
             CALL TypedEmitFailableCall
 .endif
 .if CompilerDiagnosticReturns
@@ -1124,10 +1124,10 @@ TypedCallScalar:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeActivationReleaseOffset
+            LD   DE,ROAREL
             CALL EmitRuntimeCall
 .else
-            LD   HL,ActivationRelease
+            LD   HL,RTAREL
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -1237,7 +1237,7 @@ EncodeSegmentedProgramHeader:
             LD   A,H
             OR   L
             JR   Z,EncodeSegmentedBss
-            LD   HL,GeneratedRoDataBase
+            LD   HL,RORDATA
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1273,10 +1273,10 @@ EncodeSegmentedBss:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeInitializeBssOffset
+            LD   DE,ROBSS
             CALL EmitRuntimeCall
 .else
-            LD   HL,InitializeBss
+            LD   HL,RTBSS
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns

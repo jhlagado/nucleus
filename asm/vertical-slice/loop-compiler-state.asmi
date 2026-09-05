@@ -631,9 +631,9 @@ SemanticWritePort       .equ 121
 SemanticPacketService   .equ 122
 SemanticSelectCase      .equ 123
 
-ComparisonEqual         .equ 0
-ComparisonNotEqual      .equ 1
-ComparisonLess          .equ 2
-ComparisonLessEqual     .equ 3
-ComparisonGreater       .equ 4
-ComparisonGreaterEqual  .equ 5
+RCEQ         .equ 0
+RCNE      .equ 1
+RCLT          .equ 2
+RCLE     .equ 3
+RCGT       .equ 4
+RCGE  .equ 5

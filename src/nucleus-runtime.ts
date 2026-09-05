@@ -1,5 +1,5 @@
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeRuntime } from "../scripts/assemble-native-runtime.mjs";
 
 import type {
   RuntimeImage,
@@ -150,53 +150,6 @@ export const validateRuntimeLinkContext = (
   }
 };
 
-const hexWord = (value: number): string =>
-  `$${value.toString(16).padStart(4, "0")}`;
-
-const contextAssembly = (context: RuntimeLinkContext): string => `
-RuntimeLinkBase             .equ ${hexWord(context.runtimeBase)}
-RuntimeWritableStateBase    .equ ${hexWord(context.writableStateBase)}
-RuntimeProgramDataBase      .equ ${hexWord(context.programDataBase)}
-RuntimeProgramDataCapacity  .equ ${hexWord(context.programDataCapacity)}
-RuntimeReadOnlyBase         .equ ${hexWord(context.readOnlyBase)}
-RuntimeReadOnlyCapacity     .equ ${hexWord(context.readOnlyCapacity)}
-RuntimePacketService        .equ ${hexWord(context.services.packetService)}
-StateBase          .equ RuntimeWritableStateBase
-RunState           .equ StateBase+$00
-TrapNumber         .equ StateBase+$01
-TrapRoutine        .equ StateBase+$02
-TrapOffset         .equ StateBase+$03
-TrapError          .equ StateBase+$05
-ActivationDepth    .equ StateBase+$06
-ActivationLimit    .equ StateBase+$07
-ScalarSlot         .equ StateBase+$08
-CurrentBank        .equ ScalarSlot
-ActivationArena    .equ StateBase+$09
-ActivationCapacity .equ 8
-RootSP             .equ ActivationArena+ActivationCapacity
-RootIX             .equ RootSP+2
-FarReturnArena     .equ RootIX+2
-FarReturnCapacity  .equ ActivationCapacity*2
-RuntimeProgramDataBaseState .equ FarReturnArena+FarReturnCapacity
-RuntimeProgramDataCapacityState .equ RuntimeProgramDataBaseState+2
-StateEnd           .equ RuntimeProgramDataCapacityState+2
-
-RunReady           .equ 1
-RunSucceeded       .equ 2
-RunTrapped         .equ 3
-
-GeneratedRoDataBase       .equ RuntimeReadOnlyBase
-GeneratedRoDataCapacity   .equ RuntimeReadOnlyCapacity
-
-AggregateCallSlices .equ 1
-ComparisonEqual        .equ 0
-ComparisonNotEqual     .equ 1
-ComparisonLess         .equ 2
-ComparisonLessEqual    .equ 3
-ComparisonGreater      .equ 4
-ComparisonGreaterEqual .equ 5
-`;
-
 const vectorBytes = (
   services: RuntimeServiceAddresses,
   packetServiceGateway: number,
@@ -314,21 +267,14 @@ export const loadCanonicalRuntimeImage = async (
 ): Promise<RuntimeImage> => {
   validateRuntimeLinkContext(context);
   // Development-only link proof. Installed consumers use runtime-catalog.ts.
-  // Source adaptation preserves names; native ATOM resolves all addresses.
-  const entry = "vertical-slice/nucleus-target-runtime-link.asm";
-  const assembled = await assembleAtomSource(entry, {
-    overrides: new Map([
-      [
-        "vertical-slice/nucleus-runtime-link-context.asmi",
-        contextAssembly(context),
-      ],
-      [
-        entry,
-        `.include "nucleus-runtime-link-context.asmi"\n` +
-          `.org RuntimeLinkBase\nRuntimeCodeStart:\n` +
-          `.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n`,
-      ],
-    ]),
+  const assembled = await assembleNativeRuntime({
+    runtimeBase: context.runtimeBase,
+    writableStateBase: context.writableStateBase,
+    programDataBase: context.programDataBase,
+    programDataCapacity: context.programDataCapacity,
+    readOnlyBase: context.readOnlyBase,
+    readOnlyCapacity: context.readOnlyCapacity,
+    packetService: context.services.packetService,
   }).catch((cause: unknown) => {
     throw new NobjError(
       `canonical runtime link failed: ${cause instanceof Error ? cause.message : String(cause)}`,
@@ -342,9 +288,13 @@ export const loadCanonicalRuntimeImage = async (
     throw new NobjError(`canonical runtime link omitted ${name}`);
   };
   const start = symbol("RuntimeCodeStart");
-  const end = symbol("RuntimeCodeEnd");
+  const end = assembled.generation.highWater;
   const expectedLength = symbol("NucleusRuntimeExpectedLength");
-  if (start !== context.runtimeBase || end - start !== expectedLength) {
+  if (
+    start !== context.runtimeBase ||
+    symbol("RuntimeCodeEnd") !== (end & 0xffff) ||
+    end - start !== expectedLength
+  ) {
     throw new NobjError(
       `canonical runtime linked length mismatch: ${end - start}, expected ${expectedLength}`,
     );

@@ -394,7 +394,7 @@ StructuredForTest:
 .endif
             LD   A,B
             AND  $03
-            ADD  A,ComparisonLess
+            ADD  A,RCLT
 StructuredForTestCompare:
             BIT  3,B
             JR   Z,StructuredForTestCompareReady
@@ -506,10 +506,10 @@ StructuredDistanceWidthReady:
             RET  C
 .endif
             AND  1
-            LD   A,ComparisonLess
+            LD   A,RCLT
             JR   NZ,StructuredDistanceCompare
             ; until exits when distance <= step; to exits when distance < step.
-            LD   A,ComparisonLessEqual
+            LD   A,RCLE
 StructuredDistanceCompare:
             CALL TypedEmitCompare
 .if CompilerDiagnosticReturns
@@ -585,10 +585,10 @@ StructuredSignedStep:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeSignedLoopStepOffset
+            LD   DE,ROSSTEP
             CALL TypedEmitFailableRuntimeCall
 .else
-            LD   HL,SignedLoopStep
+            LD   HL,RTSSTEP
             CALL TypedEmitFailableCall
 .endif
 .if CompilerDiagnosticReturns

@@ -29,7 +29,7 @@ ProgramBssBase            .equ ExecutionBase
 ProgramBssLimit           .equ ExecutionBase
 ProgramDataRegionLimit    .equ ExecutionBase
 ProgramDataRegionCapacity .equ 0
-GeneratedRoDataCapacity   .equ $0400
+RORDCAP   .equ $0400
 ServiceBase         .equ $7D00
 ServiceLimit        .equ $7E00
 ProofBase           .equ $7E00

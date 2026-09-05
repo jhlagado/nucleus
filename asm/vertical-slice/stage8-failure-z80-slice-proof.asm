@@ -203,9 +203,9 @@ Stage8ReadInputHandlerSourceEnd:
 
             ; Emit the runtime before the higher-address source fixtures.
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org SpareBase
 Stage8ConstantsSource:
@@ -842,22 +842,22 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFrameFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofTrapStateFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofTrapReasonFailure
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   7
             JP   NZ,ProofTrapErrorFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage8MainFailPoint-Stage8MainFailSource
             LD   (ProofActualTrapOffset),HL
             LD   (ProofExpectedTrapOffset),DE
             OR   A
             SBC  HL,DE
             JP   NZ,ProofTrapOffsetFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofActivationFailure
 
@@ -893,7 +893,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofPropagationSuccessRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofPropagationSuccessRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -913,15 +913,15 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofPropagationFailureRunFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofPropagationFailureRunFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofPropagationFailureRunFailure
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   10
             JP   NZ,ProofPropagationFailureRunFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage8PropagationFailurePoint-Stage8PropagationFailureSource
             OR   A
             SBC  HL,DE
@@ -938,7 +938,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofBareReturnRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofBareReturnRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -958,7 +958,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofSixteenRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofSixteenRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -978,7 +978,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofHandlerRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -998,9 +998,9 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofProgramHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofProgramHandlerRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofProgramHandlerRunFailure
             LD   A,(ProgramBssBase)
@@ -1028,7 +1028,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadSuccessRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofReadSuccessRunFailure
             LD   A,(ServiceInputCursor)
             CP   1
@@ -1046,12 +1046,12 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadSuccessRunFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofReadSuccessRunFailure
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofReadSuccessRunFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage8ReadInputNestedServicePoint-Stage8ReadInputSuccessSource
             OR   A
             SBC  HL,DE
@@ -1070,7 +1070,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRedesignFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1078,7 +1078,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   1
             JP   NZ,ProofRedesignFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRedesignFailure
 
@@ -1095,7 +1095,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
             LD   A,(ServiceInputCursor)
             OR   A
@@ -1115,7 +1115,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
             LD   A,(ServiceInputCursor)
             OR   A
@@ -1136,7 +1136,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
             LD   A,(ServiceInputCursor)
             CP   1
@@ -1156,7 +1156,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofConstantsRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofConstantsRunFailure
             LD   A,(ServiceOutputBase)
             CP   'C'
@@ -1180,7 +1180,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofStorageRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofStorageRunFailure
             LD   A,(ServiceStorageInputCursor)
             CP   1
@@ -1221,7 +1221,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofWriteFailureRun
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofWriteFailureRun
             LD   A,(ServiceStorageOutputLength)
             CP   2
@@ -1256,7 +1256,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofSeekFailureRun
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofSeekFailureRun
             LD   A,(ServiceStorageOutputCursor)
             CP   1
@@ -1280,7 +1280,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRewindFailureRun
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRewindFailureRun
             LD   A,(ServiceStorageInputCursor)
             CP   2
@@ -1303,7 +1303,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofReadStorageFailureRun
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofReadStorageFailureRun
             LD   A,(ServiceStorageInputCursor)
             OR   A
@@ -1325,7 +1325,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofWriteOutputFailureRun
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofWriteOutputFailureRun
             LD   A,(ServiceOutputLength)
             OR   A
@@ -1344,7 +1344,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofMutualRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofMutualRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1479,7 +1479,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofNestedFrameRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofNestedFrameRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1487,7 +1487,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'N'
             JP   NZ,ProofNestedFrameRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofNestedFrameRunFailure
 
@@ -1502,7 +1502,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofPredefinedStepRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofPredefinedStepRunFailure
             LD   A,(ServiceOutputLength)
             CP   2
@@ -1543,7 +1543,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofIndirectHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofIndirectHandlerRunFailure
             LD   A,(ServiceOutputLength)
             CP   2
@@ -1554,7 +1554,7 @@ ProofStart:
             LD   A,(ServiceOutputBase+1)
             CP   9
             JP   NZ,ProofIndirectHandlerRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofIndirectHandlerRunFailure
 
@@ -1569,7 +1569,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofAggregateCopyHandlerRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofAggregateCopyHandlerRunFailure
             LD   A,(ServiceOutputLength)
             CP   3
@@ -1583,7 +1583,7 @@ ProofStart:
             LD   A,(ServiceOutputBase+2)
             CP   5
             JP   NZ,ProofAggregateCopyHandlerRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofAggregateCopyHandlerRunFailure
 
@@ -1600,7 +1600,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRetainedResetRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRetainedResetRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1608,7 +1608,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   4
             JP   NZ,ProofRetainedResetRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRetainedResetRunFailure
 
@@ -1625,7 +1625,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofIndirectServiceRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofIndirectServiceRunFailure
             LD   A,(ServiceOutputLength)
             CP   2
@@ -1636,7 +1636,7 @@ ProofStart:
             LD   A,(ServiceOutputBase+1)
             CP   9
             JP   NZ,ProofIndirectServiceRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofIndirectServiceRunFailure
 
@@ -1649,21 +1649,21 @@ ProofStart:
             JP   C,ProofTrapBypassEncodeFailure
             CALL Reset
             LD   A,2
-            LD   (ActivationLimit),A
+            LD   (RTACTLIM),A
             CALL ProofCallGenerated
             JP   C,ProofTrapBypassFrameFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofTrapBypassRunFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   5
             JP   NZ,ProofTrapBypassRunFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage8TrapRecursiveCallPoint-Stage8TrapBypassesHandlerSource
             OR   A
             SBC  HL,DE
             JP   NZ,ProofTrapBypassRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofTrapBypassRunFailure
             LD   A,(ServiceOutputLength)
@@ -1681,7 +1681,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofResultFreeReturnRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofResultFreeReturnRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1689,7 +1689,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'R'
             JP   NZ,ProofResultFreeReturnRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofResultFreeReturnRunFailure
 
@@ -1706,7 +1706,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofForwardMainRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofForwardMainRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1714,7 +1714,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'M'
             JP   NZ,ProofForwardMainRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofForwardMainRunFailure
 
@@ -1729,7 +1729,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRecursiveMainRunFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRecursiveMainRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -1737,7 +1737,7 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             CP   'D'
             JP   NZ,ProofRecursiveMainRunFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRecursiveMainRunFailure
 
@@ -1786,7 +1786,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofRedesignFailure
             LD   A,(ServiceOutputLength)
             CP   2
@@ -1797,7 +1797,7 @@ ProofStart:
             LD   A,(ServiceOutputBase+1)
             CP   7
             JP   NZ,ProofRedesignFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRedesignFailure
 
@@ -1816,20 +1816,20 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofRedesignFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofRedesignFailure
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofRedesignFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,Stage8HandlerExplicitFailPoint-Stage8HandlerPropagatesSource
             OR   A
             SBC  HL,DE
             JP   NZ,ProofRedesignFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRedesignFailure
 
@@ -2027,18 +2027,18 @@ ProofTrapInputReady:
             CALL ProofCallGenerated
             RET  C
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JR   NZ,ProofExpectedRuntimeTrapFailure
             LD   A,(ProofExpectedTrap)
-            LD   HL,TrapNumber
+            LD   HL,RTTRPNO
             CP   (HL)
             JR   NZ,ProofExpectedRuntimeTrapFailure
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofExpectedRuntimeTrapFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofExpectedRuntimeTrapFailure
             LD   A,(ServiceOutputLength)
@@ -2060,12 +2060,12 @@ ProofExpectRuntimeSuccess:
             CALL ProofCallGenerated
             RET  C
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JR   NZ,ProofExpectedRuntimeSuccessFailure
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             OR   A
             JR   NZ,ProofExpectedRuntimeSuccessFailure
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofExpectedRuntimeSuccessFailure
             LD   A,(ServiceOutputLength)

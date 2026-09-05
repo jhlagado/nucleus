@@ -102,9 +102,9 @@ FullScalarName:
 FullScalarSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -129,7 +129,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailSuccessState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -147,15 +147,15 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailOutputState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofFailOutputTrap
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofFailOutputError
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,ExpressionOutputCall-ExpressionProofSource
             OR   A
             SBC  HL,DE

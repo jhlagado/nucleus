@@ -183,9 +183,9 @@ TypedExpressionCapacitySource:
 TypedExpressionCapacitySourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -282,7 +282,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailAcceptedState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -314,7 +314,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailDefaultState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -341,12 +341,12 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailNarrowState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   2
             JP   NZ,ProofFailNarrowNumber
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,TypedNarrowTrapPoint-TypedNarrowTrapSource
             OR   A
             SBC  HL,DE
@@ -366,12 +366,12 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailDivideState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   3
             JP   NZ,ProofFailDivideNumber
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,TypedDivideTrapPoint-TypedDivideTrapSource
             OR   A
             SBC  HL,DE
@@ -555,7 +555,7 @@ ProofFillOperationCount:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailCoverageState
             LD   A,(ServiceOutputBase)
             CP   255
@@ -577,7 +577,7 @@ ProofFillOperationCount:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailConversionState
             LD   HL,(GeneratedBase+4)
             LD   A,H
@@ -600,9 +600,9 @@ ProofFillOperationCount:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailNestedDivideState
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,TypedNestedDivideOuter-TypedNestedDivideTrapSource
             OR   A
             SBC  HL,DE
@@ -626,9 +626,9 @@ ProofFillOperationCount:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailNestedNarrowState
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,TypedNestedNarrowOuter-TypedNestedNarrowTrapSource
             OR   A
             SBC  HL,DE
@@ -795,7 +795,7 @@ ProofCheckArithmeticRow:
             LD   H,(IX+1)
             LD   E,(IX+2)
             LD   D,(IX+3)
-            CALL DivideU16
+            CALL RTDIV16
             JR   C,ProofCheckArithmeticNo
             LD   E,(IX+4)
             LD   D,(IX+5)
@@ -806,7 +806,7 @@ ProofCheckArithmeticRow:
             LD   H,(IX+1)
             LD   E,(IX+2)
             LD   D,(IX+3)
-            CALL ModuloU16
+            CALL RTMOD16
             JR   C,ProofCheckArithmeticNo
             LD   E,(IX+6)
             LD   D,(IX+7)
@@ -817,7 +817,7 @@ ProofCheckArithmeticRow:
             LD   H,(IX+1)
             LD   E,(IX+2)
             LD   D,(IX+3)
-            CALL MultiplyU16
+            CALL RTMUL16
             JR   C,ProofCheckArithmeticNo
             LD   E,(IX+8)
             LD   D,(IX+9)
@@ -835,15 +835,15 @@ ProofCheckArithmeticRow:
 
             LD   HL,1000
             LD   DE,0
-            CALL DivideU16
+            CALL RTDIV16
             JR   NC,ProofCheckArithmeticNo
             LD   HL,1000
             LD   DE,0
-            CALL ModuloU16
+            CALL RTMOD16
             JR   NC,ProofCheckArithmeticNo
             LD   HL,37
             LD   DE,0
-            CALL MultiplyU16
+            CALL RTMUL16
             JR   C,ProofCheckArithmeticNo
             LD   A,H
             OR   L

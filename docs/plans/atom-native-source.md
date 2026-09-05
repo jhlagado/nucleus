@@ -41,6 +41,11 @@ continues. Shared generated outputs and package locks have one writer. Final
 release, downstream pin updates and hosted verification follow integration.
 Physical ESP32 and mobile-device measurements remain separate work.
 
+The [runtime conversion report](../reports/atom-native-runtime.md) records the
+next native source family and its parallel CP/M qualification work. Runtime
+catalog generation and development linking now bypass source translation;
+legacy compiler/proof callers remain for subsequent stages.
+
 ## Source inventory
 
 The baseline contains 119 assembly files and 44,764 lines under `asm/`, including

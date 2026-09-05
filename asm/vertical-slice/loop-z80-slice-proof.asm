@@ -47,9 +47,9 @@ ZeroLoopProofSource:
 ZeroLoopProofSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -81,7 +81,7 @@ ProofStart:
             CP   2
             JP   NZ,ProofFailFinalCounter
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailRunSuccess
             LD   A,(ServiceOutputLength)
             CP   3
@@ -100,7 +100,7 @@ ProofCheckSuccessOutput:
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailTrapState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -108,15 +108,15 @@ ProofCheckSuccessOutput:
             LD   A,(ServiceOutputBase)
             CP   "A"
             JP   NZ,ProofFailFailureOutput
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofFailTrapNumber
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,LoopFailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTrapOffset
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofFailTrapError
 
@@ -132,7 +132,7 @@ ProofCheckSuccessOutput:
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailZeroRun
             LD   A,(ServiceOutputLength)
             OR   A

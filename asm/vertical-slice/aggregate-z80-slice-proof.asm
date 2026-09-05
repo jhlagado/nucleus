@@ -225,9 +225,9 @@ AggregateTypeExtentCapacitySource:
 AggregateTypeExtentCapacitySourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -317,7 +317,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailRunState
 
             ; Force a failure during the static-image copy. The transactional

@@ -1436,7 +1436,7 @@ TypedAdditivePeekFailure:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedComparisonToken:
-            LD   C,ComparisonEqual
+            LD   C,RCEQ
             CP   TokenEquals
             SCF
             RET  Z
@@ -1445,9 +1445,9 @@ TypedComparisonToken:
             RET  NC
             INC  A
             INC  A
-            CP   ComparisonGreaterEqual+1
+            CP   RCGE+1
             JR   NZ,TypedComparisonTokenSelected
-            LD   A,ComparisonNotEqual
+            LD   A,RCNE
 TypedComparisonTokenSelected:
             LD   C,A
 TypedComparisonTokenYes:
@@ -1527,7 +1527,7 @@ TypedReduceComparison:
             SUB  ScalarTypeBoolean
             JP   NZ,TypedTypeFailure
             LD   A,(ExpressionOperator)
-            CP   ComparisonNotEqual+1
+            CP   RCNE+1
             JP   NC,TypedTypeFailure
             LD   D,A                     ; successful Boolean test leaves A=0
             LD   A,SemanticCompareBoolean

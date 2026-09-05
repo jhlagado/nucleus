@@ -207,9 +207,9 @@ StructuredParameterMainPoint:
 StructuredParameterMainSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -231,7 +231,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailAcceptedFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailAcceptedState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -276,19 +276,19 @@ ProofStart:
             ; routine depth back to the outer machine frame.
             CALL Reset
             LD   A,3
-            LD   (ActivationLimit),A
+            LD   (RTACTLIM),A
             CALL ProofCallGenerated
             JP   C,ProofFailCapacityFrame
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailCapacityState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   5
             JP   NZ,ProofFailCapacityNumber
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailCapacityDepth
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,StructuredAcceptedRecursiveCall-StructuredAcceptedSource
             OR   A
             SBC  HL,DE
@@ -305,9 +305,9 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailRangeFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailRangeState
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailRangeOffset
             LD   A,(GeneratedBase+3)
@@ -363,7 +363,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofFailBooleanFlowFrame
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailBooleanFlowState
             LD   A,(GeneratedBase+3)
             CP   1

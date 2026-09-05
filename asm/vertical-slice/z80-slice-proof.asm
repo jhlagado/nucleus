@@ -36,22 +36,22 @@ NameWriteOutputByte:
 ProgramTemplate:
             .db  $3E,$00
             .db  $CD
-            .dw  WriteOutputByte
+            .dw  RTWRITE
             .db  $38,$06
-            .db  $3E,RunSucceeded,$32
+            .db  $3E,RTSUCC,$32
             .dw  RunState
             .db  $C9
             .db  $32
-            .dw  TrapError
+            .dw  RTTRPERR
             .db  $AF,$32
-            .dw  TrapRoutine
+            .dw  RTTRPRTN
             .db  $21
             .dw  FailureOffset
             .db  $22
-            .dw  TrapOffset
+            .dw  RTTRPOFF
             .db  $3E,$06,$32
-            .dw  TrapNumber
-            .db  $3E,RunTrapped,$32
+            .dw  RTTRPNO
+            .db  $3E,RTTRAP,$32
             .dw  RunState
             .db  $C9
 CompilerImmutableEnd:
@@ -65,9 +65,9 @@ ProofSource:
 ProofSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -96,7 +96,7 @@ ProofStart:
             LD   (ServiceForceFailure),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailRunSuccess
             LD   A,(ServiceOutputLength)
             CP   1
@@ -111,23 +111,23 @@ ProofStart:
             LD   (ServiceForceFailure),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailTrapState
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailAtomicOutput
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofFailTrapNumber
-            LD   A,(TrapRoutine)
+            LD   A,(RTTRPRTN)
             OR   A
             JP   NZ,ProofFailTrapRoutine
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,FailureOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTrapOffset
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofFailTrapError
 

@@ -74,9 +74,9 @@ BadCompletionName:
 BadCompletionSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -109,7 +109,7 @@ ProofStart:
             CALL Reset
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofFailSuccessState
             LD   A,(ServiceOutputLength)
             CP   1
@@ -117,40 +117,40 @@ ProofStart:
             LD   A,(ServiceOutputBase)
             OR   A
             JP   NZ,ProofFailSuccessByte
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailSuccessActivation
-            LD   A,(ActivationArena+3)
+            LD   A,(RTACTMEM+3)
             CP   1
             JP   NZ,ProofFailSuccessPeak
 
             CALL Reset
             LD   A,$A5
-            LD   (ActivationArena+3),A
+            LD   (RTACTMEM+3),A
             LD   A,3
-            LD   (ActivationLimit),A
+            LD   (RTACTLIM),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailCapacityState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   5
             JP   NZ,ProofFailCapacityTrap
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailCapacityOutput
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailCapacityActivation
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,CallCapacityOffset
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailCapacityOffset
-            LD   A,(ActivationArena+2)
+            LD   A,(RTACTMEM+2)
             CP   2
             JP   NZ,ProofFailCapacityPeak
-            LD   A,(ActivationArena+3)
+            LD   A,(RTACTMEM+3)
             CP   $A5
             JP   NZ,ProofFailCapacityAtomic
 
@@ -159,15 +159,15 @@ ProofStart:
             LD   (ServiceFailureCall),A
             CALL GeneratedBase
             LD   A,(RunState)
-            CP   RunTrapped
+            CP   RTTRAP
             JP   NZ,ProofFailOutputState
-            LD   A,(TrapNumber)
+            LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofFailOutputTrap
-            LD   A,(TrapError)
+            LD   A,(RTTRPERR)
             CP   3
             JP   NZ,ProofFailOutputError
-            LD   HL,(TrapOffset)
+            LD   HL,(RTTRPOFF)
             LD   DE,CallFailureOffset
             OR   A
             SBC  HL,DE
@@ -175,7 +175,7 @@ ProofStart:
             LD   A,(ServiceOutputLength)
             OR   A
             JP   NZ,ProofFailOutputBytes
-            LD   A,(ActivationDepth)
+            LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailOutputActivation
 

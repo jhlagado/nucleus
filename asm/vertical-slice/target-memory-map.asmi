@@ -54,7 +54,7 @@ ProgramBssBase            .equ ProgramDataLimit
 ProgramBssLimit           .equ ProgramBssBase+$0400
 ProgramDataRegionLimit    .equ ProgramBssLimit
 ProgramDataRegionCapacity .equ ProgramDataRegionLimit-ProgramDataBase
-GeneratedRoDataCapacity   .equ $0400
+RORDCAP   .equ $0400
 
 ServiceBase         .equ $9900
 ServiceLimit        .equ $A000

@@ -40,7 +40,7 @@ BeginTargetFlatProgram:
             LD   (TargetOutputBank),A
             LD   L,(IX+TargetDescriptorRuntimeIdentity)
             LD   H,(IX+TargetDescriptorRuntimeIdentity+1)
-            LD   DE,NucleusRuntimeIdentity
+            LD   DE,RIABI
             OR   A
             SBC  HL,DE
             JP   NZ,TargetConfigurationFailure
@@ -123,12 +123,12 @@ TargetStartupReady:
             LD   DE,(StaticImageLength)
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
-            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
+            LD   DE,RIVECBYT+RISTBYT
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
 TargetFlatReadOnlyReady:
             LD   (TargetReadOnlyLength),HL
-            LD   DE,NucleusRuntimeExpectedLength+3
+            LD   DE,RIBYTES+3
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
             LD   DE,(TargetStartupLength)
@@ -177,7 +177,7 @@ TargetCodeCapacityReady:
             LD   (TargetLinkedRuntimeBase),HL
             ; The complete prefix and image end were checked before BEGIN, so
             ; this proper-prefix address walk cannot wrap.
-            LD   DE,NucleusRuntimeExpectedLength
+            LD   DE,RIBYTES
             ADD  HL,DE
             LD   DE,(TargetStartupLength)
             ADD  HL,DE
@@ -270,7 +270,7 @@ TargetRefreshReadOnlyBounds:
             LD   D,(HL)
             LD   (TargetCurrentRoCapacity),DE
             LD   HL,(TargetImageBase)
-            LD   DE,NucleusRuntimeExpectedLength+3
+            LD   DE,RIBYTES+3
             ADD  HL,DE
             LD   A,(TargetOutputBank)
             LD   D,A
@@ -318,19 +318,19 @@ TargetConsumeExtentReady:
 TargetEmitRuntimeInitialImage:
             LD   A,(TargetOutputBank)
             LD   HL,(EmitCursor)
-            LD   BC,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
+            LD   BC,RIVECBYT+RISTBYT
             OR   A
             JR   TargetEmitRuntimeProvider
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitRuntimeImage:
             LD   HL,(TargetLinkedRuntimeBase)
-            LD   BC,NucleusRuntimeExpectedLength
+            LD   BC,RIBYTES
             LD   (TargetMapRequestRuntimeLength),BC
             SCF
 TargetEmitRuntimeProvider:
             PUSH BC
-            LD   DE,NucleusRuntimeIdentity
+            LD   DE,RIABI
             LD   IX,TargetRuntimeContext
             JR   C,TargetEmitRuntimeProviderCode
             CALL TargetSinkRuntimeInitialImage
@@ -525,12 +525,12 @@ TargetPrepareRuntimeContext:
             LD   (TargetContextWritableCapacity),DE
             LD   (TargetMapRequestWritableCapacity),DE
             LD   (TargetContextVectorBase),HL
-            LD   DE,NucleusRuntimeVectorLength
+            LD   DE,RIVECBYT
             LD   (TargetMapRequestVectorLength),DE
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextStateBase),HL
-            LD   DE,NucleusRuntimeStateLength
+            LD   DE,RISTBYT
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             LD   (TargetContextDataBase),HL
@@ -601,7 +601,7 @@ TargetStateAddress:
 .routine out DE,HL,carry clobbers halfCarry
 TargetInitializedLength:
             LD   HL,(StaticImageLength)
-            LD   DE,NucleusRuntimeVectorLength+NucleusRuntimeStateLength
+            LD   DE,RIVECBYT+RISTBYT
             ADD  HL,DE
             RET
 
@@ -712,7 +712,7 @@ TargetStartupClear:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,NucleusRuntimeInitializeBssOffset
+            LD   DE,ROBSS
             CALL EmitRuntimeCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -740,8 +740,8 @@ TargetStartupEmitEntry:
             RET  C
 .endif
 TargetStartupTerminalState:
-            LD   DE,RunState-StateBase
-            LD   C,RunSucceeded
+            LD   DE,RunState-RTSTATE
+            LD   C,RTSUCC
             CALL TargetEmitTerminalTest
 .if CompilerDiagnosticReturns
             RET  C
@@ -751,7 +751,7 @@ TargetStartupTerminalState:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,TrapNumber-StateBase
+            LD   DE,RTTRPNO-RTSTATE
             LD   C,6                      ; unhandled trap number
             CALL TargetEmitTerminalTest
 .if CompilerDiagnosticReturns

@@ -24,7 +24,7 @@ GeneratedLimit      .equ $6800
 ; and therefore cannot resolve these symbols.
 GeneratedCodeBase       .equ GeneratedBase
 GeneratedCodeLimit      .equ $6400
-GeneratedRoDataBase     .equ GeneratedCodeLimit
+RORDATA     .equ GeneratedCodeLimit
 GeneratedRoDataLimit    .equ GeneratedLimit
 
 TargetRuntimeBase   .equ $6800
@@ -41,7 +41,7 @@ ProgramBssBase          .equ ProgramDataLimit
 ProgramBssLimit         .equ ProgramBssBase+$0400
 ProgramDataRegionLimit  .equ ProgramBssLimit
 ProgramDataRegionCapacity .equ ProgramDataRegionLimit-ProgramDataBase
-GeneratedRoDataCapacity .equ GeneratedRoDataLimit-GeneratedRoDataBase
+RORDCAP .equ GeneratedRoDataLimit-RORDATA
 
 ServiceBase         .equ $8800
 ServiceLimit        .equ $9000

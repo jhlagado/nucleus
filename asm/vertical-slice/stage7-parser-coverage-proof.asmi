@@ -91,9 +91,9 @@ Stage7LL1ConstantSource:
 Stage7LL1ConstantSourceEnd:
 
             .org TargetRuntimeBase
-RuntimeCodeStart:
+RTSTART:
             .include "proof-z80-runtime.asm"
-RuntimeCodeEnd:
+RTEND:
 
             .org ProofBase
 .routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,IY
@@ -113,7 +113,7 @@ ProofStart:
             CALL ProofCallGenerated
             JP   C,ProofConstantFrameFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JP   NZ,ProofConstantRunFailure
             LD   A,(ServiceOutputLength)
             CP   1
@@ -134,7 +134,7 @@ ProofStart:
             CALL ProofCallGenerated
             JR   C,ProofFrameFailure
             LD   A,(RunState)
-            CP   RunSucceeded
+            CP   RTSUCC
             JR   NZ,ProofRunFailure
             LD   A,(ServiceOutputLength)
             CP   1

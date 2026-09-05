@@ -175,10 +175,10 @@ Stage8EmitFailureOffset:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,TrapOffset-StateBase
+            LD   DE,RTTRPOFF-RTSTATE
             CALL TargetStateAddress
 .else
-            LD   HL,TrapOffset
+            LD   HL,RTTRPOFF
 .endif
             LD   A,$22                    ; LD (nn),HL
             JP   EmitOpcodeWord
@@ -225,10 +225,10 @@ Stage8ReadCallStateLoop:
             AND  Stage8CallableServiceFlag
             JP   NZ,Stage8InvokeService
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeActivationClaimOffset
+            LD   DE,ROACLM
             CALL TypedEmitFailableRuntimeCall
 .else
-            LD   HL,ActivationClaim
+            LD   HL,RTACLM
             CALL TypedEmitFailableCall
 .endif
 .if CompilerDiagnosticReturns
@@ -261,10 +261,10 @@ Stage8ReadCallStateLoop:
             AND  Stage7RoutineFails
             JR   NZ,Stage8CallableSourceFailable
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeActivationReleaseOffset
+            LD   DE,ROAREL
             CALL EmitRuntimeCall
 .else
-            LD   HL,ActivationRelease
+            LD   HL,RTAREL
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -313,10 +313,10 @@ Stage8CallableSourceFailable:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeActivationReleaseOffset
+            LD   DE,ROAREL
             CALL EmitRuntimeCall
 .else
-            LD   HL,ActivationRelease
+            LD   HL,RTAREL
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -546,12 +546,12 @@ Stage8NoArgumentFailable:
 .if TargetStreamingOutput
 .else
 Stage8ServiceAddressTable:
-            .dw ReadInputByte
-            .dw WriteOutputByte
-            .dw ReadStorageByte
-            .dw RewindStorageInput
-            .dw WriteStorageByte
-            .dw SeekStorageOutput
+            .dw RTREADIN
+            .dw RTWRITE
+            .dw RTREADST
+            .dw RTREWIND
+            .dw RTWRSTOR
+            .dw RTSEEK
 .endif
 
 ; Startup is a terminal wrapper around main's ordinary callable body. The
@@ -592,7 +592,7 @@ Stage8BeginCallableMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,TrapOffset-StateBase
+            LD   DE,RTTRPOFF-RTSTATE
             CALL TargetStateAddress
             LD   A,$2A                    ; LD HL,(nn)
             CALL EmitOpcodeWord
@@ -657,7 +657,7 @@ Stage7LoadReadOnlyAlias:
 .else
             LD   HL,(StaticImageLength)
             ADD  HL,DE
-            LD   DE,GeneratedRoDataBase
+            LD   DE,RORDATA
             ADD  HL,DE
 .endif
 Stage7LoadAliasReady:
@@ -731,10 +731,10 @@ Stage7OpenArrayIndex:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7SelectIndexBoundReady:
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckArrayIndexOffset
+            LD   DE,ROARRIX
             CALL EmitRuntimeCall
 .else
-            LD   HL,CheckArrayIndex
+            LD   HL,RTARRIX
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -755,10 +755,10 @@ Stage7SelectIndexBoundReady:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeMultiplyU16Offset
+            LD   DE,ROMUL16
             CALL EmitRuntimeCall
 .else
-            LD   HL,MultiplyU16
+            LD   HL,RTMUL16
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -896,10 +896,10 @@ Stage7EmitRegionPrefix:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7EmitRegionInvoke:
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckAggregateRegionOffset
+            LD   DE,ROREGCHK
             CALL EmitRuntimeCall
 .else
-            LD   HL,CheckAggregateRegion
+            LD   HL,RTREGCHK
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -929,9 +929,9 @@ Stage7StringLength:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckStringLengthOffset
+            LD   DE,ROSTRLEN
 .else
-            LD   HL,CheckStringLength
+            LD   HL,RTSTRLEN
 .endif
             JP   Stage7EmitStringCheck
 
@@ -952,9 +952,9 @@ Stage7StringIndex:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckStringIndexOffset
+            LD   DE,ROSTRIDX
 .else
-            LD   HL,CheckStringIndex
+            LD   HL,RTSTRIDX
 .endif
             JP   Stage7EmitStringCheck
 
@@ -996,9 +996,9 @@ Stage7OpenStringLength:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckStringLengthOffset
+            LD   DE,ROSTRLEN
 .else
-            LD   HL,CheckStringLength
+            LD   HL,RTSTRLEN
 .endif
             JR   Stage7EmitOpenStringCheck
 
@@ -1019,9 +1019,9 @@ Stage7OpenStringIndex:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeCheckStringIndexOffset
+            LD   DE,ROSTRIDX
 .else
-            LD   HL,CheckStringIndex
+            LD   HL,RTSTRIDX
 .endif
 
 .if TargetStreamingOutput
@@ -1230,10 +1230,10 @@ Stage7StringResize:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,NucleusRuntimeResizeStringOffset
+            LD   DE,RORESIZE
             CALL EmitRuntimeCall
 .else
-            LD   HL,ResizeString
+            LD   HL,RTRESIZE
             CALL EmitCall
 .endif
 .if CompilerDiagnosticReturns
@@ -1282,6 +1282,6 @@ Stage8ErrorCarrierBytes .equ TypedAtoHL       ; LD L,A / LD H,0 / PUSH HL
 .else
 Stage8ReloadFailureOffsetBytes:
             .db $F5,$2A                   ; PUSH AF / LD HL,(nn)
-            .dw TrapOffset
+            .dw RTTRPOFF
             .db $F1                       ; POP AF
 .endif

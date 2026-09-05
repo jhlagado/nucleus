@@ -3,13 +3,13 @@
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 Reset:
             XOR  A
-            LD   (TrapNumber),A
-            LD   (TrapRoutine),A
-            LD   (TrapError),A
+            LD   (RTTRPNO),A
+            LD   (RTTRPRTN),A
+            LD   (RTTRPERR),A
             LD   (ServiceOutputLength),A
             LD   (ServiceOutputByte),A
             LD   HL,0
-            LD   (TrapOffset),HL
+            LD   (RTTRPOFF),HL
             LD   A,RunReady
             LD   (RunState),A
             OR   A
@@ -17,18 +17,18 @@ Reset:
 
 ; Input A is the byte. Carry returns a recoverable failure, with A as its code.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B
-WriteOutputByte:
+RTWRITE:
             LD   B,A
             LD   A,(ServiceForceFailure)
             OR   A
-            JR   NZ,WriteOutputByteFailure
+            JR   NZ,RTWRERR
             LD   A,B
             LD   (ServiceOutputByte),A
             LD   A,1
             LD   (ServiceOutputLength),A
             XOR  A
             RET
-WriteOutputByteFailure:
+RTWRERR:
             LD   A,3
             SCF
             RET
