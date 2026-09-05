@@ -1,0 +1,3 @@
+; Runtime stays between the source corpus and the proof driver.
+            ORG MMRUN
+RTSTART:

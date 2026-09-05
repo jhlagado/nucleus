@@ -154,11 +154,21 @@ recorded in the [implementation account](docs/implementation-plan.md#parameter-o
 
 ## Development toolchain
 
-ATOM is the assembler for new source and production image generation. Its
-revision is pinned in `devDependencies`. A build-time adapter translates the
-existing source spelling and symbol names into ATOM's supported syntax; ATOM
-resolves addresses and emits the bytes. Installed Nucleus packages use prebuilt
+ATOM is the assembler for source and production image generation. Its revision
+is pinned in `devDependencies`. Canonical sources use native ATOM syntax and
+ordered project dependencies. Explicit output maps preserve public symbol names;
+the former source translator is removed. Installed Nucleus packages use prebuilt
 images and do not invoke an assembler while compiling or running programs.
+
+Use Node 24 for the complete development test suite. Source-isolation tests
+execute TypeScript in separate Node processes with transformation enabled.
+The built package retains Node 20 support; a separate Linux CI job builds it
+and checks an isolated installed consumer on Node 20.
+
+`npm run prepublishOnly` runs the complete release gate locally. CI runs its
+same source and package stages independently and divides the test files among
+four isolated runners. Every shard, source check and package-compatibility job
+must succeed before the aggregate release gate passes.
 
 ```bash
 npm ci
@@ -190,14 +200,16 @@ run programs from their prebuilt images.
 
 The proof/measurement helpers and CI now use pinned ATOM revision
 `802b5c2d320bec777f427755ff2d7338e3b80a05`. CI no longer checks out Debug80 to
-build or link AZM. The complete final-worktree release gate passes: all 564
-tests, deterministic compiler-image generation, the runtime-boundary check and
-the installed-package consumer proof. Both push and pull-request Linux gates
-passed, and pull request 1 was merged to `main` at revision
-`7d3f6d2e01773d58226c758059c26b8009a18460`. The
+build or link AZM. The earlier release qualification passed 564 tests,
+deterministic image generation, the runtime-boundary check and the installed
+consumer proof. Its Linux gates passed before pull request 1 was merged to
+`main` at `7d3f6d2e01773d58226c758059c26b8009a18460`. These are historical
+results, not qualification of the current development branch. The
 [reconciliation report](docs/reports/atom-reconciliation.md) records the earlier
-migration, and the [relocation checkpoint](docs/reports/atom-relocation-qualification.md)
-records the current dependency and remaining release checks.
+migration, and the [source-closure report](docs/reports/atom-native-source-closure.md)
+records the native conversion, current verification and remaining release work.
+The [0.3.1 qualification checkpoint](docs/reports/atom-native-release-qualification.md)
+records the corrected CP/M candidate and its independent real-OS replay.
 
 The CP/M release build emits the exact unpadded transient plus a machine-readable
 manifest. A disk-image builder may add CP/M's final 128-byte record padding; it

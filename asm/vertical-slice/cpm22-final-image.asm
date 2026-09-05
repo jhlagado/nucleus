@@ -1,171 +1,171 @@
 ; Intel HEX renderer for finalized native images. The including publisher
-; supplies the ZTS_CPM_FINAL_* aliases so the renderer stays independent of
+; supplies the HXF* bindings so the renderer stays independent of
 ; the compiler, filesystem transaction, and target memory layout.
 
-.routine out A clobbers carry,zero,sign,parity,halfCarry,HL
-ZTS_CPM_HEX_BEGIN:
-            LD   HL,ZTS_CPM_FINAL_DMA
-            LD   (ZTS_CPM_FINAL_DMA_CURSOR),HL
+; Contract: out A clobbers carry,zero,sign,parity,halfCarry,HL
+HXBEGIN:
+            LD   HL,HXFDMA
+            LD   (HXFDMCUR),HL
             XOR  A
-            LD   (ZTS_CPM_FINAL_DMA_COUNT),A
-            LD   (ZTS_CPM_FINAL_ERROR),A
+            LD   (HXFDMCNT),A
+            LD   (HXFERROR),A
             RET
 
-.routine out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_SEGMENT:
-            LD   HL,(ZTS_CPM_FINAL_REMAINING)
+; Contract: out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL
+HXSEG:
+            LD   HL,(HXFLEFT)
             LD   A,H
             OR   L
             RET  Z
             LD   A,H
             OR   A
             LD   A,16
-            JR   NZ,ZTS_CPM_HEX_SIZE_READY
+            JR   NZ,HXSIZOK
             LD   A,L
             CP   16
-            JR   C,ZTS_CPM_HEX_SIZE_READY
+            JR   C,HXSIZOK
             LD   A,16
-ZTS_CPM_HEX_SIZE_READY:
-            LD   (ZTS_CPM_FINAL_SIZE),A
-            LD   (ZTS_CPM_FINAL_DATA_LEFT),A
+HXSIZOK:
+            LD   (HXFSIZE),A
+            LD   (HXFDLEFT),A
             LD   A,':'
-            CALL ZTS_CPM_HEX_PUT
+            CALL HXPUT
             XOR  A
-            LD   (ZTS_CPM_FINAL_SUM),A
-            LD   A,(ZTS_CPM_FINAL_SIZE)
-            CALL ZTS_CPM_HEX_FIELD
-            LD   HL,(ZTS_CPM_FINAL_ADDRESS)
+            LD   (HXFSUM),A
+            LD   A,(HXFSIZE)
+            CALL HXFIELD
+            LD   HL,(HXFADDR)
             PUSH HL
             LD   A,H
-            CALL ZTS_CPM_HEX_FIELD
+            CALL HXFIELD
             POP  HL
             LD   A,L
-            CALL ZTS_CPM_HEX_FIELD
+            CALL HXFIELD
             XOR  A
-            CALL ZTS_CPM_HEX_FIELD
-ZTS_CPM_HEX_DATA:
-            LD   A,(ZTS_CPM_FINAL_DATA_LEFT)
+            CALL HXFIELD
+HXDATA:
+            LD   A,(HXFDLEFT)
             OR   A
-            JR   Z,ZTS_CPM_HEX_CHECKSUM
-            LD   HL,(ZTS_CPM_FINAL_SOURCE_CURSOR)
+            JR   Z,HXCHKSUM
+            LD   HL,(HXFSRC)
             LD   A,(HL)
             INC  HL
-            LD   (ZTS_CPM_FINAL_SOURCE_CURSOR),HL
-            CALL ZTS_CPM_HEX_FIELD
-            LD   A,(ZTS_CPM_FINAL_DATA_LEFT)
+            LD   (HXFSRC),HL
+            CALL HXFIELD
+            LD   A,(HXFDLEFT)
             DEC  A
-            LD   (ZTS_CPM_FINAL_DATA_LEFT),A
-            JR   ZTS_CPM_HEX_DATA
-ZTS_CPM_HEX_CHECKSUM:
-            LD   A,(ZTS_CPM_FINAL_SUM)
+            LD   (HXFDLEFT),A
+            JR   HXDATA
+HXCHKSUM:
+            LD   A,(HXFSUM)
             NEG
-            CALL ZTS_CPM_HEX_BYTE
+            CALL HXBYTE
             LD   A,13
-            CALL ZTS_CPM_HEX_PUT
+            CALL HXPUT
             LD   A,10
-            CALL ZTS_CPM_HEX_PUT
-            LD   A,(ZTS_CPM_FINAL_SIZE)
+            CALL HXPUT
+            LD   A,(HXFSIZE)
             LD   E,A
             LD   D,0
-            LD   HL,(ZTS_CPM_FINAL_REMAINING)
+            LD   HL,(HXFLEFT)
             OR   A
             SBC  HL,DE
-            LD   (ZTS_CPM_FINAL_REMAINING),HL
-            LD   HL,(ZTS_CPM_FINAL_ADDRESS)
+            LD   (HXFLEFT),HL
+            LD   HL,(HXFADDR)
             ADD  HL,DE
-            LD   (ZTS_CPM_FINAL_ADDRESS),HL
-            JR   ZTS_CPM_HEX_SEGMENT
+            LD   (HXFADDR),HL
+            JR   HXSEG
 
-.routine out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_END:
-            LD   HL,ZTS_CPM_HEX_EOF_TEXT
+; Contract: out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL
+HXEND:
+            LD   HL,HXEOFTXT
             LD   B,13
-ZTS_CPM_HEX_EOF_BYTE:
+HXEOFBYT:
             PUSH BC
             PUSH HL
             LD   A,(HL)
-            CALL ZTS_CPM_HEX_PUT
+            CALL HXPUT
             POP  HL
             POP  BC
             INC  HL
-            DJNZ ZTS_CPM_HEX_EOF_BYTE
-ZTS_CPM_HEX_PAD:
-            LD   A,(ZTS_CPM_FINAL_DMA_COUNT)
+            DJNZ HXEOFBYT
+HXPAD:
+            LD   A,(HXFDMCNT)
             OR   A
-            JR   Z,ZTS_CPM_HEX_DONE
+            JR   Z,HXDONE
             LD   A,$1A
-            CALL ZTS_CPM_HEX_PUT
-            JR   ZTS_CPM_HEX_PAD
-ZTS_CPM_HEX_DONE:
-            LD   A,(ZTS_CPM_FINAL_ERROR)
+            CALL HXPUT
+            JR   HXPAD
+HXDONE:
+            LD   A,(HXFERROR)
             OR   A
             RET  Z
             SCF
             RET
 
-.routine in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_FIELD:
+; Contract: in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
+HXFIELD:
             PUSH AF
             LD   E,A
-            LD   A,(ZTS_CPM_FINAL_SUM)
+            LD   A,(HXFSUM)
             ADD  A,E
-            LD   (ZTS_CPM_FINAL_SUM),A
+            LD   (HXFSUM),A
             POP  AF
-.routine in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_BYTE:
+; Contract: in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
+HXBYTE:
             PUSH AF
             RRCA
             RRCA
             RRCA
             RRCA
-            CALL ZTS_CPM_HEX_NIBBLE
+            CALL HXNIBBLE
             POP  AF
-.routine in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_NIBBLE:
+; Contract: in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
+HXNIBBLE:
             AND  $0F
             ADD  A,'0'
             CP   '9'+1
-            JR   C,ZTS_CPM_HEX_PUT
+            JR   C,HXPUT
             ADD  A,7
-.routine in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_PUT:
+; Contract: in A out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
+HXPUT:
             PUSH AF
-            LD   A,(ZTS_CPM_FINAL_ERROR)
+            LD   A,(HXFERROR)
             OR   A
-            JR   NZ,ZTS_CPM_HEX_PUT_FAILED
+            JR   NZ,HXPTFAIL
             POP  AF
-            LD   HL,(ZTS_CPM_FINAL_DMA_CURSOR)
+            LD   HL,(HXFDMCUR)
             LD   (HL),A
             INC  HL
-            LD   (ZTS_CPM_FINAL_DMA_CURSOR),HL
-            LD   A,(ZTS_CPM_FINAL_DMA_COUNT)
+            LD   (HXFDMCUR),HL
+            LD   A,(HXFDMCNT)
             INC  A
-            LD   (ZTS_CPM_FINAL_DMA_COUNT),A
+            LD   (HXFDMCNT),A
             CP   128
             RET  NZ
-.routine out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
-ZTS_CPM_HEX_FLUSH:
-            LD   DE,ZTS_CPM_FINAL_DMA
-            LD   C,CpmPublishDmaFunction
-            CALL CpmCallBdos
-            LD   DE,ZTS_CPM_FINAL_FCB
-            LD   C,CpmPublishWriteFunction
-            CALL CpmCallBdos
+; Contract: out A clobbers carry,zero,sign,parity,halfCarry,BC,DE,HL
+HXFLUSH:
+            LD   DE,HXFDMA
+            LD   C,PBFDMA
+            CALL BDOSCALL
+            LD   DE,HXFFCB
+            LD   C,PBFWRITE
+            CALL BDOSCALL
             OR   A
-            JR   NZ,ZTS_CPM_HEX_WRITE_FAILED
-            LD   HL,ZTS_CPM_FINAL_DMA
-            LD   (ZTS_CPM_FINAL_DMA_CURSOR),HL
+            JR   NZ,HXWRFAIL
+            LD   HL,HXFDMA
+            LD   (HXFDMCUR),HL
             XOR  A
-            LD   (ZTS_CPM_FINAL_DMA_COUNT),A
+            LD   (HXFDMCNT),A
             RET
-ZTS_CPM_HEX_WRITE_FAILED:
+HXWRFAIL:
             LD   A,1
-            LD   (ZTS_CPM_FINAL_ERROR),A
+            LD   (HXFERROR),A
             XOR  A
-            LD   (ZTS_CPM_FINAL_DMA_COUNT),A
+            LD   (HXFDMCNT),A
             RET
-ZTS_CPM_HEX_PUT_FAILED:
+HXPTFAIL:
             POP  AF
             RET
 
-ZTS_CPM_HEX_EOF_TEXT: .db ':','0','0','0','0','0','0','0','1','F','F',13,10
+HXEOFTXT: DB ':','0','0','0','0','0','0','0','1','F','F',13,10

@@ -1,101 +1,101 @@
-            .include "platform-services-abi.asmi"
+%INCLUDE "platform-services-abi.asmi"
 
-RuntimeCatalogNodeGatewayPort .equ $E2
-ProofStackTop                 .equ $7F00
+LPRCPORT   EQU $E2
+LPSTACK    EQU $7F00
 
-            .org $0010
-RuntimeCatalogNodeGateway:
-            OUT  (RuntimeCatalogNodeGatewayPort),A
+            ORG $0010
+LPRCGATE:
+            OUT  (LPRCPORT),A
             RET
 
-            .org $4000
-ProofStart:
-            LD   SP,ProofStackTop
-            LD   (ProofEntrySp),SP
+            ORG $4000
+FPSTART:
+            LD   SP,LPSTACK
+            LD   (LPENTSP),SP
             LD   IX,$1357
             LD   IY,$2468
 
-            LD   HL,ProofRequest
-            LD   C,NucleusServiceRuntimeCatalog
+            LD   HL,LPREQ
+            LD   C,NSRTCAT
             RST  $10
-            JP   C,ProofFail
-            LD   HL,(ProofRequest+NucleusRuntimeCatalogRequestResult)
+            JP   C,FPFAIL
+            LD   HL,(LPREQ+NCFRES)
             LD   DE,2
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
-            LD   HL,(ProofBuffer)
+            JP   NZ,FPFAIL
+            LD   HL,(LPBUFFER)
             LD   DE,$3322
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
 
-            LD   A,NucleusRuntimeCatalogInitial
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestOperation),A
+            LD   A,NCINIT
+            LD   (LPREQ+NCFOPER),A
             LD   A,1
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestFlags),A
+            LD   (LPREQ+NCFFLAG),A
             LD   A,3
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestBank),A
+            LD   (LPREQ+NCFBANK),A
             LD   HL,5
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestLength),HL
+            LD   (LPREQ+NCFLEN),HL
             LD   HL,0
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestOffset),HL
+            LD   (LPREQ+NCFOFF),HL
             LD   HL,5
-            LD   (ProofRequest+NucleusRuntimeCatalogRequestCapacity),HL
-            LD   HL,ProofRequest
-            LD   C,NucleusServiceRuntimeCatalog
+            LD   (LPREQ+NCFCAP),HL
+            LD   HL,LPREQ
+            LD   C,NSRTCAT
             RST  $10
-            JP   C,ProofFail
-            LD   HL,(ProofRequest+NucleusRuntimeCatalogRequestResult)
+            JP   C,FPFAIL
+            LD   HL,(LPREQ+NCFRES)
             LD   DE,5
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
-            LD   HL,ProofExpectedInitial
-            LD   DE,ProofBuffer
+            JP   NZ,FPFAIL
+            LD   HL,LPEXINIT
+            LD   DE,LPBUFFER
             LD   B,5
-ProofCompare:
+LPCMP:
             LD   A,(DE)
             CP   (HL)
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             INC  DE
             INC  HL
-            DJNZ ProofCompare
+            DJNZ LPCMP
 
             PUSH IX
             POP  HL
             LD   DE,$1357
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             PUSH IY
             POP  HL
             LD   DE,$2468
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             LD   HL,0
             ADD  HL,SP
-            LD   DE,(ProofEntrySp)
+            LD   DE,(LPENTSP)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFail
+            JP   NZ,FPFAIL
             XOR  A
-            LD   (ProofResult),A
+            LD   (LPRES),A
             HALT
 
-ProofFail:
+FPFAIL:
             LD   A,1
-            LD   (ProofResult),A
+            LD   (LPRES),A
             HALT
 
-ProofEntrySp: .dw 0
-ProofResult:  .db $FF
-ProofContext: .dw $8003,$4000,$1000,$4024,$4000,$404D,$0010,0,0
-ProofRequest:
-            .db NucleusRuntimeCatalogRequestSize
-            .db NucleusRuntimeCatalogAbiVersion
-            .db NucleusRuntimeCatalogCode,0,0,0
-            .dw $000A,4,ProofContext,1,ProofBuffer,2,0,0
-ProofBuffer:          .db 0,0,0,0,0
-ProofExpectedInitial: .db 1,2,3,3,5
+LPENTSP: DW 0
+LPRES:  DB $FF
+LPCTX: DW $8003,$4000,$1000,$4024,$4000,$404D,$0010,0,0
+LPREQ:
+            DB NCRQSIZE
+            DB NCABI
+            DB NCCODE,0,0,0
+            DW $000A,4,LPCTX,1,LPBUFFER,2,0,0
+LPBUFFER:          DB 0,0,0,0,0
+LPEXINIT: DB 1,2,3,3,5

@@ -2,7 +2,7 @@ import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
@@ -13,8 +13,8 @@ import {
 
 describe("the Node named-object Z80 gateway", () => {
   it("executes the common request ABI without replacing the Z80 client", async () => {
-    const { hex, symbols } = await assembleAtomSource(
-      "vertical-slice/object-services-node-proof.asm",
+    const { hex, symbols } = await assembleNativeNobj(
+      "object-services-node-proof.asm",
     );
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-object-gateway-"));
     writeFileSync(path.join(root, "source.nu"), "abcdef");

@@ -4,74 +4,74 @@
 ; patches the JP operand to the first code byte, so source execution cannot
 ; observe initialization in progress.
 
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
 ; Emit every aggregate constant exactly once in declaration order. Symbols
 ; retain per-bank offsets, while IY walks the single declaration-ordered
 ; compiler backing image. Switching banks never replays source or semantics.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetEmitBankedAggregateConstants:
-            LD   IY,StaticImageBase
-            LD   DE,(StaticImageLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+ZGBCONST:
+            LD   IY,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  IY,DE
-            LD   A,(SymbolCount)
+            LD   A,(SYCNT)
             OR   A
             LD   B,A
-            JR   Z,TargetEmitBankedStringLiterals
+            JR   Z,ZGBSTR
             LD   C,0
-            LD   IX,SymbolTableBase
-TargetEmitBankedConstantSymbolLoop:
+            LD   IX,SYTABBAS
+ZGCSYMLP:
             LD   A,(IX+3)
             LD   D,A
-            AND  SymbolAggregateFlag+SymbolClassMask
-            CP   SymbolAggregateFlag+SymbolClassConstant
-            JR   NZ,TargetEmitBankedConstantNext
+            AND  SYAGGFLG+SCMSK
+            CP   SYAGGFLG+SCCONST
+            JR   NZ,ZGCNEXT
             LD   A,D
-            CALL TargetUnpackBank
+            CALL FTUPKBK
             PUSH BC
-            CALL TargetSelectOutputBank
+            CALL ZTSELBK
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(IX+SymbolTypeId)
-            CALL AggregateGetExtent
+%ENDIF
+            LD   A,(IX+SYTYPID)
+            CALL APGETEXT
             EX   DE,HL
-TargetEmitBankedConstantByteLoop:
+ZGCBYTLP:
             LD   A,D
             OR   E
-            JR   Z,TargetEmitBankedConstantNext
+            JR   Z,ZGCNEXT
             LD   A,(IY+0)
             INC  IY
             PUSH BC
             PUSH DE
-            CALL EmitByte
+            CALL EMITBYTE
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  DE
-            JR   TargetEmitBankedConstantByteLoop
-TargetEmitBankedConstantNext:
-            LD   DE,SymbolEntrySize
+            JR   ZGCBYTLP
+ZGCNEXT:
+            LD   DE,SYENTSZ
             ADD  IX,DE
             INC  C
-            DJNZ TargetEmitBankedConstantSymbolLoop
+            DJNZ ZGCSYMLP
 
 ; Anonymous literal objects follow all named aggregate constants in the
 ; staging image. Their compiler-only final byte retains the source bank;
 ; publish the preceding sealed bytes and restore the permanent zero.
-TargetEmitBankedStringLiterals:
-            LD   HL,StaticImageBase
-            LD   DE,(StaticImageLength)
+ZGBSTR:
+            LD   HL,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  HL,DE
-            LD   DE,(ReadOnlyImageLength)
+            LD   DE,(ROILEN)
             ADD  HL,DE
             PUSH HL
             POP  IX                      ; end of staged read-only bytes
             PUSH IY
             POP  HL                      ; first anonymous literal
-TargetEmitBankedStringLiteralLoop:
+ZGSTRLP:
             PUSH IX
             POP  DE
             OR   A
@@ -81,9 +81,9 @@ TargetEmitBankedStringLiteralLoop:
             LD   C,(HL)
             LD   A,C
             OR   A
-            JR   NZ,TargetEmitBankedStringExtentReady
+            JR   NZ,ZGSTREXT
             INC  BC                      ; empty literal capacity is one
-TargetEmitBankedStringExtentReady:
+ZGSTREXT:
             INC  BC
             INC  BC
             PUSH HL
@@ -92,144 +92,144 @@ TargetEmitBankedStringExtentReady:
             DEC  HL
             LD   A,(HL)                  ; compiler-only source bank
             LD   (HL),0                  ; publish the permanent terminator
-            CALL TargetSelectOutputBank
+            CALL ZTSELBK
             POP  BC
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitBlock
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBLOCK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   TargetEmitBankedStringLiteralLoop
-.endif
+%ENDIF
+            JR   ZGSTRLP
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-EncodeAggregateProgram:
-.if TargetStreamingOutput
-            LD   IX,(TargetDescriptorPointer)
-            CALL BeginTargetFlatProgram
-.if CompilerDiagnosticBranches
-            JP   C,AbortTargetProgram
-.endif
-.else
-.if AggregateCallSlices
-            LD   HL,GeneratedCodeLimit
-.else
-            LD   HL,GeneratedLimit
-.endif
-.endif
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-EncodeAggregateProgramWithinLimit:
-.if TargetStreamingOutput
-            CALL TargetCompareSingleBank
-            JR   NZ,AggregateDispatch
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZGPROG:
+%IF TargetStreamingOutput
+            LD   IX,(TDPTR)
+            CALL ZTFLAT
+%IF CompilerDiagnosticBranches
+            JP   C,ZTABORT
+%ENDIF
+%ELSE
+%IF AggregateCallSlices
+            LD   HL,MMGCEND
+%ELSE
+            LD   HL,MMGENLIM
+%ENDIF
+%ENDIF
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZGPRGLIM:
+%IF TargetStreamingOutput
+            CALL ZTCMPBNK
+            JR   NZ,ZGDISP
             ; BeginTargetFlatProgram already selected the first read-only byte.
-            CALL TargetLoadLayoutMode
-            JR   Z,AggregateTargetLoadedRoData
-            CALL TargetEmitRuntimeInitialImage
-.if CompilerDiagnosticBranches
-            JP   C,AggregateAbortProgram
-.endif
-            JR   AggregateTargetCopyReady
-AggregateTargetLoadedRoData:
-            LD   HL,StaticImageBase
-            LD   DE,(StaticImageLength)
+            CALL ZTLDMODE
+            JR   Z,ZGLOADRO
+            CALL ZTRTINIT
+%IF CompilerDiagnosticBranches
+            JP   C,ZGABORT
+%ENDIF
+            JR   ZGCOPYOK
+ZGLOADRO:
+            LD   HL,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  HL,DE
-            LD   BC,(ReadOnlyImageLength)
-            JR   AggregateTargetCopySelected
-AggregateTargetCopyReady:
-.else
-.if AggregateCallSlices
-            CALL BeginSegmentedProgram
-            JP   C,AbortSegmentedProgram
-            LD   A,SegmentRoData
-            CALL SelectOutputSegment
-.else
-            CALL EncodeProgramHeader
-            JP   C,AbortProgram
-.endif
-.endif
-.if SegmentedOutput
-            LD   HL,(ReadOnlyImageLength)
-            LD   BC,(StaticImageLength)
+            LD   BC,(ROILEN)
+            JR   ZGCOPYSL
+ZGCOPYOK:
+%ELSE
+%IF AggregateCallSlices
+            CALL ZESEGBEG
+            JP   C,ZESEGABT
+            LD   A,SGRODAT
+            CALL ZESEGSEL
+%ELSE
+            CALL ZXPGHEAD
+            JP   C,ZEABORT
+%ENDIF
+%ENDIF
+%IF SegmentedOutput
+            LD   HL,(ROILEN)
+            LD   BC,(IMGLEN)
             ADD  HL,BC
             LD   B,H
             LD   C,L
-            LD   HL,StaticImageBase
-.else
-            LD   HL,StaticImageBase
-            LD   BC,(StaticImageLength)
-.endif
-.if TargetStreamingOutput
-AggregateTargetCopySelected:
-            CALL EmitBlock
-.if CompilerDiagnosticBranches
-            JP   C,AggregateAbortProgram
-.endif
-.else
+            LD   HL,IMGBAS
+%ELSE
+            LD   HL,IMGBAS
+            LD   BC,(IMGLEN)
+%ENDIF
+%IF TargetStreamingOutput
+ZGCOPYSL:
+            CALL ZEBLOCK
+%IF CompilerDiagnosticBranches
+            JP   C,ZGABORT
+%ENDIF
+%ELSE
             LD   A,B
             OR   C
-            JR   Z,AggregateDispatch
-AggregateCopyLoop:
+            JR   Z,ZGDISP
+ZGCOPYLP:
             LD   A,(HL)
             INC  HL
             PUSH BC
             PUSH HL
-            CALL EmitByte
+            CALL EMITBYTE
             POP  HL
             POP  BC
-            JP   C,AggregateAbortProgram
+            JP   C,ZGABORT
             DEC  BC
             LD   A,B
             OR   C
-            JR   NZ,AggregateCopyLoop
-.endif
-AggregateDispatch:
-.if TargetStreamingOutput
-            CALL TargetCompareSingleBank
-            JR   NZ,AggregateTargetBoundsReady
-            LD   HL,(EmitCursor)
-            LD   (TargetCodeBase),HL
-            CALL TargetLoadLayoutMode
-            JR   NZ,AggregateTargetCodeReady
-            LD   HL,(TargetCodeCapacity)
-            LD   (EmitLimit),HL
-AggregateTargetCodeReady:
-            LD   HL,(TargetContextRoDataBase)
-            LD   (TargetCurrentRoBase),HL
-            LD   HL,(TargetContextRoDataCapacity)
-            LD   (TargetCurrentRoCapacity),HL
-AggregateTargetBoundsReady:
-.else
-.if AggregateCallSlices
-            LD   A,SegmentCode
-            CALL SelectOutputSegment
-            CALL EncodeSegmentedProgramHeader
-            JP   C,AbortSegmentedProgram
-.endif
-.endif
-            CALL TypedDispatch
-.if CompilerDiagnosticBranches
-            JP   C,AggregateAbortProgram
-.endif
-.if TargetStreamingOutput
-            JP   FinishTargetFlatProgram
-.else
-.if AggregateCallSlices
-            JP   FinishSegmentedProgram
-.else
-            JP   FinishProgram
-.endif
-.endif
+            JR   NZ,ZGCOPYLP
+%ENDIF
+ZGDISP:
+%IF TargetStreamingOutput
+            CALL ZTCMPBNK
+            JR   NZ,ZGBOUNDS
+            LD   HL,(EMCUR)
+            LD   (TGCODBAS),HL
+            CALL ZTLDMODE
+            JR   NZ,ZGCODEOK
+            LD   HL,(TGCODCAP)
+            LD   (EMLIM),HL
+ZGCODEOK:
+            LD   HL,(TCROBAS)
+            LD   (TGCRBAS),HL
+            LD   HL,(TCROCAP)
+            LD   (TGCROCAP),HL
+ZGBOUNDS:
+%ELSE
+%IF AggregateCallSlices
+            LD   A,SGCODE
+            CALL ZESEGSEL
+            CALL ZXSGHEAD
+            JP   C,ZESEGABT
+%ENDIF
+%ENDIF
+            CALL ZXDISP
+%IF CompilerDiagnosticBranches
+            JP   C,ZGABORT
+%ENDIF
+%IF TargetStreamingOutput
+            JP   ZTFINFLT
+%ELSE
+%IF AggregateCallSlices
+            JP   ZESEGFIN
+%ELSE
+            JP   ZEFINISH
+%ENDIF
+%ENDIF
 
-.if TargetStreamingOutput
-AggregateAbortProgram .equ AbortTargetProgram
-.else
-.if AggregateCallSlices
-AggregateAbortProgram .equ AbortSegmentedProgram
-.else
-AggregateAbortProgram .equ AbortProgram
-.endif
-.endif
+%IF TargetStreamingOutput
+ZGABORT    EQU ZTABORT
+%ELSE
+%IF AggregateCallSlices
+ZGABORT    EQU ZESEGABT
+%ELSE
+ZGABORT    EQU ZEABORT
+%ENDIF
+%ENDIF

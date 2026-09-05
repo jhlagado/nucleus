@@ -1,15 +1,17 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeNobj } from "../scripts/assemble-native-nobj.mjs";
+import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
+import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
 const symbolsFor = async (name: string): Promise<Record<string, number>> =>
-  (await assembleAtomSource(`vertical-slice/${name}`)).symbols;
+  (await assembleNativeNobj(name)).symbols;
 
 describe("native Nucleus CP/M output candidates", () => {
   it("measures the direct sink against the existing NOBJ producer and materializer", async () => {
     const [direct, producer, consumer] = await Promise.all([
-      symbolsFor("cpm22-direct-output-proof.asm"),
-      symbolsFor("native-target-mon3-compiler.asm"),
+      assembleNativeCpmProof("cpm22-direct-output-proof.asm").then(proof => proof.symbols),
+      assembleNativeCompiler("native-target-mon3-compiler.asm").then(proof => proof.symbols),
       symbolsFor("nobj-consumer-flat-proof.asm"),
     ]);
 
@@ -32,8 +34,8 @@ describe("native Nucleus CP/M output candidates", () => {
   }, 300_000);
 
   it("applies direct IMAGE and PATCH operations only inside the selected flat image", async () => {
-    const { hex, symbols } = await assembleAtomSource(
-      "vertical-slice/cpm22-direct-output-proof.asm",
+    const { hex, symbols } = await assembleNativeCpmProof(
+      "cpm22-direct-output-proof.asm",
     );
     const memory = parseIntelHex(hex).memory;
     const wordGuard = symbols.CpmDirectTranslateWord;
@@ -63,6 +65,7 @@ describe("native Nucleus CP/M output candidates", () => {
         instructions += 1;
       }
       expect(runtime.isHalted()).toBe(true);
+      expect(runtime.cpu.pc).toBe(returnAddress + 1);
       expect(runtime.cpu.sp).toBe(stack + 2);
       return { instructions, carry: runtime.cpu.flags.C };
     };

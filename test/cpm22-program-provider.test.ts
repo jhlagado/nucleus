@@ -1,6 +1,6 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
 
 import { bundledRuntimeProvider } from "../src/runtime-catalog.js";
 
@@ -119,8 +119,8 @@ class ProofBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await assembleAtomSource(
-    "vertical-slice/cpm22-program-provider-proof.asm",
+  const assembled = await assembleNativeCpmProof(
+    "cpm22-program-provider-proof.asm",
   );
   image = parseIntelHex(assembled.hex).memory;
   symbols = assembled.symbols;
@@ -147,6 +147,7 @@ const execute = (
     instructions += 1;
   }
   expect(runtime.isHalted()).toBe(true);
+  expect(runtime.cpu.pc).toBe(sentinel + 1);
   expect(runtime.cpu.sp).toBe(stack + 2);
   return runtime;
 };
@@ -200,6 +201,7 @@ const createStorageProof = (
       runtime.isHalted(),
       `${name} did not return (PC=$${runtime.cpu.pc.toString(16)}, SP=$${runtime.cpu.sp.toString(16)}, C=${runtime.cpu.c})`,
     ).toBe(true);
+    expect(runtime.cpu.pc).toBe(sentinel + 1);
     expect(runtime.cpu.sp).toBe(stack + 2);
     return {
       a: runtime.cpu.a,
@@ -362,6 +364,7 @@ describe("native Nucleus CP/M generated-program provider", () => {
         instructions += 1;
       }
       expect(runtime.isHalted()).toBe(true);
+      expect(runtime.cpu.pc).toBe(sentinel + 1);
       expect(runtime.cpu.sp).toBe(stack + 2);
       return runtime;
     };

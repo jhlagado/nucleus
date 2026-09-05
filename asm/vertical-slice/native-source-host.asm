@@ -3,174 +3,174 @@
 ; the 16 KiB compiler core. The compiler and host are linked against the same
 ; source-state ABI.
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourceInitializeParts:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SAPARTS:
             DEC  A
-            CP   SourcePartCapacity
-            JP   NC,SourcePartCapacityFailure
+            CP   SRCPARTS
+            JP   NC,SAPRTERR
             LD   B,A
             XOR  A
-            LD   HL,SourcePinSegmentStart
-            LD   C,SourceHostStatus-SourcePinSegmentStart+1
-_sourceInitializeNativeState:
+            LD   HL,SSPINSEG
+            LD   C,SSHOST-SSPINSEG+1
+SHINITLP:
             LD   (HL),A
             INC  HL
             DEC  C
-            JP   NZ,_sourceInitializeNativeState
+            JP   NZ,SHINITLP
             LD   A,B
-            LD   (SourcePartsRemaining),A
-            JP   SourceStreamBeginPart
+            LD   (SSPREM),A
+            JP   SHPART
 
-.routine noreturn
-SourceHostRejectInvalid:
+; Contract: noreturn
+SHBAD:
             LD   A,4                    ; native-host invalid status
-            LD   (SourceHostStatus),A
-            LD   SP,(CompilerAbortSp)
+            LD   (SSHOST),A
+            LD   SP,(CPABRTSP)
             SCF
             RET
 
 ; Capture the provider's event part ID without exposing its BC clobber to the
 ; tokenizer. A/DE/HL remain the public event result.
-.routine out A,carry,zero,DE,HL clobbers sign,parity,halfCarry
-SourceHostNextChunk:
+; Contract: out A,carry,zero,DE,HL clobbers sign,parity,halfCarry
+SHNEXT:
             PUSH BC
-            CALL HostSourceNextChunk
-            JP   C,SourceHostFailure
+            CALL HVCHUNK
+            JP   C,SHFAIL
             PUSH HL
-            LD   HL,SourceProviderPartId
+            LD   HL,SSPROVID
             LD   (HL),C
             POP  HL
             POP  BC
             RET
 
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-SourceHostRetainCurrentName:
-            CALL HostRetainCurrentName
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+SHRETAIN:
+            CALL HVRETAIN
             RET  NC
-            JP   SourceHostFailure
+            JP   SHFAIL
 
 ; Adapt the compiler's current-token cell to the host ABI's IX input. The
 ; compiler-side caller saves and restores its own IX around this entry.
-.routine in HL,B out A,carry,zero,IX clobbers sign,parity,halfCarry,BC,DE,HL
-SourceHostCompareCurrentName:
-            LD   IX,(TokenLexemePointer)
-            CALL HostCompareCurrentName
+; Contract: in HL,B out A,carry,zero,IX clobbers sign,parity,halfCarry,BC,DE,HL
+SHCMPNAM:
+            LD   IX,(TNLEXPTR)
+            CALL HVCMPNAM
             RET  NC
-            JP   SourceHostFailure
+            JP   SHFAIL
 
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-SourceHostMaterializeName:
-            CALL HostMaterializeName
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+SHMATNAM:
+            CALL HVMATNAM
             RET  NC
-.routine noreturn
-SourceHostFailure:
-            LD   (SourceHostStatus),A
-            LD   SP,(CompilerAbortSp)
+; Contract: noreturn
+SHFAIL:
+            LD   (SSHOST),A
+            LD   SP,(CPABRTSP)
             SCF
             RET
 
 ; Advance the compiler's full-width source position for the byte in A. This
 ; belongs with the native source adapter rather than the 16 KiB compiler. A
 ; newline is preflighted here and completed by TokenizerFinishLine.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-SourceHostTakePosition:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+SHPOS:
             LD   D,A
             CP   13
-            JP   Z,SourceHostCheckLine
+            JP   Z,SHLINE
             CP   10
-            JP   NZ,SourceHostLineReady
-SourceHostCheckLine:
-            LD   HL,(SourceLine)
+            JP   NZ,SHLINOK
+SHLINE:
+            LD   HL,(SSLINE)
             INC  HL
             LD   A,H
             OR   L
-            JP   Z,SourceHostPositionCapacityFailure
-SourceHostLineReady:
-            LD   HL,(SourceOffset)
+            JP   Z,SHPOSERR
+SHLINOK:
+            LD   HL,(SSOFF)
             INC  HL
             LD   A,H
             OR   L
-            JP   Z,SourceHostPositionCapacityFailure
+            JP   Z,SHPOSERR
             PUSH HL
             LD   A,D
             CP   10
-            JP   Z,SourceHostCommitOffset
+            JP   Z,SHSETOFF
             CP   13
-            JP   Z,SourceHostCommitOffset
-            LD   HL,(SourceColumn)
+            JP   Z,SHSETOFF
+            LD   HL,(SSCOL)
             INC  HL
             LD   A,H
             OR   L
-            JP   Z,SourceHostColumnCapacityFailure
-            LD   (SourceColumn),HL
-SourceHostCommitOffset:
+            JP   Z,SHCOLERR
+            LD   (SSCOL),HL
+SHSETOFF:
             POP  HL
-            LD   (SourceOffset),HL
+            LD   (SSOFF),HL
             LD   A,D
             OR   A
             RET
-SourceHostColumnCapacityFailure:
+SHCOLERR:
             POP  HL
-SourceHostPositionCapacityFailure:
-            LD   HL,SourceOffset
-            LD   DE,TokenStartOffset
-            CALL CompilerCopyPosition
-            CALL SetDiagInline
-            .db  DiagnosticSourcePositionCapacity
+SHPOSERR:
+            LD   HL,SSOFF
+            LD   DE,TNSTOFF
+            CALL DGCOPYP
+            CALL DGINLINE
+            DB  DGSPCAP
 
-.routine out HL
-SourcePinResetToken:
+; Contract: out HL
+SHUNPIN:
             LD   HL,0
-            LD   (SourcePinScratchCursor),HL
+            LD   (SSPINCUR),HL
             RET
 
-.routine out HL
-SourcePinBeginToken:
+; Contract: out HL
+SHPIN:
             LD   HL,1
-            LD   (SourcePinScratchCursor),HL
+            LD   (SSPINCUR),HL
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourceStreamBeginPart:
-            CALL SourceHostNextChunk
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SHPART:
+            CALL SHNEXT
             CP   1
-            JP   NZ,SourceHostRejectInvalid
-            LD   A,(SourceProviderPartId)
+            JP   NZ,SHBAD
+            LD   A,(SSPROVID)
             OR   A
-            JP   Z,SourceHostRejectInvalid
+            JP   Z,SHBAD
             LD   HL,0
             LD   D,H
             LD   E,L
-            CALL SourceInitialize
-            CALL SourceStreamRefill
+            CALL SAINIT
+            CALL SHREFILL
             OR   A
             RET
 
 ; Append the current live-chunk portion of an active token before a refill can
 ; invalidate it. Zero means no active token; one means no refill has occurred.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourcePinBeforeRefill:
-            LD   HL,(SourcePinScratchCursor)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SHPINPRE:
+            LD   HL,(SSPINCUR)
             LD   A,H
             OR   L
             RET  Z
             DEC  HL
             LD   A,H
             OR   L
-            JP   NZ,SourcePinBeforeRefillLater
-            LD   HL,(TokenLexemePointer)
-            LD   DE,NativeSourceTokenBase
-            JP   SourcePinCopySegment
-SourcePinBeforeRefillLater:
-            LD   HL,(SourcePinSegmentStart)
-            LD   DE,(SourcePinScratchCursor)
-            JP   SourcePinCopySegment
+            JP   NZ,SHPINEXT
+            LD   HL,(TNLEXPTR)
+            LD   DE,MMTOKEN
+            JP   SHCOPY
+SHPINEXT:
+            LD   HL,(SSPINSEG)
+            LD   DE,(SSPINCUR)
+            JP   SHCOPY
 
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourcePinCopySegment:
+; Contract: in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SHCOPY:
             PUSH DE
             PUSH HL
-            LD   HL,(SourceCursor)
+            LD   HL,(SSCUR)
             POP  DE
             OR   A
             SBC  HL,DE
@@ -183,21 +183,21 @@ SourcePinCopySegment:
             OR   C
             RET  Z
             LDIR
-            LD   (SourcePinScratchCursor),DE
-            LD   HL,NativeSourceTokenBase
-            LD   (TokenLexemePointer),HL
+            LD   (SSPINCUR),DE
+            LD   HL,MMTOKEN
+            LD   (TNLEXPTR),HL
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-SourcePinFinishToken:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
+SHPINEND:
             PUSH BC
-            CALL SourcePinFinishTokenBody
+            CALL SHPINDO
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourcePinFinishTokenBody:
-            LD   HL,(SourcePinScratchCursor)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SHPINDO:
+            LD   HL,(SSPINCUR)
             LD   A,H
             OR   L
             RET  Z
@@ -205,81 +205,81 @@ SourcePinFinishTokenBody:
             LD   A,H
             OR   L
             RET  Z
-            LD   HL,(SourcePinSegmentStart)
-            LD   DE,(SourcePinScratchCursor)
-            JP   SourcePinCopySegment
+            LD   HL,(SSPINSEG)
+            LD   DE,(SSPINCUR)
+            JP   SHCOPY
 
-.routine in DE out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
-SourceStreamBytesEvent:
+; Contract: in DE out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SHBYTEVT:
             LD   A,D
             OR   E
-            JP   Z,SourceHostRejectInvalid
+            JP   Z,SHBAD
             PUSH BC
-            LD   A,(SourceProviderPartId)
+            LD   A,(SSPROVID)
             LD   C,A
-            LD   A,(SourcePartId)
+            LD   A,(SSPARTID)
             CP   C
-            JP   NZ,SourceHostRejectInvalid
-            CALL SourceStreamBytes
+            JP   NZ,SHBAD
+            CALL SHBYTES
             POP  BC
             RET
-.routine out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
-SourceStreamRefill:
+; Contract: out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SHREFILL:
             PUSH BC
-            CALL SourcePinBeforeRefill
+            CALL SHPINPRE
             POP  BC
-            CALL SourceHostNextChunk
-            JP   SourceStreamRefillEvent
+            CALL SHNEXT
+            JP   SHREFEVT
 
-.routine in A,DE,HL out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
-SourceStreamRefillEvent:
+; Contract: in A,DE,HL out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SHREFEVT:
             OR   A
-            JP   Z,SourceStreamBytesEvent
+            JP   Z,SHBYTEVT
             CP   2
-            JP   NZ,SourceHostRejectInvalid
-            LD   A,(SourceProviderPartId)
-            LD   HL,SourcePartId
+            JP   NZ,SHBAD
+            LD   A,(SSPROVID)
+            LD   HL,SSPARTID
             CP   (HL)
-            JP   NZ,SourceHostRejectInvalid
+            JP   NZ,SHBAD
             ; PinBeforeRefill already copied through SourceCursor. An end event
             ; supplies no replacement chunk, so make the remaining segment
             ; explicitly empty for SourcePinFinishToken.
-            LD   HL,(SourceCursor)
-            LD   (SourcePinSegmentStart),HL
-            LD   HL,SourcePartsRemaining
+            LD   HL,(SSCUR)
+            LD   (SSPINSEG),HL
+            LD   HL,SSPREM
             SET  6,(HL)
             SCF
             RET
 
-.routine in DE,HL out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
-SourceStreamBytes:
-            LD   (SourceCursor),HL
+; Contract: in DE,HL out A,carry,zero,HL clobbers sign,parity,halfCarry,DE
+SHBYTES:
+            LD   (SSCUR),HL
             ADD  HL,DE
-            LD   (SourceEnd),HL
-            LD   HL,(SourceCursor)
-            LD   DE,(SourcePinScratchCursor)
+            LD   (SSEND),HL
+            LD   HL,(SSCUR)
+            LD   DE,(SSPINCUR)
             LD   A,D
             OR   E
-            CALL Z,SourceStreamUnpinnedChunk
+            CALL Z,SHUNPCHK
             RET  Z
-            LD   (SourcePinSegmentStart),HL
+            LD   (SSPINSEG),HL
             OR   A
             RET
 
-.routine in HL out A,carry,zero,HL clobbers sign,parity,halfCarry
-SourceStreamUnpinnedChunk:
-            LD   (TokenLexemePointer),HL
+; Contract: in HL out A,carry,zero,HL clobbers sign,parity,halfCarry
+SHUNPCHK:
+            LD   (TNLEXPTR),HL
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SourceStreamFinishUnit:
-            LD   A,(SourceProviderPartId)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SHEND:
+            LD   A,(SSPROVID)
             OR   A
             RET  Z
-            CALL SourceHostNextChunk
+            CALL SHNEXT
             CP   3
-            JP   NZ,SourceHostRejectInvalid
+            JP   NZ,SHBAD
             XOR  A
-            LD   (SourceProviderPartId),A
+            LD   (SSPROVID),A
             RET

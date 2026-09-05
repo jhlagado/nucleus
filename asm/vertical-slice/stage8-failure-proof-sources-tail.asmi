@@ -1,0 +1,616 @@
+ORG MMSPARE
+P8CSTSS:
+            DB "sub main() fails",10
+            DB "if endOfInput = 1 and inputFailure = 2 and outputFailure = 3 and storageFailure = 4",10
+            DB "writeOutputByte('C') else fail",10
+            DB "end",10
+            DB "end",10
+P8CSTSE:
+
+P8STOOKS:
+            DB "sub main() fails",10
+            DB "var first as u8",10
+            DB "var again as u8",10
+            DB "first = readStorageByte() else fail",10
+            DB "rewindStorageInput() else fail",10
+            DB "again = readStorageByte() else fail",10
+            DB "writeStorageByte(first) else fail",10
+            DB "writeStorageByte('B') else fail",10
+            DB "seekStorageOutput(0) else fail",10
+            DB "writeStorageByte('Z') else fail",10
+            DB "writeOutputByte(again) else fail",10
+            DB "end",10
+P8STOOKE:
+
+P8WRERRS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "writeStorageByte('Z') handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8WRERRE:
+
+P8SEERRS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "seekStorageOutput(3) handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8SEERRE:
+
+P8REERRS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "rewindStorageInput() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8REERRE:
+
+P8RSTERS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "var value as u8",10
+            DB "value = readStorageByte() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8RSTERE:
+
+P8WOUERS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "writeOutputByte('X') handle code",10
+            DB "if code = outputFailure",10
+            DB "return",10
+            DB "end",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8WOUERE:
+
+P8MUFWDS:
+            DB "forward sub odd(value as u16) as boolean fails",10
+            DB "sub even(value as u16) as boolean fails",10
+            DB "var result as boolean",10
+            DB "if value = 0",10
+            DB "return true",10
+            DB "end",10
+            DB "result = odd(value - 1) else fail",10
+            DB "return result",10
+            DB "end",10
+            DB "sub odd",10
+            DB "var result as boolean",10
+            DB "if value = 0",10
+            DB "return false",10
+            DB "end",10
+            DB "result = even(value - 1) else fail",10
+            DB "return result",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var result as boolean = even(2) else fail",10
+            DB "if result",10
+            DB "writeOutputByte('M') else fail",10
+            DB "end",10
+            DB "end",10
+P8MUFWDE:
+
+P8INFWDS:
+            DB "forward sub missing(value as u8)",10
+            DB "sub main()",10
+            DB "end",10
+P8INFWDE:
+
+            ; Later negative and trap sources live beyond the transactional
+            ; backup region so repeated encoding cannot overwrite them.
+            ORG MMBKEND
+P8PRVARS:
+            DB "var "
+P8PRVARP:
+            DB "readInputByte as u8 = 1 + 2",10
+            DB "sub main()",10
+            DB "end",10
+P8PRVARE:
+
+P8PRRTNS:
+            DB "sub "
+P8PRRTNP:
+            DB "writeStorageByte(value as u8) fails",10
+            DB "end",10
+            DB "sub main()",10
+            DB "end",10
+P8PRRTNE:
+
+P8PRPARS:
+            DB "sub helper("
+P8PRPARP:
+            DB "outputFailure as u8)",10
+            DB "end",10
+            DB "sub main()",10
+            DB "end",10
+P8PRPARE:
+
+P8WSTTYS:
+            DB "sub main() fails",10
+            DB "var word as u16 = 300",10
+            DB "writeStorageByte("
+P8WSTTYP:
+            DB "word) else fail",10
+            DB "end",10
+P8WSTTYE:
+
+P8SSTTYS:
+            DB "sub main() fails",10
+            DB "var flag as boolean = true",10
+            DB "seekStorageOutput("
+P8SSTTYP:
+            DB "flag) else fail",10
+            DB "end",10
+P8SSTTYE:
+
+P8SEFWDS:
+            DB "forward sub duplicate(value as u8)",10
+            DB "forward sub "
+P8SEFWDP:
+            DB "duplicate(value as u8)",10
+            DB "sub duplicate",10
+            DB "end",10
+            DB "sub main()",10
+            DB "end",10
+P8SEFWDE:
+
+P8UNCMPS:
+            DB "sub "
+P8UNCMPP:
+            DB "missing",10
+            DB "end",10
+            DB "sub main()",10
+            DB "end",10
+P8UNCMPE:
+
+P8UNSVCS:
+            DB "sub main() fails",10
+            DB "writeOutputByte('A')",10
+P8UNSVCP:
+            DB "end",10
+P8UNSVCE:
+
+P8NESVCS:
+            DB "sub main() fails",10
+            DB "writeOutputByte(readInputByte()"
+P8NESVCP:
+            DB ") else fail",10
+            DB "end",10
+P8NESVCE:
+
+P8SVARGS:
+            DB "sub take(value as u8)",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "take("
+P8SVARGP:
+            DB "readInputByte())",10
+            DB "end",10
+P8SVARGE:
+
+P8TBYHNS:
+            DB "sub dive(value as u16) as u8 fails",10
+            DB "var result as u8",10
+            DB "if value = 0",10
+            DB "return 0",10
+            DB "end",10
+            DB "result = "
+P8TRECAP:
+            DB "dive(value - 1) else fail",10
+            DB "return result",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "var result as u8",10
+            DB "result = "
+P8TBYHNP:
+            DB "dive(2) handle code",10
+            DB "writeOutputByte('H') else fail",10
+            DB "end",10
+            DB "end",10
+P8TBYHNE:
+
+P8RFRRES:
+            DB "sub emitMarker() fails",10
+            DB "writeOutputByte('R') else fail",10
+            DB "return",10
+            DB "end",10
+            DB "sub relay() fails",10
+            DB "emitMarker() else fail",10
+            DB "return",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "relay() else fail",10
+            DB "return",10
+            DB "end",10
+P8RFRREE:
+
+P8FWMAIS:
+            DB "var depth as u8",10
+            DB "forward sub main() fails",10
+            DB "sub relay() fails",10
+            DB "main() else fail",10
+            DB "return",10
+            DB "end",10
+            DB "sub main",10
+            DB "if depth = 0",10
+            DB "depth = 1",10
+            DB "relay() else fail",10
+            DB "writeOutputByte('M') else fail",10
+            DB "end",10
+            DB "return",10
+            DB "end",10
+P8FWMAIE:
+
+P8REMAIS:
+            DB "var depth as u8",10
+            DB "sub main() fails",10
+            DB "if depth = 0",10
+            DB "depth = 1",10
+            DB "main() else fail",10
+            DB "writeOutputByte('D') else fail",10
+            DB "end",10
+            DB "return",10
+            DB "end",10
+P8REMAIE:
+
+P8IFWMAS:
+            DB "forward sub main() fails",10
+P8IFWMAE:
+
+P8BNTRPS:
+            DB "var bytes as u8[2]",10
+            DB "sub main() fails",10
+            DB "var index as u8 = readInputByte() else fail",10
+            DB "bytes"
+P8BNTRPP:
+            DB "[index] = 1",10
+            DB "end",10
+P8BNTRPE:
+
+P8NATRPS:
+            DB "var wide as u16 = 300",10
+            DB "sub main() fails",10
+            DB "var out as u8",10
+            DB "out = "
+P8NATRPP:
+            DB "u8(wide)",10
+            DB "end",10
+P8NATRPE:
+
+P8DITRPS:
+            DB "sub main() fails",10
+            DB "var divisor as u16 = readInputByte() else fail",10
+            DB "var result as u16",10
+            DB "result = 8 "
+P8DITRPP:
+            DB "/ divisor",10
+            DB "end",10
+P8DITRPE:
+
+P8LRNTRS:
+            DB "var limit as i8 = 127",10
+            DB "sub main()",10
+            DB "var index as i8",10
+            DB "for "
+P8LRNTRP:
+            DB "index = 120 to limit step 10",10
+            DB "end",10
+            DB "end",10
+P8LRNTRE:
+
+P8COFLBS:
+            DB "sub read() as u8 fails",10
+            DB "return 1",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8",10
+            DB "out = read() "
+P8COFLBP:
+            DB "+ 1 else fail",10
+            DB "end",10
+P8COFLBE:
+
+P8ASFFLS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var stored as Box = (1)",10
+            DB "sub get() as Box fails",10
+            DB "return stored",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8",10
+            DB "out = get()"
+P8ASFFLP:
+            DB ".value else fail",10
+            DB "end",10
+P8ASFFLE:
+
+P8IDFLBS:
+            DB "var items as u8[2]",10
+            DB "sub main() fails",10
+            DB "var out as u8",10
+            DB "out = items[readInputByte()"
+P8IDFLBP:
+            DB "] else fail",10
+            DB "end",10
+P8IDFLBE:
+
+P8AARFLS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var stored as Box",10
+            DB "sub get() as Box fails",10
+            DB "return stored",10
+            DB "end",10
+            DB "sub take(value as Box)",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "take(get("
+P8AARFLP:
+            DB "))",10
+            DB "end",10
+P8AARFLE:
+
+P8NEFRMS:
+            DB "sub inner() as u8",10
+            DB "return 'N'",10
+            DB "end",10
+            DB "sub outer(value as u8) as u8 fails",10
+            DB "return value",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var out as u8 = outer(inner()) else fail",10
+            DB "writeOutputByte(out) else fail",10
+            DB "end",10
+P8NEFRME:
+
+P8PRSTES:
+            DB "sub main() fails",10
+            DB "var index as u8",10
+            DB "for index = 0 until 4 step outputFailure",10
+            DB "writeOutputByte('S') else fail",10
+            DB "end",10
+            DB "end",10
+P8PRSTEE:
+
+P8INDHDS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var target as Box = (9)",10
+            DB "sub stop() as u8 fails",10
+            DB "fail 7",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "target.value = stop() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "writeOutputByte(target.value) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8INDHDE:
+
+P8ACPHNS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var source as Box = (5)",10
+            DB "var target as Box = (9)",10
+            DB "sub choose(shouldFail as boolean) as Box fails",10
+            DB "if shouldFail",10
+            DB "fail 7",10
+            DB "end",10
+            DB "return source",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "target = choose(false) else fail",10
+            DB "writeOutputByte(target.value) else fail",10
+            DB "target = choose(true) handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "writeOutputByte(target.value) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8ACPHNE:
+
+P8RERSTS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var source as Box = (1)",10
+            DB "var target as Box = (2)",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "target = source",10
+            DB "rewindStorageInput() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8RERSTE:
+
+P8ISVHNS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var target as Box = (9)",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "target.value = readInputByte() handle code",10
+            DB "writeOutputByte(code) else fail",10
+            DB "writeOutputByte(target.value) else fail",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8ISVHNE:
+
+; Keep the indirect destination count distinct from the following handler's
+; symbol metadata. This source leaves the original failable call as the last
+; consumer in the transcript so its backpatched fields remain inspectable.
+P8REFLDS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var target as Box = (9)",10
+            DB "sub stop() as u8 fails",10
+            DB "fail 7",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "target.value = stop() handle code",10
+            DB "return",10
+            DB "end",10
+            DB "fail 99",10
+            DB "end",10
+P8REFLDE:
+
+; The redesigned surface keeps handling attached to the call's logical line.
+; This one program discriminates success-handler skipping, same-destination
+; error storage, handler fallthrough, conditional `else` on the next line,
+; and the release of `on` and `error` as ordinary identifiers.
+P8IMCONS:
+            DB "var on as u8 = 1",10
+            DB "var error as u8 = 2",10
+            DB "var value as u8",10
+            DB "sub pass(input as u8) as u8 fails",10
+            DB "return input",10
+            DB "end",10
+            DB "sub stop(input as u8) as u8 fails",10
+            DB "fail input",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "value = pass(5) handle code",10
+            DB "fail 90",10
+            DB "end",10
+            DB "if on + error = 3",10
+            DB "value = pass(6) else fail",10
+            DB "else",10
+            DB "fail 91",10
+            DB "end",10
+            DB "value = stop(7) handle value",10
+            DB "if value = 7",10
+            DB "writeOutputByte('H') else fail",10
+            DB "end",10
+            DB "end",10
+            DB "writeOutputByte(value) else fail",10
+            DB "end",10
+P8IMCONE:
+
+P8HNPROS:
+            DB "sub main() fails",10
+            DB "var code as u8",10
+            DB "writeOutputByte('X') handle code",10
+P8HNEXFP:
+            DB "fail code",10
+            DB "end",10
+            DB "end",10
+P8HNPROE:
+
+P8BALOCS:
+            DB "sub main() fails",10
+            DB "var value as u8 = readInputByte()"
+P8BALOCP: DB 10,"end",10
+P8BALOCE:
+P8BAASNS:
+            DB "sub main() fails",10,"var value as u8",10
+            DB "value = readInputByte()"
+P8BAASNP: DB 10,"end",10
+P8BAASNE:
+P8LEORFS:
+            DB "sub main() fails",10,"var value as u8",10
+            DB "value = readInputByte() "
+P8LEORFP: DB "or fail",10,"end",10
+P8LEORFE:
+P8LONERS:
+            DB "sub main() fails",10,"var code as u8",10
+            DB "writeOutputByte(1)"
+P8LONERP: DB 10,"on error code",10,"end",10,"end",10
+P8LONERE:
+P8INPROS:
+            DB "sub main()",10,"var value as u8",10
+            DB "value = readInputByte() "
+P8INPROP: DB "else fail",10,"end",10
+P8INPROE:
+P8INFHDS:
+            DB "sub helper()",10,"end",10,"sub main()",10
+            DB "var code as u8",10,"helper() "
+P8INFHDP: DB "handle code",10,"end",10,"end",10
+P8INFHDE:
+P8DBCONS:
+            DB "sub main() fails",10,"var code as u8",10
+            DB "writeOutputByte(1) else fail "
+P8DBCONP: DB "handle code",10,"end",10,"end",10
+P8DBCONE:
+P8LOCHDS:
+            DB "sub main() fails",10
+            DB "var value as u8 = 1 "
+P8LOCHDP: DB "handle value",10,"end",10,"end",10
+P8LOCHDE:
+P8RREPRS:
+            DB "sub result() as u8 fails",10,"return readInputByte() "
+P8RREPRP: DB "else fail",10,"end",10
+            DB "sub main()",10,"end",10
+P8RREPRE:
+P8FREPRS:
+            DB "sub helper() fails",10,"end",10,"sub main() fails",10,"return "
+P8FREPRP: DB "helper() else fail",10,"end",10
+P8FREPRE:
+
+P8MHNNAS:
+            DB "sub main() fails",10,"writeOutputByte(1) handle"
+P8MHNNAP: DB 10,"end",10,"end",10
+P8MHNNAE:
+P8UHNNAS:
+            DB "sub main() fails",10,"writeOutputByte(1) handle "
+P8UHNNAP: DB "missing",10,"end",10,"end",10
+P8UHNNAE:
+P8WHNNAS:
+            DB "sub main() fails",10,"var code as u16",10
+            DB "writeOutputByte(1) handle "
+P8WHNNAP: DB "code",10,"end",10,"end",10
+P8WHNNAE:
+P8CNHNDS:
+            DB "const code = 1",10,"sub main() fails",10
+            DB "writeOutputByte(1) handle "
+P8CNHNDP: DB "code",10,"end",10,"end",10
+P8CNHNDE:
+P8AHNNAS:
+            DB "record Box",10,"value as u8",10,"end",10
+            DB "var box as Box",10,"sub main() fails",10
+            DB "writeOutputByte(1) handle "
+P8AHNNAP: DB "box",10,"end",10,"end",10
+P8AHNNAE:
+P8CTHNDS:
+            DB "sub main() fails",10,"var index as u8",10
+            DB "for index = 0 until 1",10
+            DB "writeOutputByte(1) handle "
+P8CTHNDP: DB "index",10,"end",10,"end",10,"end",10
+P8CTHNDE:
+
+            ; Stage 8's combined proof needs more than the original 2 KiB
+            ; proof partition but remains below the machine stack.

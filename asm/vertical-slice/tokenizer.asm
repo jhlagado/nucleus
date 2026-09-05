@@ -2,297 +2,297 @@
 ; streaming positions and longest-name behavior while recognizing only the
 ; token families the slice can pass to its parser.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-TokenRecordStart:
-            LD   HL,(SourceOffset)
-            LD   (TokenStartOffset),HL
-            LD   HL,(SourceLine)
-            LD   (TokenStartLine),HL
-            LD   HL,(SourceColumn)
-            LD   (TokenStartColumn),HL
-            LD   HL,(SourceCursor)
-            LD   (TokenLexemePointer),HL
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+TKSTART:
+            LD   HL,(SSOFF)
+            LD   (TNSTOFF),HL
+            LD   HL,(SSLINE)
+            LD   (TNSTLINE),HL
+            LD   HL,(SSCOL)
+            LD   (TNSTCOL),HL
+            LD   HL,(SSCUR)
+            LD   (TNLEXPTR),HL
             XOR  A
-            LD   (TokenLength),A
+            LD   (TNLEN),A
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
-TokenFinish:
-            LD   (TokenKind),A
+; ABI: in A out A,carry,zero clobbers sign,parity,halfCarry
+TKEND:
+            LD   (TNKIND),A
             LD   A,1
-            LD   (SourceLineHasToken),A
-            LD   A,(TokenKind)
+            LD   (SSLNTOK),A
+            LD   A,(TNKIND)
             OR   A
             RET
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,HL
-TokenLexicalFailure:
-            LD   A,DiagnosticLexical
-            JP   CompilerSetDiagnostic
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,HL
+TKLEXERR:
+            LD   A,DGLEX
+            JP   DGSET
 
 ; Carry is set when A can begin a Nucleus identifier.
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
-TokenIsLetter:
-            CP   "A"
-            JR   C,TokenIsLetterNo
-            CP   "Z"+1
-            JR   C,TokenIsLetterYes
-            CP   "a"
-            JR   C,TokenIsLetterNo
-            CP   "z"+1
-            JR   C,TokenIsLetterYes
-TokenIsLetterNo:
+; ABI: in A out A,carry clobbers zero,sign,parity,halfCarry
+TKLETTER:
+            CP   $41
+            JR   C,ETLETNO
+            CP   $5A+1
+            JR   C,ETLETYES
+            CP   $61
+            JR   C,ETLETNO
+            CP   $7A+1
+            JR   C,ETLETYES
+ETLETNO:
             OR   A
             RET
-TokenIsLetterYes:
+ETLETYES:
             SCF
             RET
 
 ; Carry is set for identifier continuation bytes.
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
-TokenIsNameByte:
-            CALL TokenIsLetter
+; ABI: in A out A,carry clobbers zero,sign,parity,halfCarry
+TKNAMEBY:
+            CALL TKLETTER
             RET  C
-            CP   "0"
-            JR   C,TokenIsNameByteUnderscore
-            CP   "9"+1
-            JR   C,TokenIsNameByteYes
-TokenIsNameByteUnderscore:
-            CP   "_"
-            JR   Z,TokenIsNameByteYes
+            CP   $30
+            JR   C,ETNAMUND
+            CP   $39+1
+            JR   C,ETNAMYES
+ETNAMUND:
+            CP   $5F
+            JR   Z,ETNAMYES
             OR   A
             RET
-TokenIsNameByteYes:
+ETNAMYES:
             SCF
             RET
 
 ; Compare the current NAME token against B bytes at HL. Carry means equal.
-.routine in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-TokenNameEquals:
-            LD   A,(TokenLength)
+; ABI: in B,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TKNAMEEQ:
+            LD   A,(TNLEN)
             CP   B
-            JR   NZ,TokenNameEqualsNo
-            LD   DE,(TokenLexemePointer)
-TokenNameEqualsLoop:
+            JR   NZ,ETNEQNO
+            LD   DE,(TNLEXPTR)
+TKNAMELP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,TokenNameEqualsNo
+            JR   NZ,ETNEQNO
             INC  DE
             INC  HL
-            DJNZ TokenNameEqualsLoop
+            DJNZ TKNAMELP
             SCF
             RET
-TokenNameEqualsNo:
+ETNEQNO:
             OR   A
             RET
 
 ; Scan a complete name before testing the reserved-word spellings used here.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-TokenScanName:
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TKNAME:
             LD   B,0
-TokenScanNameLoop:
-            CALL SourcePeek
-            JR   C,TokenScanNameDone
-            CALL TokenIsNameByte
-            JR   NC,TokenScanNameDone
-            CALL SourceTake
+TKSCANLP:
+            CALL SAPEEK
+            JR   C,TKNAMEEN
+            CALL TKNAMEBY
+            JR   NC,TKNAMEEN
+            CALL SATAKE
             INC  B
-            JR   Z,TokenLexicalFailure
-            JR   TokenScanNameLoop
-TokenScanNameDone:
+            JR   Z,TKLEXERR
+            JR   TKSCANLP
+TKNAMEEN:
             LD   A,B
-            LD   (TokenLength),A
+            LD   (TNLEN),A
 
-            LD   HL,KeywordSub
+            LD   HL,EKWSUB
             LD   B,3
-            CALL TokenNameEquals
-            JR   C,TokenScanNameSub
-            LD   HL,KeywordFails
+            CALL TKNAMEEQ
+            JR   C,ETNSUB
+            LD   HL,EKWFAILS
             LD   B,5
-            CALL TokenNameEquals
-            JR   C,TokenScanNameFails
-            LD   HL,KeywordElse
+            CALL TKNAMEEQ
+            JR   C,ETNFAILS
+            LD   HL,EKWELSE
             LD   B,4
-            CALL TokenNameEquals
-            JR   C,TokenScanNameElse
-            LD   HL,KeywordFail
+            CALL TKNAMEEQ
+            JR   C,ETNELSE
+            LD   HL,EKWFAIL
             LD   B,4
-            CALL TokenNameEquals
-            JR   C,TokenScanNameFail
-            LD   HL,KeywordEnd
+            CALL TKNAMEEQ
+            JR   C,ETNFAIL
+            LD   HL,EKWEND
             LD   B,3
-            CALL TokenNameEquals
-            JR   C,TokenScanNameEnd
-            LD   A,TokenName
-            JP   TokenFinish
-TokenScanNameSub:
-            LD   A,TokenSub
-            JP   TokenFinish
-TokenScanNameFails:
-            LD   A,TokenFails
-            JP   TokenFinish
-TokenScanNameElse:
-            LD   A,TokenElse
-            JP   TokenFinish
-TokenScanNameFail:
-            LD   A,TokenFail
-            JP   TokenFinish
-TokenScanNameEnd:
-            LD   A,TokenEnd
-            JP   TokenFinish
+            CALL TKNAMEEQ
+            JR   C,ETNEND
+            LD   A,TNNAME
+            JP   TKEND
+ETNSUB:
+            LD   A,TOKENSUB
+            JP   TKEND
+ETNFAILS:
+            LD   A,TNFAILS
+            JP   TKEND
+ETNELSE:
+            LD   A,TNELSE
+            JP   TKEND
+ETNFAIL:
+            LD   A,TNFAIL
+            JP   TKEND
+ETNEND:
+            LD   A,TOKENEND
+            JP   TKEND
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-TokenScanCharacter:
-            CALL SourceTake
-            JP   C,TokenLexicalFailure
-            CALL SourcePeek
-            JP   C,TokenLexicalFailure
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TKCHAR:
+            CALL SATAKE
+            JP   C,TKLEXERR
+            CALL SAPEEK
+            JP   C,TKLEXERR
             CP   $20
-            JP   C,TokenLexicalFailure
+            JP   C,TKLEXERR
             CP   $7F
-            JP   NC,TokenLexicalFailure
-            CP   "'"
-            JP   Z,TokenLexicalFailure
-            CP   "\\"
-            JP   Z,TokenLexicalFailure
-            CALL SourceTake
-            LD   (TokenValue),A
-            CALL SourcePeek
-            JP   C,TokenLexicalFailure
-            CP   "'"
-            JP   NZ,TokenLexicalFailure
-            CALL SourceTake
-            LD   A,TokenCharacter
-            JP   TokenFinish
+            JP   NC,TKLEXERR
+            CP   $27
+            JP   Z,TKLEXERR
+            CP   $5C
+            JP   Z,TKLEXERR
+            CALL SATAKE
+            LD   (TNVALUE),A
+            CALL SAPEEK
+            JP   C,TKLEXERR
+            CP   $27
+            JP   NZ,TKLEXERR
+            CALL SATAKE
+            LD   A,TNCHAR
+            JP   TKEND
 
 ; Skip a line comment, leaving its physical line ending for normal handling.
-.routine out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
-TokenSkipComment:
-TokenSkipCommentLoop:
-            CALL SourcePeek
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,DE,HL
+ETSKPCMT:
+ETCMTLP:
+            CALL SAPEEK
             RET  C
             CP   10
             RET  Z
             CP   13
             RET  Z
-            CALL SourceTake
-            JR   TokenSkipCommentLoop
+            CALL SATAKE
+            JR   ETCMTLP
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-TokenizerNext:
-TokenizerNextLoop:
-            CALL TokenRecordStart
-            CALL SourcePeek
-            JP   C,TokenizerAtEof
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TKNEXT:
+TKNEXTLP:
+            CALL TKSTART
+            CALL SAPEEK
+            JP   C,TKEOF
 
-            CP   " "
-            JR   Z,TokenizerSkipByte
+            CP   $20
+            JR   Z,TKSKIP
             CP   9
-            JR   Z,TokenizerSkipByte
+            JR   Z,TKSKIP
             CP   10
-            JR   Z,TokenizerLf
+            JR   Z,TKLF
             CP   13
-            JR   Z,TokenizerCrLf
-            CP   "/"
-            JR   Z,TokenizerSlash
-            CP   "("
-            JR   Z,TokenizerLeftParen
-            CP   ")"
-            JR   Z,TokenizerRightParen
-            CP   "'"
-            JP   Z,TokenScanCharacter
-            CALL TokenIsLetter
-            JP   C,TokenScanName
-            JP   TokenLexicalFailure
+            JR   Z,TKCRLF
+            CP   $2F
+            JR   Z,TKSLASH
+            CP   $28
+            JR   Z,ETLPAR
+            CP   $29
+            JR   Z,ETRPAR
+            CP   $27
+            JP   Z,TKCHAR
+            CALL TKLETTER
+            JP   C,TKNAME
+            JP   TKLEXERR
 
-TokenizerSkipByte:
-            CALL SourceTake
-            JR   TokenizerNextLoop
+TKSKIP:
+            CALL SATAKE
+            JR   TKNEXTLP
 
-TokenizerSlash:
-            CALL SourceTakePeek
-            JP   C,TokenLexicalFailure
-            CP   "/"
-            JP   NZ,TokenLexicalFailure
-            CALL SourceTake
-            CALL TokenSkipComment
-            JR   TokenizerNextLoop
+TKSLASH:
+            CALL SATAKPEK
+            JP   C,TKLEXERR
+            CP   $2F
+            JP   NZ,TKLEXERR
+            CALL SATAKE
+            CALL ETSKPCMT
+            JR   TKNEXTLP
 
-TokenizerLeftParen:
-            CALL SourceTake
-            LD   A,(SourceDelimiterDepth)
+ETLPAR:
+            CALL SATAKE
+            LD   A,(SSDELDEP)
             INC  A
-            JP   Z,TokenLexicalFailure
-            LD   (SourceDelimiterDepth),A
-            LD   A,TokenLeftParen
-            JP   TokenFinish
+            JP   Z,TKLEXERR
+            LD   (SSDELDEP),A
+            LD   A,TNLPAR
+            JP   TKEND
 
-TokenizerRightParen:
-            LD   A,(SourceDelimiterDepth)
+ETRPAR:
+            LD   A,(SSDELDEP)
             OR   A
-            JP   Z,TokenLexicalFailure
+            JP   Z,TKLEXERR
             DEC  A
-            LD   (SourceDelimiterDepth),A
-            CALL SourceTake
-            LD   A,TokenRightParen
-            JP   TokenFinish
+            LD   (SSDELDEP),A
+            CALL SATAKE
+            LD   A,TNRPAR
+            JP   TKEND
 
-TokenizerLf:
-            CALL SourceTake
-            CALL SourceFinishLine
-            LD   A,(SourceDelimiterDepth)
+TKLF:
+            CALL SATAKE
+            CALL SALINE
+            LD   A,(SSDELDEP)
             OR   A
-            JR   NZ,TokenizerNextLoop
-            LD   A,(SourceLineHasToken)
+            JR   NZ,TKNEXTLP
+            LD   A,(SSLNTOK)
             OR   A
-            JP   Z,TokenizerNextLoop
+            JP   Z,TKNEXTLP
             XOR  A
-            LD   (SourceLineHasToken),A
-            LD   A,TokenNewline
-            LD   (TokenKind),A
+            LD   (SSLNTOK),A
+            LD   A,TNNL
+            LD   (TNKIND),A
             OR   A
             RET
 
-TokenizerCrLf:
-            CALL SourceTakePeek
-            JP   C,TokenLexicalFailure
+TKCRLF:
+            CALL SATAKPEK
+            JP   C,TKLEXERR
             CP   10
-            JP   NZ,TokenLexicalFailure
-            CALL SourceTake
-            CALL SourceFinishLine
-            LD   A,(SourceDelimiterDepth)
+            JP   NZ,TKLEXERR
+            CALL SATAKE
+            CALL SALINE
+            LD   A,(SSDELDEP)
             OR   A
-            JP   NZ,TokenizerNextLoop
-            LD   A,(SourceLineHasToken)
+            JP   NZ,TKNEXTLP
+            LD   A,(SSLNTOK)
             OR   A
-            JP   Z,TokenizerNextLoop
+            JP   Z,TKNEXTLP
             XOR  A
-            LD   (SourceLineHasToken),A
-            LD   A,TokenNewline
-            LD   (TokenKind),A
+            LD   (SSLNTOK),A
+            LD   A,TNNL
+            LD   (TNKIND),A
             OR   A
             RET
 
-TokenizerAtEof:
-            LD   A,(SourceDelimiterDepth)
+TKEOF:
+            LD   A,(SSDELDEP)
             OR   A
-            JP   NZ,TokenLexicalFailure
-            LD   A,(TokenizerEofPending)
+            JP   NZ,TKLEXERR
+            LD   A,(TNEOFPND)
             OR   A
-            JR   NZ,TokenizerEmitEof
-            LD   A,(SourceLineHasToken)
+            JR   NZ,ETEOF
+            LD   A,(SSLNTOK)
             OR   A
-            JR   Z,TokenizerEmitEof
+            JR   Z,ETEOF
             XOR  A
-            LD   (SourceLineHasToken),A
+            LD   (SSLNTOK),A
             INC  A
-            LD   (TokenizerEofPending),A
-            LD   A,TokenNewline
-            LD   (TokenKind),A
+            LD   (TNEOFPND),A
+            LD   A,TNNL
+            LD   (TNKIND),A
             OR   A
             RET
-TokenizerEmitEof:
-            LD   A,TokenEof
-            LD   (TokenKind),A
+ETEOF:
+            LD   A,TOKENEOF
+            LD   (TNKIND),A
             OR   A
             RET

@@ -1,0 +1,33 @@
+; Shared target byte templates. This part follows both control emitters.
+%IF AggregateCallSlices
+ZXIND8PF: DB $E1,$7E
+%ENDIF
+ZXATOHL:             DB $6F,$26,$00,$E5
+ZXSTSPPF:     DB $ED,$73
+ZXSTIXPF:     DB $DD,$22
+ZXLDSPPF:      DB $ED,$7B
+ZXLDIXPF:      DB $DD,$2A
+ZXPAR16B:  DB $3B,$3B,$DD,$75,$FF,$DD,$74,$FE
+ZXPAR8B    EQU ZXPAR16B+1
+ZXLDLO     EQU ZEPAIRT+ZELDIXL*2
+ZXLDHI     EQU ZEPAIRT+ZELDIXH*2
+ZXSTLO     EQU ZXPAR16B+2
+ZXSTHI     EQU ZXPAR16B+5
+ZXZEROHP   EQU ZXATOHL+1
+ZXZEROH    EQU ZXATOHL+1
+ZXPOPOB:  DB $D1,$E1
+%IF AggregateCallSlices
+ZXPSHOB: DB $E5,$D5
+%ENDIF
+%IF AggregateCallSlices
+ZXADD16B   EQU ZAOFFSET+3
+%ELSE
+ZXADD16B:        DB $19
+%ENDIF
+ZXSUB16B:   DB $AF,$ED,$52
+ZXAND16B:        DB $7D,$A3,$6F,$7C,$A2,$67
+ZXOR16B:         DB $7D,$B3,$6F,$7C,$B2,$67
+ZXXOR16B:        DB $7D,$AB,$6F,$7C,$AA,$67
+; POP HL; LD A,L; OR A; JR NZ/Z,+3; PUSH HL
+ZXBEGADB:     DB $E1,$7D,$B7,$20,$03,$E5
+ZXBEGORB:      DB $E1,$7D,$B7,$28,$03,$E5

@@ -1,48 +1,26 @@
-; Production streaming-target compiler composition.
-;
-; The caller selects the assembly origin before including this file. Nothing in
-; this composition may infer metadata from an address bit, truncate an address,
-; or otherwise restrict where the complete image may be placed in the Z80
-; address space.
-
-SegmentedOutput       .equ 1
-TargetStreamingOutput .equ 1
-            .include "loop-compiler-state.asmi"
-            .include "aggregate-call-state.asmi"
-            .include "target-output-state.asmi"
-            .include "loop-z80-state.asmi"
-
-CompilerCodeStart:
-LegacyCompilerSlices .equ 0
-AggregateCallSlices  .equ 1
-Stage7LL1            .equ 1
-SourceAdapterCodeStart:
-            .include "source-adapter.asm"
-SourceAdapterCodeEnd:
-TokenizerCodeStart:
-            .include "loop-tokenizer.asm"
-TokenizerCodeEnd:
-SemanticSinkCodeStart:
-            .include "loop-semantic-sink.asm"
-SemanticSinkCodeEnd:
-SymbolCodeStart:
-            .include "loop-symbols.asm"
-SymbolCodeEnd:
-ParserCodeStart:
-            .include "loop-parser.asm"
-ParserCodeEnd:
-CompilerCommonCodeEnd:
-SinkCodeStart:
-LegacyEncoders .equ 0
-            .include "loop-z80-sink.asm"
-            .include "target-output.asm"
-TypedSinkCodeStart:
-            .include "typed-expression-z80.asm"
-            .include "aggregate-z80.asm"
-TypedSinkCodeEnd:
-SinkCodeEnd:
-CompilerCodeEnd:
-CompilerImmutableStart:
-            .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
+; Production compiler assembled directly as ordered ATOM parts.
+; Entry metadata supplies the immutable profile and the caller selects origin.
+; Boundary-only parts preserve extents without adding exports to reusable leaves.
+; Symbol lookup must fall through into DGSET without intervening bytes.
+%INCLUDE "compiler-production-state.asmi"
+%INCLUDE "compiler-source-boundary.asmi"
+%INCLUDE "source-adapter.asm"
+%INCLUDE "compiler-tokenizer-boundary.asmi"
+%INCLUDE "loop-tokenizer.asm"
+%INCLUDE "compiler-semantic-boundary.asmi"
+%INCLUDE "loop-semantic-sink.asm"
+%INCLUDE "compiler-symbol-boundary.asmi"
+%INCLUDE "loop-symbols.asm"
+%INCLUDE "compiler-parser-boundary.asmi"
+%INCLUDE "loop-parser.asm"
+%INCLUDE "compiler-sink-boundary.asmi"
+%INCLUDE "loop-z80-sink.asm"
+%INCLUDE "target-output.asm"
+%INCLUDE "compiler-typed-boundary.asmi"
+%INCLUDE "typed-expression-z80.asm"
+%INCLUDE "aggregate-z80.asm"
+%INCLUDE "target-output-aliases.asmi"
+%INCLUDE "compiler-immutable-boundary.asmi"
+%INCLUDE "loop-keywords.asmi"
+KCIMMEND:
+KCEND:

@@ -1,14 +1,14 @@
 ; Direct-Z80 encoder for the first checked four-operation stream.
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-EncodeSemanticProgram:
-            LD   HL,ProgramTemplate
-            LD   DE,GeneratedBase
-            LD   BC,ProgramSize
+; ABI: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+EENCODE:
+            LD   HL,EPRGTPL
+            LD   DE,MMGEN
+            LD   BC,PGSZ
             LDIR
-            LD   A,(SemanticBufferBase+2)
-            LD   (GeneratedBase+1),A
-            LD   HL,ProgramSize
-            LD   (GeneratedSize),HL
+            LD   A,(SMBUFBAS+2)
+            LD   (MMGEN+1),A
+            LD   HL,PGSZ
+            LD   (GNSZ),HL
             OR   A
             RET

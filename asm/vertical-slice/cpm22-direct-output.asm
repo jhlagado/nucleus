@@ -6,70 +6,70 @@
 ; catalogue transfer and CP/M file publication are provider operations and are
 ; measured outside this core.
 
-CpmDirectMapPointer .equ CpmDirectWorkspaceBase
-CpmDirectActive     .equ CpmDirectMapPointer+2
-CpmDirectUsedLength .equ CpmDirectActive+1
-CpmDirectPatchAddress .equ CpmDirectUsedLength+2
-CpmDirectPatchValue .equ CpmDirectPatchAddress+2
-CpmDirectRuntimeOperation .equ CpmDirectPatchValue+2
-CpmDirectRuntimeLength .equ CpmDirectRuntimeOperation+1
-CpmDirectRuntimeIdentity .equ CpmDirectRuntimeLength+2
-CpmDirectRuntimeContext .equ CpmDirectRuntimeIdentity+2
-CpmDirectRangeStart .equ CpmDirectRuntimeContext+2
-CpmDirectWorkspaceEnd .equ CpmDirectRangeStart+2
-CpmDirectDiagnosticTargetOutput .equ 97
+DOMAPPTR    EQU DOWKBASE
+DOACTIVE    EQU DOMAPPTR+2
+DOUSED      EQU DOACTIVE+1
+DOPATADR    EQU DOUSED+2
+DOPATVAL    EQU DOPATADR+2
+DORTOPER    EQU DOPATVAL+2
+DORTLEN     EQU DORTOPER+1
+DORTID      EQU DORTLEN+2
+DORTCTX     EQU DORTID+2
+DORANGE     EQU DORTCTX+2
+DOWKEND     EQU DORANGE+2
+DODIAG      EQU 97
 
-CpmDirectOutputCodeStart:
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectBegin:
+DOCODE:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DOBEGIN:
             XOR  A
-            LD   (CpmDirectMapPointer),A
-            LD   (CpmDirectMapPointer+1),A
+            LD   (DOMAPPTR),A
+            LD   (DOMAPPTR+1),A
             INC  A
-            LD   (CpmDirectActive),A
-            LD   HL,CpmOutputBufferBase
-            LD   DE,CpmOutputBufferBase+1
-            LD   BC,CpmTargetImageCapacity-1
+            LD   (DOACTIVE),A
+            LD   HL,DOBUF
+            LD   DE,DOBUF+1
+            LD   BC,DOIMGCAP-1
             XOR  A
             LD   (HL),A
             LDIR
             RET
 
 ; A is the byte, C the flat bank, and HL its logical target address.
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-CpmDirectImageByte:
-CpmDirectPatchByte:
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+DOIMGBYT:
+DOPATBYT:
             PUSH HL
             PUSH AF
             LD   A,C
             OR   A
-            JR   NZ,CpmDirectByteInvalid
-            CALL CpmDirectTranslateByte
-            JR   C,CpmDirectByteInvalid
+            JR   NZ,DOBYTBAD
+            CALL DOBYTE
+            JR   C,DOBYTBAD
             POP  AF
             LD   (HL),A
             POP  HL
             XOR  A
             RET
-CpmDirectByteInvalid:
+DOBYTBAD:
             POP  AF
             POP  HL
-            JP   CpmDirectInvalid
+            JP   DOINVAL
 
 ; C is the bank, DE the logical target address, and HL the replacement word.
-.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectPatchWord:
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DOPATWRD:
             LD   A,C
             OR   A
-            JP   NZ,CpmDirectInvalid
-            LD   (CpmDirectPatchAddress),DE
-            LD   (CpmDirectPatchValue),HL
-            LD   HL,(CpmDirectPatchAddress)
-            CALL CpmDirectTranslateWord
+            JP   NZ,DOINVAL
+            LD   (DOPATADR),DE
+            LD   (DOPATVAL),HL
+            LD   HL,(DOPATADR)
+            CALL DOWORD
             RET  C
             LD   D,H
             LD   E,L
-            LD   HL,(CpmDirectPatchValue)
+            LD   HL,(DOPATVAL)
             LD   A,L
             LD   (DE),A
             INC  DE
@@ -81,138 +81,138 @@ CpmDirectPatchWord:
 ; The provider receives a physical destination in HL after the complete
 ; logical range has been validated. These two entries also reject the only
 ; invalid flat-bank ordinal before converting it into a catalogue operation.
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectRuntimeImage:
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DORTIMG:
             OR   A
-            JP   NZ,CpmDirectInvalid
+            JP   NZ,DOINVAL
             XOR  A
-            JR   CpmDirectRuntime
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectRuntimeInitial:
+            JR   DORT
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DORTINIT:
             OR   A
-            JP   NZ,CpmDirectInvalid
+            JP   NZ,DOINVAL
             LD   A,1
-CpmDirectRuntime:
-            LD   (CpmDirectRuntimeOperation),A
-            LD   (CpmDirectRuntimeLength),BC
-            LD   (CpmDirectRuntimeIdentity),DE
-            LD   (CpmDirectRuntimeContext),IX
-            CALL CpmDirectTranslateRange
+DORT:
+            LD   (DORTOPER),A
+            LD   (DORTLEN),BC
+            LD   (DORTID),DE
+            LD   (DORTCTX),IX
+            CALL DORANGET
             RET  C
-            LD   A,(CpmDirectRuntimeOperation)
-            LD   BC,(CpmDirectRuntimeLength)
-            LD   DE,(CpmDirectRuntimeIdentity)
-            LD   IX,(CpmDirectRuntimeContext)
-            JP   CpmDirectRuntimeProvider
+            LD   A,(DORTOPER)
+            LD   BC,(DORTLEN)
+            LD   DE,(DORTID)
+            LD   IX,(DORTCTX)
+            JP   CRPROVID
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectMap:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DOMAP:
             LD   A,(IX+31)
             DEC  A
-            JP   NZ,CpmDirectInvalid
-            LD   (CpmDirectMapPointer),IX
+            JP   NZ,DOINVAL
+            LD   (DOMAPPTR),IX
             XOR  A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectCommit:
-            LD   IX,(CpmDirectMapPointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DOCOMMIT:
+            LD   IX,(DOMAPPTR)
             LD   A,IXH
             OR   IXL
-            JP   Z,CpmDirectInvalid
+            JP   Z,DOINVAL
             LD   L,(IX+32)
             LD   H,(IX+33)
-            LD   DE,CpmTargetImageBase
+            LD   DE,DOIMG
             OR   A
             SBC  HL,DE
-            JP   C,CpmDirectInvalid
+            JP   C,DOINVAL
             LD   A,H
             OR   L
-            JP   Z,CpmDirectInvalid
-            LD   DE,CpmTargetImageCapacity
+            JP   Z,DOINVAL
+            LD   DE,DOIMGCAP
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JP   C,CpmDirectCommitLengthReady
-            JP   NZ,CpmDirectInvalid
-CpmDirectCommitLengthReady:
-            LD   (CpmDirectUsedLength),HL
-            CALL CpmDirectPublish
+            JP   C,DOLENOK
+            JP   NZ,DOINVAL
+DOLENOK:
+            LD   (DOUSED),HL
+            CALL PBPUBL
             RET  C
             XOR  A
-            LD   (CpmDirectActive),A
+            LD   (DOACTIVE),A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmDirectAbort:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+DOABORT:
             XOR  A
-            LD   (CpmDirectActive),A
-            LD   (CpmDirectMapPointer),A
-            LD   (CpmDirectMapPointer+1),A
-            JP   CpmDirectPublishAbort
+            LD   (DOACTIVE),A
+            LD   (DOMAPPTR),A
+            LD   (DOMAPPTR+1),A
+            JP   PBABORT
 
 ; Translate one logical target byte in HL to its physical private-image byte.
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-CpmDirectTranslateByte:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+DOBYTE:
             PUSH HL
-            LD   DE,CpmTargetImageBase
+            LD   DE,DOIMG
             OR   A
             SBC  HL,DE
-            JR   C,CpmDirectTranslateFailed
-            LD   DE,CpmTargetImageCapacity
+            JR   C,DOXFAIL
+            LD   DE,DOIMGCAP
             OR   A
             SBC  HL,DE
-            JR   NC,CpmDirectTranslateFailed
+            JR   NC,DOXFAIL
             POP  HL
-            LD   DE,CpmOutputAddressDelta
+            LD   DE,DOOFFSET
             ADD  HL,DE
             OR   A
             RET
-CpmDirectTranslateFailed:
+DOXFAIL:
             POP  HL
-            JP   CpmDirectInvalid
+            JP   DOINVAL
 
-CpmDirectLastByteLo .equ (CpmTargetImageLimit-1)&$FF
-CpmDirectLastByteHi .equ (CpmTargetImageLimit-1)/$100
+DOLASTLO    EQU (DOIMGEND-1)&$FF
+DOLASTHI    EQU (DOIMGEND-1)/$100
 
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-CpmDirectTranslateWord:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+DOWORD:
             LD   A,L
-            CP   CpmDirectLastByteLo
-            JR   NZ,CpmDirectTranslateByte
+            CP   DOLASTLO
+            JR   NZ,DOBYTE
             LD   A,H
-            CP   CpmDirectLastByteHi
-            JP   Z,CpmDirectInvalid
-            JR   CpmDirectTranslateByte
+            CP   DOLASTHI
+            JP   Z,DOINVAL
+            JR   DOBYTE
 
 ; BC is a nonempty length and HL the logical target start. Return the physical
 ; start only when the mathematical complete range lies inside the image.
-.routine in BC,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-CpmDirectTranslateRange:
+; Contract: in BC,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+DORANGET:
             LD   A,B
             OR   C
-            JP   Z,CpmDirectInvalid
-            CALL CpmDirectTranslateByte
+            JP   Z,DOINVAL
+            CALL DOBYTE
             RET  C
-            LD   (CpmDirectRangeStart),HL
+            LD   (DORANGE),HL
             ADD  HL,BC
-            JR   C,CpmDirectRangeFailed
-            LD   DE,CpmOutputBufferLimit
+            JR   C,DORNGERR
+            LD   DE,DOBUFEND
             OR   A
             SBC  HL,DE
-            JR   C,CpmDirectRangeEndReady
-            JR   NZ,CpmDirectRangeFailed
-CpmDirectRangeEndReady:
-            LD   HL,(CpmDirectRangeStart)
+            JR   C,DOENDOK
+            JR   NZ,DORNGERR
+DOENDOK:
+            LD   HL,(DORANGE)
             OR   A
             RET
-CpmDirectRangeFailed:
-            JP   CpmDirectInvalid
+DORNGERR:
+            JP   DOINVAL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmDirectInvalid:
-            LD   A,CpmDirectDiagnosticTargetOutput
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+DOINVAL:
+            LD   A,DODIAG
             SCF
             RET
-CpmDirectOutputCodeEnd:
+DOCODEND:

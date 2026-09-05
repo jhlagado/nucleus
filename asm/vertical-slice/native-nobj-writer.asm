@@ -3,179 +3,181 @@
 ; runtime-catalogue chunks, and stores tentative IMAGE, PATCH, and final NOBJ
 ; objects through the common named-object service.
 
-NativeNobjImageHandle       .equ $5C40
-NativeNobjPatchHandle       .equ $5C42
-NativeNobjOutputHandle      .equ $5C44
-NativeNobjBeginPointer      .equ $5C46
-NativeNobjMapPointer        .equ $5C48
-NativeNobjImageCount        .equ $5C4A
-NativeNobjPatchCount        .equ $5C4C
-NativeNobjCrc               .equ $5C4E
-NativeNobjRuntimeRequest    .equ $5C50
-NativeNobjMapUsedLength     .equ $5C50
-NativeNobjMapRoBase         .equ $5C52
-NativeNobjMapInitialLength  .equ $5C54
-NativeNobjMapAggregateLength .equ $5C56
-NativeNobjMapRoLength       .equ $5C58
-NativeNobjMapAggregateBase  .equ $5C5A
-NativeNobjMapTailPointer    .equ $5C5C
-NativeNobjCopyHandle        .equ $5C5E
-NativeNobjImageFill         .equ $5C60
-NativeNobjAbortStatus       .equ $5C61
-NativeNobjSavedFailure      .equ $5C62
+NJCODE:
+
+NJIMGH      EQU $5C40
+NJPATH      EQU $5C42
+NJOUTH      EQU $5C44
+NJBEGP      EQU $5C46
+NJMAPP      EQU $5C48
+NJIMGCNT    EQU $5C4A
+NJPATCNT    EQU $5C4C
+NJCRC       EQU $5C4E
+NJRTREQ     EQU $5C50
+NJUSED      EQU $5C50
+NJROBASE    EQU $5C52
+NJINITN     EQU $5C54
+NJAGGN      EQU $5C56
+NJRON       EQU $5C58
+NJAGGADR    EQU $5C5A
+NJTAILP     EQU $5C5C
+NJCOPYH     EQU $5C5E
+NJFILL      EQU $5C60
+NJABSTAT    EQU $5C61
+NJFAIL      EQU $5C62
 ; RuntimeRequest occupies $5C50..$5C65. Bank count must survive every runtime
 ; catalogue call, so the persistent/map state starts after that overlay.
-NativeNobjBankCount         .equ $5C66
-NativeNobjMapStatePointer   .equ $5C67
-NativeNobjMapBankOrdinal    .equ $5C69
-NativeNobjRecordBuffer      .equ $5C70
-NativeNobjTransferBuffer    .equ $5D00
-NativeNobjTransferLimit     .equ $5E00
-NativeNobjWorkspaceEnd      .equ NativeNobjTransferLimit
+NJBANKN     EQU $5C66
+NJSTATEP    EQU $5C67
+NJBANKID    EQU $5C69
+NJRECBUF    EQU $5C70
+NJXFER      EQU $5D00
+NJXFLIM     EQU $5E00
+NJWKEND     EQU NJXFLIM
 
-NativeNobjImageName:  .db ".nucleus/image.work"
-NativeNobjImageNameLength .equ $-NativeNobjImageName
-NativeNobjPatchName:  .db ".nucleus/patch.work"
-NativeNobjPatchNameLength .equ $-NativeNobjPatchName
-NativeNobjOutputName: .db ".nucleus/program.nobj"
-NativeNobjOutputNameLength .equ $-NativeNobjOutputName
+NJIMGNAM:  DB ".nucleus/image.work"
+NJIMGNL     EQU $-NJIMGNAM
+NJPATNAM:  DB ".nucleus/patch.work"
+NJPATNL     EQU $-NJPATNAM
+NJOUTNAM: DB ".nucleus/program.nobj"
+NJOUTNL     EQU $-NJOUTNAM
 
-NativeNobjBeginPrefix:
-            .db 1,15,0,"NOBJ",0,1,0
+NJPREFIX:
+            DB 1,15,0,"NOBJ",0,1,0
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeNobjUnavailable:
-            LD   A,NucleusStatusUnavailable
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+NJUNAVL:
+            LD   A,NSTATNA
             SCF
             RET
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjBegin:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJBEGIN:
             LD   A,(IX+11)
             DEC  A
             CP   4
-            JR   C,NativeNobjBeginValid
-            CALL NativeNobjUnavailable
+            JR   C,NJBEGOK
+            CALL NJUNAVL
             RET
-NativeNobjBeginValid:
-            LD   (NativeNobjBeginPointer),IX
+NJBEGOK:
+            LD   (NJBEGP),IX
             LD   A,(IX+11)
-            LD   (NativeNobjBankCount),A
+            LD   (NJBANKN),A
             XOR  A
-            LD   (NativeNobjMapPointer),A
-            LD   (NativeNobjMapPointer+1),A
-            LD   (NativeNobjImageCount),A
-            LD   (NativeNobjImageCount+1),A
-            LD   (NativeNobjPatchCount),A
-            LD   (NativeNobjPatchCount+1),A
-            LD   (NativeNobjImageHandle),A
-            LD   (NativeNobjImageHandle+1),A
-            LD   (NativeNobjPatchHandle),A
-            LD   (NativeNobjPatchHandle+1),A
-            LD   (NativeNobjOutputHandle),A
-            LD   (NativeNobjOutputHandle+1),A
+            LD   (NJMAPP),A
+            LD   (NJMAPP+1),A
+            LD   (NJIMGCNT),A
+            LD   (NJIMGCNT+1),A
+            LD   (NJPATCNT),A
+            LD   (NJPATCNT+1),A
+            LD   (NJIMGH),A
+            LD   (NJIMGH+1),A
+            LD   (NJPATH),A
+            LD   (NJPATH+1),A
+            LD   (NJOUTH),A
+            LD   (NJOUTH+1),A
             DEC  A
-            LD   (NativeNobjCrc),A
-            LD   (NativeNobjCrc+1),A
+            LD   (NJCRC),A
+            LD   (NJCRC+1),A
 
-            LD   HL,NativeNobjImageName
-            LD   B,NativeNobjImageNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
-            JR   C,NativeNobjBeginAbort
-            LD   (NativeNobjImageHandle),HL
-            LD   HL,NativeNobjPatchName
-            LD   B,NativeNobjPatchNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
-            JR   C,NativeNobjBeginAbort
-            LD   (NativeNobjPatchHandle),HL
-            LD   HL,NativeNobjOutputName
-            LD   B,NativeNobjOutputNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeObjectOpen
-            JR   C,NativeNobjBeginAbort
-            LD   (NativeNobjOutputHandle),HL
+            LD   HL,NJIMGNAM
+            LD   B,NJIMGNL
+            LD   A,NOBEGIN
+            CALL OCOPEN
+            JR   C,NJBEGAB
+            LD   (NJIMGH),HL
+            LD   HL,NJPATNAM
+            LD   B,NJPATNL
+            LD   A,NOBEGIN
+            CALL OCOPEN
+            JR   C,NJBEGAB
+            LD   (NJPATH),HL
+            LD   HL,NJOUTNAM
+            LD   B,NJOUTNL
+            LD   A,NOBEGIN
+            CALL OCOPEN
+            JR   C,NJBEGAB
+            LD   (NJOUTH),HL
 
-            LD   HL,NativeNobjBeginPrefix
-            LD   DE,NativeNobjRecordBuffer
+            LD   HL,NJPREFIX
+            LD   DE,NJRECBUF
             LD   BC,10
             LDIR
-            LD   A,(NativeNobjBankCount)
+            LD   A,(NJBANKN)
             DEC  A
             LD   A,0
-            JR   Z,NativeNobjBeginFlagsReady
+            JR   Z,NJBEGFLG
             INC  A
-NativeNobjBeginFlagsReady:
-            LD   (NativeNobjRecordBuffer+9),A
-            LD   IX,(NativeNobjBeginPointer)
+NJBEGFLG:
+            LD   (NJRECBUF+9),A
+            LD   IX,(NJBEGP)
             LD   L,(IX+0)
             LD   H,(IX+1)
-            LD   (NativeNobjRecordBuffer+10),HL
-            LD   A,(NativeNobjBankCount)
-            LD   (NativeNobjRecordBuffer+12),A
-            LD   A,(NativeNobjImageFill)
-            LD   (NativeNobjRecordBuffer+13),A
+            LD   (NJRECBUF+10),HL
+            LD   A,(NJBANKN)
+            LD   (NJRECBUF+12),A
+            LD   A,(NJFILL)
+            LD   (NJRECBUF+13),A
             LD   L,(IX+2)
             LD   H,(IX+3)
-            LD   (NativeNobjRecordBuffer+14),HL
+            LD   (NJRECBUF+14),HL
             LD   L,(IX+4)
             LD   H,(IX+5)
-            LD   (NativeNobjRecordBuffer+16),HL
-            LD   HL,(NativeNobjOutputHandle)
-            LD   DE,NativeNobjRecordBuffer
+            LD   (NJRECBUF+16),HL
+            LD   HL,(NJOUTH)
+            LD   DE,NJRECBUF
             LD   BC,18
-            CALL NativeNobjWriteCovered
+            CALL NJCOVER
             RET
-NativeNobjBeginAbort:
-            LD   (NativeNobjSavedFailure),A
-            CALL NativeNobjAbort
-            LD   A,(NativeNobjSavedFailure)
+NJBEGAB:
+            LD   (NJFAIL),A
+            CALL NJABORT
+            LD   A,(NJFAIL)
             SCF
             RET
 
 ; A is the byte, C the bank, and HL its final address.
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjImageByte:
-            LD   (NativeNobjRecordBuffer+6),A
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJIMAGE:
+            LD   (NJRECBUF+6),A
             LD   A,2
-            CALL NativeNobjSingleByte
+            CALL NJSINGLE
             RET
 
 ; A is the byte, C the bank, and HL its final address.
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjPatchByte:
-            LD   (NativeNobjRecordBuffer+6),A
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJPATCH:
+            LD   (NJRECBUF+6),A
             LD   A,3
-            CALL NativeNobjSingleByte
+            CALL NJSINGLE
             RET
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjSingleByte:
-            LD   (NativeNobjRecordBuffer),A
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJSINGLE:
+            LD   (NJRECBUF),A
             LD   A,4
-            LD   (NativeNobjRecordBuffer+1),A
+            LD   (NJRECBUF+1),A
             XOR  A
-            LD   (NativeNobjRecordBuffer+2),A
+            LD   (NJRECBUF+2),A
             LD   A,C
-            LD   (NativeNobjRecordBuffer+3),A
-            LD   (NativeNobjRecordBuffer+4),HL
-            LD   DE,NativeNobjRecordBuffer
+            LD   (NJRECBUF+3),A
+            LD   (NJRECBUF+4),HL
+            LD   DE,NJRECBUF
             LD   BC,7
-            LD   A,(NativeNobjRecordBuffer)
+            LD   A,(NJRECBUF)
             CP   2
-            JR   NZ,NativeNobjWritePatchRecord
-            LD   HL,(NativeNobjImageHandle)
-            CALL NativeObjectWrite
+            JR   NZ,NJPATREC
+            LD   HL,(NJIMGH)
+            CALL OCWRITE
             RET  C
-            LD   HL,NativeNobjImageCount
-            JR   NativeNobjIncrementWord
-NativeNobjWritePatchRecord:
-            LD   HL,(NativeNobjPatchHandle)
-            CALL NativeObjectWrite
+            LD   HL,NJIMGCNT
+            JR   NJINCWD
+NJPATREC:
+            LD   HL,(NJPATH)
+            CALL OCWRITE
             RET  C
-            LD   HL,NativeNobjPatchCount
-.routine in HL out HL,zero clobbers sign,parity,halfCarry
-NativeNobjIncrementWord:
+            LD   HL,NJPATCNT
+; Contract: in HL out HL,zero clobbers sign,parity,halfCarry
+NJINCWD:
             INC  (HL)
             RET  NZ
             INC  HL
@@ -183,216 +185,216 @@ NativeNobjIncrementWord:
             RET
 
 ; C is the bank, DE the target address, and HL the replacement word.
-.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjPatchWord:
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJPATWD:
             LD   A,3
-            LD   (NativeNobjRecordBuffer),A
+            LD   (NJRECBUF),A
             LD   A,5
-            LD   (NativeNobjRecordBuffer+1),A
+            LD   (NJRECBUF+1),A
             XOR  A
-            LD   (NativeNobjRecordBuffer+2),A
+            LD   (NJRECBUF+2),A
             LD   A,C
-            LD   (NativeNobjRecordBuffer+3),A
-            LD   (NativeNobjRecordBuffer+4),DE
-            LD   (NativeNobjRecordBuffer+6),HL
-            LD   HL,(NativeNobjPatchHandle)
-            LD   DE,NativeNobjRecordBuffer
+            LD   (NJRECBUF+3),A
+            LD   (NJRECBUF+4),DE
+            LD   (NJRECBUF+6),HL
+            LD   HL,(NJPATH)
+            LD   DE,NJRECBUF
             LD   BC,8
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
-            LD   HL,NativeNobjPatchCount
-            JR   NativeNobjIncrementWord
+            LD   HL,NJPATCNT
+            JR   NJINCWD
 
 ; The dispatcher supplies A=operation, BC=complete length, DE=identity,
 ; HL=address, and IX=context. NativeHostRuntimeBank supplies the selected bank.
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjRuntime:
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJRUNTIM:
             CP   2
-            JP   NC,NativeNobjUnavailable
-            LD   (NativeNobjRecordBuffer+4),HL
+            JP   NC,NJUNAVL
+            LD   (NJRECBUF+4),HL
             PUSH AF
             LD   A,2
-            LD   (NativeNobjRecordBuffer),A
+            LD   (NJRECBUF),A
             LD   H,B
             LD   L,C
             INC  HL
             INC  HL
             INC  HL
-            LD   (NativeNobjRecordBuffer+1),HL
-            LD   A,(NativeHostRuntimeBank)
-            LD   (NativeNobjRecordBuffer+3),A
+            LD   (NJRECBUF+1),HL
+            LD   A,(NHRTBNK)
+            LD   (NJRECBUF+3),A
             POP  AF
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOperation),A
-            LD   A,NucleusRuntimeCatalogRequestSize
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestSizeField),A
-            LD   A,NucleusRuntimeCatalogAbiVersion
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestAbi),A
-            LD   A,(NativeNobjBankCount)
+            LD   (NJRTREQ+NCFOPER),A
+            LD   A,NCRQSIZE
+            LD   (NJRTREQ+NCFSIZE),A
+            LD   A,NCABI
+            LD   (NJRTREQ+NCFABI),A
+            LD   A,(NJBANKN)
             DEC  A
             LD   A,0
-            JR   Z,NativeNobjRuntimeFlagsReady
+            JR   Z,NJRTFLAG
             INC  A
-NativeNobjRuntimeFlagsReady:
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestFlags),A
-            LD   A,(NativeHostRuntimeBank)
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestBank),A
+NJRTFLAG:
+            LD   (NJRTREQ+NCFFLAG),A
+            LD   A,(NHRTBNK)
+            LD   (NJRTREQ+NCFBANK),A
             XOR  A
-            LD   (NativeNobjRuntimeRequest+5),A
-            LD   (NativeNobjRuntimeRequest+20),A
-            LD   (NativeNobjRuntimeRequest+21),A
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestIdentity),DE
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestLength),BC
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestContext),IX
+            LD   (NJRTREQ+5),A
+            LD   (NJRTREQ+20),A
+            LD   (NJRTREQ+21),A
+            LD   (NJRTREQ+NCFIDENT),DE
+            LD   (NJRTREQ+NCFLEN),BC
+            LD   (NJRTREQ+NCFCTX),IX
             LD   DE,0
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset),DE
-            LD   DE,NativeNobjTransferBuffer
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestPointer),DE
+            LD   (NJRTREQ+NCFOFF),DE
+            LD   DE,NJXFER
+            LD   (NJRTREQ+NCFPTR),DE
             LD   DE,$0100
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestCapacity),DE
-            LD   HL,(NativeNobjImageHandle)
-            LD   DE,NativeNobjRecordBuffer
+            LD   (NJRTREQ+NCFCAP),DE
+            LD   HL,(NJIMGH)
+            LD   DE,NJRECBUF
             LD   BC,6
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET  C
-NativeNobjRuntimeLoop:
-            LD   HL,NativeNobjRuntimeRequest
-            LD   C,NucleusServiceRuntimeCatalog
+NJRTLOOP:
+            LD   HL,NJRTREQ
+            LD   C,NSRTCAT
             RST  $10
             RET  C
-            LD   BC,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestResult)
+            LD   BC,(NJRTREQ+NCFRES)
             LD   A,B
             OR   C
-            JP   Z,NativeObjectInvalid
-            LD   HL,(NativeNobjImageHandle)
-            LD   DE,NativeNobjTransferBuffer
-            CALL NativeObjectWrite
+            JP   Z,OCINVAL
+            LD   HL,(NJIMGH)
+            LD   DE,NJXFER
+            CALL OCWRITE
             RET  C
-            LD   BC,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestResult)
-            LD   HL,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset)
+            LD   BC,(NJRTREQ+NCFRES)
+            LD   HL,(NJRTREQ+NCFOFF)
             ADD  HL,BC
-            LD   (NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestOffset),HL
-            LD   DE,(NativeNobjRuntimeRequest+NucleusRuntimeCatalogRequestLength)
+            LD   (NJRTREQ+NCFOFF),HL
+            LD   DE,(NJRTREQ+NCFLEN)
             OR   A
             SBC  HL,DE
-            JR   C,NativeNobjRuntimeLoop
-            JP   NZ,NativeObjectInvalid
-            LD   HL,NativeNobjImageCount
-            JP   NativeNobjIncrementWord
+            JR   C,NJRTLOOP
+            JP   NZ,OCINVAL
+            LD   HL,NJIMGCNT
+            JP   NJINCWD
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjMap:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJMAP:
             LD   A,(IX+31)
             LD   B,A
-            LD   A,(NativeNobjBankCount)
+            LD   A,(NJBANKN)
             CP   B
-            JP   NZ,NativeObjectInvalid
-            LD   (NativeNobjMapPointer),IX
+            JP   NZ,OCINVAL
+            LD   (NJMAPP),IX
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjCommit:
-            LD   IX,(NativeNobjMapPointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJCOMMIT:
+            LD   IX,(NJMAPP)
             LD   A,IXH
             OR   IXL
-            JR   NZ,NativeNobjCommitHasMap
-            CALL NativeObjectInvalid
+            JR   NZ,NJCOMMAP
+            CALL OCINVAL
             RET
-NativeNobjCommitHasMap:
-            LD   HL,(NativeNobjImageHandle)
-            CALL NativeNobjCopySpool
-            JP   C,NativeNobjCommitAbort
-            LD   HL,(NativeNobjPatchHandle)
-            CALL NativeNobjCopySpool
-            JP   C,NativeNobjCommitAbort
-            CALL NativeNobjWriteMap
-            JP   C,NativeNobjCommitAbort
+NJCOMMAP:
+            LD   HL,(NJIMGH)
+            CALL NJSPOOL
+            JP   C,NJCOMAB
+            LD   HL,(NJPATH)
+            CALL NJSPOOL
+            JP   C,NJCOMAB
+            CALL NJWRMAP
+            JP   C,NJCOMAB
 
-            LD   HL,(NativeNobjImageCount)
-            LD   DE,(NativeNobjPatchCount)
+            LD   HL,(NJIMGCNT)
+            LD   DE,(NJPATCNT)
             ADD  HL,DE
             LD   DE,3
             ADD  HL,DE
             LD   A,5
-            LD   (NativeNobjRecordBuffer),A
+            LD   (NJRECBUF),A
             LD   A,7
-            LD   (NativeNobjRecordBuffer+1),A
+            LD   (NJRECBUF+1),A
             XOR  A
-            LD   (NativeNobjRecordBuffer+2),A
-            LD   (NativeNobjRecordBuffer+3),HL
-            LD   IX,(NativeNobjMapPointer)
+            LD   (NJRECBUF+2),A
+            LD   (NJRECBUF+3),HL
+            LD   IX,(NJMAPP)
             LD   A,(IX+2)
-            LD   (NativeNobjRecordBuffer+5),A
+            LD   (NJRECBUF+5),A
             LD   L,(IX+3)
             LD   H,(IX+4)
-            LD   (NativeNobjRecordBuffer+6),HL
-            LD   HL,(NativeNobjOutputHandle)
-            LD   DE,NativeNobjRecordBuffer
+            LD   (NJRECBUF+6),HL
+            LD   HL,(NJOUTH)
+            LD   DE,NJRECBUF
             LD   BC,8
-            CALL NativeNobjWriteCovered
-            JR   C,NativeNobjCommitAbort
-            LD   HL,(NativeNobjOutputHandle)
-            LD   DE,NativeNobjCrc
+            CALL NJCOVER
+            JR   C,NJCOMAB
+            LD   HL,(NJOUTH)
+            LD   DE,NJCRC
             LD   BC,2
-            CALL NativeObjectWrite
-            JR   C,NativeNobjCommitAbort
+            CALL OCWRITE
+            JR   C,NJCOMAB
 
-            LD   HL,(NativeNobjImageHandle)
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
-            JR   C,NativeNobjCommitAbort
+            LD   HL,(NJIMGH)
+            LD   A,NOABORT
+            CALL OCTERM
+            JR   C,NJCOMAB
             XOR  A
-            LD   (NativeNobjImageHandle),A
-            LD   (NativeNobjImageHandle+1),A
-            LD   HL,(NativeNobjPatchHandle)
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
-            JR   C,NativeNobjCommitAbort
+            LD   (NJIMGH),A
+            LD   (NJIMGH+1),A
+            LD   HL,(NJPATH)
+            LD   A,NOABORT
+            CALL OCTERM
+            JR   C,NJCOMAB
             XOR  A
-            LD   (NativeNobjPatchHandle),A
-            LD   (NativeNobjPatchHandle+1),A
-            LD   HL,(NativeNobjOutputHandle)
-            LD   A,NucleusObjectCommit
-            CALL NativeObjectTerminal
-            JR   C,NativeNobjCommitAbort
+            LD   (NJPATH),A
+            LD   (NJPATH+1),A
+            LD   HL,(NJOUTH)
+            LD   A,NOCOMMIT
+            CALL OCTERM
+            JR   C,NJCOMAB
             XOR  A
-            LD   (NativeNobjOutputHandle),A
-            LD   (NativeNobjOutputHandle+1),A
+            LD   (NJOUTH),A
+            LD   (NJOUTH+1),A
             RET
-NativeNobjCommitAbort:
-            LD   (NativeNobjSavedFailure),A
-            CALL NativeNobjAbort
-            LD   A,(NativeNobjSavedFailure)
+NJCOMAB:
+            LD   (NJFAIL),A
+            CALL NJABORT
+            LD   A,(NJFAIL)
             SCF
             RET
 
 ; Copy one tentative spool to the final tentative object with CRC coverage.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjCopySpool:
-            LD   (NativeNobjCopyHandle),HL
-            CALL NativeObjectRewind
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJSPOOL:
+            LD   (NJCOPYH),HL
+            CALL OCREWIND
             RET  C
-NativeNobjCopyLoop:
-            LD   HL,(NativeNobjCopyHandle)
-            LD   DE,NativeNobjTransferBuffer
-            LD   BC,NativeNobjTransferLimit-NativeNobjTransferBuffer
-            CALL NativeObjectRead
+NJCOPYLP:
+            LD   HL,(NJCOPYH)
+            LD   DE,NJXFER
+            LD   BC,NJXFLIM-NJXFER
+            CALL OCREAD
             RET  C
             LD   A,B
             OR   C
             RET  Z
-            LD   DE,NativeNobjTransferBuffer
-            LD   HL,(NativeNobjOutputHandle)
-            CALL NativeNobjWriteCovered
+            LD   DE,NJXFER
+            LD   HL,(NJOUTH)
+            CALL NJCOVER
             RET  C
-            JR   NativeNobjCopyLoop
+            JR   NJCOPYLP
 
 ; Serialize the native MAP request into the NOBJ 0.1 MAP payload.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjWriteMap:
-            LD   IX,(NativeNobjMapPointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJWRMAP:
+            LD   IX,(NJMAPP)
             LD   A,(IX+28)
-            LD   (NativeNobjRecordBuffer+31),A
+            LD   (NJRECBUF+31),A
             LD   B,A
             LD   A,(IX+31)
             ADD  A,A
@@ -402,71 +404,71 @@ NativeNobjWriteMap:
             ADD  A,E
             ADD  A,B
             ADD  A,30
-            LD   (NativeNobjRecordBuffer+1),A
+            LD   (NJRECBUF+1),A
             XOR  A
-            LD   (NativeNobjRecordBuffer+2),A
+            LD   (NJRECBUF+2),A
             LD   A,4
-            LD   (NativeNobjRecordBuffer),A
+            LD   (NJRECBUF),A
             LD   A,(IX+0)
-            LD   (NativeNobjRecordBuffer+3),A
+            LD   (NJRECBUF+3),A
             LD   A,(IX+1)
-            LD   (NativeNobjRecordBuffer+4),A
+            LD   (NJRECBUF+4),A
             LD   A,(IX+2)
-            LD   (NativeNobjRecordBuffer+5),A
+            LD   (NJRECBUF+5),A
             LD   L,(IX+3)
             LD   H,(IX+4)
-            LD   (NativeNobjRecordBuffer+6),HL
+            LD   (NJRECBUF+6),HL
             LD   L,(IX+9)
             LD   H,(IX+10)
-            LD   (NativeNobjRecordBuffer+8),HL
-            LD   (NativeNobjRecordBuffer+12),HL
-            LD   (NativeNobjRecordBuffer+16),HL
+            LD   (NJRECBUF+8),HL
+            LD   (NJRECBUF+12),HL
+            LD   (NJRECBUF+16),HL
             LD   L,(IX+11)
             LD   H,(IX+12)
-            LD   (NativeNobjRecordBuffer+10),HL
+            LD   (NJRECBUF+10),HL
             LD   L,(IX+13)
             LD   H,(IX+14)
-            LD   (NativeNobjRecordBuffer+14),HL
+            LD   (NJRECBUF+14),HL
             LD   L,(IX+15)
             LD   H,(IX+16)
-            LD   (NativeNobjRecordBuffer+18),HL
+            LD   (NJRECBUF+18),HL
             LD   L,(IX+17)
             LD   H,(IX+18)
-            LD   (NativeNobjRecordBuffer+20),HL
+            LD   (NJRECBUF+20),HL
             LD   L,(IX+19)
             LD   H,(IX+20)
-            LD   (NativeNobjRecordBuffer+22),HL
+            LD   (NJRECBUF+22),HL
             LD   L,(IX+21)
             LD   H,(IX+22)
-            LD   (NativeNobjRecordBuffer+24),HL
+            LD   (NJRECBUF+24),HL
             LD   A,(IX+23)
-            LD   (NativeNobjRecordBuffer+26),A
+            LD   (NJRECBUF+26),A
             LD   L,(IX+24)
             LD   H,(IX+25)
-            LD   (NativeNobjRecordBuffer+27),HL
+            LD   (NJRECBUF+27),HL
             LD   L,(IX+26)
             LD   H,(IX+27)
-            LD   (NativeNobjRecordBuffer+29),HL
+            LD   (NJRECBUF+29),HL
 
             LD   B,0
             LD   C,(IX+28)
             LD   L,(IX+29)
             LD   H,(IX+30)
-            LD   DE,NativeNobjRecordBuffer+32
+            LD   DE,NJRECBUF+32
             LDIR
             LD   A,(IX+31)
             LD   (DE),A
             INC  DE
-            LD   (NativeNobjMapTailPointer),DE
+            LD   (NJTAILP),DE
 
             LD   L,(IX+32)
             LD   H,(IX+33)
-            LD   (NativeNobjMapStatePointer),HL
+            LD   (NJSTATEP),HL
             XOR  A
-            LD   (NativeNobjMapBankOrdinal),A
-NativeNobjMapBankLoop:
+            LD   (NJBANKID),A
+NJMAPBNK:
             ; usedLength = bank cursor - imageBase.
-            LD   HL,(NativeNobjMapStatePointer)
+            LD   HL,(NJSTATEP)
             LD   C,(HL)
             INC  HL
             LD   B,(HL)
@@ -476,19 +478,19 @@ NativeNobjMapBankLoop:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (NativeNobjMapAggregateLength),DE
+            LD   (NJAGGN),DE
             LD   H,B
             LD   L,C
             LD   E,(IX+5)
             LD   D,(IX+6)
             OR   A
             SBC  HL,DE
-            LD   (NativeNobjMapUsedLength),HL
+            LD   (NJUSED),HL
 
-            LD   HL,(NativeNobjMapStatePointer)
+            LD   HL,(NJSTATEP)
             LD   DE,6
             ADD  HL,DE
-            LD   (NativeNobjMapStatePointer),HL
+            LD   (NJSTATEP),HL
 
             ; Every bank starts with the entry slot and runtime. The entry
             ; bank then carries startup and the initialized image.
@@ -499,53 +501,53 @@ NativeNobjMapBankLoop:
             LD   C,(IX+34)
             LD   B,(IX+35)
             ADD  HL,BC
-            LD   A,(NativeNobjMapBankOrdinal)
+            LD   A,(NJBANKID)
             CP   (IX+2)
-            JR   NZ,NativeNobjMapRoBaseReadyForBank
+            JR   NZ,NJBNKRO
             LD   C,(IX+36)
             LD   B,(IX+37)
             ADD  HL,BC
-NativeNobjMapRoBaseReadyForBank:
-            LD   (NativeNobjMapRoBase),HL
+NJBNKRO:
+            LD   (NJROBASE),HL
 
             LD   BC,0
-            LD   A,(NativeNobjMapBankOrdinal)
+            LD   A,(NJBANKID)
             CP   (IX+2)
-            JR   NZ,NativeNobjMapHasInitial
+            JR   NZ,NJMAPINI
             BIT  0,(IX+1)
-            JR   Z,NativeNobjMapHasInitial
+            JR   Z,NJMAPINI
             LD   C,(IX+15)
             LD   B,(IX+16)
-NativeNobjMapHasInitial:
-            LD   (NativeNobjMapInitialLength),BC
+NJMAPINI:
+            LD   (NJINITN),BC
 
-            LD   DE,(NativeNobjMapAggregateLength)
-            LD   HL,(NativeNobjMapInitialLength)
+            LD   DE,(NJAGGN)
+            LD   HL,(NJINITN)
             ADD  HL,DE
-            LD   (NativeNobjMapRoLength),HL
+            LD   (NJRON),HL
             LD   A,D
             OR   E
             LD   HL,0
-            JR   Z,NativeNobjMapAggregateReady
-            LD   HL,(NativeNobjMapRoBase)
-            LD   BC,(NativeNobjMapInitialLength)
+            JR   Z,NJMAPAGG
+            LD   HL,(NJROBASE)
+            LD   BC,(NJINITN)
             ADD  HL,BC
-NativeNobjMapAggregateReady:
-            LD   (NativeNobjMapAggregateBase),HL
+NJMAPAGG:
+            LD   (NJAGGADR),HL
 
-            LD   HL,(NativeNobjMapTailPointer)
-            LD   DE,(NativeNobjMapUsedLength)
+            LD   HL,(NJTAILP)
+            LD   DE,(NJUSED)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   DE,(NativeNobjMapRoBase)
-            LD   BC,(NativeNobjMapRoLength)
+            LD   DE,(NJROBASE)
+            LD   BC,(NJRON)
             LD   A,B
             OR   C
-            JR   NZ,NativeNobjMapRoBaseReady
+            JR   NZ,NJMAPRO
             LD   DE,0
-NativeNobjMapRoBaseReady:
+NJMAPRO:
             LD   (HL),E
             INC  HL
             LD   (HL),D
@@ -554,49 +556,49 @@ NativeNobjMapRoBaseReady:
             INC  HL
             LD   (HL),B
             INC  HL
-            LD   DE,(NativeNobjMapAggregateBase)
+            LD   DE,(NJAGGADR)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   DE,(NativeNobjMapAggregateLength)
+            LD   DE,(NJAGGN)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   (NativeNobjMapTailPointer),HL
+            LD   (NJTAILP),HL
 
-            LD   A,(NativeNobjMapBankOrdinal)
+            LD   A,(NJBANKID)
             INC  A
-            LD   (NativeNobjMapBankOrdinal),A
+            LD   (NJBANKID),A
             CP   (IX+31)
-            JP   C,NativeNobjMapBankLoop
+            JP   C,NJMAPBNK
 
-            LD   A,(NativeNobjRecordBuffer+1)
+            LD   A,(NJRECBUF+1)
             ADD  A,3
             LD   C,A
             LD   B,0
-            LD   HL,(NativeNobjOutputHandle)
-            LD   DE,NativeNobjRecordBuffer
-            JP   NativeNobjWriteCovered
+            LD   HL,(NJOUTH)
+            LD   DE,NJRECBUF
+            JP   NJCOVER
 
 ; Write one block to the final object and include it in the running CRC.
-.routine in HL,DE,BC out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeNobjWriteCovered:
+; Contract: in HL,DE,BC out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NJCOVER:
             PUSH HL
             PUSH DE
             PUSH BC
             EX   DE,HL
-            CALL NativeNobjCrcBlock
+            CALL NJCRCBLK
             POP  BC
             POP  DE
             POP  HL
-            CALL NativeObjectWrite
+            CALL OCWRITE
             RET
 
-.routine in HL,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeNobjCrcBlock:
-NativeNobjCrcLoop:
+; Contract: in HL,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+NJCRCBLK:
+NJCRCLP:
             LD   A,B
             OR   C
             RET  Z
@@ -605,66 +607,68 @@ NativeNobjCrcLoop:
             DEC  BC
             PUSH BC
             PUSH HL
-            CALL NativeNobjCrcByte
+            CALL NJCRCBYT
             POP  HL
             POP  BC
-            JR   NativeNobjCrcLoop
+            JR   NJCRCLP
 
-.routine in A out A,BC,DE,carry,zero clobbers sign,parity,halfCarry
-NativeNobjCrcByte:
-            LD   DE,(NativeNobjCrc)
+; Contract: in A out A,BC,DE,carry,zero clobbers sign,parity,halfCarry
+NJCRCBYT:
+            LD   DE,(NJCRC)
             XOR  D
             LD   D,A
             LD   B,8
-NativeNobjCrcBit:
+NJCRCBIT:
             SLA  E
             RL   D
-            JR   NC,NativeNobjCrcNext
+            JR   NC,NJCRCNXT
             LD   A,E
             XOR  $21
             LD   E,A
             LD   A,D
             XOR  $10
             LD   D,A
-NativeNobjCrcNext:
-            DJNZ NativeNobjCrcBit
-            LD   (NativeNobjCrc),DE
+NJCRCNXT:
+            DJNZ NJCRCBIT
+            LD   (NJCRC),DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NativeNobjAbort:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NJABORT:
             XOR  A
-            LD   (NativeNobjAbortStatus),A
-            LD   HL,NativeNobjImageHandle
+            LD   (NJABSTAT),A
+            LD   HL,NJIMGH
             LD   B,3
-NativeNobjAbortLoop:
+NJABLOOP:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
             INC  HL
             LD   A,D
             OR   E
-            JR   Z,NativeNobjAbortNext
+            JR   Z,NJABNEXT
             PUSH HL
             PUSH BC
             EX   DE,HL
-            LD   A,NucleusObjectAbort
-            CALL NativeObjectTerminal
-            JR   NC,NativeNobjAbortRestored
-            LD   (NativeNobjAbortStatus),A
-NativeNobjAbortRestored:
+            LD   A,NOABORT
+            CALL OCTERM
+            JR   NC,NJABREST
+            LD   (NJABSTAT),A
+NJABREST:
             POP  BC
             POP  HL
-NativeNobjAbortNext:
-            DJNZ NativeNobjAbortLoop
+NJABNEXT:
+            DJNZ NJABLOOP
             XOR  A
-            LD   HL,NativeNobjImageHandle
-            LD   DE,NativeNobjImageHandle+1
+            LD   HL,NJIMGH
+            LD   DE,NJIMGH+1
             LD   BC,5
             LD   (HL),A
             LDIR
-            LD   A,(NativeNobjAbortStatus)
+            LD   A,(NJABSTAT)
             OR   A
             RET  Z
             SCF
             RET
+
+NJCODEND:

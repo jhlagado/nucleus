@@ -3,46 +3,47 @@
 ; vectors and C000h-FFFFh monitor ROM untouched. Target output is streamed and
 ; is not materialized over the compiler while compilation is active.
 
-CompilerCoreBase    .equ $8000
-CompilerCoreLimit   .equ $C000
+MMCORE     EQU $8000
+MMCORLIM   EQU $C000
 
-CompilerWorkBase    .equ $6000
-CompilerWorkLimit   .equ $7000
-SourceBase          .equ $7000
-SourceLimit         .equ $7800
-NativeSourceTokenBase  .equ SourceBase
-NativeSourceTokenLimit .equ SourceBase+$0500
-NativeSourceChunkBase  .equ NativeSourceTokenLimit
-NativeSourceChunkLimit .equ SourceLimit
+MMWORK     EQU $6000
+MMWRKLIM   EQU $7000
+MMSOURCE   EQU $7000
+MMSRCLIM   EQU $7800
+MMTOKEN    EQU MMSOURCE
+MMTOKEND   EQU MMSOURCE+$0500
+SRCCHUNK   EQU MMTOKEND
+MMCHKEND   EQU MMSRCLIM
 
-ReleasedGeneratedStagingBase  .equ SourceLimit
-ReleasedGeneratedStagingLimit .equ SourceLimit
-ProofSourceCorpusBase  .equ $7800
-ProofSourceCorpusLimit .equ $7B00
-TargetRuntimeBase      .equ $7B00
-TargetRuntimeLimit     .equ $7C00
-ExecutionBase          .equ $7C00
-ExecutionLimit         .equ $7D00
-ProgramDataBase           .equ ExecutionBase
-ProgramDataLimit          .equ ExecutionBase
-ProgramBssBase            .equ ExecutionBase
-ProgramBssLimit           .equ ExecutionBase
-ProgramDataRegionLimit    .equ ExecutionBase
-ProgramDataRegionCapacity .equ 0
-GeneratedRoDataCapacity   .equ $0400
-ServiceBase         .equ $7D00
-ServiceLimit        .equ $7E00
-ProofBase           .equ $7E00
-ProofLimit          .equ $7E00
-SpareBase           .equ $7E00
-ReleasedRollbackStagingBase  .equ $7E00
-ReleasedRollbackStagingLimit .equ $7E00
-SpareLimit          .equ $7E00
+MMRGEN     EQU MMSRCLIM
+MMRGNEND   EQU MMSRCLIM
+MMCORP     EQU $7800
+MMCORPEN   EQU $7B00
+MMRUN      EQU $7B00
+MMRUNEND   EQU $7C00
+MMEXEC     EQU $7C00
+MMEXEND    EQU $7D00
+MMDATA     EQU MMEXEC
+MMDATEND   EQU MMEXEC
+MMBSS      EQU MMEXEC
+MMBSSEND   EQU MMEXEC
+MMREGEND   EQU MMEXEC
+MMREGCAP   EQU 0
+RORDCAP    EQU $0400
+MMSERV     EQU $7D00
+MMSRVEND   EQU $7E00
+MMPROOF    EQU $7E00
+MMPREND    EQU $7E00
+MMSPARE    EQU $7E00
+MMRBACK    EQU $7E00
+MMRBKEND   EQU $7E00
+MMSPEND    EQU $7E00
 
-StackFloor          .equ $7E00
-StackTop            .equ $7F00
-HighReservedBase    .equ $C000
-AddressSpaceLimit   .equ $10000
+MMSTKBOT   EQU $7E00
+STACKTOP   EQU $7F00
+MMHIGH     EQU $C000
+; Highest address is a native word; host output reports its exclusive end +1.
+MMLAST     EQU $FFFF
 
-NativeHostTargetDescriptorBase .equ $5900
-NativeHostReturnSentinel        .equ $5FFF
+MMHOSTTD   EQU $5900
+MMRETPC    EQU $5FFF

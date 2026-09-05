@@ -1,9 +1,9 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assembleImageInWorker } from "./assemble-image-worker.mjs";
+import { assembleNativeRuntime } from "./assemble-native-runtime.mjs";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 for (const argument of process.argv.slice(2)) {
   if (argument !== "--check") throw new Error(`Unknown argument: ${argument}; generation uses ATOM only`);
@@ -79,105 +79,66 @@ const runtimeHelperNames = [
   "PacketServiceGateway",
 ];
 
-const hexWord = (value) => `$${value.toString(16).padStart(4, "0")}`;
-
 const assembleRuntime = async (profile) => {
-  const temporaryDirectory = await mkdtemp(
-    path.join(os.tmpdir(), "nucleus-runtime-catalog-"),
-  );
-  try {
-    const stateBase = profile.stateBase;
-    await writeFile(
-      path.join(temporaryDirectory, "nucleus-runtime-link-context.asmi"),
-      `RuntimeLinkBase .equ ${hexWord(profile.runtimeBase)}\n` +
-        `RuntimeWritableStateBase .equ ${hexWord(stateBase)}\n` +
-        `RuntimeProgramDataBase .equ ${hexWord(stateBase + 41)}\n` +
-        "RuntimeProgramDataCapacity .equ $0000\n" +
-        `RuntimeReadOnlyBase .equ ${hexWord(profile.runtimeBase + 732)}\n` +
-        "RuntimeReadOnlyCapacity .equ $0000\n" +
-        `RuntimePacketService .equ ${hexWord(profile.packetService)}\n` +
-        "StateBase .equ RuntimeWritableStateBase\n" +
-        "RunState .equ StateBase+$00\nTrapNumber .equ StateBase+$01\n" +
-        "TrapRoutine .equ StateBase+$02\nTrapOffset .equ StateBase+$03\n" +
-        "TrapError .equ StateBase+$05\nActivationDepth .equ StateBase+$06\n" +
-        "ActivationLimit .equ StateBase+$07\nScalarSlot .equ StateBase+$08\n" +
-        "CurrentBank .equ ScalarSlot\nActivationArena .equ StateBase+$09\n" +
-        "ActivationCapacity .equ 8\nRootSP .equ ActivationArena+ActivationCapacity\n" +
-        "RootIX .equ RootSP+2\nFarReturnArena .equ RootIX+2\n" +
-        "FarReturnCapacity .equ ActivationCapacity*2\n" +
-        "RuntimeProgramDataBaseState .equ FarReturnArena+FarReturnCapacity\n" +
-        "RuntimeProgramDataCapacityState .equ RuntimeProgramDataBaseState+2\n" +
-        "StateEnd .equ RuntimeProgramDataCapacityState+2\n" +
-        "RunReady .equ 1\nRunSucceeded .equ 2\nRunTrapped .equ 3\n" +
-        "GeneratedRoDataBase .equ RuntimeReadOnlyBase\n" +
-        "GeneratedRoDataCapacity .equ RuntimeReadOnlyCapacity\n" +
-        "AggregateCallSlices .equ 1\n" +
-        "ComparisonEqual .equ 0\nComparisonNotEqual .equ 1\n" +
-        "ComparisonLess .equ 2\nComparisonLessEqual .equ 3\n" +
-        "ComparisonGreater .equ 4\nComparisonGreaterEqual .equ 5\n",
-      "utf8",
-    );
-    const entryPath = path.join(temporaryDirectory, "runtime-link.asm");
-    await writeFile(
-      entryPath,
-      '.include "nucleus-runtime-link-context.asmi"\n' +
-        ".org RuntimeLinkBase\nRuntimeCodeStart:\n" +
-        '.include "target-z80-runtime.asm"\nRuntimeCodeEnd:\n',
-      "utf8",
-    );
-    const { hex, symbols } = await assembleSource(entryPath);
-    const symbol = (name) => {
-      const value = symbols[name];
-      if (value === undefined) {
-        throw new Error(`runtime catalog assembly omitted ${name}`);
-      }
-      return value;
-    };
-    const start = symbol("RuntimeCodeStart");
-    const end = symbol("RuntimeCodeEnd");
-    const expectedLength = symbol("NucleusRuntimeExpectedLength");
-    const vectorLength = symbol("NucleusRuntimeVectorLength");
-    const stateLength = symbol("NucleusRuntimeStateLength");
-    if (
-      start !== profile.runtimeBase ||
-      end - start !== expectedLength ||
-      symbol("StateEnd") - symbol("StateBase") !== stateLength
-    ) {
-      throw new Error(`runtime catalog layout mismatch for ${profile.name}`);
+  const { hex, symbols, generation } = await assembleNativeRuntime({
+    runtimeBase: profile.runtimeBase,
+    writableStateBase: profile.stateBase,
+    programDataBase: profile.stateBase + 41,
+    programDataCapacity: 0,
+    readOnlyBase: profile.runtimeBase + 732,
+    readOnlyCapacity: 0,
+    packetService: profile.packetService,
+  });
+  const symbol = (name) => {
+    const value = symbols[name];
+    if (value === undefined) {
+      throw new Error(`runtime catalog assembly omitted ${name}`);
     }
-    const helperOffsets = Object.fromEntries(
-      runtimeHelperNames.map((name) => {
-        const offset = symbol(name) - start;
-        const identityName = name.replace(/^Runtime/, "");
-        if (offset !== symbol(`NucleusRuntime${identityName}Offset`)) {
-          throw new Error(
-            `runtime catalog helper mismatch for ${profile.name}: ${name}`,
-          );
-        }
-        return [name, offset];
-      }),
-    );
-    return {
-      ...profile,
-      identity: symbol("NucleusRuntimeIdentity"),
-      expectedLength,
-      vectorLength,
-      stateLength,
-      runStateOffset: symbol("NucleusRuntimeRunStateOffset"),
-      activationLimitOffset: symbol("NucleusRuntimeActivationLimitOffset"),
-      currentBankOffset: symbol("NucleusRuntimeCurrentBankOffset"),
-      programDataBaseOffset: symbol("NucleusRuntimeProgramDataBaseOffset"),
-      programDataCapacityOffset: symbol(
-        "NucleusRuntimeProgramDataCapacityOffset",
-      ),
-      runReady: symbol("RunReady"),
-      activationCapacity: symbol("ActivationCapacity"),
-      helperOffsets,
-      hex,
-    };
-  } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true });
+    return value;
+  };
+  const start = symbol("RuntimeCodeStart");
+  const end = generation.highWater;
+  const expectedLength = symbol("NucleusRuntimeExpectedLength");
+  const vectorLength = symbol("NucleusRuntimeVectorLength");
+  const stateLength = symbol("NucleusRuntimeStateLength");
+  if (
+    start !== profile.runtimeBase ||
+    symbol("RuntimeCodeEnd") !== (end & 0xffff) ||
+    end - start !== expectedLength ||
+    symbol("StateEnd") - symbol("StateBase") !== stateLength
+  ) {
+    throw new Error(`runtime catalog layout mismatch for ${profile.name}`);
   }
+  const helperOffsets = Object.fromEntries(
+    runtimeHelperNames.map((name) => {
+      const offset = symbol(name) - start;
+      const identityName = name.replace(/^Runtime/, "");
+      if (offset !== symbol(`NucleusRuntime${identityName}Offset`)) {
+        throw new Error(
+          `runtime catalog helper mismatch for ${profile.name}: ${name}`,
+        );
+      }
+      return [name, offset];
+    }),
+  );
+  return {
+    ...profile,
+    identity: symbol("NucleusRuntimeIdentity"),
+    expectedLength,
+    vectorLength,
+    stateLength,
+    runStateOffset: symbol("NucleusRuntimeRunStateOffset"),
+    activationLimitOffset: symbol("NucleusRuntimeActivationLimitOffset"),
+    currentBankOffset: symbol("NucleusRuntimeCurrentBankOffset"),
+    programDataBaseOffset: symbol("NucleusRuntimeProgramDataBaseOffset"),
+    programDataCapacityOffset: symbol(
+      "NucleusRuntimeProgramDataCapacityOffset",
+    ),
+    runReady: symbol("RunReady"),
+    activationCapacity: symbol("ActivationCapacity"),
+    helperOffsets,
+    hex,
+  };
 };
 
 const [normal, debug, nativeNormal, nativeDebug, mon3Normal, mon3Debug] =
@@ -237,21 +198,21 @@ cpm22Initial[
   cpm22Runtime.vectorLength + cpm22Runtime.activationLimitOffset
 ] = cpm22Runtime.activationCapacity;
 
-const asmiBytes = (name, bytes) => {
+const asmiBytes = (name, endName, bytes) => {
   const lines = [`${name}:`];
   for (let offset = 0; offset < bytes.length; offset += 16) {
     lines.push(
-      `            .db ${Array.from(bytes.slice(offset, offset + 16)).join(",")}`,
+      `            DB ${Array.from(bytes.slice(offset, offset + 16)).join(",")}`,
     );
   }
-  lines.push(`${name}End:`);
+  lines.push(`${endName}:`);
   return lines.join("\n");
 };
 const generatedCpm22Assets =
   "; Generated by scripts/generate-compiler-images.mjs. Do not edit.\n\n" +
-  `${asmiBytes("CpmEmbeddedPrefix", cpm22Prefix)}\n\n` +
-  `${asmiBytes("CpmEmbeddedRuntime", cpm22RuntimeBytes)}\n\n` +
-  `${asmiBytes("CpmEmbeddedInitial", cpm22Initial)}\n`;
+  `${asmiBytes("EMBPFX", "EMBPFXEN", cpm22Prefix)}\n\n` +
+  `${asmiBytes("EMBRT", "EMBRTEND", cpm22RuntimeBytes)}\n\n` +
+  `${asmiBytes("EMBINIT", "EMBINEND", cpm22Initial)}\n`;
 
 if (process.argv.includes("--check")) {
   let current = "";

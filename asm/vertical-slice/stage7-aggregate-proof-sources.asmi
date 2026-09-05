@@ -1,0 +1,121 @@
+ORG MMSOURCE
+P7CPYS:
+            DB "record Counter",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var source as Counter = (1)",10
+            DB "var destination as Counter",10
+            DB "sub copyAndIncrement(input as Counter, output as Counter)",10
+            DB "output = input",10
+            DB "output.value = output.value + 1",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "source = source",10
+            DB "copyAndIncrement(source, destination)",10
+            DB "if source.value = 1 and destination.value = 2",10
+            DB "writeOutputByte('Y') else fail",10
+            DB "end",10
+            DB "end",10
+P7CPYE:
+
+P7FWDS:
+            DB "record Sample",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var samples as Sample[2] = [(3), (7)]",10
+            DB "sub choose(items as Sample[2], index as u8) as Sample",10
+            DB "return items[index]",10
+            DB "end",10
+            DB "sub forwardSelection(items as Sample[2], index as u8) as Sample",10
+            DB "return choose(items, index)",10
+            DB "end",10
+            DB "sub nine() as u8",10
+            DB "return 9",10
+            DB "end",10
+            DB "sub replace(item as Sample, value as u8)",10
+            DB "item.value = value",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "replace(forwardSelection(samples, 1), nine())",10
+            DB "if samples[1].value = 9",10
+            DB "writeOutputByte('Y') else fail",10
+            DB "end",10
+            DB "end",10
+P7FWDE:
+
+P7STRS:
+            DB "var text as string[3] = \"ABC\"",10
+            DB "sub mutate(item as string[3], index as u8)",10
+            DB "item[index] = 'Y'",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "mutate(text, 1)",10
+            DB "if text.length = 3 and text[1] = 'Y'",10
+            DB "writeOutputByte('Y') else fail",10
+            DB "end",10
+            DB "end",10
+P7STRE:
+
+P7BNDS:
+            DB "record Sample",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var samples as Sample[2] = [(3), (7)]",10
+            DB "sub choose(items as Sample[2], index as u8) as Sample",10
+            DB "return items[index]",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "choose(samples, 2)",10
+            DB "writeOutputByte('N') else fail",10
+            DB "end",10
+P7BNDE:
+
+P7CSBNDS:
+            DB "record Sample",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var samples as Sample[2] = [(3), (7)]",10
+            DB "sub main()",10
+            DB "samples[2].value = 9",10
+            DB "end",10
+P7CSBNDE:
+
+P7NOMISS:
+            DB "record Left",10
+            DB "value as u8",10
+            DB "end",10
+            DB "record Right",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var left as Left",10
+            DB "var right as Right",10
+            DB "sub main()",10
+            DB "right = left",10
+            DB "end",10
+P7NOMISE:
+
+P7TRMISS:
+            DB "record Sample",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var samples as Sample[2] = [(3), (7)]",10
+            DB "sub choose(items as Sample[2], index as u8) as Sample",10
+            DB "return items[index]",10
+            DB "end",10
+            DB "sub main() fails",10
+            DB "writeOutputByte(u8(choose(samples, 0))) else fail",10
+            DB "end",10
+P7TRMISE:
+
+P7CADEPS:
+            DB "record Box",10
+            DB "value as u8",10
+            DB "end",10
+            DB "var box as Box",10
+            DB "sub keep(item as Box) as Box",10
+            DB "return item",10
+            DB "end",10
+            DB "sub main()",10
+            DB "keep(keep(keep(keep(keep(box)))))",10
+            DB "end",10
+P7CADEPE:

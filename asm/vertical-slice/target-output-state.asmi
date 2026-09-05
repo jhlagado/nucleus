@@ -2,149 +2,149 @@
 ; part-bank array remains adapter-owned and stable for the compilation.
 ; The descriptor itself belongs to the operating adapter and remains stable.
 
-TargetDescriptorRuntimeIdentity   .equ 0  ; word
-TargetDescriptorImageBase         .equ 2  ; word
-TargetDescriptorImageCapacity     .equ 4  ; word
-TargetDescriptorWritableBase      .equ 6  ; word
-TargetDescriptorWritableCapacity  .equ 8  ; word
-TargetDescriptorFlags             .equ 10 ; byte
-TargetDescriptorBankCount         .equ 11 ; byte
-TargetDescriptorEntryBank         .equ 12 ; byte
-TargetDescriptorPartBanksPointer  .equ 13 ; word
-TargetDescriptorSize              .equ 15
-TargetDescriptorEstablishStack    .equ 1
-TargetStackRequirement            .equ 3840
+TDRTID    EQU 0  ; word
+TDIMGBAS  EQU 2  ; word
+TDIMGCAP  EQU 4  ; word
+TDWRBAS   EQU 6  ; word
+TDWRCAP   EQU 8  ; word
+TDFLGS    EQU 10 ; byte
+TDBNKCNT  EQU 11 ; byte
+TDENTBNK  EQU 12 ; byte
+TDPBPTR   EQU 13 ; word
+TDSZ      EQU 15
+TDSETSTK  EQU 1
+TGSTKREQ  EQU 3840
 
 ; Target-only parse-time aggregate-constant lengths reuse dead post-fixup
 ; workspace at the same addresses as the historical segmented proof fields.
 ; Generation adds each bank's cursor and remaining capacity to the same
 ; six-byte record; the three full words remain ordinary 16-bit values.
-TargetBankStateBase      .equ EmitControlFixupLimit+2
-TargetBankStateSize      .equ 6
-TargetBankStateCursor    .equ 0 ; word
-TargetBankStateRemaining .equ 2 ; word
-TargetBankStateRoLength  .equ 4 ; word
-TargetBankRoLengthBase   .equ TargetBankStateBase+TargetBankStateRoLength
-TargetBankStateLimit     .equ TargetBankStateBase+TargetBankStateSize*TargetBankCapacity
-TargetBankRoLengthLimit  .equ TargetBankStateLimit
+TBBAS     EQU ECFLIM+2
+TBSZ      EQU 6
+TBCUR     EQU 0 ; word
+TBREM     EQU 2 ; word
+TBROLEN   EQU 4 ; word
+TBKROBAS  EQU TBBAS+TBROLEN
+TBLIM     EQU TBBAS+TBSZ*TBKCAP
+TBKROLIM  EQU TBLIM
 
-TargetDescriptorPointer .equ SourceMultipartWorkspaceEnd ; word
-TargetCompilerWorkspaceEnd .equ TargetDescriptorPointer+2
+TDPTR     EQU SSMEND ; word
+TGCWKEND  EQU TDPTR+2
 
 ; Parsing has completed before these values become live. They reuse the dead
 ; LL(1) parser stack beginning at TargetCompilerWorkspaceEnd.
-TargetLayoutBase          .equ TargetCompilerWorkspaceEnd
+TGLAYBAS  EQU TGCWKEND
 ; The flat MAP is the canonical post-parse layout record. Fields whose final
 ; values are known during planning are written once here and retained through
 ; publication. Later MAP-only writes replace only state whose provider and
 ; lowering lifetimes have ended.
-TargetFlatMapBase         .equ TargetLayoutBase
-TargetMapEntryBank        .equ TargetFlatMapBase+$00
-TargetMapEntryAddress     .equ TargetFlatMapBase+$01 ; word
-TargetMapUsedLength       .equ TargetFlatMapBase+$03 ; word
-TargetMapReadOnlyBase     .equ TargetFlatMapBase+$05 ; word
-TargetMapReadOnlyLength   .equ TargetFlatMapBase+$07 ; word
-TargetMapCodeBase         .equ TargetFlatMapBase+$09 ; word
-TargetMapCodeLength       .equ TargetFlatMapBase+$0B ; word
-TargetMapWritableBase     .equ TargetFlatMapBase+$0D ; word
-TargetMapWritableCapacity .equ TargetFlatMapBase+$0F ; word
-TargetMapVectorBase       .equ TargetFlatMapBase+$11 ; word
-TargetMapVectorLength     .equ TargetFlatMapBase+$13 ; word
-TargetMapInitializedBase  .equ TargetFlatMapBase+$15 ; word
-TargetMapInitializedLength .equ TargetFlatMapBase+$17 ; word
-TargetMapBssBase          .equ TargetFlatMapBase+$19 ; word
-TargetMapBssLength        .equ TargetFlatMapBase+$1B ; word
-TargetMapStackRequirement .equ TargetFlatMapBase+$1D ; word
-TargetMapDataLoadBank     .equ TargetFlatMapBase+$1F
-TargetMapDataLoadAddress  .equ TargetFlatMapBase+$20 ; word
-TargetMapDataLoadLength   .equ TargetFlatMapBase+$22 ; word
-TargetMapAggregateBase    .equ TargetFlatMapBase+$24 ; word
-TargetMapAggregateLength  .equ TargetFlatMapBase+$26 ; word
-TargetMapSize             .equ $28
+TGFLAT    EQU TGLAYBAS
+TMENTBNK  EQU TGFLAT+$00
+TMENTADR  EQU TGFLAT+$01 ; word
+TMUSED    EQU TGFLAT+$03 ; word
+TMROBAS   EQU TGFLAT+$05 ; word
+TMROLEN   EQU TGFLAT+$07 ; word
+TMCODBAS  EQU TGFLAT+$09 ; word
+TMCODLEN  EQU TGFLAT+$0B ; word
+TMWRBAS   EQU TGFLAT+$0D ; word
+TMWRCAP   EQU TGFLAT+$0F ; word
+TMVECBAS  EQU TGFLAT+$11 ; word
+TMVECLEN  EQU TGFLAT+$13 ; word
+TMINIBAS  EQU TGFLAT+$15 ; word
+TMINILEN  EQU TGFLAT+$17 ; word
+TMBSSBAS  EQU TGFLAT+$19 ; word
+TMBSSLEN  EQU TGFLAT+$1B ; word
+TMSTKREQ  EQU TGFLAT+$1D ; word
+TMDLBNK   EQU TGFLAT+$1F
+TMDLADR   EQU TGFLAT+$20 ; word
+TMDLLEN   EQU TGFLAT+$22 ; word
+TMAGGBAS  EQU TGFLAT+$24 ; word
+TMAGGLEN  EQU TGFLAT+$26 ; word
+TMSZ      EQU $28
 
-TargetImageBase           .equ TargetMapEntryAddress
-TargetImageCapacity       .equ TargetMapUsedLength
-TargetReadOnlyBase        .equ TargetMapReadOnlyBase
-TargetReadOnlyLength      .equ TargetMapReadOnlyLength
-TargetCodeBase            .equ TargetMapCodeBase
-TargetCodeLength          .equ TargetMapCodeLength
-TargetWritableBase        .equ TargetMapWritableBase
-TargetWritableCapacity    .equ TargetMapWritableCapacity
+TGIMGBAS  EQU TMENTADR
+TGIMGCAP  EQU TMUSED
+TGROBAS   EQU TMROBAS
+TGROLEN   EQU TMROLEN
+TGCODBAS  EQU TMCODBAS
+TGCODLEN  EQU TMCODLEN
+TGWRBAS   EQU TMWRBAS
+TGWRCAP   EQU TMWRCAP
 ; These final MAP cells retain lowering-only values until generation ends.
-TargetCodeCapacity        .equ TargetMapVectorBase
-TargetLinkedRuntimeBase   .equ TargetMapVectorLength
-TargetCurrentRoCapacity   .equ TargetCodeLength
-TargetCurrentRoBase       .equ TargetCodeCapacity
+TGCODCAP  EQU TMVECBAS
+TGLINKRT  EQU TMVECLEN
+TGCROCAP  EQU TGCODLEN
+TGCRBAS   EQU TGCODCAP
 
 ; The provider context overlays the final MAP suffix. Its read-only base and
 ; capacity are already the final aggregate base and length. Every other MAP
 ; write into this interval occurs after the final provider request.
-TargetRuntimeContext      .equ TargetFlatMapBase+$16
-TargetContextRuntimeBase  .equ TargetRuntimeContext+$00 ; word
-TargetContextWritableBase .equ TargetRuntimeContext+$02 ; word
-TargetContextWritableCapacity .equ TargetRuntimeContext+$04 ; word
-TargetContextStateBase    .equ TargetRuntimeContext+$06 ; word
-TargetContextVectorBase   .equ TargetRuntimeContext+$08 ; word
-TargetContextDataBase     .equ TargetRuntimeContext+$0A ; word
-TargetContextDataCapacity .equ TargetRuntimeContext+$0C ; word
-TargetContextRoDataBase   .equ TargetRuntimeContext+$0E ; word
-TargetContextRoDataCapacity .equ TargetRuntimeContext+$10 ; word
-TargetContextSize         .equ $12
+TGRTCTX   EQU TGFLAT+$16
+TCRTBAS   EQU TGRTCTX+$00 ; word
+TCWRBAS   EQU TGRTCTX+$02 ; word
+TCWRCAP   EQU TGRTCTX+$04 ; word
+TCSTBAS   EQU TGRTCTX+$06 ; word
+TCVECBAS  EQU TGRTCTX+$08 ; word
+TCDATBAS  EQU TGRTCTX+$0A ; word
+TCDATCAP  EQU TGRTCTX+$0C ; word
+TCROBAS   EQU TGRTCTX+$0E ; word
+TCROCAP   EQU TGRTCTX+$10 ; word
+TCSZ      EQU $12
 
 ; These values remain live through lowering and therefore follow the MAP.
-TargetBssBase             .equ TargetFlatMapBase+$28 ; word
-TargetLayoutMode          .equ TargetFlatMapBase+$2A
-TargetStackMode           .equ TargetFlatMapBase+$2B
-TargetStartupLength       .equ TargetFlatMapBase+$2C ; word
-TargetTerminalAddress     .equ TargetFlatMapBase+$2E ; word
+TGBSSBAS  EQU TGFLAT+$28 ; word
+TGLAYMOD  EQU TGFLAT+$2A
+TGSTKMOD  EQU TGFLAT+$2B
+TGBOOTLN  EQU TGFLAT+$2C ; word
+TGTERM    EQU TGFLAT+$2E ; word
 ; The current/closed bank selector remains live across late MAP and COMMIT
 ; failure handling, so it cannot alias either published bank byte.
-TargetOutputBank          .equ TargetFlatMapBase+$30
-TargetLayoutEnd           .equ TargetFlatMapBase+$31
+TGOUTBNK  EQU TGFLAT+$30
+TGLAYEND  EQU TGFLAT+$31
 ; Stable native-host MAP request. It becomes live only after parsing, so it
 ; follows the post-parse target layout and may overlap the dead upper portion
 ; of the LL(1) parser stack.
-TargetMapRequest          .equ TargetLayoutEnd
-TargetMapRequestRevision  .equ TargetMapRequest+$00
-TargetMapRequestFlags     .equ TargetMapRequest+$01
-TargetMapRequestEntryBank .equ TargetMapRequest+$02
-TargetMapRequestEntryAddress .equ TargetMapRequest+$03 ; word
-TargetMapRequestImageBase .equ TargetMapRequest+$05 ; word
-TargetMapRequestImageCapacity .equ TargetMapRequest+$07 ; word
-TargetMapRequestWritableBase .equ TargetMapRequest+$09 ; word
-TargetMapRequestWritableCapacity .equ TargetMapRequest+$0B ; word
-TargetMapRequestVectorLength .equ TargetMapRequest+$0D ; word
-TargetMapRequestInitializedLength .equ TargetMapRequest+$0F ; word
-TargetMapRequestBssBase   .equ TargetMapRequest+$11 ; word
-TargetMapRequestBssLength .equ TargetMapRequest+$13 ; word
-TargetMapRequestStackRequirement .equ TargetMapRequest+$15 ; word
-TargetMapRequestDataLoadBank .equ TargetMapRequest+$17
-TargetMapRequestDataLoadAddress .equ TargetMapRequest+$18 ; word
-TargetMapRequestDataLoadLength .equ TargetMapRequest+$1A ; word
-TargetMapRequestPartCount .equ TargetMapRequest+$1C
-TargetMapRequestPartBanks .equ TargetMapRequest+$1D ; word
-TargetMapRequestBankCount .equ TargetMapRequest+$1F
-TargetMapRequestBankState .equ TargetMapRequest+$20 ; word
-TargetMapRequestRuntimeLength .equ TargetMapRequest+$22 ; word
-TargetMapRequestStartupLength .equ TargetMapRequest+$24 ; word
-TargetMapRequestSize      .equ $26
+TQBASE    EQU TGLAYEND
+TQREV     EQU TQBASE+$00
+TQFLGS    EQU TQBASE+$01
+TQENTBNK  EQU TQBASE+$02
+TQENTADR  EQU TQBASE+$03 ; word
+TQIMGBAS  EQU TQBASE+$05 ; word
+TQIMGCAP  EQU TQBASE+$07 ; word
+TQWRBAS   EQU TQBASE+$09 ; word
+TQWRCAP   EQU TQBASE+$0B ; word
+TQVECLEN  EQU TQBASE+$0D ; word
+TQINILEN  EQU TQBASE+$0F ; word
+TQBSSBAS  EQU TQBASE+$11 ; word
+TQBSSLEN  EQU TQBASE+$13 ; word
+TQSTKREQ  EQU TQBASE+$15 ; word
+TQDLBNK   EQU TQBASE+$17
+TQDLADR   EQU TQBASE+$18 ; word
+TQDLLEN   EQU TQBASE+$1A ; word
+TQPARTCT  EQU TQBASE+$1C
+TQPBANKS  EQU TQBASE+$1D ; word
+TQBNKCNT  EQU TQBASE+$1F
+TQBNKST   EQU TQBASE+$20 ; word
+TQRTLEN   EQU TQBASE+$22 ; word
+TQBOOTLN  EQU TQBASE+$24 ; word
+TQSZ      EQU $26
 ; These values remain live while the LL(1) stack may occupy its complete
 ; 64-byte capacity. They therefore follow both that stack and the post-parse
 ; MAP request rather than aliasing either one.
-TargetRetainedAcrossParseBase .equ TargetMapRequest+TargetMapRequestSize
-TargetDescriptorBankCountValue .equ TargetRetainedAcrossParseBase ; byte
-TargetDescriptorEntryBankValue .equ TargetDescriptorBankCountValue+1 ; byte
-TargetSourcePartCount      .equ TargetDescriptorEntryBankValue+1 ; byte
-TargetPartBanksPointer     .equ TargetSourcePartCount+1 ; word
+TGRETAIN  EQU TQBASE+TQSZ
+TDBNKVAL  EQU TGRETAIN ; byte
+TDENTVAL  EQU TDBNKVAL+1 ; byte
+TGSRCPTS  EQU TDENTVAL+1 ; byte
+TGPBPTR   EQU TGSRCPTS+1 ; word
 ; The production compiler retains the caller's hardware stack pointer across
 ; parsing and replaces it with an output-abort continuation during generation.
-CompilerAbortSp           .equ TargetPartBanksPointer+2 ; word
-TargetWorkspaceEnd        .equ CompilerAbortSp+2
+CPABRTSP  EQU TGPBPTR+2 ; word
+TGWKEND   EQU CPABRTSP+2
 
-DiagnosticTargetConfiguration .equ 95
-DiagnosticTargetCapacity      .equ 96
-DiagnosticTargetOutput        .equ 97
+DGTGTCFG  EQU 95
+DGTGTCAP  EQU 96
+DGTGTOUT  EQU 97
 
-TargetLayoutLoaded .equ 0
-TargetLayoutRom    .equ 1
-TargetOutputClosed .equ $FF
+TGLOADED  EQU 0
+TGLAYROM  EQU 1
+TGOUTCLS  EQU $FF

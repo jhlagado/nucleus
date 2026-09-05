@@ -1,109 +1,109 @@
 ; Checked semantic-operation buffer for the counted-loop and array slices.
 
-.if AggregateCallSlices
-.else
-.routine out carry,zero clobbers sign,parity,halfCarry,A,HL
-SemanticSinkReset:
-            LD   HL,SemanticPayloadBase
-            LD   (SinkCursor),HL
+%IF AggregateCallSlices
+%ELSE
+; Contract: out carry,zero clobbers sign,parity,halfCarry,A,HL
+TMRESET:
+            LD   HL,SMPAYBAS
+            LD   (SKCUR),HL
             XOR  A
-            LD   (SinkOperationCount),A
-            LD   (SemanticBufferBase),A
+            LD   (SKOPCNT),A
+            LD   (SMBUFBAS),A
             RET
-.endif
+%ENDIF
 
 ; Expression-only gated entries fall through to the raw sinks when emission
 ; is enabled. Keeping each entry beside its sink removes an absolute tail jump
 ; without changing the raw sink ABI used by statement actions.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitWord:
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TMEWORD:
             PUSH HL
             LD   A,L
-            CALL TypedEmitByte
+            CALL TMEBYTE
             POP  HL
-.if TargetStreamingOutput
-.else
+%IF TargetStreamingOutput
+%ELSE
             RET  C
-.endif
+%ENDIF
             LD   A,H
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitByte:
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TMEBYTE:
             LD   D,A
-            LD   A,(ExpressionEmitEnabled)
+            LD   A,(EXEMITON)
             OR   A
             LD   A,D
             RET  Z
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-SemanticSinkPut:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TMPUT:
             LD   B,A
-            LD   HL,(SinkCursor)
-            LD   DE,SemanticBufferLimit
+            LD   HL,(SKCUR)
+            LD   DE,SMBUFLIM
             OR   A
             SBC  HL,DE
             ADD  HL,DE
-            JR   Z,SemanticSinkPutFull
-SemanticSinkPutRoom:
+            JR   Z,TMPUTFUL
+TMPUTOK:
             LD   A,B
             LD   (HL),A
             INC  HL
-            LD   (SinkCursor),HL
+            LD   (SKCUR),HL
             OR   A
             RET
-SemanticSinkPutFull:
-            CALL SetDiagInline
-            .db  DiagnosticSinkCapacity
+TMPUTFUL:
+            CALL DGINLINE
+            DB  DGSNKCAP
 
-.if TargetStreamingOutput
-.routine in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
-SemanticSinkPutPreserveHL:
+%IF TargetStreamingOutput
+; Contract: in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
+TMPUTHL:
             PUSH HL
-            CALL SemanticSinkPut
+            CALL TMPUT
             POP  HL
             RET
-.endif
+%ENDIF
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-TypedEmitOperation:
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
+TMEOPER:
             LD   D,A
-            LD   A,(ExpressionEmitEnabled)
+            LD   A,(EXEMITON)
             OR   A
             LD   A,D
             RET  Z
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-SemanticSinkOperation:
-.if TargetStreamingOutput
-            LD   HL,SemanticBufferBase
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+TMOPER:
+%IF TargetStreamingOutput
+            LD   HL,SMBUFBAS
             INC  (HL)
-            JR   Z,SemanticSinkPutFull
-            JR   SemanticSinkPut
-.else
+            JR   Z,TMPUTFUL
+            JR   TMPUT
+%ELSE
             LD   B,A
-            LD   A,(SinkOperationCount)
+            LD   A,(SKOPCNT)
             CP   255
-            JR   Z,SemanticSinkPutFull
+            JR   Z,TMPUTFUL
             LD   A,B
-            CALL SemanticSinkPut
-.if AggregateCallSlices
-.if TargetStreamingOutput
-.else
+            CALL TMPUT
+%IF AggregateCallSlices
+%IF TargetStreamingOutput
+%ELSE
             RET  C
-.endif
-.else
+%ENDIF
+%ELSE
             RET  C
-.endif
-            LD   HL,SinkOperationCount
+%ENDIF
+            LD   HL,SKOPCNT
             INC  (HL)
             XOR  A
             RET
-.endif
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-SemanticSinkFinish:
-.if TargetStreamingOutput
-            LD   A,(SemanticBufferBase)
-.else
-            LD   A,(SinkOperationCount)
-            LD   (SemanticBufferBase),A
-.endif
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+TMFINISH:
+%IF TargetStreamingOutput
+            LD   A,(SMBUFBAS)
+%ELSE
+            LD   A,(SKOPCNT)
+            LD   (SMBUFBAS),A
+%ENDIF
             OR   A
             RET

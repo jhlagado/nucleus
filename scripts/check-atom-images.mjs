@@ -3,7 +3,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
-import { assembleAtomSource } from "./atom-source.mjs";
+import { assembleNativeCompiler, isNativeCompilerEntry } from "./assemble-native-compiler.mjs";
+import { assembleNativeNobj } from "./assemble-native-nobj.mjs";
+import { assembleNativeImportResolver } from "./assemble-native-import-resolver.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const variants = {
@@ -36,7 +38,11 @@ const [entry, prefix, file] = variants[name];
 const text = await readFile(path.join(root, "src", file), "utf8");
 const expectedHex = JSON.parse(new RegExp(`${prefix}Hex: string = (.*);`).exec(text)[1]);
 const expectedSymbols = JSON.parse(new RegExp(`${prefix}Symbols: Readonly<Record<string, number>> = (\\{[\\s\\S]*?\\});`).exec(text)[1]);
-const result = await assembleAtomSource(`vertical-slice/${entry}`);
+const result = isNativeCompilerEntry(entry)
+  ? await assembleNativeCompiler(entry)
+  : entry === "node-nobj-consumer.asm"
+  ? await assembleNativeNobj(entry)
+  : await assembleNativeImportResolver();
 const actual = parseIntelHex(result.hex), expected = parseIntelHex(expectedHex);
 const actualCoverage = coverage(actual), expectedCoverage = coverage(expected);
 const byteDifferences = [], coverageDifferences = [];

@@ -1,155 +1,131 @@
-; Direct token and full-width source-position trace for comparison punctuation,
-; slash tokens, comments, line endings, EOF, and multipart boundaries.
+; Native ATOM trace proof; immutable configuration is selected by its build helper.
+%INCLUDE "memory-map.asmi"
+%INCLUDE "loop-compiler-state.asmi"
+%INCLUDE "aggregate-call-state.asmi"
+%INCLUDE "tokenizer-trace-layout.asmi"
+%INCLUDE "source-adapter.asm"
+%INCLUDE "loop-tokenizer.asm"
+%INCLUDE "tokenizer-trace-diagnostics.asm"
+%INCLUDE "loop-keywords.asmi"
 
-            .include "memory-map.asmi"
-SegmentedOutput      .equ 0
-TargetStreamingOutput .equ 0
-LegacyCompilerSlices .equ 0
-AggregateCallSlices  .equ 1
-Stage7LL1            .equ 1
-            .include "loop-compiler-state.asmi"
-            .include "aggregate-call-state.asmi"
+TTIEND:
+TTCOREND:
 
-            .org CompilerCoreBase
-CompilerCodeStart:
-            .include "source-adapter.asm"
-            .include "loop-tokenizer.asm"
+            ORG MMSOURCE
+TTPART1:
+            DB  "< <= <> > >= << >> /"
+TTP1END:
+TTPART2:
+            DB  "/",10
+            DB  "//lf",10
+            DB  "//crlf",13,10
+            DB  "//eof"
+TTP2END:
+TTPART3:
+            DB  "$f"
+TTP3END:
 
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
-CompilerSetDiagnostic:
-            LD   (DiagnosticCode),A
-            SCF
-            RET
+TTPARTS:
+            DB  1
+            DW  TTPART1,TTP1END
+            DB  2
+            DW  TTPART2,TTP2END
+            DB  3
+            DW  TTPART3,TTP3END
 
-.routine noreturn
-SetDiagInline:
-            POP  HL
-            LD   A,(HL)
-            JR   CompilerSetDiagnostic
-CompilerCodeEnd:
-
-CompilerImmutableStart:
-            .include "loop-keywords.asmi"
-CompilerImmutableEnd:
-CompilerCoreEnd:
-
-            .org SourceBase
-TokenizerTracePart1:
-            .db  "< <= <> > >= << >> /"
-TokenizerTracePart1End:
-TokenizerTracePart2:
-            .db  "/",10
-            .db  "//lf",10
-            .db  "//crlf",13,10
-            .db  "//eof"
-TokenizerTracePart2End:
-TokenizerTracePart3:
-            .db  "$f"
-TokenizerTracePart3End:
-
-TokenizerTraceParts:
-            .db  1
-            .dw  TokenizerTracePart1,TokenizerTracePart1End
-            .db  2
-            .dw  TokenizerTracePart2,TokenizerTracePart2End
-            .db  3
-            .dw  TokenizerTracePart3,TokenizerTracePart3End
-
-            .org ProofBase
-.routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX
-ProofStart:
-            LD   SP,StackTop
+            ORG MMPROOF
+; Contract: out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX
+TTSTART:
+            LD   SP,STACKTOP
             XOR  A
-            LD   (ProofCase),A
-            LD   (ProofStatus),A
+            LD   (TTCASE),A
+            LD   (TTSTATUS),A
             LD   A,3
-            LD   HL,TokenizerTraceParts
-            CALL SourceInitializeParts
-            JP   C,ProofFailure
-            LD   IX,TokenizerExpectedTrace
+            LD   HL,TTPARTS
+            CALL SAPARTS
+            JP   C,TTFAIL
+            LD   IX,TTEXPECT
 
-TokenizerTraceNext:
-            CALL TokenizerNext
-            JP   C,ProofFailure
+TTNEXT:
+            CALL TKNEXT
+            JP   C,TTFAIL
             CP   (IX+0)
-            JP   NZ,ProofFailure
+            JP   NZ,TTFAIL
 
             LD   L,(IX+1)
             LD   H,(IX+2)
-            LD   DE,(TokenStartOffset)
+            LD   DE,(TNSTOFF)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFailure
+            JP   NZ,TTFAIL
 
             LD   L,(IX+3)
             LD   H,(IX+4)
-            LD   DE,(TokenStartLine)
+            LD   DE,(TNSTLINE)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFailure
+            JP   NZ,TTFAIL
 
             LD   L,(IX+5)
             LD   H,(IX+6)
-            LD   DE,(TokenStartColumn)
+            LD   DE,(TNSTCOL)
             OR   A
             SBC  HL,DE
-            JP   NZ,ProofFailure
+            JP   NZ,TTFAIL
 
             LD   DE,7
             ADD  IX,DE
             LD   A,(IX+0)
             INC  A
-            JR   NZ,TokenizerTraceNext
+            JR   NZ,TTNEXT
 
             LD   A,$A5
-            LD   (ProofStatus),A
+            LD   (TTSTATUS),A
             HALT
 
-ProofFailure:
+TTFAIL:
             LD   A,1
-            LD   (ProofCase),A
+            LD   (TTCASE),A
             LD   A,$E0
-            LD   (ProofStatus),A
+            LD   (TTSTATUS),A
             HALT
 
 ; token, offset, line, column. Offsets restart for each source part.
-TokenizerExpectedTrace:
-            .db  TokenLess
-            .dw  0,1,1
-            .db  TokenLessEqual
-            .dw  2,1,3
-            .db  TokenNotEqual
-            .dw  5,1,6
-            .db  TokenGreater
-            .dw  8,1,9
-            .db  TokenGreaterEqual
-            .dw  10,1,11
-            .db  TokenLess
-            .dw  13,1,14
-            .db  TokenLess
-            .dw  14,1,15
-            .db  TokenGreater
-            .dw  16,1,17
-            .db  TokenGreater
-            .dw  17,1,18
-            .db  TokenSlash
-            .dw  19,1,20
-            .db  TokenNewline
-            .dw  20,1,21
-            .db  TokenSlash
-            .dw  0,1,1
-            .db  TokenNewline
-            .dw  1,1,2
-            .db  TokenNumber
-            .dw  0,1,1
-            .db  TokenNewline
-            .dw  2,1,3
-            .db  TokenEof
-            .dw  2,1,3
-            .db  $FF
+TTEXPECT:
+            DB  TNLT
+            DW  0,1,1
+            DB  TNLTEQ
+            DW  2,1,3
+            DB  TNNOTEQ
+            DW  5,1,6
+            DB  TNGT
+            DW  8,1,9
+            DB  TNGTEQ
+            DW  10,1,11
+            DB  TNLT
+            DW  13,1,14
+            DB  TNLT
+            DW  14,1,15
+            DB  TNGT
+            DW  16,1,17
+            DB  TNGT
+            DW  17,1,18
+            DB  TNSLASH
+            DW  19,1,20
+            DB  TNNL
+            DW  20,1,21
+            DB  TNSLASH
+            DW  0,1,1
+            DB  TNNL
+            DW  1,1,2
+            DB  TNNUM
+            DW  0,1,1
+            DB  TNNL
+            DW  2,1,3
+            DB  TOKENEOF
+            DW  2,1,3
+            DB  $FF
 
-ProofStatus: .db 0
-ProofCase:   .db 0
-ProofEnd:
-
-            .end
+TTSTATUS: DB 0
+TTCASE:   DB 0
+TTEND:

@@ -1,0 +1,2 @@
+; Historical stage proofs retain the machine's compiler origin.
+            ORG MMCORE

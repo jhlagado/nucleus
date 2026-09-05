@@ -5,304 +5,304 @@
 ; target writes unpublished until one complete sequential read has reached a
 ; valid COMMIT and immediate EOF.
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjConsumerRun:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCRUN:
             PUSH IY
-            CALL NobjConsumerRunBody
+            CALL LCRUNBD
             POP  IY
             RET
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjConsumerRunBody:
-            LD   (NobjStateDescriptorPointer),IX
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCRUNBD:
+            LD   (LVSDPTR),IX
             LD   HL,0
-            LD   (NobjStateRecordOrdinal),HL
-            CALL NobjValidateRunDescriptor
-            JR   C,NobjConsumerReturnFailure
-            CALL NobjValidatePlatformVector
-            JR   C,NobjConsumerReturnFailure
-            CALL NobjValidateDeploymentProfile
-            JR   C,NobjConsumerReturnFailure
+            LD   (LVRECNO),HL
+            CALL LCVALDSC
+            JR   C,LCRETFL
+            CALL LCVALVEC
+            JR   C,LCRETFL
+            CALL LCVALDEP
+            JR   C,LCRETFL
 
-            LD   IX,(NobjStateDescriptorPointer)
+            LD   IX,(LVSDPTR)
             LD   L,(IX+4)
             LD   H,(IX+5)
-            CALL NobjPlatformObjectOpen
-            JR   C,NobjConsumerPlatformFailureAfterClose
-            CALL NobjValidatePass
-            JR   C,NobjConsumerOpenedFailure
+            CALL LVOPEN
+            JR   C,LCCLOSFL
+            CALL LCPASS
+            JR   C,LCOPENFL
 
-            CALL NobjPlatformObjectClose
-            JR   C,NobjConsumerPlatformFailureAfterClose
+            CALL LVCLOSE
+            JR   C,LCCLOSFL
 
-            LD   A,(NobjStateEntryBank)
-            LD   HL,(NobjStateImageBase)
-            LD   IX,NobjStateMapBuffer
-            LD   BC,(NobjStateMapLength)
-            LD   DE,(NobjStateProfilePointer)
-            CALL NobjPlatformPublishTarget
-            JR   C,NobjConsumerPlatformFailureAfterClose
+            LD   A,(LVENTBNK)
+            LD   HL,(LVIMBASE)
+            LD   IX,LVMAPBUF
+            LD   BC,(LVMAPLEN)
+            LD   DE,(LVSPPTR)
+            CALL LVPUBL
+            JR   C,LCCLOSFL
 
-            LD   A,(NobjStateEntryBank)
-            LD   HL,(NobjStateImageBase)
-            LD   IX,(NobjStateProfilePointer)
-            CALL NobjPlatformEnterTarget
+            LD   A,(LVENTBNK)
+            LD   HL,(LVIMBASE)
+            LD   IX,(LVSPPTR)
+            CALL LVENTER
             ; A successful entry never returns.
-            JR   NobjConsumerPlatformFailureAfterClose
+            JR   LCCLOSFL
 
-NobjConsumerOpenedFailure:
-            CALL NobjPlatformObjectClose
-            JR   NobjConsumerReturnFailure
+LCOPENFL:
+            CALL LVCLOSE
+            JR   LCRETFL
 
-NobjConsumerPlatformFailureAfterClose:
-            CALL NobjSetPlatformFailure
+LCCLOSFL:
+            CALL LCSETPF
 
-.routine out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL,IX
-NobjConsumerReturnFailure:
-            LD   HL,(NobjStateResultPointer)
+; Contract: out A,carry clobbers zero,sign,parity,halfCarry,BC,DE,HL,IX
+LCRETFL:
+            LD   HL,(LVSRPTR)
             LD   A,H
             OR   L
-            JR   Z,NobjConsumerReturnBareFailure
-            LD   A,(NobjStateFailureOutcome)
+            JR   Z,LCRETBF
+            LD   A,(LVFLOUT)
             LD   (HL),A
             INC  HL
-            LD   A,(NobjStateFailureStatus)
+            LD   A,(LVFLSTAT)
             LD   (HL),A
             INC  HL
-            LD   DE,(NobjStateRecordOrdinal)
+            LD   DE,(LVRECNO)
             LD   (HL),E
             INC  HL
             LD   (HL),D
-NobjConsumerReturnBareFailure:
-            LD   A,(NobjStateFailureStatus)
+LCRETBF:
+            LD   A,(LVFLSTAT)
             SCF
             RET
 
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
-NobjSetValidatorFailure:
-            LD   (NobjStateFailureStatus),A
-            LD   A,NobjOutcomeInvalid
-            LD   (NobjStateFailureOutcome),A
+; Contract: in A out A,carry clobbers zero,sign,parity,halfCarry
+LCSETVF:
+            LD   (LVFLSTAT),A
+            LD   A,LVOINVAL
+            LD   (LVFLOUT),A
             SCF
             RET
 
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
-NobjSetPlatformFailure:
-            LD   (NobjStateFailureStatus),A
-            LD   A,NobjOutcomePlatform
-            LD   (NobjStateFailureOutcome),A
+; Contract: in A out A,carry clobbers zero,sign,parity,halfCarry
+LCSETPF:
+            LD   (LVFLSTAT),A
+            LD   A,LVOPLAT
+            LD   (LVFLOUT),A
             SCF
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjValidateRunDescriptor:
-            LD   IX,(NobjStateDescriptorPointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCVALDSC:
+            LD   IX,(LVSDPTR)
             PUSH IX
             POP  HL
             LD   DE,10
-            CALL NobjControlContainsExtent
-            JR   C,NobjDescriptorInvalidBare
-            LD   IX,(NobjStateDescriptorPointer)
+            CALL LCCTREXT
+            JR   C,LCDSCBAR
+            LD   IX,(LVSDPTR)
             LD   A,(IX+0)
             CP   10
-            JR   NZ,NobjDescriptorInvalidBare
+            JR   NZ,LCDSCBAR
             LD   A,(IX+1)
             OR   A
-            JR   NZ,NobjDescriptorInvalidBare
+            JR   NZ,LCDSCBAR
             LD   A,(IX+2)
             CP   1
-            JR   NZ,NobjDescriptorInvalidBare
+            JR   NZ,LCDSCBAR
             LD   A,(IX+3)
             OR   A
-            JR   NZ,NobjDescriptorInvalidBare
+            JR   NZ,LCDSCBAR
             LD   L,(IX+8)
             LD   H,(IX+9)
             LD   A,H
             OR   L
-            JR   Z,NobjDescriptorInvalidBare
+            JR   Z,LCDSCBAR
             PUSH HL
             LD   DE,4
-            CALL NobjControlContainsExtent
+            CALL LCCTREXT
             POP  HL
-            JR   C,NobjDescriptorInvalidBare
-            LD   (NobjStateResultPointer),HL
-            LD   IX,(NobjStateDescriptorPointer)
+            JR   C,LCDSCBAR
+            LD   (LVSRPTR),HL
+            LD   IX,(LVSDPTR)
             LD   L,(IX+6)
             LD   H,(IX+7)
             LD   A,H
             OR   L
-            JR   Z,NobjDescriptorInvalid
+            JR   Z,LCDSCERR
             PUSH HL
             LD   DE,18
-            CALL NobjControlContainsExtent
+            CALL LCCTREXT
             POP  HL
-            JR   C,NobjDescriptorInvalid
-            LD   (NobjStateProfilePointer),HL
+            JR   C,LCDSCERR
+            LD   (LVSPPTR),HL
             OR   A
             RET
-NobjDescriptorInvalidBare:
+LCDSCBAR:
             LD   HL,0
-            LD   (NobjStateResultPointer),HL
-NobjDescriptorInvalid:
-            LD   A,NobjStatusDescriptor
-            JR   NobjSetValidatorFailure
+            LD   (LVSRPTR),HL
+LCDSCERR:
+            LD   A,LVSDESC
+            JR   LCSETVF
 
 ; HL=start, DE=length. Carry means the complete extent is not inside the
 ; caller-owned control region that remains live until target entry.
-.routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjControlContainsExtent:
-            LD   BC,NobjConsumerControlBase
+; Contract: in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCCTREXT:
+            LD   BC,LVCTLBA
             OR   A
             SBC  HL,BC
-            JR   C,NobjControlExtentInvalid
+            JR   C,LCCTRERR
             ADD  HL,BC
             ADD  HL,DE
-            JR   NC,NobjControlExtentEndReady
+            JR   NC,LCCTREND
             LD   A,H
             OR   L
-            JR   NZ,NobjControlExtentInvalid
-            LD   BC,NobjConsumerControlLimit
+            JR   NZ,LCCTRERR
+            LD   BC,LVCTLLIM
             LD   A,B
             OR   C
-            JR   Z,NobjControlExtentValid
-            JR   NobjControlExtentInvalid
-NobjControlExtentEndReady:
-            LD   BC,NobjConsumerControlLimit
+            JR   Z,LCCTROK
+            JR   LCCTRERR
+LCCTREND:
+            LD   BC,LVCTLLIM
             LD   A,B
             OR   C
-            JR   Z,NobjControlExtentValid
+            JR   Z,LCCTROK
             OR   A
             SBC  HL,BC
-            JR   C,NobjControlExtentValid
+            JR   C,LCCTROK
             RET  Z
-NobjControlExtentInvalid:
+LCCTRERR:
             SCF
             RET
-NobjControlExtentValid:
+LCCTROK:
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjValidatePlatformVector:
-            LD   HL,NobjConsumerPlatformBase
-            LD   DE,NobjConsumerVectorSignature
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCVALVEC:
+            LD   HL,LVPLBASE
+            LD   DE,LCVECSIG
             LD   B,8
-NobjValidatePlatformVectorLoop:
+LCVECLP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,NobjPlatformVectorInvalid
+            JR   NZ,LCVECERR
             INC  DE
             INC  HL
-            DJNZ NobjValidatePlatformVectorLoop
+            DJNZ LCVECLP
             RET
-NobjPlatformVectorInvalid:
-            LD   A,NobjStatusConsumerVector
-            JP   NobjSetValidatorFailure
+LCVECERR:
+            LD   A,LVSVECT
+            JP   LCSETVF
 
-NobjConsumerVectorSignature:
-            .db  "NC",0,1,8,8,0,0
+LCVECSIG:
+            DB  "NC",0,1,8,8,0,0
 
 ; Validate the exact revision-one deployment record, derive loaded/ROM mode,
 ; and reject a target window that can overwrite the resident consumer.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjValidateDeploymentProfile:
-            LD   IX,(NobjStateProfilePointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCVALDEP:
+            LD   IX,(LVSPPTR)
             LD   A,(IX+0)
             CP   18
-            JP   NZ,NobjDeploymentInvalid
+            JP   NZ,LCDEPERR
             LD   A,(IX+1)
             CP   1
-            JP   NZ,NobjDeploymentInvalid
+            JP   NZ,LCDEPERR
             LD   A,(IX+2)
             AND  $FC
-            JP   NZ,NobjDeploymentInvalid
+            JP   NZ,LCDEPERR
             LD   A,(IX+2)
-            LD   (NobjStateProfileFlags),A
+            LD   (LVPRFLAG),A
             LD   L,(IX+3)
             LD   H,(IX+4)
-            LD   (NobjStateRuntimeIdentity),HL
+            LD   (LVRTID),HL
             LD   A,(IX+5)
-            LD   (NobjStateBankCount),A
+            LD   (LVBKCNT),A
             LD   B,A
             LD   A,(IX+6)
-            LD   (NobjStateImageFill),A
+            LD   (LVFILL),A
             LD   L,(IX+7)
             LD   H,(IX+8)
-            LD   (NobjStateImageBase),HL
+            LD   (LVIMBASE),HL
             LD   E,(IX+9)
             LD   D,(IX+10)
-            LD   (NobjStateImageCapacity),DE
+            LD   (LVIMCAP),DE
             LD   A,D
             OR   E
-            JR   Z,NobjDeploymentInvalid
-            CALL NobjExtentEndValid
-            JR   C,NobjDeploymentInvalid
+            JR   Z,LCDEPERR
+            CALL LCEXTEND
+            JR   C,LCDEPERR
             LD   L,(IX+11)
             LD   H,(IX+12)
-            LD   (NobjStateWritableBase),HL
+            LD   (LVWRBASE),HL
             LD   E,(IX+13)
             LD   D,(IX+14)
-            LD   (NobjStateWritableCapacity),DE
+            LD   (LVWRCAP),DE
             LD   A,D
             OR   E
-            JR   Z,NobjDeploymentInvalid
-            CALL NobjExtentEndValid
-            JR   C,NobjDeploymentInvalid
+            JR   Z,LCDEPERR
+            CALL LCEXTEND
+            JR   C,LCDEPERR
             LD   A,(IX+15)
-            LD   (NobjStateEntryBank),A
+            LD   (LVENTBNK),A
 
-            LD   A,(NobjStateProfileFlags)
+            LD   A,(LVPRFLAG)
             BIT  0,A
-            JR   NZ,NobjValidateBankedProfile
-            LD   A,(NobjStateBankCount)
+            JR   NZ,LCVALBNK
+            LD   A,(LVBKCNT)
             LD   B,A
             LD   A,B
             CP   1
-            JR   NZ,NobjDeploymentInvalid
-            LD   A,(NobjStateEntryBank)
+            JR   NZ,LCDEPERR
+            LD   A,(LVENTBNK)
             OR   A
-            JR   NZ,NobjDeploymentInvalid
+            JR   NZ,LCDEPERR
             LD   A,(IX+16)
             OR   (IX+17)
-            JR   NZ,NobjDeploymentInvalid
-            CALL NobjDeriveFlatMode
-            JR   C,NobjDeploymentInvalid
-            JR   NobjValidateProfileProtection
+            JR   NZ,LCDEPERR
+            CALL LCFLMODE
+            JR   C,LCDEPERR
+            JR   LCVALPRO
 
-NobjValidateBankedProfile:
-            LD   A,(NobjStateBankCount)
+LCVALBNK:
+            LD   A,(LVBKCNT)
             LD   B,A
             LD   A,B
             CP   2
-            JR   C,NobjDeploymentInvalid
+            JR   C,LCDEPERR
             CP   5
-            JR   NC,NobjDeploymentInvalid
-            LD   A,(NobjStateEntryBank)
+            JR   NC,LCDEPERR
+            LD   A,(LVENTBNK)
             CP   B
-            JR   NC,NobjDeploymentInvalid
+            JR   NC,LCDEPERR
             LD   A,(IX+16)
             OR   (IX+17)
-            JR   Z,NobjDeploymentInvalid
-            CALL NobjRequireWritableOutsideImage
-            JR   C,NobjDeploymentInvalid
+            JR   Z,LCDEPERR
+            CALL LCWROUT
+            JR   C,LCDEPERR
             LD   A,1
-            LD   (NobjStateRomMode),A
-            CALL NobjValidateBankBindings
-            JR   C,NobjDeploymentInvalid
+            LD   (LVROM),A
+            CALL LCVALBND
+            JR   C,LCDEPERR
 
-NobjValidateProfileProtection:
-            CALL NobjImageAvoidsProtectedMemory
+LCVALPRO:
+            CALL LCIMGPRO
             RET  NC
-NobjProtectedMemoryInvalid:
-            LD   A,NobjStatusProtectedMemory
-            JP   NobjSetValidatorFailure
-NobjDeploymentInvalid:
-            LD   A,NobjStatusDeploymentProfile
-            JP   NobjSetValidatorFailure
+LCPROERR:
+            LD   A,LVSPROT
+            JP   LCSETVF
+LCDEPERR:
+            LD   A,LVSDEPLY
+            JP   LCSETVF
 
 ; HL=base, DE=capacity. Carry means the mathematical end exceeds $10000.
-.routine in DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC
-NobjExtentEndValid:
+; Contract: in DE,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC
+LCEXTEND:
             LD   B,H
             LD   C,L
             ADD  HL,DE
@@ -314,116 +314,116 @@ NobjExtentEndValid:
             RET
 
 ; Derive the flat mode without a profile mode bit. Carry means partial overlap.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjDeriveFlatMode:
-            LD   HL,(NobjStateWritableBase)
-            LD   DE,(NobjStateImageBase)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCFLMODE:
+            LD   HL,(LVWRBASE)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE                  ; writable offset from image base
-            JR   C,NobjWritableStartsBelowImage
-            LD   DE,(NobjStateImageCapacity)
+            JR   C,LCWRBELO
+            LD   DE,(LVIMCAP)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JR   NC,NobjWritableWhollyAboveImage
+            JR   NC,LCWRABOV
             EX   DE,HL                  ; DE=offset, HL=image capacity
             OR   A
             SBC  HL,DE                  ; remaining image capacity
-            LD   DE,(NobjStateWritableCapacity)
+            LD   DE,(LVWRCAP)
             OR   A
             SBC  HL,DE
-            JR   C,NobjModePartialOverlap
+            JR   C,LCPARTOL
             XOR  A                      ; loaded mode
-            LD   (NobjStateRomMode),A
+            LD   (LVROM),A
             RET
-NobjWritableStartsBelowImage:
-            LD   HL,(NobjStateImageBase)
-            LD   DE,(NobjStateWritableBase)
+LCWRBELO:
+            LD   HL,(LVIMBASE)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE                  ; distance to image base
-            LD   DE,(NobjStateWritableCapacity)
+            LD   DE,(LVWRCAP)
             OR   A
             SBC  HL,DE
-            JR   C,NobjModePartialOverlap
-NobjWritableWhollyAboveImage:
+            JR   C,LCPARTOL
+LCWRABOV:
             LD   A,1                    ; disjoint ROM mode
-            LD   (NobjStateRomMode),A
+            LD   (LVROM),A
             OR   A
             RET
-NobjModePartialOverlap:
+LCPARTOL:
             SCF
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjRequireWritableOutsideImage:
-            CALL NobjDeriveFlatMode
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCWROUT:
+            CALL LCFLMODE
             RET  C
-            LD   A,(NobjStateRomMode)
+            LD   A,(LVROM)
             OR   A
             RET  NZ
             SCF
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjValidateBankBindings:
-            LD   IX,(NobjStateProfilePointer)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCVALBND:
+            LD   IX,(LVSPPTR)
             LD   L,(IX+16)
             LD   H,(IX+17)
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             ADD  A,A                     ; 2n
             LD   E,A
             ADD  A,A                     ; 4n
             ADD  A,E                     ; 6n
             LD   E,A
             LD   D,0
-            CALL NobjControlContainsExtent
+            CALL LCCTREXT
             RET  C
-            LD   IX,(NobjStateProfilePointer)
+            LD   IX,(LVSPPTR)
             LD   L,(IX+16)
             LD   H,(IX+17)
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             LD   B,A
-NobjValidateBankBindingLoop:
+LCBINDLP:
             INC  HL                      ; selector is opaque
             LD   A,(HL)                  ; reserved byte
             OR   A
-            JR   NZ,NobjBankBindingInvalid
+            JR   NZ,LCBNDERR
             LD   DE,5
             ADD  HL,DE
-            DJNZ NobjValidateBankBindingLoop
+            DJNZ LCBINDLP
             OR   A
             RET
-NobjBankBindingInvalid:
+LCBNDERR:
             SCF
             RET
 
 ; Carry means either target-write region overlaps a resident protected extent.
 ; The image check is independent of which physical bank is selected.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjImageAvoidsProtectedMemory:
-            LD   BC,NobjConsumerCodeBase
-            LD   DE,NobjConsumerCodeLimit
-            CALL NobjTargetRegionsIntersectFixed
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCIMGPRO:
+            LD   BC,LVCBASE
+            LD   DE,LVCLIMIT
+            CALL LCTGINT
             RET  C
-            LD   BC,NobjConsumerWorkspaceBase
-            LD   DE,NobjConsumerWorkspaceEnd
-            CALL NobjTargetRegionsIntersectFixed
+            LD   BC,LVWKBASE
+            LD   DE,LVWKEND
+            CALL LCTGINT
             RET  C
-            LD   BC,NobjConsumerStackBase
-            LD   DE,NobjConsumerStackLimit
-            CALL NobjTargetRegionsIntersectFixed
+            LD   BC,LVSTKBAS
+            LD   DE,LVSTKLIM
+            CALL LCTGINT
             RET  C
-            LD   BC,NobjConsumerPlatformCodeBase
-            LD   DE,NobjConsumerPlatformCodeLimit
-            CALL NobjTargetRegionsIntersectFixed
+            LD   BC,LVPCLBAS
+            LD   DE,LVPCLLIM
+            CALL LCTGINT
             RET  C
-            LD   BC,NobjConsumerControlBase
-            LD   DE,NobjConsumerControlLimit
-            CALL NobjTargetRegionsIntersectFixed
+            LD   BC,LVCTLBA
+            LD   DE,LVCTLLIM
+            CALL LCTGINT
             RET  C
-            LD   BC,NobjConsumerObjectBase
-            LD   DE,NobjConsumerObjectLimit
+            LD   BC,LVOBJBA
+            LD   DE,LVOBJLIM
             LD   A,B
             OR   C
             OR   D
@@ -431,389 +431,389 @@ NobjImageAvoidsProtectedMemory:
             RET  Z
 
 ; BC=fixed start, DE=fixed limit. Carry means image or writable intersects it.
-.routine in BC,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjTargetRegionsIntersectFixed:
+; Contract: in BC,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCTGINT:
             PUSH BC
             PUSH DE
-            LD   HL,(NobjStateImageBase)
-            LD   IX,(NobjStateImageCapacity)
-            CALL NobjRegionIntersectsFixed
+            LD   HL,(LVIMBASE)
+            LD   IX,(LVIMCAP)
+            CALL LCREGINT
             POP  DE
             POP  BC
             RET  C
-            LD   HL,(NobjStateWritableBase)
-            LD   IX,(NobjStateWritableCapacity)
+            LD   HL,(LVWRBASE)
+            LD   IX,(LVWRCAP)
 
 ; HL=target base, IX=capacity, BC=fixed start, DE=fixed exclusive limit.
 ; Both inputs are valid half-open extents; a zero fixed limit means $10000.
-.routine in BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,DE,HL,IX,IY
-NobjRegionIntersectsFixed:
+; Contract: in BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,DE,HL,IX,IY
+LCREGINT:
             LD   A,D
             OR   E
-            JR   Z,NobjRegionStartsBeforeFixedEnd
+            JR   Z,LCREGBEF
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JR   NC,NobjRegionDisjoint
-NobjRegionStartsBeforeFixedEnd:
+            JR   NC,LCDISJNT
+LCREGBEF:
             PUSH IX
             POP  DE
             ADD  HL,DE
-            JR   C,NobjRegionIntersects
+            JR   C,LCINTER
             OR   A
             SBC  HL,BC
-            JR   C,NobjRegionDisjoint
+            JR   C,LCDISJNT
             RET  Z
-NobjRegionIntersects:
+LCINTER:
             SCF
             RET
-NobjRegionDisjoint:
+LCDISJNT:
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjValidatePass:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCPASS:
             XOR  A
-            LD   (NobjStatePhase),A
-            LD   (NobjStateImageSeen),A
+            LD   (LVPHASE),A
+            LD   (LVIMSEEN),A
             LD   HL,$FFFF
-            LD   (NobjStateCrc),HL
-            LD   DE,NobjStateImageEnds
+            LD   (LVCRC),HL
+            LD   DE,LVIMENDS
             LD   B,16
-NobjResetEndsLoop:
+LCRSTEND:
             LD   (DE),A
             INC  DE
-            DJNZ NobjResetEndsLoop
+            DJNZ LCRSTEND
 
-NobjValidateRecordLoop:
-            CALL NobjReadRecordHeader
+LCRECLP:
+            CALL LCRECHD
             RET  C
-            LD   A,(NobjStateRecordKind)
-            CP   NobjKindBegin
-            JR   Z,NobjAcceptBegin
-            CP   NobjKindImage
-            JP   Z,NobjAcceptImage
-            CP   NobjKindPatch
-            JP   Z,NobjAcceptPatch
-            CP   NobjKindMap
-            JP   Z,NobjAcceptMap
-            CP   NobjKindCommit
-            JP   Z,NobjAcceptCommit
-            LD   A,NobjStatusFraming
-            JP   NobjSetValidatorFailure
+            LD   A,(LVRECKND)
+            CP   LVKBEGIN
+            JR   Z,LCBEGIN
+            CP   LVKIMAGE
+            JP   Z,LCIMAGE
+            CP   LVKPATCH
+            JP   Z,LCPATCH
+            CP   LVKMAP
+            JP   Z,LCMAP
+            CP   LVKCOMIT
+            JP   Z,LCCOMMIT
+            LD   A,LVSFRAME
+            JP   LCSETVF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjReadRecordHeader:
-            CALL NobjReadCrcByte
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCRECHD:
+            CALL LCRCRCB
             RET  C
-            LD   (NobjStateRecordKind),A
-            LD   HL,(NobjStateRecordOrdinal)
+            LD   (LVRECKND),A
+            LD   HL,(LVRECNO)
             INC  HL
             LD   A,H
             OR   L
-            JR   Z,NobjRecordCountInvalid
-            LD   (NobjStateRecordOrdinal),HL
-            CALL NobjReadCrcWord
+            JR   Z,LCCNTERR
+            LD   (LVRECNO),HL
+            CALL LCRCRCW
             RET  C
-            LD   (NobjStatePayloadLength),HL
+            LD   (LVPLEN),HL
             RET
-NobjRecordCountInvalid:
-            LD   A,NobjStatusRecordOrder
-            JP   NobjSetValidatorFailure
+LCCNTERR:
+            LD   A,LVSORDER
+            JP   LCSETVF
 
 ; Carry clear returns one required byte. Carry set records either a truncated
 ; validator result or the exact platform status.
-.routine out A,carry,zero,sign,parity,halfCarry clobbers BC,DE,HL,IX,IY
-NobjRequireByte:
-            CALL NobjPlatformObjectReadByte
+; Contract: out A,carry,zero,sign,parity,halfCarry clobbers BC,DE,HL,IX,IY
+LCREQBYT:
+            CALL LVREAD
             RET  NC
-            CP   NobjPlatformEnd
-            JR   NZ,NobjRequirePlatformFailure
-            LD   A,NobjStatusTruncated
-            JP   NobjSetValidatorFailure
-NobjRequirePlatformFailure:
-            JP   NobjSetPlatformFailure
+            CP   LVPLEND
+            JR   NZ,LCREQPFL
+            LD   A,LVSTRUNC
+            JP   LCSETVF
+LCREQPFL:
+            JP   LCSETPF
 
-.routine out A,carry,zero,sign,parity,halfCarry clobbers BC,DE,HL,IX,IY
-NobjReadCrcByte:
-            CALL NobjRequireByte
+; Contract: out A,carry,zero,sign,parity,halfCarry clobbers BC,DE,HL,IX,IY
+LCRCRCB:
+            CALL LCREQBYT
             RET  C
             PUSH AF
-            CALL NobjCrcByte
+            CALL LCCRCB
             POP  AF
             OR   A
             RET
 
 ; CRC-16/CCITT-FALSE, polynomial $1021, no reflection.
-.routine in A out carry,zero clobbers sign,parity,halfCarry,A,B,HL
-NobjCrcByte:
-            LD   HL,(NobjStateCrc)
+; Contract: in A out carry,zero clobbers sign,parity,halfCarry,A,B,HL
+LCCRCB:
+            LD   HL,(LVCRC)
             XOR  H
             LD   H,A
             LD   B,8
-NobjCrcByteBit:
+LCCRCBIT:
             ADD  HL,HL
-            JR   NC,NobjCrcByteNext
+            JR   NC,LCCRCNXT
             LD   A,H
             XOR  $10
             LD   H,A
             LD   A,L
             XOR  $21
             LD   L,A
-NobjCrcByteNext:
-            DJNZ NobjCrcByteBit
-            LD   (NobjStateCrc),HL
+LCCRCNXT:
+            DJNZ LCCRCBIT
+            LD   (LVCRC),HL
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjAcceptBegin:
-            LD   A,(NobjStatePhase)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCBEGIN:
+            LD   A,(LVPHASE)
             OR   A
-            JP   NZ,NobjRecordOrderInvalid
-            LD   HL,(NobjStateRecordOrdinal)
+            JP   NZ,LCORDERR
+            LD   HL,(LVRECNO)
             DEC  HL
             LD   A,H
             OR   L
-            JP   NZ,NobjRecordOrderInvalid
-            LD   HL,(NobjStatePayloadLength)
+            JP   NZ,LCORDERR
+            LD   HL,(LVPLEN)
             LD   DE,15
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjFramingInvalid
-            LD   DE,NobjBeginSignature
+            JP   NZ,LCFRMERR
+            LD   DE,LCBGNBYT
             LD   B,6
-NobjAcceptBeginSignature:
+LCBEGSIG:
             PUSH BC
-            CALL NobjReadCrcByte
+            CALL LCRCRCB
             POP  BC
             RET  C
             EX   DE,HL
             CP   (HL)
             EX   DE,HL
-            JP   NZ,NobjFramingInvalid
+            JP   NZ,LCFRMERR
             INC  DE
-            DJNZ NobjAcceptBeginSignature
-            CALL NobjReadCrcByte          ; BEGIN flags
+            DJNZ LCBEGSIG
+            CALL LCRCRCB          ; BEGIN flags
             RET  C
-            LD   (NobjStateBeginFlags),A
+            LD   (LVBGFLAG),A
             AND  $FE
-            JR   NZ,NobjFramingInvalid
-            CALL NobjReadCrcWord
+            JR   NZ,LCFRMERR
+            CALL LCRCRCW
             RET  C
-            LD   DE,(NobjStateRuntimeIdentity)
+            LD   DE,(LVRTID)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjDeploymentMismatch
-            CALL NobjReadCrcByte          ; bank count
+            JR   NZ,LCDEPMIS
+            CALL LCRCRCB          ; bank count
             RET  C
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             CP   B
-            JR   NZ,NobjDeploymentMismatch
-            CALL NobjReadCrcByte          ; fill
+            JR   NZ,LCDEPMIS
+            CALL LCRCRCB          ; fill
             RET  C
             LD   B,A
-            LD   A,(NobjStateImageFill)
+            LD   A,(LVFILL)
             CP   B
-            JR   NZ,NobjDeploymentMismatch
-            CALL NobjReadCrcWord
+            JR   NZ,LCDEPMIS
+            CALL LCRCRCW
             RET  C
-            LD   DE,(NobjStateImageBase)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjDeploymentMismatch
-            CALL NobjReadCrcWord
+            JR   NZ,LCDEPMIS
+            CALL LCRCRCW
             RET  C
-            LD   DE,(NobjStateImageCapacity)
+            LD   DE,(LVIMCAP)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjDeploymentMismatch
-            LD   A,(NobjStateBeginFlags)
+            JR   NZ,LCDEPMIS
+            LD   A,(LVBGFLAG)
             AND  1
             LD   B,A
-            LD   A,(NobjStateProfileFlags)
+            LD   A,(LVPRFLAG)
             AND  1
             CP   B
-            JR   NZ,NobjDeploymentMismatch
-            CALL NobjFillTarget
+            JR   NZ,LCDEPMIS
+            CALL LCFILL
             RET  C
-            LD   A,NobjPhaseImage
-            LD   (NobjStatePhase),A
-            JP   NobjValidateRecordLoop
+            LD   A,LVPIMAGE
+            LD   (LVPHASE),A
+            JP   LCRECLP
 
-NobjBeginSignature:
-            .db  "NOBJ",0,1
+LCBGNBYT:
+            DB  "NOBJ",0,1
 
-.routine out A,HL,carry,zero,sign,parity,halfCarry clobbers BC,DE,IX,IY
-NobjReadCrcWord:
-            CALL NobjReadCrcByte
+; Contract: out A,HL,carry,zero,sign,parity,halfCarry clobbers BC,DE,IX,IY
+LCRCRCW:
+            CALL LCRCRCB
             RET  C
             PUSH AF
-            CALL NobjReadCrcByte
-            JR   C,NobjReadCrcWordFailure
+            CALL LCRCRCB
+            JR   C,LCCRCWFL
             LD   H,A
             POP  AF
             LD   L,A
             RET
-NobjReadCrcWordFailure:
+LCCRCWFL:
             POP  HL
             SCF
             RET
 
-NobjDeploymentMismatch:
-            LD   A,NobjStatusDeploymentProfile
-            JP   NobjSetValidatorFailure
-NobjFramingInvalid:
-            LD   A,NobjStatusFraming
-            JP   NobjSetValidatorFailure
-NobjRecordOrderInvalid:
-            LD   A,NobjStatusRecordOrder
-            JP   NobjSetValidatorFailure
+LCDEPMIS:
+            LD   A,LVSDEPLY
+            JP   LCSETVF
+LCFRMERR:
+            LD   A,LVSFRAME
+            JP   LCSETVF
+LCORDERR:
+            LD   A,LVSORDER
+            JP   LCSETVF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjAcceptImage:
-            LD   A,(NobjStatePhase)
-            CP   NobjPhaseImage
-            JR   NZ,NobjRecordOrderInvalid
-            CALL NobjReadImageLikeHeader
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCIMAGE:
+            LD   A,(LVPHASE)
+            CP   LVPIMAGE
+            JR   NZ,LCORDERR
+            CALL LCIMGHDR
             RET  C
-            LD   A,(NobjStateCurrentBank)
-            LD   HL,NobjStateImageEnds
-            CALL NobjBankWordPointer
+            LD   A,(LVCURBNK)
+            LD   HL,LVIMENDS
+            CALL LCBKWORD
             LD   E,(HL)
             INC  HL
             LD   D,(HL)                  ; previous end offset
-            LD   HL,(NobjStateCurrentAddress)
-            LD   BC,(NobjStateImageBase)
+            LD   HL,(LVCURADR)
+            LD   BC,(LVIMBASE)
             OR   A
             SBC  HL,BC                   ; current start offset
             OR   A
             SBC  HL,DE
-            JR   C,NobjImageOrderInvalid
-            LD   A,(NobjStateCurrentBank)
-            LD   HL,NobjStateImageEnds
-            CALL NobjBankWordPointer
-            LD   DE,(NobjStateCurrentEnd)
+            JR   C,LCIMGORD
+            LD   A,(LVCURBNK)
+            LD   HL,LVIMENDS
+            CALL LCBKWORD
+            LD   DE,(LVCUREND)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             LD   A,1
-            LD   (NobjStateImageSeen),A
-            CALL NobjConsumeImageLikeBytes
+            LD   (LVIMSEEN),A
+            CALL LCIMGBYT
             RET  C
-            JP   NobjValidateRecordLoop
-NobjImageOrderInvalid:
-            LD   A,NobjStatusImageOrder
-            JP   NobjSetValidatorFailure
+            JP   LCRECLP
+LCIMGORD:
+            LD   A,LVSIMORD
+            JP   LCSETVF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjAcceptPatch:
-            LD   A,(NobjStatePhase)
-            CP   NobjPhaseImage
-            JR   Z,NobjPatchPhaseReady
-            CP   NobjPhasePatch
-            JR   NZ,NobjRecordOrderInvalid
-NobjPatchPhaseReady:
-            LD   A,(NobjStateImageSeen)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCPATCH:
+            LD   A,(LVPHASE)
+            CP   LVPIMAGE
+            JR   Z,LCPATRDY
+            CP   LVPPATCH
+            JR   NZ,LCORDERR
+LCPATRDY:
+            LD   A,(LVIMSEEN)
             OR   A
-            JR   Z,NobjRecordOrderInvalid
-            LD   A,NobjPhasePatch
-            LD   (NobjStatePhase),A
-            CALL NobjReadImageLikeHeader
+            JR   Z,LCORDERR
+            LD   A,LVPPATCH
+            LD   (LVPHASE),A
+            CALL LCIMGHDR
             RET  C
-            LD   A,(NobjStateCurrentBank)
-            LD   HL,NobjStatePatchEnds
-            CALL NobjBankWordPointer
+            LD   A,(LVCURBNK)
+            LD   HL,LVPATEND
+            CALL LCBKWORD
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   BC,(NobjStateCurrentEnd)
+            LD   BC,(LVCUREND)
             EX   DE,HL
             OR   A
             SBC  HL,BC
-            JR   NC,NobjPatchEndRetained
-            LD   A,(NobjStateCurrentBank)
-            LD   HL,NobjStatePatchEnds
-            CALL NobjBankWordPointer
-            LD   DE,(NobjStateCurrentEnd)
+            JR   NC,LCPATEND
+            LD   A,(LVCURBNK)
+            LD   HL,LVPATEND
+            CALL LCBKWORD
+            LD   DE,(LVCUREND)
             LD   (HL),E
             INC  HL
             LD   (HL),D
-NobjPatchEndRetained:
-            CALL NobjConsumeImageLikeBytes
+LCPATEND:
+            CALL LCIMGBYT
             RET  C
-            JP   NobjValidateRecordLoop
+            JP   LCRECLP
 
 ; Read bank/address, validate the nonempty extent, and retain the modular end
 ; as an offset from imageBase. The replacement/data bytes remain unread.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjReadImageLikeHeader:
-            LD   HL,(NobjStatePayloadLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCIMGHDR:
+            LD   HL,(LVPLEN)
             LD   DE,4
             OR   A
             SBC  HL,DE
-            JP   C,NobjFramingInvalid
-            CALL NobjReadCrcByte
+            JP   C,LCFRMERR
+            CALL LCRCRCB
             RET  C
-            LD   (NobjStateCurrentBank),A
+            LD   (LVCURBNK),A
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             DEC  A
             CP   B
-            JR   C,NobjTargetExtentInvalid
-            CALL NobjReadCrcWord
+            JR   C,LCTGTERR
+            CALL LCRCRCW
             RET  C
-            LD   (NobjStateCurrentAddress),HL
-            LD   DE,(NobjStateImageBase)
+            LD   (LVCURADR),HL
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
-            JR   C,NobjTargetExtentInvalid
-            LD   BC,(NobjStatePayloadLength)
+            JR   C,LCTGTERR
+            LD   BC,(LVPLEN)
             DEC  BC
             DEC  BC
             DEC  BC                       ; byte count, known nonzero
             ADD  HL,BC                    ; end offset
-            JR   C,NobjTargetExtentInvalid
-            LD   DE,(NobjStateImageCapacity)
+            JR   C,LCTGTERR
+            LD   DE,(LVIMCAP)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JR   C,NobjImageLikeExtentReady
-            JR   NZ,NobjTargetExtentInvalid
-NobjImageLikeExtentReady:
-            LD   (NobjStateCurrentEnd),HL
+            JR   C,LCIMGRDY
+            JR   NZ,LCTGTERR
+LCIMGRDY:
+            LD   (LVCUREND),HL
             OR   A
             RET
-NobjTargetExtentInvalid:
-            LD   A,NobjStatusTargetExtent
-            JP   NobjSetValidatorFailure
+LCTGTERR:
+            LD   A,LVSTGEXT
+            JP   LCSETVF
 
-.routine in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-NobjBankWordPointer:
+; Contract: in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+LCBKWORD:
             ADD  A,A
             LD   E,A
             LD   D,0
             ADD  HL,DE
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjConsumeImageLikeBytes:
-            LD   A,(NobjStateCurrentBank)
-            LD   IX,(NobjStateProfilePointer)
-            CALL NobjPlatformSelectTargetBank
-            JR   C,NobjConsumeImagePlatformFailure
-            LD   HL,(NobjStateCurrentAddress)
-            LD   BC,(NobjStatePayloadLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCIMGBYT:
+            LD   A,(LVCURBNK)
+            LD   IX,(LVSPPTR)
+            CALL LVSELECT
+            JR   C,LCIMGFL
+            LD   HL,(LVCURADR)
+            LD   BC,(LVPLEN)
             DEC  BC
             DEC  BC
             DEC  BC
-NobjConsumeImageLikeLoop:
+LCIMGLP:
             PUSH BC
             PUSH HL
-            CALL NobjReadCrcByte
+            CALL LCRCRCB
             POP  HL
             POP  BC
             RET  C
@@ -822,39 +822,39 @@ NobjConsumeImageLikeLoop:
             DEC  BC
             LD   A,B
             OR   C
-            JR   NZ,NobjConsumeImageLikeLoop
+            JR   NZ,LCIMGLP
             RET
-NobjConsumeImagePlatformFailure:
-            JP   NobjSetPlatformFailure
+LCIMGFL:
+            JP   LCSETPF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjAcceptMap:
-            LD   A,(NobjStatePhase)
-            CP   NobjPhaseImage
-            JR   Z,NobjMapPhaseReady
-            CP   NobjPhasePatch
-            JP   NZ,NobjRecordOrderInvalid
-NobjMapPhaseReady:
-            LD   A,(NobjStateImageSeen)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCMAP:
+            LD   A,(LVPHASE)
+            CP   LVPIMAGE
+            JR   Z,LCMAPRDY
+            CP   LVPPATCH
+            JP   NZ,LCORDERR
+LCMAPRDY:
+            LD   A,(LVIMSEEN)
             OR   A
-            JP   Z,NobjRecordOrderInvalid
-            LD   HL,(NobjStatePayloadLength)
+            JP   Z,LCORDERR
+            LD   HL,(LVPLEN)
             LD   DE,41
             OR   A
             SBC  HL,DE
-            JR   C,NobjMapInvalid
-            LD   HL,NobjConsumerMapCapacity
-            LD   DE,(NobjStatePayloadLength)
+            JR   C,LCMAPERR
+            LD   HL,LVMAPCAP
+            LD   DE,(LVPLEN)
             OR   A
             SBC  HL,DE
-            JR   C,NobjMapInvalid
-            LD   (NobjStateMapLength),DE
-            LD   HL,NobjStateMapBuffer
-            LD   BC,(NobjStatePayloadLength)
-NobjReadMapLoop:
+            JR   C,LCMAPERR
+            LD   (LVMAPLEN),DE
+            LD   HL,LVMAPBUF
+            LD   BC,(LVPLEN)
+LCMAPLP:
             PUSH BC
             PUSH HL
-            CALL NobjReadCrcByte
+            CALL LCRCRCB
             POP  HL
             POP  BC
             RET  C
@@ -863,88 +863,88 @@ NobjReadMapLoop:
             DEC  BC
             LD   A,B
             OR   C
-            JR   NZ,NobjReadMapLoop
-            CALL NobjValidateMap
+            JR   NZ,LCMAPLP
+            CALL LCVALMAP
             RET  C
-            LD   A,NobjPhaseMap
-            LD   (NobjStatePhase),A
-            JP   NobjValidateRecordLoop
-NobjMapInvalid:
-            LD   A,NobjStatusMap
-            JP   NobjSetValidatorFailure
+            LD   A,LVPMAP
+            LD   (LVPHASE),A
+            JP   LCRECLP
+LCMAPERR:
+            LD   A,LVSMAP
+            JP   LCSETVF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjValidateMap:
-            LD   IX,NobjStateMapBuffer
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCVALMAP:
+            LD   IX,LVMAPBUF
             LD   A,(IX+0)
             CP   1
-            JR   NZ,NobjMapInvalid
-            LD   A,(IX+NobjMapFlags)
+            JR   NZ,LCMAPERR
+            LD   A,(IX+LVMFLAGS)
             AND  $FC
-            JR   NZ,NobjMapInvalid
-            LD   A,(IX+NobjMapFlags)
+            JR   NZ,LCMAPERR
+            LD   A,(IX+LVMFLAGS)
             AND  1
             LD   B,A
-            LD   A,(NobjStateRomMode)
+            LD   A,(LVROM)
             CP   B
-            JR   NZ,NobjMapInvalid
-            LD   A,(IX+NobjMapFlags)
+            JR   NZ,LCMAPERR
+            LD   A,(IX+LVMFLAGS)
             AND  2
             LD   B,A
-            LD   A,(NobjStateProfileFlags)
+            LD   A,(LVPRFLAG)
             AND  2
             CP   B
-            JR   NZ,NobjMapInvalid
-            LD   A,(IX+NobjMapEntryBank)
+            JR   NZ,LCMAPERR
+            LD   A,(IX+LVMENTBK)
             LD   B,A
-            LD   A,(NobjStateEntryBank)
+            LD   A,(LVENTBNK)
             CP   B
-            JR   NZ,NobjMapInvalid
-            LD   L,(IX+NobjMapEntryAddress)
-            LD   H,(IX+NobjMapEntryAddress+1)
-            LD   DE,(NobjStateImageBase)
+            JR   NZ,LCMAPERR
+            LD   L,(IX+LVMENTRY)
+            LD   H,(IX+LVMENTRY+1)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjMapInvalid
-            LD   L,(IX+NobjMapWritableBase)
-            LD   H,(IX+NobjMapWritableBase+1)
-            LD   DE,(NobjStateWritableBase)
+            JR   NZ,LCMAPERR
+            LD   L,(IX+LVMWRBAS)
+            LD   H,(IX+LVMWRBAS+1)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjMapInvalid
-            LD   L,(IX+NobjMapWritableCapacity)
-            LD   H,(IX+NobjMapWritableCapacity+1)
-            LD   DE,(NobjStateWritableCapacity)
+            JR   NZ,LCMAPERR
+            LD   L,(IX+LVMWRCAP)
+            LD   H,(IX+LVMWRCAP+1)
+            LD   DE,(LVWRCAP)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjMapInvalid
+            JR   NZ,LCMAPERR
 
-            LD   A,(IX+NobjMapPartCount)
+            LD   A,(IX+LVMPARTS)
             OR   A
-            JR   Z,NobjMapInvalid
+            JR   Z,LCMAPERR
             LD   C,A
             LD   B,0
-            LD   HL,NobjStateMapBuffer+29
-NobjValidatePartBanksLoop:
+            LD   HL,LVMAPBUF+29
+LCPARTLP:
             LD   A,(HL)
             LD   D,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             DEC  A
             CP   D
-            JR   C,NobjMapInvalid
+            JR   C,LCMAPERR
             INC  HL
             DEC  BC
             LD   A,B
             OR   C
-            JR   NZ,NobjValidatePartBanksLoop
+            JR   NZ,LCPARTLP
             LD   A,(HL)                  ; bank entry count
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             CP   B
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
 
             ; Exact payload length: 30 + partCount + 10*bankCount.
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             LD   L,A
             LD   H,0
             ADD  HL,HL                   ; 2n
@@ -953,184 +953,184 @@ NobjValidatePartBanksLoop:
             ADD  HL,HL                   ; 4n
             ADD  HL,HL                   ; 8n
             ADD  HL,DE                   ; 10n
-            LD   A,(IX+NobjMapPartCount)
+            LD   A,(IX+LVMPARTS)
             LD   E,A
             LD   D,0
             ADD  HL,DE
             LD   DE,30
             ADD  HL,DE
-            LD   DE,(NobjStateMapLength)
+            LD   DE,(LVMAPLEN)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
 
-            CALL NobjValidateWritableMap
+            CALL LCVALWR
             RET  C
-            JP   NobjValidateMapBanks
+            JP   LCMAPBNK
 
 ; Validate the fixed writable, data-load, and stack relationships.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-NobjValidateWritableMap:
-            LD   IX,NobjStateMapBuffer
-            LD   L,(IX+NobjMapVectorBase)
-            LD   H,(IX+NobjMapVectorBase+1)
-            LD   DE,(NobjStateWritableBase)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+LCVALWR:
+            LD   IX,LVMAPBUF
+            LD   L,(IX+LVMVBASE)
+            LD   H,(IX+LVMVBASE+1)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
-            LD   L,(IX+NobjMapInitializedRunBase)
-            LD   H,(IX+NobjMapInitializedRunBase+1)
-            LD   DE,(NobjStateWritableBase)
+            JP   NZ,LCMAPERR
+            LD   L,(IX+LVMIBASE)
+            LD   H,(IX+LVMIBASE+1)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
-            LD   E,(IX+NobjMapVectorLength)
-            LD   D,(IX+NobjMapVectorLength+1)
+            JP   NZ,LCMAPERR
+            LD   E,(IX+LVMVLEN)
+            LD   D,(IX+LVMVLEN+1)
             LD   A,D
             OR   E
-            JP   Z,NobjMapInvalid
-            LD   L,(IX+NobjMapInitializedRunLength)
-            LD   H,(IX+NobjMapInitializedRunLength+1)
+            JP   Z,LCMAPERR
+            LD   L,(IX+LVMILEN)
+            LD   H,(IX+LVMILEN+1)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JP   C,NobjMapInvalid
-            LD   E,(IX+NobjMapBssLength)
-            LD   D,(IX+NobjMapBssLength+1)
+            JP   C,LCMAPERR
+            LD   E,(IX+LVMBLEN)
+            LD   D,(IX+LVMBLEN+1)
             ADD  HL,DE
-            JP   C,NobjMapInvalid
-            LD   DE,(NobjStateWritableCapacity)
+            JP   C,LCMAPERR
+            LD   DE,(LVWRCAP)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JR   C,NobjWritableUseFits
-            JP   NZ,NobjMapInvalid
-NobjWritableUseFits:
+            JR   C,LCWRFIT
+            JP   NZ,LCMAPERR
+LCWRFIT:
             ; BSS starts at writableBase + initializedRunLength, modulo $10000.
-            LD   E,(IX+NobjMapInitializedRunLength)
-            LD   D,(IX+NobjMapInitializedRunLength+1)
-            LD   HL,(NobjStateWritableBase)
+            LD   E,(IX+LVMILEN)
+            LD   D,(IX+LVMILEN+1)
+            LD   HL,(LVWRBASE)
             ADD  HL,DE
-            LD   E,(IX+NobjMapBssBase)
-            LD   D,(IX+NobjMapBssBase+1)
+            LD   E,(IX+LVMBBASE)
+            LD   D,(IX+LVMBBASE+1)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
             ; data-load length is the complete initialized run length.
-            LD   L,(IX+NobjMapDataLoadLength)
-            LD   H,(IX+NobjMapDataLoadLength+1)
-            LD   E,(IX+NobjMapInitializedRunLength)
-            LD   D,(IX+NobjMapInitializedRunLength+1)
+            LD   L,(IX+LVMDLLEN)
+            LD   H,(IX+LVMDLLEN+1)
+            LD   E,(IX+LVMILEN)
+            LD   D,(IX+LVMILEN+1)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
 
-            LD   A,(NobjStateProfileFlags)
+            LD   A,(LVPRFLAG)
             BIT  1,A
-            JR   Z,NobjWritableStackReady
+            JR   Z,LCSTKRDY
             ; free = writableCapacity - initializedLength - bssLength
-            LD   HL,(NobjStateWritableCapacity)
-            LD   E,(IX+NobjMapInitializedRunLength)
-            LD   D,(IX+NobjMapInitializedRunLength+1)
+            LD   HL,(LVWRCAP)
+            LD   E,(IX+LVMILEN)
+            LD   D,(IX+LVMILEN+1)
             OR   A
             SBC  HL,DE
-            LD   E,(IX+NobjMapBssLength)
-            LD   D,(IX+NobjMapBssLength+1)
+            LD   E,(IX+LVMBLEN)
+            LD   D,(IX+LVMBLEN+1)
             OR   A
             SBC  HL,DE
-            JP   C,NobjMapInvalid
-            LD   E,(IX+NobjMapStackRequirement)
-            LD   D,(IX+NobjMapStackRequirement+1)
+            JP   C,LCMAPERR
+            LD   E,(IX+LVMSTACK)
+            LD   D,(IX+LVMSTACK+1)
             LD   A,D
             CP   $FF
-            JR   NZ,NobjStackRequirementAddReturn
+            JR   NZ,LCSTKRET
             LD   A,E
             CP   $FE
-            JP   NC,NobjMapInvalid
-NobjStackRequirementAddReturn:
+            JP   NC,LCMAPERR
+LCSTKRET:
             INC  DE
             INC  DE
             OR   A
             SBC  HL,DE
-            JP   C,NobjMapInvalid
-NobjWritableStackReady:
-            LD   A,(NobjStateRomMode)
+            JP   C,LCMAPERR
+LCSTKRDY:
+            LD   A,(LVROM)
             OR   A
-            JR   NZ,NobjValidateRomDataLoad
-            LD   A,(IX+NobjMapDataLoadBank)
+            JR   NZ,LCVALROM
+            LD   A,(IX+LVMDLBNK)
             OR   A
-            JP   NZ,NobjMapInvalid
-            LD   L,(IX+NobjMapDataLoadAddress)
-            LD   H,(IX+NobjMapDataLoadAddress+1)
-            LD   DE,(NobjStateWritableBase)
+            JP   NZ,LCMAPERR
+            LD   L,(IX+LVMDLADR)
+            LD   H,(IX+LVMDLADR+1)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
             RET
-NobjValidateRomDataLoad:
-            LD   A,(NobjStateProfileFlags)
+LCVALROM:
+            LD   A,(LVPRFLAG)
             BIT  0,A
-            JR   Z,NobjRomDataLoadBankReady
-            LD   A,(IX+NobjMapDataLoadBank)
+            JR   Z,LCROMBNK
+            LD   A,(IX+LVMDLBNK)
             LD   B,A
-            LD   A,(NobjStateEntryBank)
+            LD   A,(LVENTBNK)
             CP   B
-            JP   NZ,NobjMapInvalid
-NobjRomDataLoadBankReady:
-            LD   A,(IX+NobjMapDataLoadBank)
+            JP   NZ,LCMAPERR
+LCROMBNK:
+            LD   A,(IX+LVMDLBNK)
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             DEC  A
             CP   B
-            JP   C,NobjMapInvalid
+            JP   C,LCMAPERR
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjValidateMapBanks:
-            CALL NobjMapBankEntriesPointer
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCMAPBNK:
+            CALL LCMBKPTR
             PUSH HL
             POP  IX
             XOR  A
-            LD   (NobjStateCurrentBank),A
-NobjValidateMapBankLoop:
+            LD   (LVCURBNK),A
+LCMAPBLP:
             LD   L,(IX+0)
             LD   H,(IX+1)                ; used length
             LD   A,H
             OR   L
-            JP   Z,NobjMapInvalid
-            LD   DE,(NobjStateImageCapacity)
+            JP   Z,LCMAPERR
+            LD   DE,(LVIMCAP)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  HL
-            JR   C,NobjMapUsedWithinCapacity
-            JP   NZ,NobjMapInvalid
-NobjMapUsedWithinCapacity:
+            JR   C,LCMAPCAP
+            JP   NZ,LCMAPERR
+LCMAPCAP:
             PUSH HL
-            LD   A,(NobjStateCurrentBank)
-            CALL NobjExpectedUsedForBank
+            LD   A,(LVCURBNK)
+            CALL LCEXPUSD
             EX   DE,HL                    ; DE=expected
             POP  HL                      ; HL=map used
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjMapInvalid
+            JP   NZ,LCMAPERR
 
             LD   E,2
-            CALL NobjValidateMapOptionalExtent
-            JP   C,NobjMapInvalid
+            CALL LCMAPOPT
+            JP   C,LCMAPERR
 
             LD   E,6
-            CALL NobjValidateMapOptionalExtent
-            JP   C,NobjMapInvalid
+            CALL LCMAPOPT
+            JP   C,LCMAPERR
             LD   A,D
             OR   E
-            JR   Z,NobjMapAggregateReady
+            JR   Z,LCMAPAGG
             LD   A,(IX+4)
             OR   (IX+5)
-            JP   Z,NobjMapInvalid
+            JP   Z,LCMAPERR
             ; aggregateBase >= readOnlyBase
             LD   L,C
             LD   H,B
@@ -1138,41 +1138,41 @@ NobjMapUsedWithinCapacity:
             LD   D,(IX+3)
             OR   A
             SBC  HL,DE
-            JP   C,NobjMapInvalid
+            JP   C,LCMAPERR
             ; aggregate offset within read-only plus its length.
             LD   E,(IX+8)
             LD   D,(IX+9)
             ADD  HL,DE
-            JP   C,NobjMapInvalid
+            JP   C,LCMAPERR
             LD   E,(IX+4)
             LD   D,(IX+5)
             OR   A
             SBC  HL,DE
-            JR   C,NobjMapAggregateReady
-            JP   NZ,NobjMapInvalid
-NobjMapAggregateReady:
+            JR   C,LCMAPAGG
+            JP   NZ,LCMAPERR
+LCMAPAGG:
             LD   DE,10
             ADD  IX,DE
-            LD   A,(NobjStateCurrentBank)
+            LD   A,(LVCURBNK)
             INC  A
-            LD   (NobjStateCurrentBank),A
+            LD   (LVCURBNK),A
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             CP   B
-            JP   NZ,NobjValidateMapBankLoop
+            JP   NZ,LCMAPBLP
 
-            LD   A,(NobjStateRomMode)
+            LD   A,(LVROM)
             OR   A
-            JR   NZ,NobjValidateRomMapLoadExtent
-            JR   NobjValidateLoadedMapEnd
-NobjValidateRomMapLoadExtent:
-            JP   NobjValidateRomLoadExtent
+            JR   NZ,LCROMMAP
+            JR   LCLOADEN
+LCROMMAP:
+            JP   LCROMEXT
 
 ; E=base-field offset within the current ten-byte bank entry; IX=entry.
 ; Returns BC=base and DE=length so the caller can continue validating the
 ; selected extent. IX is preserved.
-.routine in E,IX out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NobjValidateMapOptionalExtent:
+; Contract: in E,IX out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+LCMAPOPT:
             PUSH IX
             POP  HL
             LD   D,0
@@ -1188,67 +1188,67 @@ NobjValidateMapOptionalExtent:
             LD   H,(IX+1)                ; used length
             PUSH BC
             PUSH DE
-            CALL NobjValidateOptionalExtent
+            CALL LCVALEXT
             POP  DE
             POP  BC
             RET
 
 ; HL=used length, BC=optional base, DE=optional length.
-.routine in BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjValidateOptionalExtent:
+; Contract: in BC,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCVALEXT:
             LD   A,D
             OR   E
-            JR   NZ,NobjOptionalExtentPresent
+            JR   NZ,LCEXTPRS
             LD   A,B
             OR   C
             RET  Z
             SCF
             RET
-NobjOptionalExtentPresent:
+LCEXTPRS:
             PUSH HL                      ; used length
             LD   H,B
             LD   L,C
-            LD   BC,(NobjStateImageBase)
+            LD   BC,(LVIMBASE)
             OR   A
             SBC  HL,BC                   ; offset
-            JR   C,NobjOptionalExtentBadPop
+            JR   C,LCEXTPOP
             ADD  HL,DE
-            JR   C,NobjOptionalExtentBadPop
+            JR   C,LCEXTPOP
             POP  DE                      ; used length
             OR   A
             SBC  HL,DE
-            JR   C,NobjOptionalExtentGood
+            JR   C,LCEXTOK
             RET  Z
             SCF
             RET
-NobjOptionalExtentBadPop:
+LCEXTPOP:
             POP  HL
             SCF
             RET
-NobjOptionalExtentGood:
+LCEXTOK:
             OR   A
             RET
 
-.routine out A,HL,carry clobbers halfCarry,DE
-NobjMapBankEntriesPointer:
-            LD   A,(NobjStateMapBuffer+NobjMapPartCount)
+; Contract: out A,HL,carry clobbers halfCarry,DE
+LCMBKPTR:
+            LD   A,(LVMAPBUF+LVMPARTS)
             LD   E,A
             LD   D,0
-            LD   HL,NobjStateMapBuffer+30
+            LD   HL,LVMAPBUF+30
             ADD  HL,DE
             RET
 
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
-NobjExpectedUsedForBank:
+; Contract: in A out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+LCEXPUSD:
             PUSH AF
-            LD   HL,NobjStateImageEnds
-            CALL NobjBankWordPointer
+            LD   HL,LVIMENDS
+            CALL LCBKWORD
             LD   C,(HL)
             INC  HL
             LD   B,(HL)
             POP  AF
-            LD   HL,NobjStatePatchEnds
-            CALL NobjBankWordPointer
+            LD   HL,LVPATEND
+            CALL LCBKWORD
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
@@ -1256,27 +1256,27 @@ NobjExpectedUsedForBank:
             LD   L,C
             OR   A
             SBC  HL,DE
-            JR   C,NobjExpectedPatchEnd
+            JR   C,LCEXPPAT
             LD   H,B
             LD   L,C
             RET
-NobjExpectedPatchEnd:
+LCEXPPAT:
             LD   H,D
             LD   L,E
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjValidateLoadedMapEnd:
-            CALL NobjMapBankEntriesPointer
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCLOADEN:
+            CALL LCMBKPTR
             LD   C,(HL)
             INC  HL
             LD   B,(HL)                  ; bank zero used length
-            LD   HL,(NobjStateWritableBase)
-            LD   DE,(NobjStateImageBase)
+            LD   HL,(LVWRBASE)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
             PUSH BC
-            LD   DE,NobjStateMapBuffer+NobjMapInitializedRunLength
+            LD   DE,LVMAPBUF+LVMILEN
             LD   A,(DE)
             INC  DE
             LD   C,A
@@ -1285,137 +1285,137 @@ NobjValidateLoadedMapEnd:
             LD   E,C
             ADD  HL,DE
             POP  BC
-            JP   C,NobjMapInvalid
+            JP   C,LCMAPERR
             OR   A
             SBC  HL,BC
-            JP   NZ,NobjMapInvalid
-            LD   HL,(NobjStateImageBase)
-            LD   DE,(NobjStateWritableBase)
+            JP   NZ,LCMAPERR
+            LD   HL,(LVIMBASE)
+            LD   DE,(LVWRBASE)
             OR   A
             SBC  HL,DE
-            JP   NC,NobjMapInvalid
+            JP   NC,LCMAPERR
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjValidateRomLoadExtent:
-            LD   A,(NobjStateMapBuffer+NobjMapDataLoadBank)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCROMEXT:
+            LD   A,(LVMAPBUF+LVMDLBNK)
             LD   C,A
-            CALL NobjMapBankEntriesPointer
+            CALL LCMBKPTR
             LD   A,C
             OR   A
-            JR   Z,NobjRomMapEntryReady
+            JR   Z,LCROMENT
             LD   DE,10
-NobjRomMapEntrySeek:
+LCROMSEK:
             ADD  HL,DE
             DEC  A
-            JR   NZ,NobjRomMapEntrySeek
-NobjRomMapEntryReady:
+            JR   NZ,LCROMSEK
+LCROMENT:
             LD   C,(HL)
             INC  HL
             LD   B,(HL)                  ; used length
-            LD   HL,(NobjStateMapBuffer+NobjMapDataLoadAddress)
-            LD   DE,(NobjStateImageBase)
+            LD   HL,(LVMAPBUF+LVMDLADR)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
-            JP   C,NobjMapInvalid
-            LD   DE,(NobjStateMapBuffer+NobjMapDataLoadLength)
+            JP   C,LCMAPERR
+            LD   DE,(LVMAPBUF+LVMDLLEN)
             ADD  HL,DE
-            JP   C,NobjMapInvalid
+            JP   C,LCMAPERR
             OR   A
             SBC  HL,BC
-            JR   C,NobjRomLoadFits
-            JP   NZ,NobjMapInvalid
-NobjRomLoadFits:
+            JR   C,LCROMFIT
+            JP   NZ,LCMAPERR
+LCROMFIT:
             OR   A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NobjAcceptCommit:
-            LD   A,(NobjStatePhase)
-            CP   NobjPhaseMap
-            JP   NZ,NobjRecordOrderInvalid
-            LD   HL,(NobjStatePayloadLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+LCCOMMIT:
+            LD   A,(LVPHASE)
+            CP   LVPMAP
+            JP   NZ,LCORDERR
+            LD   HL,(LVPLEN)
             LD   DE,7
             OR   A
             SBC  HL,DE
-            JP   NZ,NobjFramingInvalid
-            CALL NobjReadCrcWord          ; record count
+            JP   NZ,LCFRMERR
+            CALL LCRCRCW          ; record count
             RET  C
-            LD   DE,(NobjStateRecordOrdinal)
+            LD   DE,(LVRECNO)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjCommitInvalid
-            CALL NobjReadCrcByte          ; entry bank
+            JR   NZ,LCCOMERR
+            CALL LCRCRCB          ; entry bank
             RET  C
             LD   B,A
-            LD   A,(NobjStateEntryBank)
+            LD   A,(LVENTBNK)
             CP   B
-            JR   NZ,NobjCommitInvalid
-            CALL NobjReadCrcWord          ; canonical entry address
+            JR   NZ,LCCOMERR
+            CALL LCRCRCW          ; canonical entry address
             RET  C
-            LD   DE,(NobjStateImageBase)
+            LD   DE,(LVIMBASE)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjCommitInvalid
-            CALL NobjRequireByte          ; stored CRC is excluded from CRC
+            JR   NZ,LCCOMERR
+            CALL LCREQBYT          ; stored CRC is excluded from CRC
             RET  C
             PUSH AF
-            CALL NobjRequireByte
-            JR   C,NobjCommitCrcReadFailure
+            CALL LCREQBYT
+            JR   C,LCCOMCRF
             LD   H,A
             POP  AF
             LD   L,A
-            LD   DE,(NobjStateCrc)
+            LD   DE,(LVCRC)
             OR   A
             SBC  HL,DE
-            JR   NZ,NobjCrcInvalid
-            CALL NobjExpectImmediateEof
+            JR   NZ,LCCRCERR
+            CALL LCEXPEOF
             RET  C
-            LD   A,NobjPhaseCommit
-            LD   (NobjStatePhase),A
+            LD   A,LVPCOMIT
+            LD   (LVPHASE),A
             OR   A
             RET
-NobjCommitCrcReadFailure:
+LCCOMCRF:
             POP  HL
             SCF
             RET
-NobjCommitInvalid:
-            LD   A,NobjStatusCommit
-            JP   NobjSetValidatorFailure
-NobjCrcInvalid:
-            LD   A,NobjStatusCrc
-            JP   NobjSetValidatorFailure
+LCCOMERR:
+            LD   A,LVSCOMIT
+            JP   LCSETVF
+LCCRCERR:
+            LD   A,LVSCRC
+            JP   LCSETVF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-NobjExpectImmediateEof:
-            CALL NobjPlatformObjectReadByte
-            JR   NC,NobjTrailingDataInvalid
-            CP   NobjPlatformEnd
-            JR   NZ,NobjEofPlatformFailure
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+LCEXPEOF:
+            CALL LVREAD
+            JR   NC,LCTRAIL
+            CP   LVPLEND
+            JR   NZ,LCEOFFL
             OR   A
             RET
-NobjTrailingDataInvalid:
-            LD   A,NobjStatusTrailingData
-            JP   NobjSetValidatorFailure
-NobjEofPlatformFailure:
-            JP   NobjSetPlatformFailure
+LCTRAIL:
+            LD   A,LVSTRAIL
+            JP   LCSETVF
+LCEOFFL:
+            JP   LCSETPF
 
 ; Fill every selected bank before the one materializing read. The destination
 ; remains unpublished until COMMIT and immediate EOF have passed.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-NobjFillTarget:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+LCFILL:
             XOR  A
-            LD   (NobjStateCurrentBank),A
-NobjFillTargetBank:
-            LD   A,(NobjStateCurrentBank)
-            LD   IX,(NobjStateProfilePointer)
-            CALL NobjPlatformSelectTargetBank
-            JR   C,NobjFillPlatformFailure
-            LD   HL,(NobjStateImageBase)
-            LD   BC,(NobjStateImageCapacity)
-            LD   A,(NobjStateImageFill)
-NobjFillTargetByte:
+            LD   (LVCURBNK),A
+LCFILLBK:
+            LD   A,(LVCURBNK)
+            LD   IX,(LVSPPTR)
+            CALL LVSELECT
+            JR   C,LCFILLFL
+            LD   HL,(LVIMBASE)
+            LD   BC,(LVIMCAP)
+            LD   A,(LVFILL)
+LCFILLBY:
             LD   (HL),A
             INC  HL
             DEC  BC
@@ -1423,15 +1423,15 @@ NobjFillTargetByte:
             LD   A,B
             OR   C
             LD   A,D
-            JR   NZ,NobjFillTargetByte
-            LD   A,(NobjStateCurrentBank)
+            JR   NZ,LCFILLBY
+            LD   A,(LVCURBNK)
             INC  A
-            LD   (NobjStateCurrentBank),A
+            LD   (LVCURBNK),A
             LD   B,A
-            LD   A,(NobjStateBankCount)
+            LD   A,(LVBKCNT)
             CP   B
-            JR   NZ,NobjFillTargetBank
+            JR   NZ,LCFILLBK
             OR   A
             RET
-NobjFillPlatformFailure:
-            JP   NobjSetPlatformFailure
+LCFILLFL:
+            JP   LCSETPF

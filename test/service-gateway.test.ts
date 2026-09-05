@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { parseIntelHex } from "@jhlagado/debug80-runtime";
+import { assembleAtomProject, materializeAtomGeneration } from "atom-z80";
 import { describe, expect, it } from "vitest";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 import {
   compileNucleus,
@@ -93,19 +91,20 @@ const mon3ScanKeys = (
   0xc9,
 ];
 
-const providerBytes = async (): Promise<readonly number[]> => {
-  const fixture = fileURLToPath(
-    new URL("fixtures/mon3-packet-service-proof.asm", import.meta.url),
-  );
-  const entry = "../test/fixtures/mon3-packet-service-proof.asm";
-  const assembled = await assembleAtomSource(entry, {
-    overrides: new Map([[entry, readFileSync(fixture, "utf8")]]),
+const providerBytes = async (origin = 0x7021): Promise<readonly number[]> => {
+  const { generation } = await assembleAtomProject({
+    root: fileURLToPath(new URL("../", import.meta.url)),
+    entry: "test/fixtures/mon3-packet-service-proof.asm",
+    target: { start: origin, capacity: 37 },
   });
-  const endAddress = assembled.symbols.PacketServiceEnd;
-  if (endAddress === undefined) throw new Error("provider end is unavailable");
-  return Array.from(
-    parseIntelHex(assembled.hex).memory.slice(0x7021, endAddress),
+  expect(generation.symbols.find(({ name }) => name === "PKTSVC")?.value).toBe(
+    origin,
   );
+  expect(generation.symbols.find(({ name }) => name === "PKTEND")?.value).toBe(
+    (origin + 37) & 0xffff,
+  );
+  expect(generation.highWater).toBe(origin + 37);
+  return Array.from(materializeAtomGeneration(generation).bytes);
 };
 
 const execute = async (
@@ -520,6 +519,18 @@ describe("packet-based service gateway", () => {
   it("assembles the compact MON-3 provider to 37 bytes", async () => {
     expect((await providerBytes()).length).toBe(37);
   });
+
+  it.each([0x0100, 0x7021, 0x8000, 0xffdb])(
+    "assembles direct ATOM source byte-for-byte at origin %i",
+    async (origin) => {
+      // Captured from the published source at 6045257 before this migration.
+      expect(await providerBytes(origin)).toEqual([
+        254, 1, 32, 29, 120, 183, 32, 5, 121, 254, 3, 56, 20, 14, 16, 215, 245,
+        209, 114, 35, 123, 7, 7, 230, 1, 119, 35, 123, 230, 1, 119, 183, 201, 62,
+        7, 55, 201,
+      ]);
+    },
+  );
 
   it("resets after rejection and reproduces the valid artifact", async () => {
     const valid = "var packet as u8[3]\nsub main()\nservice(1, packet)\nend\n";

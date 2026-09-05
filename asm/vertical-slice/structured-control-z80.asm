@@ -2,623 +2,620 @@
 ; operands are compiler-private absolute words and are resolved before the
 ; generated program is published.
 
-EmitControlCounter      .equ EmitCodeStart
-EmitControlMode         .equ EmitCodeStart+1
-EmitControlStep         .equ EmitLoopHead
-EmitControlTrapOffset   .equ EmitExitFixup
-EmitControlTestLabel    .equ EmitFailureFixup
-EmitControlExitLabel    .equ EmitFailureFixup+1
+ZCCOUNT    EQU EMCODST
+ZCMODE     EQU EMCODST+1
+ZCSTEP     EQU EMLOOP
+ZCTRPOFF   EQU EMEXIT
+ZCTSTLBL   EQU EMFAIL
+ZCEXTLBL   EQU EMFAIL+1
 
 ; C is a label ordinal and DE is the address of a generated word operand.
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
 ; Bit 7 on input distinguishes a cross-bank address operand. The four-byte
 ; fixup stores the full six-bit label separately from flags and site bank.
-.endif
-.routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredRecordFixup:
+%ENDIF
+; Contract: in C,DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCRECFIX:
             LD   A,C
             AND  $7F
-            CP   EmitControlLabelCapacity
-            JP   NC,ControlLabelFailure
-            LD   A,(EmitControlFixupCount)
-            CP   EmitControlFixupCapacity
-            JR   NC,StructuredFixupFailure
+            CP   ECLCAP
+            JP   NC,CFLABER
+            LD   A,(ECFCNT)
+            CP   ECFCAP
+            JR   NC,ZCFIXERR
             PUSH BC
             LD   L,A
             LD   H,0
             ADD  HL,HL
             ADD  HL,HL
-            LD   BC,EmitControlFixupBase
+            LD   BC,ECFBAS
             ADD  HL,BC
             POP  BC
             LD   A,C
             AND  $7F
             LD   (HL),A
             INC  HL
-.if TargetStreamingOutput
-            LD   A,(TargetOutputBank)
+%IF TargetStreamingOutput
+            LD   A,(TGOUTBNK)
             BIT  7,C
-            JR   Z,StructuredRecordFlagsReady
+            JR   Z,ZCRFLAGS
             SET  7,A
-StructuredRecordFlagsReady:
-.else
+ZCRFLAGS:
+%ELSE
             XOR  A
-.endif
+%ENDIF
             LD   (HL),A
             INC  HL
             LD   (HL),E
             INC  HL
             LD   (HL),D
-            LD   HL,EmitControlFixupCount
+            LD   HL,ECFCNT
             INC  (HL)
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-TypedEndRoutine:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+ZCENDRT:
             XOR  A
             RET
-StructuredFixupFailure:
-            CALL SetDiagInline
-            .db  DiagnosticControlFixupCapacity
+ZCFIXERR:
+            CALL DGINLINE
+            DB  DGCFXCAP
 
 ; Emit opcode A with a zero word operand and retain that operand for label C.
-.if TargetStreamingOutput
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredEmitFarFixup:
+%IF TargetStreamingOutput
+; Contract: in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCFARFIX:
             SET  7,C
-.endif
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredEmitFixup:
+%ENDIF
+; Contract: in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCEMFIX:
             PUSH BC
-            CALL EmitByte
-.if CompilerDiagnosticReturns
+            CALL EMITBYTE
+%IF CompilerDiagnosticReturns
             POP  BC
             RET  C
             PUSH BC
-.endif
-            LD   DE,(EmitCursor)
+%ENDIF
+            LD   DE,(EMCUR)
             PUSH DE
             LD   HL,0
-            CALL EmitWord
+            CALL EMITWORD
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   StructuredRecordFixup
+%ENDIF
+            JR   ZCRECFIX
 
-.if TargetStreamingOutput
-.routine in A,C out A,BC,HL,carry,zero clobbers sign,parity,halfCarry
-StructuredControlLabelEntry:
+%IF TargetStreamingOutput
+; Contract: in A,C out A,BC,HL,carry,zero clobbers sign,parity,halfCarry
+ZCLBLENT:
             ADD  A,A
             ADD  A,C
             LD   L,A
             LD   H,0
-            LD   BC,EmitControlLabelBase
+            LD   BC,ECLBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
             RET
-.endif
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredLabel:
+%ENDIF
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCLABEL:
             LD   C,A
-.routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredDefineLabel:
+; Contract: in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCDEFLBL:
             LD   A,C
-            CP   EmitControlLabelCapacity
-            JP   NC,ControlLabelFailure
-.if TargetStreamingOutput
-            CALL StructuredControlLabelEntry
-.else
+            CP   ECLCAP
+            JP   NC,CFLABER
+%IF TargetStreamingOutput
+            CALL ZCLBLENT
+%ELSE
             LD   B,0
-            LD   HL,EmitControlLabelValidBase
+            LD   HL,ECLVBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
-.endif
-            JP   NZ,TypedInternalOperation
-.if TargetStreamingOutput
-            LD   A,(TargetOutputBank)
+%ENDIF
+            JP   NZ,ZXINTOP
+%IF TargetStreamingOutput
+            LD   A,(TGOUTBNK)
             INC  A
             LD   (HL),A
-.else
+%ELSE
             LD   (HL),1
-.endif
-.if TargetStreamingOutput
+%ENDIF
+%IF TargetStreamingOutput
             INC  HL
-.else
+%ELSE
             LD   L,C
             LD   H,0
             ADD  HL,HL
-            LD   BC,EmitControlLabelAddressBase
+            LD   BC,ECLABAS
             ADD  HL,BC
-.endif
-            LD   DE,(EmitCursor)
+%ENDIF
+            LD   DE,(EMCUR)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             XOR  A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredBranchFalse:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCBFALSE:
             LD   C,A
             PUSH BC
-            LD   HL,StructuredBranchFalseBytes
-            CALL   EmitThree
+            LD   HL,ZCBFALSB
+            CALL   ZETHREE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$CA                    ; JP Z,nn
-            JR   StructuredEmitFixup
+            JR   ZCEMFIX
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-Stage8SkipHandler:
-StructuredJump:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCSKIPH:
+ZCJUMP:
             LD   C,A
             LD   A,$C3                    ; JP nn
-            JR   StructuredEmitFixup
+            JR   ZCEMFIX
 
 ; Compare one retained selector with an exact case word without consuming the
 ; selector. The case body label follows the word in the semantic transcript.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredSelectCase:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCCASE:
             LD   C,A                      ; selector type
-            CALL ReadSemanticWord
+            CALL ZEREADW
             PUSH BC
             PUSH DE
             POP  HL
-            CALL EmitLoadHl               ; LD HL,case-value
+            CALL ZELDHL               ; LD HL,case-value
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEPushDE       ; retained selector -> DE
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEPINLIN
+            DB  ZEPDEPSD       ; retained selector -> DE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             BIT  1,C
-            LD   HL,StructuredSelectByteCompare
-            JR   Z,StructuredSelectCompareReady
-            LD   HL,StructuredSubtractDE
-StructuredSelectCompareReady:
-            CALL EmitThree
-.if CompilerDiagnosticReturns
+            LD   HL,ZCCASE8
+            JR   Z,ZCCASEOK
+            LD   HL,ZCSUBDE
+ZCCASEOK:
+            CALL ZETHREE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL NextSemanticByte
+%ENDIF
+            CALL ZENEXTB
             LD   C,A
             LD   A,$CA                    ; JP Z,body
-            JR   StructuredEmitFixup
-StructuredSelectByteCompare:
-            .db  $7B,$BD,$00              ; LD A,E / CP L / NOP
+            JR   ZCEMFIX
+ZCCASE8:
+            DB  $7B,$BD,$00              ; LD A,E / CP L / NOP
 
 ; Resolve every retained absolute operand after all label locations are known.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredResolveFixups:
-.if TargetStreamingOutput
-            CALL TargetSaveOutputBank
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZCRESFIX:
+%IF TargetStreamingOutput
+            CALL ZTSAVEBK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.endif
-            LD   A,(EmitControlFixupCount)
+%ENDIF
+%ENDIF
+            LD   A,(ECFCNT)
             OR   A
             RET  Z
             LD   B,A
-            LD   IX,EmitControlFixupBase
-StructuredResolveNext:
+            LD   IX,ECFBAS
+ZCRESNXT:
             LD   C,(IX+0)
             LD   E,(IX+2)
             LD   D,(IX+3)
-.if TargetStreamingOutput
+%IF TargetStreamingOutput
             PUSH BC
             PUSH DE
             LD   D,(IX+1)
             LD   A,D
             AND  $03
             LD   E,A
-            LD   (TargetOutputBank),A
-.endif
+            LD   (TGOUTBNK),A
+%ENDIF
             LD   A,C
-.if TargetStreamingOutput
-.else
-            CP   EmitControlLabelCapacity
-            JR   NC,StructuredResolveFailure
+%IF TargetStreamingOutput
+%ELSE
+            CP   ECLCAP
+            JR   NC,ZCRESERR
             PUSH BC
             PUSH DE
-.endif
-.if TargetStreamingOutput
-            CALL StructuredControlLabelEntry
-.else
+%ENDIF
+%IF TargetStreamingOutput
+            CALL ZCLBLENT
+%ELSE
             LD   B,0
-            LD   HL,EmitControlLabelValidBase
+            LD   HL,ECLVBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
-.endif
-            JR   Z,StructuredResolveUnwind
-.if TargetStreamingOutput
+%ENDIF
+            JR   Z,ZCRESUNW
+%IF TargetStreamingOutput
             DEC  A
             BIT  7,D
-            JR   NZ,StructuredResolveBankReady
+            JR   NZ,ZCRESBNK
             CP   E
-            JR   NZ,StructuredResolveUnwind
-StructuredResolveBankReady:
-.endif
-.if TargetStreamingOutput
+            JR   NZ,ZCRESUNW
+ZCRESBNK:
+%ENDIF
+%IF TargetStreamingOutput
             INC  HL
-.else
+%ELSE
             LD   H,0
             LD   L,C
             ADD  HL,HL
-            LD   BC,EmitControlLabelAddressBase
+            LD   BC,ECLABAS
             ADD  HL,BC
-.endif
+%ENDIF
             LD   C,(HL)
             INC  HL
             LD   H,(HL)
             LD   L,C
             POP  DE
-            CALL PatchWord
+            CALL ZEPWORD
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  IX
             INC  IX
             INC  IX
             INC  IX
-            DJNZ StructuredResolveNext
-.if TargetStreamingOutput
-            LD   A,TargetOutputClosed
-            LD   (TargetOutputBank),A
-.endif
+            DJNZ ZCRESNXT
+%IF TargetStreamingOutput
+            LD   A,TGOUTCLS
+            LD   (TGOUTBNK),A
+%ENDIF
             XOR  A
             RET
-StructuredResolveUnwind:
+ZCRESUNW:
             POP  DE
             POP  BC
-StructuredResolveFailure:
-            JP   TypedInternalOperation
+ZCRESERR:
+            JP   ZXINTOP
 
 ; Emit the selected low-byte IX operation and its displaced counter offset.
 ; E selects the ordinary pair-table entry.
-.routine in A,C,E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-StructuredCounterPrefix:
+; Contract: in A,C,E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
+ZCCNTPFX:
             LD   A,C
             CPL
             LD   C,A
             LD   A,E
-            CALL EmitPairIndexed
-.if CompilerDiagnosticReturns
+            CALL ZEPINDEX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JP   EmitByte
+            JP   EMITBYTE
 
 ; Emit a local load into HL without pushing a new expression carrier.
 ; C is the byte offset, A bit 2 selects u16.
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredLoadCounter:
-            LD   E,EmitPairLoadIXL
+; Contract: in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCLDCNT:
+            LD   E,ZELDIXL
             PUSH AF
-            CALL StructuredCounterPrefix
+            CALL ZCCNTPFX
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             BIT  2,D
-            JR   NZ,StructuredLoadCounterHigh
-            LD   A,EmitPairZeroH
-            JP   EmitPairIndexed
-StructuredLoadCounterHigh:
+            JR   NZ,ZCLDCNTH
+            LD   A,ZEZEROH
+            JP   ZEPINDEX
+ZCLDCNTH:
             DEC  C
-            CALL EmitPairIndexedInline
-            .db  EmitPairLoadIXH
-.if CompilerDiagnosticReturns
+            CALL ZEPINLIN
+            DB  ZELDIXH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JP   EmitByte
+            JP   EMITBYTE
 
 ; Store HL to counter byte offset C; A bit 2 selects u16.
-.routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredStoreCounter:
-            LD   E,EmitPairStoreIXL
+; Contract: in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCSTCNT:
+            LD   E,ZESTIXL
             PUSH AF
-            CALL StructuredCounterPrefix
+            CALL ZCCNTPFX
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             BIT  2,D
             RET  Z
             DEC  C
-            CALL EmitPairIndexedInline
-            .db  EmitPairStoreIXH
-.if CompilerDiagnosticReturns
+            CALL ZEPINLIN
+            DB  ZESTIXH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,C
-            JP   EmitByte
+            JP   EMITBYTE
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredForSetup:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCFORSET:
             LD   C,A
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   B,A
             PUSH BC
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEHL
+            CALL ZEPINLIN
+            DB  ZEPOPDEH
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,B
-            CALL StructuredStoreCounter
-.if CompilerDiagnosticReturns
+            CALL ZCSTCNT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInline
-            .db  $D5                      ; PUSH DE, retained bound
+%ENDIF
+            CALL ZEBINL
+            DB  $D5                      ; PUSH DE, retained bound
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredForTest:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZCFORTST:
             LD   C,A                      ; counter
-.if TargetStreamingOutput
-            CALL ReadSemanticWord
+%IF TargetStreamingOutput
+            CALL ZEREADW
             LD   B,E                      ; mode
             LD   A,D                      ; exit label
-.else
-            CALL NextSemanticByte
+%ELSE
+            CALL ZENEXTB
             LD   B,A                      ; mode
-            CALL NextSemanticByte
+            CALL ZENEXTB
             LD   D,A                      ; exit label
-.endif
-            LD   (EmitControlExitLabel),A
+%ENDIF
+            LD   (ZCEXTLBL),A
             PUSH BC
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEPushDE
+            CALL ZEPINLIN
+            DB  ZEPDEPSD
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH BC
             LD   A,B
-            CALL StructuredLoadCounter
+            CALL ZCLDCNT
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,B
             AND  $03
-            ADD  A,ComparisonLess
-StructuredForTestCompare:
+            ADD  A,RCLT
+ZCFORCMP:
             BIT  3,B
-            JR   Z,StructuredForTestCompareReady
+            JR   Z,ZCFORCOK
             OR   $80
             BIT  2,B
-            JR   NZ,StructuredForTestCompareReady
+            JR   NZ,ZCFORCOK
             OR   $40
-StructuredForTestCompareReady:
-            CALL TypedEmitCompare
-.if CompilerDiagnosticReturns
+ZCFORCOK:
+            CALL ZXEMCMP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlExitLabel)
+%ENDIF
+            LD   A,(ZCEXTLBL)
             LD   C,A
-            CALL EmitPairIndexedInline
-            .db  EmitPairTestL
-.if CompilerDiagnosticReturns
+            CALL ZEPINLIN
+            DB  ZETESTL
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,$CA
-            JP   StructuredEmitFixup
+            JP   ZCEMFIX
 
-.routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-EmitLoadDeImmediate:
+; Contract: in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCLDDEI:
             LD   A,$11                    ; LD DE,nn
             PUSH DE
-            CALL EmitByte
+            CALL EMITBYTE
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   H,D
             LD   L,E
-            JP   EmitWord
+            JP   EMITWORD
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-StructuredLoadStepMode:
-            LD   DE,(EmitControlStep)
-            CALL EmitLoadDeImmediate
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+ZCLDSTPM:
+            LD   DE,(ZCSTEP)
+            CALL ZCLDDEI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlMode)
+%ENDIF
+            LD   A,(ZCMODE)
             RET
 
 ; Read and retain the fixed-width ForNext operands in emitter scratch.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-StructuredForNext:
-            LD   (EmitControlTestLabel),A
-            CALL NextSemanticByte
-            LD   (EmitControlExitLabel),A
-.if TargetStreamingOutput
-            CALL ReadSemanticWord
-            LD   (EmitControlCounter),DE
-.else
-            CALL NextSemanticByte
-            LD   (EmitControlCounter),A
-            CALL NextSemanticByte
-            LD   (EmitControlMode),A
-.endif
-            CALL ReadSemanticWord
-            LD   (EmitControlStep),DE
-            CALL ReadSemanticWord
-            LD   (EmitControlTrapOffset),DE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+ZCFORNXT:
+            LD   (ZCTSTLBL),A
+            CALL ZENEXTB
+            LD   (ZCEXTLBL),A
+%IF TargetStreamingOutput
+            CALL ZEREADW
+            LD   (ZCCOUNT),DE
+%ELSE
+            CALL ZENEXTB
+            LD   (ZCCOUNT),A
+            CALL ZENEXTB
+            LD   (ZCMODE),A
+%ENDIF
+            CALL ZEREADW
+            LD   (ZCSTEP),DE
+            CALL ZEREADW
+            LD   (ZCTRPOFF),DE
             XOR  A
-            CALL EmitPairIndexedInline
-            .db  EmitPairPopDEPushDE
-.if CompilerDiagnosticReturns
+            CALL ZEPINLIN
+            DB  ZEPDEPSD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlCounter)
+%ENDIF
+            LD   A,(ZCCOUNT)
             LD   C,A
-            LD   A,(EmitControlMode)
-            CALL StructuredLoadCounter
-.if CompilerDiagnosticReturns
+            LD   A,(ZCMODE)
+            CALL ZCLDCNT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $E5                    ; preserve current counter
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $E5                    ; preserve current counter
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlMode)
+%ENDIF
+            LD   A,(ZCMODE)
             BIT  1,A
-            JR   NZ,StructuredNegativeDistance
-            CALL EmitByteInlineChecked
-            .db  $EB                    ; EX DE,HL => bound-current
-.if CompilerDiagnosticReturns
+            JR   NZ,ZCNEGDST
+            CALL ZEBINCHK
+            DB  $EB                    ; EX DE,HL => bound-current
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredNegativeDistance:
-            LD   HL,StructuredSubtractDE
-            CALL   EmitThree
-.if CompilerDiagnosticReturns
+%ENDIF
+ZCNEGDST:
+            LD   HL,ZCSUBDE
+            CALL   ZETHREE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlMode)
+%ENDIF
+            LD   A,(ZCMODE)
             AND  $0C
             CP   $08                    ; signed byte distance wraps modulo 256
-            JR   NZ,StructuredDistanceWidthReady
-            CALL EmitPairIndexedInline
-            .db  EmitPairZeroH
-.if CompilerDiagnosticReturns
+            JR   NZ,ZCDSTWID
+            CALL ZEPINLIN
+            DB  ZEZEROH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredDistanceWidthReady:
-            CALL StructuredLoadStepMode
-.if CompilerDiagnosticReturns
+%ENDIF
+ZCDSTWID:
+            CALL ZCLDSTPM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             AND  1
-            LD   A,ComparisonLess
-            JR   NZ,StructuredDistanceCompare
+            LD   A,RCLT
+            JR   NZ,ZCDSTCMP
             ; until exits when distance <= step; to exits when distance < step.
-            LD   A,ComparisonLessEqual
-StructuredDistanceCompare:
-            CALL TypedEmitCompare
-.if CompilerDiagnosticReturns
+            LD   A,RCLE
+ZCDSTCMP:
+            CALL ZXEMCMP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,StructuredTestThenPopCurrent
-            CALL   EmitThree
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   HL,ZCTSTPOP
+            CALL   ZETHREE
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlExitLabel)
+%ENDIF
+            LD   A,(ZCEXTLBL)
             LD   C,A
             LD   A,$C2                    ; JP NZ,exit cleanup
-            CALL StructuredEmitFixup
-.if CompilerDiagnosticReturns
+            CALL ZCEMFIX
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredForNextLoadStep:
-            CALL StructuredLoadStepMode
-.if CompilerDiagnosticReturns
+%ENDIF
+ZCFORLD:
+            CALL ZCLDSTPM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             BIT  3,A
-            JR   NZ,StructuredSignedStep
+            JR   NZ,ZCSGNSTP
             BIT  1,A
-            JR   NZ,StructuredSubtractStep
-            CALL EmitByteInlineChecked
-            .db  $19                    ; ADD HL,DE
-            JR   StructuredForNextFit
-StructuredSubtractStep:
-            LD   HL,StructuredSubtractDE
-            CALL   EmitThree
-StructuredForNextFit:
-.if CompilerDiagnosticReturns
+            JR   NZ,ZCSUBSTP
+            CALL ZEBINCHK
+            DB  $19                    ; ADD HL,DE
+            JR   ZCFORFIT
+ZCSUBSTP:
+            LD   HL,ZCSUBDE
+            CALL   ZETHREE
+ZCFORFIT:
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlMode)
+%ENDIF
+            LD   A,(ZCMODE)
             BIT  2,A
-            JR   NZ,StructuredForNextStore
+            JR   NZ,ZCFORST
             BIT  1,A
-            JR   NZ,StructuredForNextStore
-            CALL EmitPairIndexedInline
-            .db  EmitPairTestH
-.if CompilerDiagnosticReturns
+            JR   NZ,ZCFORST
+            CALL ZEPINLIN
+            DB  ZETESTH
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL EmitByteInlineChecked
-            .db  $CA                    ; JP Z,fit
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL ZEBINCHK
+            DB  $CA                    ; JP Z,fit
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredForNextTrap:
-            LD   HL,(EmitCursor)
-            LD   (EmitUpdateExitFixup),HL
+%ENDIF
+ZCFORTRP:
+            LD   HL,(EMCUR)
+            LD   (EMUPEXIT),HL
             LD   HL,0
-            CALL EmitWord
-.if CompilerDiagnosticReturns
+            CALL EMITWORD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,(EmitControlTrapOffset)
+%ENDIF
+            LD   HL,(ZCTRPOFF)
             LD   A,4
-            CALL TypedEmitTrapBody
-.if CompilerDiagnosticReturns
+            CALL ZXTRBODY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   DE,(EmitUpdateExitFixup)
-            LD   HL,(EmitCursor)
-            CALL PatchWord
-            JR   StructuredForNextStore
-StructuredSignedStep:
-            CALL EmitLoadAImmediate
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   DE,(EMUPEXIT)
+            LD   HL,(EMCUR)
+            CALL ZEPWORD
+            JR   ZCFORST
+ZCSGNSTP:
+            CALL ZELDAI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-.if TargetStreamingOutput
-            LD   DE,NucleusRuntimeSignedLoopStepOffset
-            CALL TypedEmitFailableRuntimeCall
-.else
-            LD   HL,SignedLoopStep
-            CALL TypedEmitFailableCall
-.endif
-.if CompilerDiagnosticReturns
+%ENDIF
+%IF TargetStreamingOutput
+            LD   DE,ROSSTEP
+            CALL ZXFAILRT
+%ELSE
+            LD   HL,RTSSTEP
+            CALL ZXFAILCL
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,(EmitControlTrapOffset)
-            LD   (EmitTypedTrapPosition),HL
+%ENDIF
+            LD   HL,(ZCTRPOFF)
+            LD   (ZXTRPPOS),HL
             LD   A,4
-            CALL TypedEmitCurrentTrap
-.if CompilerDiagnosticReturns
+            CALL ZXTRCUR
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-StructuredForNextStore:
-            LD   A,(EmitControlCounter)
+%ENDIF
+ZCFORST:
+            LD   A,(ZCCOUNT)
             LD   C,A
-            LD   A,(EmitControlMode)
-            CALL StructuredStoreCounter
-.if CompilerDiagnosticReturns
+            LD   A,(ZCMODE)
+            CALL ZCSTCNT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(EmitControlTestLabel)
-            JP   StructuredJump
+%ENDIF
+            LD   A,(ZCTSTLBL)
+            JP   ZCJUMP
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-StructuredForCleanup:
-            CALL EmitByteInline
-            .db  $D1                      ; POP DE, discard retained bound
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+ZCFORCLR:
+            CALL ZEBINL
+            DB  $D1                      ; POP DE, discard retained bound
 
-StructuredBranchFalseBytes .equ TypedBeginAndBytes
-StructuredPopBoundStart    .equ TypedPopOperandsBytes
-StructuredTestHL           .equ TypedBeginAndBytes+1
-StructuredSubtractDE:        .db $B7,$ED,$52
-StructuredTestThenPopCurrent: .db $7D,$B7,$E1
+ZCSUBDE:        DB $B7,$ED,$52
+ZCTSTPOP: DB $7D,$B7,$E1

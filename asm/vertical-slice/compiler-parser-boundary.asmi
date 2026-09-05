@@ -1,0 +1,3 @@
+; Preserve SymbolLookupMissing fallthrough into CompilerSetDiagnostic.
+KCSYMEND:
+KCPARSER:

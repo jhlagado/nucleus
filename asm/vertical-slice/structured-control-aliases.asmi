@@ -1,0 +1,4 @@
+; Zero-byte aliases resolved after the typed backend's shared templates.
+ZCBFALSB   EQU ZXBEGADB
+ZCPOPBND   EQU ZXPOPOB
+ZCTSTHL    EQU ZXBEGADB+1

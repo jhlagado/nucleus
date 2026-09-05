@@ -8,72 +8,73 @@
 ; existing full compiler-stack allocation. This file records simultaneous
 ; lifetimes; it does not count the output image as resident compiler code.
 
-CompilerTransientBase .equ $0100
-CompilerCoreBase    .equ CompilerTransientBase+3
-CompilerCoreLimit   .equ $4100
+MMTRANS    EQU $0100
+MMCORE     EQU MMTRANS+3
+MMCORLIM   EQU $4100
 
-CompilerWorkBase    .equ $6000
-CompilerWorkLimit   .equ $7000
+MMWORK     EQU $6000
+MMWRKLIM   EQU $7000
 
-SourceBase          .equ $7000
-SourceLimit         .equ $7800
-NativeSourceTokenBase  .equ SourceBase
-NativeSourceTokenLimit .equ SourceBase+$0500
-NativeSourceChunkBase  .equ NativeSourceTokenLimit
-NativeSourceChunkLimit .equ SourceLimit
+MMSOURCE   EQU $7000
+MMSRCLIM   EQU $7800
+MMTOKEN    EQU MMSOURCE
+MMTOKEND   EQU MMSOURCE+$0500
+SRCCHUNK   EQU MMTOKEND
+MMCHKEND   EQU MMSRCLIM
 
 ; CP/M host code and mutable provider state occupy the gap between the host
 ; vector and compiler workspace. Exact sub-extents are fixed by the eventual
 ; adapter rather than by the compiler core.
-CpmHostVectorBase      .equ $4100
-CpmHostResidentLimit   .equ $5800
-CpmHostWorkspaceBase   .equ $5800
-CpmHostWorkspaceLimit  .equ CompilerWorkBase
-CpmDirectWorkspaceBase .equ CpmHostWorkspaceBase+$0020
-CpmSourceWorkspaceBase .equ CpmHostWorkspaceBase+$0058
+MMHOSTVC   EQU $4100
+MMRESEND   EQU $5800
+MMHOSTWK   EQU $5800
+MMHWKEND   EQU MMWORK
+DOWKBASE   EQU MMHOSTWK+$0020
+CSWKBASE   EQU MMHOSTWK+$0058
 
 ; Direct-COM candidate. Logical target addresses begin after a CP/M bootstrap
 ; and generated-program service provider at $0100..$07FF. IMAGE and PATCH
 ; callbacks translate the logical target range into this private TPA buffer.
-CpmTargetPrefixBase    .equ $0100
-CpmTargetImageBase     .equ $0800
-CpmOutputBufferBase    .equ SourceLimit
-CpmOutputBufferLimit   .equ $D500
-CpmTargetImageCapacity .equ CpmOutputBufferLimit-CpmOutputBufferBase
-CpmTargetImageLimit    .equ CpmTargetImageBase+CpmTargetImageCapacity
-CpmOutputAddressDelta  .equ CpmOutputBufferBase-CpmTargetImageBase
+MMPREFIX   EQU $0100
+DOIMG      EQU $0800
+DOBUF      EQU MMSRCLIM
+DOBUFEND   EQU $D500
+DOIMGCAP   EQU DOBUFEND-DOBUF
+DOIMGEND   EQU DOIMG+DOIMGCAP
+DOOFFSET   EQU DOBUF-DOIMG
 
 ; Loaded target profile. Writable bytes follow the maximum admitted generated
 ; code/read-only extent and stay within the materialized target image.
-CpmTargetWritableBase     .equ $5800
-CpmTargetWritableLimit    .equ CpmTargetImageLimit
-CpmTargetWritableCapacity .equ CpmTargetWritableLimit-CpmTargetWritableBase
+DOWRBASE   EQU $5800
+MMWREND    EQU DOIMGEND
+MMWRCAP    EQU MMWREND-DOWRBASE
 
-ReleasedGeneratedStagingBase  .equ SourceLimit
-ReleasedGeneratedStagingLimit .equ SourceLimit
-ProofSourceCorpusBase          .equ SourceLimit
-ProofSourceCorpusLimit         .equ SourceLimit
-TargetRuntimeBase              .equ SourceLimit
-TargetRuntimeLimit             .equ SourceLimit
-ExecutionBase                  .equ CpmOutputBufferBase
-ExecutionLimit                 .equ CpmOutputBufferLimit
-ProgramDataBase                .equ CpmTargetWritableBase
-ProgramDataLimit               .equ CpmTargetWritableLimit
-ProgramBssBase                 .equ CpmTargetWritableBase
-ProgramBssLimit                .equ CpmTargetWritableLimit
-ProgramDataRegionLimit         .equ CpmTargetWritableLimit
-ProgramDataRegionCapacity      .equ CpmTargetWritableCapacity
-GeneratedRoDataCapacity        .equ $0400
-ServiceBase                    .equ CpmTargetPrefixBase
-ServiceLimit                   .equ CpmTargetImageBase
-ProofBase                      .equ CpmHostWorkspaceBase
-ProofLimit                     .equ CpmHostWorkspaceBase
-SpareBase                      .equ CpmHostWorkspaceBase
-SpareLimit                     .equ CpmHostWorkspaceBase
-ReleasedRollbackStagingBase    .equ CpmHostWorkspaceBase
-ReleasedRollbackStagingLimit   .equ CpmHostWorkspaceBase
+MMRGEN     EQU MMSRCLIM
+MMRGNEND   EQU MMSRCLIM
+MMCORP     EQU MMSRCLIM
+MMCORPEN   EQU MMSRCLIM
+MMRUN      EQU MMSRCLIM
+MMRUNEND   EQU MMSRCLIM
+MMEXEC     EQU DOBUF
+MMEXEND    EQU DOBUFEND
+MMDATA     EQU DOWRBASE
+MMDATEND   EQU MMWREND
+MMBSS      EQU DOWRBASE
+MMBSSEND   EQU MMWREND
+MMREGEND   EQU MMWREND
+MMREGCAP   EQU MMWRCAP
+RORDCAP    EQU $0400
+MMSERV     EQU MMPREFIX
+MMSRVEND   EQU DOIMG
+MMPROOF    EQU MMHOSTWK
+MMPREND    EQU MMHOSTWK
+MMSPARE    EQU MMHOSTWK
+MMSPEND    EQU MMHOSTWK
+MMRBACK    EQU MMHOSTWK
+MMRBKEND   EQU MMHOSTWK
 
-StackFloor          .equ CpmOutputBufferLimit
-StackTop            .equ $E400
-HighReservedBase    .equ $E400
-AddressSpaceLimit   .equ $10000
+MMSTKBOT   EQU DOBUFEND
+STACKTOP   EQU $E400
+MMHIGH     EQU $E400
+; Highest address is a native word; host output reports its exclusive end +1.
+MMLAST     EQU $FFFF

@@ -1,50 +1,50 @@
-extern NobjPlatformObjectOpen
+extern LVOPEN
 in HL
 out A,carry,zero
 clobbers B,C,D,E,H,L,sign,parity,halfCarry
 preserves IX,IY
 end
 
-extern NobjPlatformObjectReadByte
+extern LVREAD
 out A,carry,zero
 clobbers sign,parity,halfCarry
 preserves BC,DE,HL,IX,IY
 end
 
-extern NobjPlatformObjectRewind
+extern LVREWIND
 out A,carry,zero
 clobbers B,C,D,E,H,L,sign,parity,halfCarry
 preserves IX,IY
 end
 
-extern NobjPlatformObjectLock
+extern LVLOCK
 out A,D,E,H,L,carry,zero
 clobbers B,C,sign,parity,halfCarry
 preserves IX,IY
 end
 
-extern NobjPlatformSelectTargetBank
+extern LVSELECT
 in A,IX
 out A,carry,zero
 clobbers B,C,D,E,H,L,sign,parity,halfCarry
 preserves IX,IY
 end
 
-extern NobjPlatformPublishTarget
+extern LVPUBL
 in A,BC,DE,HL,IX
 out A,carry,zero
 clobbers B,C,D,E,H,L,IXH,IXL,sign,parity,halfCarry
 preserves IY
 end
 
-extern NobjPlatformEnterTarget
+extern LVENTER
 in A,HL,IX
 out A,carry,zero
 clobbers B,C,D,E,H,L,IXH,IXL,sign,parity,halfCarry
 preserves IY
 end
 
-extern NobjPlatformObjectClose
+extern LVCLOSE
 out A,carry,zero
 clobbers B,C,D,E,H,L,sign,parity,halfCarry
 preserves IX,IY

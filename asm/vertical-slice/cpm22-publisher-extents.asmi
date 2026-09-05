@@ -1,0 +1,4 @@
+; Resolve publisher immediates after the actual embedded prefix has been read.
+; These private EQU values add no bytes and do not change its image placement.
+PBPFXLEN EQU EMBPFXEN-EMBPFX
+PBPFXPAD EQU DOIMG-$0100-PBPFXLEN

@@ -1,0 +1,210 @@
+            ORG NHVECTOR
+            DB "NH",0,1,8,14,0,0
+            ; Start an explicit code section after the eight-byte header.
+            ORG NHVECTOR+8
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+HVCHUNK:           JP NHCHUNK
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+HVRETAIN:         JP NHRETAIN
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+HVCMPNAM:        JP NHCMPNAM
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+HVMATNAM:           JP NHMATNAM
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSBEGIN:               JP NHBEGIN
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TSBYTE:           JP NHIMAGE
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSRTIMG:        JP NHRTIMG
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSRTINIT: JP NHRTINIT
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TSPATBYT:           JP NHPATBYT
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+TSPATWRD:           JP NHPATWRD
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSMAP:             JP NHMAP
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSBANK:           JP NHMAPBNK
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+TSCOMMIT:              JP NHCOMMIT
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+TSABORT:               JP NHABORT
+
+%IF Mon3HostTransport
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+NHCHUNK:     LD   C,NHM3SVC+0
+                               RST  $10
+                               RET
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+NHRETAIN:   LD   (NHM3BC),BC
+                               PUSH BC
+                               LD   C,NHM3SVC+1
+                               RST  $10
+                               POP  BC
+                               RET
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NHCMPNAM:  LD   C,NHM3SVC+2
+                               RST  $10
+                               RET
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+NHMATNAM:     PUSH DE
+                               LD   E,C
+                               LD   C,NHM3SVC+3
+                               RST  $10
+                               LD   C,E
+                               POP  DE
+                               RET
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHBEGIN:         LD   C,NHM3SVC+4
+                               RST  $10
+                               RET
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NHIMAGE:
+%IF DebugHooks
+                               OUT  (DTIMAGE),A
+%ENDIF
+                               LD   (NHM3BC),BC
+                               PUSH BC
+                               LD   C,NHM3SVC+5
+                               RST  $10
+                               POP  BC
+                               RET
+%ELSE
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+NHCHUNK:     OUT (HPCHUNK),A
+                               RET
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+NHRETAIN:   OUT (HPRETAIN),A
+                               RET
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+NHCMPNAM:  OUT (HPCMPNAM),A
+                               RET
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+NHMATNAM:     OUT (HPMATNAM),A
+                               RET
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHBEGIN:         OUT (HPBEGIN),A
+                               RET
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NHIMAGE:
+%IF DebugHooks
+                               OUT  (DTIMAGE),A
+%ENDIF
+                               OUT (HPIMAGE),A
+                               RET
+%ENDIF
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHRTIMG:        LD   (NHRTBNK),A
+                               XOR  A
+                               LD   (NHRTOP),A
+                               CALL NHRTREQ
+%IF Mon3HostTransport
+                               LD   (NHM3BC),BC
+                               LD   C,NHM3SVC+6
+                               RST  $10
+%ELSE
+                               OUT  (HPRTIMG),A
+%ENDIF
+                               JP   NHRTRET
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHRTINIT: LD   (NHRTBNK),A
+                               LD   A,1
+                               LD   (NHRTOP),A
+                               CALL NHRTREQ
+%IF Mon3HostTransport
+                               LD   (NHM3BC),BC
+                               LD   C,NHM3SVC+7
+                               RST  $10
+%ELSE
+                               OUT  (HPRTINIT),A
+%ENDIF
+                               JP   NHRTRET
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+NHPATBYT:
+%IF Mon3HostTransport
+                               LD   (NHM3BC),BC
+                               PUSH BC
+                               LD   C,NHM3SVC+8
+                               RST  $10
+                               POP  BC
+                               RET
+%ELSE
+                               OUT  (HPPATBYT),A
+                               RET
+%ENDIF
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+NHPATWRD:
+%IF Mon3HostTransport
+                               LD   (NHM3BC),BC
+                               PUSH BC
+                               LD   C,NHM3SVC+9
+                               RST  $10
+                               POP  BC
+                               RET
+%ELSE
+                               OUT  (HPPATWRD),A
+                               RET
+%ENDIF
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHMAP:
+%IF Mon3HostTransport
+                               LD   C,NHM3SVC+10
+                               RST  $10
+                               RET
+%ELSE
+                               OUT  (HPMAP),A
+                               RET
+%ENDIF
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+NHMAPBNK:
+%IF Mon3HostTransport
+                               LD   C,NHM3SVC+11
+                               RST  $10
+                               RET
+%ELSE
+                               OUT  (HPMAPBNK),A
+                               RET
+%ENDIF
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+NHCOMMIT:
+%IF Mon3HostTransport
+                               PUSH BC
+                               LD   C,NHM3SVC+12
+                               RST  $10
+                               POP  BC
+%ELSE
+                               OUT  (HPCOMMIT),A
+%ENDIF
+                               RET  C
+                               LD   A,1
+                               LD   (NHLCOMIT),A
+                               OR   A
+                               RET
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+NHABORT:
+%IF Mon3HostTransport
+                               PUSH BC
+                               LD   C,NHM3SVC+13
+                               RST  $10
+                               POP  BC
+                               RET
+%ELSE
+                               OUT  (HPABORT),A
+                               RET
+%ENDIF
+
+%IF Mon3HostTransport
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+NHLAUNCH:         PUSH BC
+                               LD   C,NHM3SVC+14
+                               RST  $10
+                               POP  BC
+                               RET
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry
+NHFINISH:           PUSH BC
+                               LD   C,NHM3SVC+15
+                               RST  $10
+                               POP  BC
+                               RET
+%ENDIF

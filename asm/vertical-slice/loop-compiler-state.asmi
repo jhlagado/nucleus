@@ -1,639 +1,639 @@
 ; Fixed compiler state for the scalar-local, counted-loop, and array slice.
 
-CompilerStateBase       .equ CompilerWorkBase
+CPSTBASE  EQU MMWORK
 
-SourcePartId            .equ CompilerStateBase+$00
+SSPARTID  EQU CPSTBASE+$00
 ; The live source position and cursor form one eight-byte snapshot. The
 ; tokenizer copies the complete full-width record to the token anchor without
 ; shortening or packing any address or position.
-SourceOffset            .equ CompilerStateBase+$01
-SourceLine              .equ CompilerStateBase+$03
-SourceColumn            .equ CompilerStateBase+$05
-SourceCursor            .equ CompilerStateBase+$07
-SourceEnd               .equ CompilerStateBase+$09
-SourceLineHasToken       .equ CompilerStateBase+$0B
-SourceDelimiterDepth    .equ CompilerStateBase+$0C
+SSOFF     EQU CPSTBASE+$01
+SSLINE    EQU CPSTBASE+$03
+SSCOL     EQU CPSTBASE+$05
+SSCUR     EQU CPSTBASE+$07
+SSEND     EQU CPSTBASE+$09
+SSLNTOK   EQU CPSTBASE+$0B
+SSDELDEP  EQU CPSTBASE+$0C
 
-TokenStartOffset        .equ CompilerStateBase+$0D
-TokenStartLine          .equ CompilerStateBase+$0F
-TokenStartColumn        .equ CompilerStateBase+$11
-TokenLexemePointer      .equ CompilerStateBase+$13
-TokenLength             .equ CompilerStateBase+$15
+TNSTOFF   EQU CPSTBASE+$0D
+TNSTLINE  EQU CPSTBASE+$0F
+TNSTCOL   EQU CPSTBASE+$11
+TNLEXPTR  EQU CPSTBASE+$13
+TNLEN     EQU CPSTBASE+$15
 
-DiagnosticCode          .equ CompilerStateBase+$16
-DiagnosticPartId        .equ CompilerStateBase+$17
+DGCODE    EQU CPSTBASE+$16
+DGPARTID  EQU CPSTBASE+$17
 ; Diagnostics are terminal and every path that needs an earlier source
 ; position restores it to the token anchor before raising. The anchor remains
 ; live through native emission, so the host-visible diagnostic record can
 ; name those same full-width words without copying or packing them.
-DiagnosticOffset        .equ TokenStartOffset
-DiagnosticLine          .equ TokenStartLine
-DiagnosticColumn        .equ TokenStartColumn
+DGOFF     EQU TNSTOFF
+DGLINE    EQU TNSTLINE
+DGCOL     EQU TNSTCOL
 
 ; DiagnosticCode and DiagnosticPartId remain clear on successful compilation.
 ; The semantic sink occupies separate state while the token anchor stays live.
-SinkCursor              .equ CompilerStateBase+$18
-SinkOperationCount      .equ CompilerStateBase+$1A
+SKCUR     EQU CPSTBASE+$18
+SKOPCNT   EQU CPSTBASE+$1A
 
 ; Emission begins only after parsing succeeds. Its scratch words therefore
 ; overlay dead source, token, diagnostic, and sink fields. SourcePartId and
 ; TokenStartOffset..TokenStartColumn remain intact for an emitter diagnostic.
-EmitPatchAddress        .equ CompilerStateBase+$03
-EmitCodeStart           .equ CompilerStateBase+$05
-EmitLoopHead            .equ CompilerStateBase+$07
-EmitExitFixup           .equ CompilerStateBase+$09
-EmitFailureFixup        .equ CompilerStateBase+$0B
-EmitUpdateExitFixup     .equ CompilerStateBase+$19
-EmitCursor              .equ CompilerStateBase+$13
-EmitLimit               .equ CompilerStateBase+$15
-EmitDataFixup           .equ CompilerStateBase+$17
+EMPATCH   EQU CPSTBASE+$03
+EMCODST   EQU CPSTBASE+$05
+EMLOOP    EQU CPSTBASE+$07
+EMEXIT    EQU CPSTBASE+$09
+EMFAIL    EQU CPSTBASE+$0B
+EMUPEXIT  EQU CPSTBASE+$19
+EMCUR     EQU CPSTBASE+$13
+EMLIM     EQU CPSTBASE+$15
+EMDATFIX  EQU CPSTBASE+$17
 
-CompilerStateEnd        .equ CompilerStateBase+$1B
-SemanticBufferBase      .equ CompilerStateEnd
-SemanticPayloadBase     .equ SemanticBufferBase+1
+CPSTEND   EQU CPSTBASE+$1B
+SMBUFBAS  EQU CPSTEND
+SMPAYBAS  EQU SMBUFBAS+1
 ; The leading byte is an operation count and the remaining 511 bytes are a
 ; bounded variable-width transcript. Word aggregate operands must not make the
 ; complete Chapter 18 program depend on the retired byte-extent encoding.
-SemanticBufferLimit     .equ SemanticBufferBase+$200
+SMBUFLIM  EQU SMBUFBAS+$200
 
 ; Host-only source-map trace ports. Every instruction that uses these equates
 ; is conditionally absent unless the target compiler sets DebugHooks to one.
 ; OUT (n),A exposes the full port as (A << 8) | n; hosts classify the low byte.
-DebugTraceSourcePort       .equ $D8
-DebugTraceDeclarationPort  .equ $D9
-DebugTraceContextPushPort  .equ $DA
-DebugTraceContextPopPort   .equ $DB
-DebugTraceRoutinePort      .equ $DC
-DebugTraceSemanticStartPort .equ $DD
-DebugTraceSemanticEndPort  .equ $DE
-DebugTraceImageBytePort    .equ $DF
+DTSOURCE  EQU $D8
+DTDECL    EQU $D9
+DTPUSH    EQU $DA
+DTPOP     EQU $DB
+DTROUT    EQU $DC
+DTSEMST   EQU $DD
+DTSEMEND  EQU $DE
+DTIMAGE   EQU $DF
 
 ; One retained forward signature is enough for the first routine-call slice.
 ; The source bytes remain stable, so exact names are retained as pointer/length
 ; pairs rather than copied into another buffer.
-ForwardNamePointer      .equ SemanticBufferLimit+$00
-ForwardNameLength       .equ SemanticBufferLimit+$02
-ForwardParameterPointer .equ SemanticBufferLimit+$03
-ForwardParameterLength  .equ SemanticBufferLimit+$05
-ForwardOrdinal          .equ SemanticBufferLimit+$06
-ForwardCompleted        .equ SemanticBufferLimit+$07
-ForwardParameterType    .equ SemanticBufferLimit+$08
-ForwardResultType       .equ SemanticBufferLimit+$09
+FWNAMPTR  EQU SMBUFLIM+$00
+FWNAMLEN  EQU SMBUFLIM+$02
+FWPARPTR  EQU SMBUFLIM+$03
+FWPARLEN  EQU SMBUFLIM+$05
+FWORD     EQU SMBUFLIM+$06
+FWDONE    EQU SMBUFLIM+$07
+FWPARTYP  EQU SMBUFLIM+$08
+FWRESTYP  EQU SMBUFLIM+$09
 
 ; The predictive expression path keeps one token of lookahead. Zero denotes an
 ; empty cell. TokenEof is deliberately uncached, so repeated EOF peeks re-read
 ; the same stable end position; every nonzero token retains its word payload.
-ParserLookaheadKind     .equ SemanticBufferLimit+$0A
-ParserLookaheadValue    .equ SemanticBufferLimit+$0B
+PSLOOK    EQU SMBUFLIM+$0A
+PSLOOKV   EQU SMBUFLIM+$0B
 
 ; Source bytes remain resident through compilation, so a scalar symbol keeps
 ; the exact spelling as a pointer and length instead of copying name bytes.
 ; The entry at SymbolCount is provisional until the declaration initializer
 ; succeeds; lookup sees only the committed prefix.
-SymbolCount             .equ SemanticBufferLimit+$0D
-NextLocalSlot           .equ SemanticBufferLimit+$0E
-NextProgramSlot         .equ SemanticBufferLimit+$0F
-SymbolTableBase         .equ SemanticBufferLimit+$10
-SymbolEntrySize         .equ 7
-SymbolTypeId            .equ 6
-SymbolCapacity          .equ 16
-SymbolTableLimit        .equ SymbolTableBase+SymbolEntrySize*SymbolCapacity
+SYCNT     EQU SMBUFLIM+$0D
+NXLOCAL   EQU SMBUFLIM+$0E
+NXPROG    EQU SMBUFLIM+$0F
+SYTABBAS  EQU SMBUFLIM+$10
+SYENTSZ   EQU 7
+SYTYPID   EQU 6
+SYCAP     EQU 16
+SYTABLIM  EQU SYTABBAS+SYENTSZ*SYCAP
 
 ; Expression metadata is deliberately explicit in the correctness build.
 ; A bounded stack retains the left operand of recursive expression parses;
 ; each entry is metadata plus a constant value word. The later compression
 ; pass may overlay this state once its liveness has been measured.
-ExpressionExpectedType  .equ SymbolTableLimit+$00
-ExpressionEmitEnabled   .equ SymbolTableLimit+$01
-ExpressionSuppressFault .equ SymbolTableLimit+$02
+EXEXPTYP  EQU SYTABLIM+$00
+EXEMITON  EQU SYTABLIM+$01
+EXSUPFLT  EQU SYTABLIM+$02
 ; These seven bytes are copied into every pending-expression frame as one
 ; full-width block. The following right-result cells remain outside it because
 ; they must stay live while the saved left state is restored.
-ExpressionSavedState    .equ ExpressionSuppressFault
-ExpressionLeftMeta      .equ SymbolTableLimit+$03
-ExpressionLeftValue     .equ SymbolTableLimit+$04
-ExpressionOperator      .equ SymbolTableLimit+$06
-ExpressionOperatorOffset .equ SymbolTableLimit+$07
-ExpressionSavedStateSize .equ 7
+EXSAVE    EQU EXSUPFLT
+EXLMETA   EQU SYTABLIM+$03
+EXLVAL    EQU SYTABLIM+$04
+EXOP      EQU SYTABLIM+$06
+EXOPOFF   EQU SYTABLIM+$07
+EXSAVESZ  EQU 7
 ; The saved state and its complete value position form one 13-byte frame copy.
-ExpressionValuePosition .equ SymbolTableLimit+$09 ; offset, line, column
-ExpressionStackDepth    .equ SymbolTableLimit+$0F
-ExpressionRightMeta     .equ SymbolTableLimit+$10
-ExpressionRightValue    .equ SymbolTableLimit+$11
-DeclarationInfo         .equ SymbolTableLimit+$13
-DeclarationPayload      .equ SymbolTableLimit+$14
-DeclarationNamePointer  .equ SymbolTableLimit+$16
-DeclarationNameLength   .equ SymbolTableLimit+$18
-ExpressionCallOffset    .equ SymbolTableLimit+$19
-DeclarationNamePosition .equ SymbolTableLimit+$1B ; offset, line, column
-ExpressionLeftPositionPointer .equ SymbolTableLimit+$21
-ExpressionStackBase     .equ SymbolTableLimit+$23
-ExpressionStackCapacity .equ 16
-ExpressionStackEntrySize .equ 13
-ExpressionStackLimit    .equ ExpressionStackBase+ExpressionStackCapacity*ExpressionStackEntrySize
+EXVALPOS  EQU SYTABLIM+$09 ; offset, line, column
+EXSTKDEP  EQU SYTABLIM+$0F
+EXRMETA   EQU SYTABLIM+$10
+EXRVAL    EQU SYTABLIM+$11
+DCINFO    EQU SYTABLIM+$13
+DCPAY     EQU SYTABLIM+$14
+DCNAMPTR  EQU SYTABLIM+$16
+DCNAMLEN  EQU SYTABLIM+$18
+EXCALOFF  EQU SYTABLIM+$19
+DCNAMPOS  EQU SYTABLIM+$1B ; offset, line, column
+EXLPOSPT  EQU SYTABLIM+$21
+EXSTKBAS  EQU SYTABLIM+$23
+EXSTKCAP  EQU 16
+EXSTKESZ  EQU 13
+EXSTKLIM  EQU EXSTKBAS+EXSTKCAP*EXSTKESZ
 
 ; Boolean short-circuit emission retains one forward patch per nesting level.
-EmitBooleanFixupDepth   .equ ExpressionStackLimit+$00
-EmitBooleanFixupBase    .equ ExpressionStackLimit+$01
-EmitBooleanFixupCapacity .equ 16
-EmitBooleanFixupLimit   .equ EmitBooleanFixupBase+EmitBooleanFixupCapacity*2
+EBFDEP    EQU EXSTKLIM+$00
+EBFBAS    EQU EXSTKLIM+$01
+EBFCAP    EQU 16
+EBFLIM    EQU EBFBAS+EBFCAP*2
 
 ; Structured-control parsing and Z80 emission occur in disjoint phases.
 ; The parser uses bounded ten-byte control frames; after successful parsing the
 ; Z80 backend reuses the same region for absolute labels and branch fixups.
-ControlWorkspaceBase    .equ EmitBooleanFixupLimit
-ControlDepth            .equ ControlWorkspaceBase+$00
-ControlNextLabel        .equ ControlWorkspaceBase+$01
-ControlGlobalSymbolCount .equ ControlWorkspaceBase+$02
-ControlRoutineKind      .equ ControlWorkspaceBase+$03
-ControlResultType       .equ ControlWorkspaceBase+$04
-ControlSequenceFallsThrough .equ ControlWorkspaceBase+$05
-ControlFrameBase        .equ ControlWorkspaceBase+$08
-ControlFrameSize        .equ 10
-ControlFrameCapacity    .equ 8
-ControlFrameLimit       .equ ControlFrameBase+ControlFrameSize*ControlFrameCapacity
+CTWORK    EQU EBFLIM
+CTDEP     EQU CTWORK+$00
+CTNXLBL   EQU CTWORK+$01
+CTGLBCNT  EQU CTWORK+$02
+CRKIND    EQU CTWORK+$03
+CTRESTYP  EQU CTWORK+$04
+CTFALLS   EQU CTWORK+$05
+CFBAS     EQU CTWORK+$08
+CFSZ      EQU 10
+CFCAP     EQU 8
+CFLIM     EQU CFBAS+CFSZ*CFCAP
 
-ControlKindIf           .equ 1
-ControlKindWhile        .equ 2
-ControlKindFor          .equ 3
-ControlKindHandler      .equ 4
-ControlKindSelect       .equ 5
-ControlRoutineNone      .equ 0
-ControlRoutineValue     .equ 1
-ControlRoutineLabel     .equ 31
-ControlFrameKind        .equ 0
-ControlFrameLabelA      .equ 1
-ControlFrameContinue    .equ 2
-ControlFrameExit        .equ 3
-ControlFrameCounter     .equ 4
-ControlFrameMode        .equ 5
-ControlFrameStep        .equ 6
-ControlFrameTrapOffset  .equ 8
-ControlNoCounter        .equ $FF
-ControlWhileLiteralTrue .equ 1
+CKIF      EQU 1
+CKWHILE   EQU 2
+CKFOR     EQU 3
+CKHDL     EQU 4
+CKSEL     EQU 5
+CRNONE    EQU 0
+CRVAL     EQU 1
+CRLBL     EQU 31
+CFKIND    EQU 0
+CFLBLA    EQU 1
+CFCONT    EQU 2
+CFEXIT    EQU 3
+CFCTR     EQU 4
+CFMODE    EQU 5
+CFSTEP    EQU 6
+CFTRPOFF  EQU 8
+CTNOCTR   EQU $FF
+CTWHTRUE  EQU 1
 
-EmitControlFixupCount   .equ ControlWorkspaceBase+$00
-.if TargetStreamingOutput
+ECFCNT    EQU CTWORK+$00
+%IF TargetStreamingOutput
 ; Production labels retain validity/bank and the full address together. The
 ; three-byte record keeps the ordinary 16-bit address while sharing one x3
 ; address calculation between definition and resolution.
-EmitControlLabelBase    .equ ControlWorkspaceBase+$01
-EmitControlLabelSize    .equ 3
-EmitControlLabelValid   .equ 0
-EmitControlLabelAddress .equ 1
-EmitControlLabelValidBase .equ EmitControlLabelBase
-EmitControlLabelAddressBase .equ EmitControlLabelBase+EmitControlLabelAddress
-.else
-EmitControlLabelValidBase .equ ControlWorkspaceBase+$01
-.endif
-EmitControlLabelCapacity .equ 64
-.if TargetStreamingOutput
-EmitControlFixupBase    .equ EmitControlLabelBase+EmitControlLabelCapacity*EmitControlLabelSize
-.else
-EmitControlLabelAddressBase .equ EmitControlLabelValidBase+EmitControlLabelCapacity
-EmitControlFixupBase    .equ EmitControlLabelAddressBase+EmitControlLabelCapacity*2
-.endif
-EmitControlFixupSize    .equ 4
-EmitControlFixupCapacity .equ 32
-EmitControlFixupLimit   .equ EmitControlFixupBase+EmitControlFixupSize*EmitControlFixupCapacity
+ECLBAS    EQU CTWORK+$01
+ECLSZ     EQU 3
+ECLVAL    EQU 0
+ECLADR    EQU 1
+ECLVBAS   EQU ECLBAS
+ECLABAS   EQU ECLBAS+ECLADR
+%ELSE
+ECLVBAS   EQU CTWORK+$01
+%ENDIF
+ECLCAP    EQU 64
+%IF TargetStreamingOutput
+ECFBAS    EQU ECLBAS+ECLCAP*ECLSZ
+%ELSE
+ECLABAS   EQU ECLVBAS+ECLCAP
+ECFBAS    EQU ECLABAS+ECLCAP*2
+%ENDIF
+ECFSZ     EQU 4
+ECFCAP    EQU 32
+ECFLIM    EQU ECFBAS+ECFSZ*ECFCAP
 ; Published program metadata must survive source parsing. It therefore cannot
 ; overlay SourceCursor as the earlier non-atomic slices did.
-GeneratedSize           .equ EmitControlFixupLimit
-.if SegmentedOutput
+GNSZ      EQU ECFLIM
+%IF SegmentedOutput
 ; Four target-adapter segments. Each retained entry is base then exclusive
 ; limit. Code and rodata have published image bytes;
 ; data and bss describe runtime storage initialized by the generated startup.
-GeneratedRoDataSize     .equ GeneratedSize+2
-GeneratedDataSize       .equ GeneratedRoDataSize+2
-GeneratedBssSize        .equ GeneratedDataSize+2
-PublishedSize           .equ GeneratedBssSize+2
-PublishedRoDataSize     .equ PublishedSize+2
-PublishedDataSize       .equ PublishedRoDataSize+2
-PublishedBssSize        .equ PublishedDataSize+2
-SegmentTableBase        .equ PublishedBssSize+2
-SegmentEntrySize        .equ 4
-SegmentCapacity         .equ 4
-SegmentTableLimit       .equ SegmentTableBase+SegmentEntrySize*SegmentCapacity
-SegmentEntryBase        .equ 0
-SegmentEntryLimit       .equ 2
-SegmentCode             .equ 0
-SegmentRoData           .equ 1
-SegmentData             .equ 2
-SegmentBss              .equ 3
-SegmentCodeEntry        .equ SegmentTableBase+SegmentEntrySize*SegmentCode
-SegmentRoDataEntry      .equ SegmentTableBase+SegmentEntrySize*SegmentRoData
-SegmentDataEntry        .equ SegmentTableBase+SegmentEntrySize*SegmentData
-SegmentBssEntry         .equ SegmentTableBase+SegmentEntrySize*SegmentBss
-SegmentRoDataCursor     .equ SegmentTableLimit ; word
-ProgramBssLength        .equ SegmentRoDataCursor+2 ; word
-Stage5WorkspaceEnd      .equ ProgramBssLength+2
-.else
-PublishedSize           .equ GeneratedSize+2
-Stage5WorkspaceEnd      .equ PublishedSize+2
-.endif
+GNROSZ    EQU GNSZ+2
+GNDATSZ   EQU GNROSZ+2
+GNBSSSZ   EQU GNDATSZ+2
+PUSZ      EQU GNBSSSZ+2
+PUROSZ    EQU PUSZ+2
+PUDATSZ   EQU PUROSZ+2
+PUBSSSZ   EQU PUDATSZ+2
+SGTABBAS  EQU PUBSSSZ+2
+SGENTSZ   EQU 4
+SGCAP     EQU 4
+SGTABLIM  EQU SGTABBAS+SGENTSZ*SGCAP
+SGENTBAS  EQU 0
+SGENTLIM  EQU 2
+SGCODE    EQU 0
+SGRODAT   EQU 1
+SGDAT     EQU 2
+SGBSS     EQU 3
+SGCDENT   EQU SGTABBAS+SGENTSZ*SGCODE
+SGROENT   EQU SGTABBAS+SGENTSZ*SGRODAT
+SGDATENT  EQU SGTABBAS+SGENTSZ*SGDAT
+SGBSSENT  EQU SGTABBAS+SGENTSZ*SGBSS
+SGROCUR   EQU SGTABLIM ; word
+PGBSSLEN  EQU SGROCUR+2 ; word
+S5WKEND   EQU PGBSSLEN+2
+%ELSE
+PUSZ      EQU GNSZ+2
+S5WKEND   EQU PUSZ+2
+%ENDIF
 
 ; Stage 6 retains aggregate type and layout metadata for the complete
 ; compilation. Type IDs 1..3 are the predefined scalars; IDs 4 and above name
 ; bounded four-byte descriptors. Record field offsets remain live for the
 ; later selection stage, while the complete static image survives into Z80
 ; emission.
-AggregateStateBase      .equ Stage5WorkspaceEnd
-AggregateMode           .equ AggregateStateBase+$00
-AggregateTypeCount      .equ AggregateStateBase+$01
-AggregateRecordCount    .equ AggregateStateBase+$02
-AggregateFieldCount     .equ AggregateStateBase+$03
-AggregateInitializerDepth .equ AggregateStateBase+$04
+AGSTATE   EQU S5WKEND
+AGMODE    EQU AGSTATE+$00
+ATCNT     EQU AGSTATE+$01
+ARCNT     EQU AGSTATE+$02
+AFCNT     EQU AGSTATE+$03
+AIDEP     EQU AGSTATE+$04
 ; Nonzero once an explicit initializer has supplied at least one value. The
 ; value is a Boolean allocation choice, not a retained element count.
-AggregateHasInitializer .equ AggregateStateBase+$05
-AggregateCurrentTypeId  .equ AggregateStateBase+$06
-AggregateCurrentFieldStart .equ AggregateStateBase+$07
-AggregateCurrentFieldCount .equ AggregateStateBase+$08
-AggregateCurrentRecordExtent .equ AggregateStateBase+$09 ; word
-AggregateCurrentObjectOffset .equ AggregateStateBase+$0B ; word
-AggregateCurrentObjectExtent .equ AggregateStateBase+$0D ; word
-AggregateCandidateKind .equ AggregateStateBase+$0F
-AggregateCandidateAux  .equ AggregateStateBase+$10
-AggregateCandidateLength .equ AggregateStateBase+$11 ; word
-AggregateCandidateExtent .equ AggregateStateBase+$13 ; word
-AggregateCurrentObjectEnd .equ AggregateStateBase+$15 ; word
-AggregateStateEnd       .equ AggregateStateBase+$17
+AGHASINI  EQU AGSTATE+$05
+ACTYPID   EQU AGSTATE+$06
+ACFLDST   EQU AGSTATE+$07
+ACFLDCNT  EQU AGSTATE+$08
+ACRECEXT  EQU AGSTATE+$09 ; word
+ACOBJOFF  EQU AGSTATE+$0B ; word
+ACOBJEXT  EQU AGSTATE+$0D ; word
+ANKIND    EQU AGSTATE+$0F
+ANAUX     EQU AGSTATE+$10
+ANLEN     EQU AGSTATE+$11 ; word
+ANEXT     EQU AGSTATE+$13 ; word
+ACOBJEND  EQU AGSTATE+$15 ; word
+AGSTEND   EQU AGSTATE+$17
 
-AggregateTypeTableBase  .equ AggregateStateEnd
+ATTABBAS  EQU AGSTEND
 ; Every dynamic type is one self-contained six-byte descriptor. The first four
 ; bytes remain the structural identity used to intern strings and arrays;
 ; nominal records are always appended. The final word retains the complete
 ; storage extent without a parallel index.
-AggregateTypeEntrySize  .equ 6
-AggregateTypeCapacity   .equ 8
-AggregateTypeTableLimit .equ AggregateTypeTableBase+AggregateTypeEntrySize*AggregateTypeCapacity
-AggregateTypeKind       .equ 0
-AggregateTypeAux        .equ 1
-AggregateTypeLength     .equ 2 ; word
-AggregateTypeExtent     .equ 4 ; word
+ATENTSZ   EQU 6
+ATCAP     EQU 8
+ATTABLIM  EQU ATTABBAS+ATENTSZ*ATCAP
+ATKIND    EQU 0
+ATAUX     EQU 1
+ATLEN     EQU 2 ; word
+ATEXT     EQU 4 ; word
 ; Every dynamic type retains its complete nonzero extent as a word. Strings
 ; remain byte-capacity values, while arrays and records may occupy the complete
 ; selected program-data region.
-AggregateRecordCapacity .equ 5
+ARCAP     EQU 5
 ; Record descriptors use Aux as the field-table start and Length low as the
 ; field count. Length high remains zero. This embeds the old record directory
 ; without weakening nominal record identity.
-AggregateRecordFieldStart .equ AggregateTypeAux
-AggregateRecordFieldCount .equ AggregateTypeLength
+ARFLDST   EQU ATAUX
+ARFLDCNT  EQU ATLEN
 
-AggregateFieldTableBase .equ AggregateTypeTableLimit
-AggregateFieldEntrySize .equ 6
-AggregateFieldCapacity  .equ 12
-AggregateFieldTableLimit .equ AggregateFieldTableBase+AggregateFieldEntrySize*AggregateFieldCapacity
-AggregateFieldNamePointer .equ 0
-AggregateFieldNameLength .equ 2
-AggregateFieldTypeId    .equ 3
-AggregateFieldOffset    .equ 4 ; word
+AFTABBAS  EQU ATTABLIM
+AFENTSZ   EQU 6
+AFCAP     EQU 12
+AFTABLIM  EQU AFTABBAS+AFENTSZ*AFCAP
+AFNAMPTR  EQU 0
+AFNAMLEN  EQU 2
+AFTYPID   EQU 3
+AFOFF     EQU 4 ; word
 
-StaticImageLength       .equ AggregateFieldTableLimit ; word
-.if SegmentedOutput
-ReadOnlyImageLength     .equ StaticImageLength+2 ; word
+IMGLEN    EQU AFTABLIM ; word
+%IF SegmentedOutput
+ROILEN    EQU IMGLEN+2 ; word
 ; One complete object is built in scratch. Published rodata keeps initialized
 ; data first and aggregate-constant bytes in a read-only suffix.
-AggregateInitializerBase .equ ReadOnlyImageLength+2
-AggregateInitializerCapacity .equ 1024
-StaticImageBase         .equ AggregateInitializerBase+AggregateInitializerCapacity
-StaticImageCapacity     .equ 1024
-.else
-StaticImageBase         .equ StaticImageLength+2
-AggregateInitializerBase .equ StaticImageBase
-StaticImageCapacity     .equ 255
-.endif
-StaticImageLimit        .equ StaticImageBase+StaticImageCapacity
+AIBAS     EQU ROILEN+2
+AICAP     EQU 1024
+IMGBAS    EQU AIBAS+AICAP
+IMGCAP    EQU 1024
+%ELSE
+IMGBAS    EQU IMGLEN+2
+AIBAS     EQU IMGBAS
+IMGCAP    EQU 255
+%ENDIF
+IMGLIM    EQU IMGBAS+IMGCAP
 
 ; Type suffixes are collected outermost-first before their descriptors are
 ; interned innermost-first. This buffer is deliberately separate from both the
 ; initializer scratch image and the accumulated static image because retained
 ; streaming and non-streaming layouts give those regions different lifetimes.
-AggregateTypeDimensionCapacity .equ 4
-AggregateTypeDimensionEntrySize .equ 4 ; length word, source-offset word
-AggregateTypeDimensionCount .equ StaticImageLimit
-AggregateTypeOpenArrayFlag .equ AggregateTypeDimensionCount+1
-AggregateTypeDimensionBase .equ AggregateTypeOpenArrayFlag+1
-AggregateTypeDimensionLimit .equ AggregateTypeDimensionBase+AggregateTypeDimensionEntrySize*AggregateTypeDimensionCapacity
-AggregateTypeResumeOffset .equ AggregateTypeDimensionLimit ; word
-AggregateTypeOpenArrayPosition .equ AggregateTypeResumeOffset+2 ; offset, line, column
-AggregateTypeWorkspaceLimit .equ AggregateTypeOpenArrayPosition+6
+ADCAP     EQU 4
+ADENTSZ   EQU 4 ; length word, source-offset word
+ADCNT     EQU IMGLIM
+ATOAFLAG  EQU ADCNT+1
+ADBAS     EQU ATOAFLAG+1
+ADLIM     EQU ADBAS+ADENTSZ*ADCAP
+ATRESOFF  EQU ADLIM ; word
+ATOAPOS   EQU ATRESOFF+2 ; offset, line, column
+ATWKLIM   EQU ATOAPOS+6
 
-AggregateWorkspaceEnd   .equ AggregateTypeWorkspaceLimit
-CompilerWorkspaceEnd    .equ AggregateWorkspaceEnd
+AGWKEND   EQU ATWKLIM
+CPWKEND   EQU AGWKEND
 
-AggregateInitializerDepthCapacity .equ 4
+AIDEPCAP  EQU 4
 
 ; Emission follows successful parsing and may overlay the retained forward.
-SemanticReadCursor      .equ ForwardNamePointer
-EmitRoutineAddress      .equ ForwardParameterPointer
-EmitRoutineCallFixup    .equ ForwardParameterLength
-EmitIfFixup             .equ ForwardOrdinal
+SMRDCUR   EQU FWNAMPTR
+EMRTNADR  EQU FWPARPTR
+EMRTNCFX  EQU FWPARLEN
+EMIFFIX   EQU FWORD
 
-TokenEof                .equ 0
-TokenNewline            .equ 1
-TokenName               .equ 2
-TokenCharacter          .equ 3
-TokenNumber             .equ 4
-TokenLeftParen          .equ 5
-TokenRightParen         .equ 6
-TokenEquals             .equ 7
-TokenSub                .equ 8
-TokenFails              .equ 9
-TokenOr                 .equ 10
-TokenFail               .equ 11
-TokenEnd                .equ 12
-TokenVar                .equ 13
-TokenAs                 .equ 14
-TokenU8                 .equ 15
-TokenFor                .equ 16
-TokenUntil              .equ 17
-TokenLeftBracket        .equ 18
-TokenRightBracket       .equ 19
-TokenComma              .equ 20
-TokenForward            .equ 21
-TokenReturn             .equ 22
-TokenIf                 .equ 23
-TokenMinus              .equ 24
-TokenPlus               .equ 25
-TokenStar               .equ 26
-TokenU16                .equ 27
-TokenBoolean            .equ 28
-TokenTrue               .equ 29
-TokenFalse              .equ 30
-TokenConst              .equ 31
-TokenSlash              .equ 32
-TokenLess               .equ 33
-TokenLessEqual          .equ 34
-TokenGreater            .equ 35
-TokenGreaterEqual       .equ 36
-TokenNotEqual           .equ 37
-TokenNot                .equ 38
-TokenAnd                .equ 39
-TokenElseIf             .equ 40
-TokenElse               .equ 41
-TokenWhile              .equ 42
-TokenTo                 .equ 43
-TokenStep               .equ 44
-TokenExit               .equ 45
-TokenContinue           .equ 46
-TokenStringLiteral      .equ 47
-TokenRecord             .equ 48
-TokenString             .equ 49
-TokenDot                .equ 50
-TokenHandle             .equ 51
+TOKENEOF  EQU 0
+TNNL      EQU 1
+TNNAME    EQU 2
+TNCHAR    EQU 3
+TNNUM     EQU 4
+TNLPAR    EQU 5
+TNRPAR    EQU 6
+TNEQ      EQU 7
+TOKENSUB  EQU 8
+TNFAILS   EQU 9
+TOKENOR   EQU 10
+TNFAIL    EQU 11
+TOKENEND  EQU 12
+TOKENVAR  EQU 13
+TOKENAS   EQU 14
+TOKENU8   EQU 15
+TOKENFOR  EQU 16
+TNUNT     EQU 17
+TNLBRK    EQU 18
+TNRBRK    EQU 19
+TNCOMMA   EQU 20
+TNFWD     EQU 21
+TNRET     EQU 22
+TOKENIF   EQU 23
+TNMIN     EQU 24
+TNPLUS    EQU 25
+TNSTAR    EQU 26
+TOKENU16  EQU 27
+TNBOOL    EQU 28
+TNTRUE    EQU 29
+TNFALSE   EQU 30
+TNCONST   EQU 31
+TNSLASH   EQU 32
+TNLT      EQU 33
+TNLTEQ    EQU 34
+TNGT      EQU 35
+TNGTEQ    EQU 36
+TNNOTEQ   EQU 37
+TOKENNOT  EQU 38
+TOKENAND  EQU 39
+TNELSEIF  EQU 40
+TNELSE    EQU 41
+TNWHILE   EQU 42
+TOKENTO   EQU 43
+TNSTEP    EQU 44
+TNEXIT    EQU 45
+TNCONT    EQU 46
+TNSTRLIT  EQU 47
+TNREC     EQU 48
+TNSTR     EQU 49
+TOKENDOT  EQU 50
+TNHDL     EQU 51
 ; Ordinal 52 is intentionally unused so later token ordinals remain stable.
-TokenXor                .equ 53
-TokenMod                .equ 54
-TokenAssert             .equ 55
-TokenI8                 .equ 56
-TokenI16                .equ 57
-TokenSelect             .equ 58
-TokenCase               .equ 59
+TOKENXOR  EQU 53
+TOKENMOD  EQU 54
+TNASRT    EQU 55
+TOKENI8   EQU 56
+TOKENI16  EQU 57
+TNSEL     EQU 58
+TNCASE    EQU 59
 
-DiagnosticNone          .equ 0
-DiagnosticLexical       .equ 1
-DiagnosticExpectedMain  .equ 17
-DiagnosticExpectedWrite .equ 22
-DiagnosticExpectedIndex .equ 29
-DiagnosticActiveCounter .equ 36
-DiagnosticExpectedTopLevel .equ 37
-DiagnosticExpectedBytes .equ 38
-DiagnosticExpectedArrayLength .equ 39
-DiagnosticSinkCapacity  .equ 40
-DiagnosticFixupRange    .equ 41
-DiagnosticExpectedRead  .equ 45
-DiagnosticExpectedValue .equ 51
-DiagnosticExpectedResult .equ 52
-DiagnosticForwardMismatch .equ 53
-DiagnosticForwardIncomplete .equ 54
-DiagnosticDuplicateName .equ 55
-DiagnosticSymbolCapacity .equ 56
-DiagnosticUnknownName   .equ 57
-DiagnosticExpectedScalar .equ 58
-DiagnosticExpectedType .equ 59
-DiagnosticTypeMismatch .equ 60
-DiagnosticIntegerRange .equ 61
-DiagnosticDivisionZero .equ 62
-DiagnosticNarrowing    .equ 63
-DiagnosticComparisonChain .equ 64
-DiagnosticExpressionCapacity .equ 65
-DiagnosticBooleanFixupCapacity .equ 66
-DiagnosticInternalOperation .equ 67
-DiagnosticControlCapacity .equ 68
-DiagnosticControlLabelCapacity .equ 69
-DiagnosticControlFixupCapacity .equ 70
-DiagnosticExpectedBoolean .equ 71
-DiagnosticExpectedLoop .equ 72
-DiagnosticLoopCounter  .equ 73
-DiagnosticLoopStep     .equ 74
-DiagnosticRoutineFlow  .equ 75
-DiagnosticTypeMetadataCapacity .equ 76
-DiagnosticInitializerCapacity .equ 77
-DiagnosticInitializerShape .equ 78
-DiagnosticInitializerCount .equ 79
-DiagnosticStringLength .equ 80
-DiagnosticProgramDataCapacity .equ 81
+DGNONE    EQU 0
+DGLEX     EQU 1
+DXMAIN    EQU 17
+DXWR      EQU 22
+DXIDX     EQU 29
+DGACTCTR  EQU 36
+DXTOPLVL  EQU 37
+DXBYTS    EQU 38
+DXARRLEN  EQU 39
+DGSNKCAP  EQU 40
+DGFIXRNG  EQU 41
+DXRD      EQU 45
+DXVAL     EQU 51
+DXRES     EQU 52
+DGFWDMIS  EQU 53
+DGFWDINC  EQU 54
+DGDUPNAM  EQU 55
+DGSYMCAP  EQU 56
+DGUNKNAM  EQU 57
+DXSCA     EQU 58
+DXTYP     EQU 59
+DGTYPMIS  EQU 60
+DGINTRNG  EQU 61
+DGDIVZER  EQU 62
+DGNAR     EQU 63
+DGCMPCHN  EQU 64
+DGEXPCAP  EQU 65
+DGBFXCAP  EQU 66
+DGINTOP   EQU 67
+DGCTLCAP  EQU 68
+DGCLBCAP  EQU 69
+DGCFXCAP  EQU 70
+DXBOOL    EQU 71
+DXLOOP    EQU 72
+DGLOPCTR  EQU 73
+DGLOPSTP  EQU 74
+DGRTNFLW  EQU 75
+DGTYPCAP  EQU 76
+DGINICAP  EQU 77
+DGINISHP  EQU 78
+DGINICNT  EQU 79
+DGSTRLEN  EQU 80
+DGPDCAP   EQU 81
 ; Bounded string capacity is at most 253; use u8[N] plus a scalar length for
 ; an unterminated, caller-managed buffer.
-DiagnosticStringCapacity .equ 90
-DiagnosticAssertionFailed .equ 91
-DiagnosticOutputSegment .equ 92
-DiagnosticReadOnlyCapacity .equ 93
-DiagnosticReadOnlyAssignment .equ 94
+DGSTRCAP  EQU 90
+DGASSERT  EQU 91
+DGOUTSEG  EQU 92
+DGROCAP   EQU 93
+DGROASGN  EQU 94
 ; Target diagnostics occupy 95..97 in target-output-state.asmi. Append the
 ; same-line handler diagnostic without changing any published ordinal.
-DiagnosticHandleLine .equ 98
-DiagnosticExpectedCase .equ 99
-DiagnosticSelectClause .equ 100
-DiagnosticSourcePositionCapacity .equ 101
-DiagnosticRecordEmpty  .equ 82
-DiagnosticTypeBound    .equ 83
+DGHDLINE  EQU 98
+DXCASE    EQU 99
+DGSELCLS  EQU 100
+DGSPCAP   EQU 101
+DGRECEMP  EQU 82
+DGTYPBND  EQU 83
 
 ; Ordinary token mismatches encode the token ordinal directly. Named-value
 ; mismatches retain their context-specific diagnostic codes above.
-DiagnosticExpectedTokenBase .equ $80
-DiagnosticExpectedEof   .equ DiagnosticExpectedTokenBase+TokenEof
-DiagnosticExpectedName  .equ DiagnosticExpectedTokenBase+TokenName
-DiagnosticExpectedLine  .equ DiagnosticExpectedTokenBase+TokenNewline
-DiagnosticExpectedChar  .equ DiagnosticExpectedTokenBase+TokenCharacter
-DiagnosticExpectedNumber .equ DiagnosticExpectedTokenBase+TokenNumber
-DiagnosticExpectedLeft  .equ DiagnosticExpectedTokenBase+TokenLeftParen
-DiagnosticExpectedRight .equ DiagnosticExpectedTokenBase+TokenRightParen
-DiagnosticExpectedEqual .equ DiagnosticExpectedTokenBase+TokenEquals
-DiagnosticExpectedSub   .equ DiagnosticExpectedTokenBase+TokenSub
-DiagnosticExpectedFails .equ DiagnosticExpectedTokenBase+TokenFails
-DiagnosticExpectedOr    .equ DiagnosticExpectedTokenBase+TokenOr
-DiagnosticExpectedFail  .equ DiagnosticExpectedTokenBase+TokenFail
-DiagnosticExpectedEnd   .equ DiagnosticExpectedTokenBase+TokenEnd
-DiagnosticExpectedVar   .equ DiagnosticExpectedTokenBase+TokenVar
-DiagnosticExpectedAs    .equ DiagnosticExpectedTokenBase+TokenAs
-DiagnosticExpectedU8    .equ DiagnosticExpectedTokenBase+TokenU8
-DiagnosticExpectedFor   .equ DiagnosticExpectedTokenBase+TokenFor
-DiagnosticExpectedUntil .equ DiagnosticExpectedTokenBase+TokenUntil
-DiagnosticExpectedLeftBracket .equ DiagnosticExpectedTokenBase+TokenLeftBracket
-DiagnosticExpectedRightBracket .equ DiagnosticExpectedTokenBase+TokenRightBracket
-DiagnosticExpectedComma .equ DiagnosticExpectedTokenBase+TokenComma
-DiagnosticExpectedForward .equ DiagnosticExpectedTokenBase+TokenForward
-DiagnosticExpectedReturn .equ DiagnosticExpectedTokenBase+TokenReturn
-DiagnosticExpectedIf    .equ DiagnosticExpectedTokenBase+TokenIf
-DiagnosticExpectedMinus .equ DiagnosticExpectedTokenBase+TokenMinus
-DiagnosticExpectedPlus  .equ DiagnosticExpectedTokenBase+TokenPlus
-DiagnosticExpectedStar  .equ DiagnosticExpectedTokenBase+TokenStar
-DiagnosticExpectedStringLiteral .equ DiagnosticExpectedTokenBase+TokenStringLiteral
+DXTOKBAS  EQU $80
+DXEOF     EQU DXTOKBAS+TOKENEOF
+DXNAME    EQU DXTOKBAS+TNNAME
+DXLINE    EQU DXTOKBAS+TNNL
+DXCHAR    EQU DXTOKBAS+TNCHAR
+DXNUM     EQU DXTOKBAS+TNNUM
+DXLPAR    EQU DXTOKBAS+TNLPAR
+DXRPAR    EQU DXTOKBAS+TNRPAR
+DXEQ      EQU DXTOKBAS+TNEQ
+DXSUB     EQU DXTOKBAS+TOKENSUB
+DXFAILS   EQU DXTOKBAS+TNFAILS
+DXOR      EQU DXTOKBAS+TOKENOR
+DXFAIL    EQU DXTOKBAS+TNFAIL
+DXEND     EQU DXTOKBAS+TOKENEND
+DXVAR     EQU DXTOKBAS+TOKENVAR
+DXAS      EQU DXTOKBAS+TOKENAS
+DXU8      EQU DXTOKBAS+TOKENU8
+DXFOR     EQU DXTOKBAS+TOKENFOR
+DXUNT     EQU DXTOKBAS+TNUNT
+DXLBRK    EQU DXTOKBAS+TNLBRK
+DXRBRK    EQU DXTOKBAS+TNRBRK
+DXCOMMA   EQU DXTOKBAS+TNCOMMA
+DXFWD     EQU DXTOKBAS+TNFWD
+DXRET     EQU DXTOKBAS+TNRET
+DXIF      EQU DXTOKBAS+TOKENIF
+DXMIN     EQU DXTOKBAS+TNMIN
+DXPLUS    EQU DXTOKBAS+TNPLUS
+DXSTAR    EQU DXTOKBAS+TNSTAR
+DXSTRLIT  EQU DXTOKBAS+TNSTRLIT
 
-ScalarTypeExact         .equ 0
-ScalarTypeU8            .equ 1
-ScalarTypeU16           .equ 2
-ScalarTypeBoolean       .equ $10
-ScalarTypeI8            .equ $11
-ScalarTypeI16           .equ $12
-ScalarTypeBaseMask      .equ $03
-ScalarTypeSignedFlag    .equ $10
-ScalarMetaTypeMask      .equ $13
-ScalarMetaNegative      .equ $20
-ScalarMetaConstant      .equ $80
-SymbolClassConstant     .equ $00
-SymbolClassProgram      .equ $04
-SymbolClassLocal        .equ $08
-SymbolClassParameter    .equ $0C
-SymbolClassMask         .equ $0C
-SymbolRecordTypeFlag    .equ $40
-SymbolAggregateFlag     .equ $80
-SymbolInfoRecordType    .equ SymbolRecordTypeFlag
-SymbolInfoAggregateProgram .equ SymbolAggregateFlag+SymbolClassProgram
+TYEXACT   EQU 0
+TYU8      EQU 1
+TYU16     EQU 2
+TYBOOL    EQU $10
+TYI8      EQU $11
+TYI16     EQU $12
+TYBASMSK  EQU $03
+TYSGNFLG  EQU $10
+MTTYPMSK  EQU $13
+MTNEG     EQU $20
+MTCONST   EQU $80
+SCCONST   EQU $00
+SCPROG    EQU $04
+SCLOC     EQU $08
+SCPAR     EQU $0C
+SCMSK     EQU $0C
+SYRECTYP  EQU $40
+SYAGGFLG  EQU $80
+SIRECTYP  EQU SYRECTYP
+SIAGPROG  EQU SYAGGFLG+SCPROG
 
-AggregateTypeIdU8       .equ ScalarTypeU8
-AggregateTypeIdU16      .equ ScalarTypeU16
-AggregateTypeIdBoolean  .equ ScalarTypeBoolean
-AggregateTypeIdI8       .equ ScalarTypeI8
-AggregateTypeIdI16      .equ ScalarTypeI16
-AggregateFirstDynamicTypeId .equ $40
-AggregateTypeKindRecord .equ 4
-AggregateTypeKindString .equ 5
-AggregateTypeKindArray  .equ 6
+ATIDU8    EQU TYU8
+ATIDU16   EQU TYU16
+ATIDBOOL  EQU TYBOOL
+ATIDI8    EQU TYI8
+ATIDI16   EQU TYI16
+AGDYNTYP  EQU $40
+ATKREC    EQU 4
+ATKSTR    EQU 5
+ATKARRAY  EQU 6
 ; Parameter-only open bounded-string view. It is never interned in the
 ; aggregate type table and therefore remains outside its compact ordinals.
-AggregateOpenStringTypeId .equ $7C
+AGOSTR    EQU $7C
 ; Parameter-only open arrays encode the exact element type in the low seven
 ; bits. Live element type IDs occupy 1..11, so this contextual family cannot
 ; collide with scalar, interned aggregate, or open-string identities.
-AggregateOpenArrayTypeMask .equ $80
-AggregateOpenArrayElementMask .equ $7F
-AggregateFirstOpenViewTypeId .equ AggregateOpenStringTypeId
+AGOAMSK   EQU $80
+AGOAELEM  EQU $7F
+AGOVIEW   EQU AGOSTR
 
-SymbolInfoConstantU8    .equ SymbolClassConstant+ScalarTypeU8
-SymbolInfoConstantU16   .equ SymbolClassConstant+ScalarTypeU16
-SymbolInfoConstantBoolean .equ SymbolClassConstant+ScalarTypeBoolean
-SymbolInfoConstantI8    .equ SymbolClassConstant+ScalarTypeI8
-SymbolInfoConstantI16   .equ SymbolClassConstant+ScalarTypeI16
-SymbolInfoProgramU8     .equ SymbolClassProgram+ScalarTypeU8
-SymbolInfoProgramU16    .equ SymbolClassProgram+ScalarTypeU16
-SymbolInfoProgramBoolean .equ SymbolClassProgram+ScalarTypeBoolean
-SymbolInfoProgramI8     .equ SymbolClassProgram+ScalarTypeI8
-SymbolInfoProgramI16    .equ SymbolClassProgram+ScalarTypeI16
-SymbolInfoLocalU8       .equ SymbolClassLocal+ScalarTypeU8
-SymbolInfoLocalU16      .equ SymbolClassLocal+ScalarTypeU16
-SymbolInfoLocalBoolean  .equ SymbolClassLocal+ScalarTypeBoolean
-SymbolInfoLocalI8       .equ SymbolClassLocal+ScalarTypeI8
-SymbolInfoLocalI16      .equ SymbolClassLocal+ScalarTypeI16
+SICU8     EQU SCCONST+TYU8
+SICU16    EQU SCCONST+TYU16
+SICBOOL   EQU SCCONST+TYBOOL
+SICI8     EQU SCCONST+TYI8
+SICI16    EQU SCCONST+TYI16
+SIPU8     EQU SCPROG+TYU8
+SIPU16    EQU SCPROG+TYU16
+SIPBOOL   EQU SCPROG+TYBOOL
+SIPI8     EQU SCPROG+TYI8
+SIPI16    EQU SCPROG+TYI16
+SILU8     EQU SCLOC+TYU8
+SILU16    EQU SCLOC+TYU16
+SILBOOL   EQU SCLOC+TYBOOL
+SILI8     EQU SCLOC+TYI8
+SILI16    EQU SCLOC+TYI16
 
-SemanticDeclareU8       .equ 1
-SemanticForUntilU8      .equ 2
-SemanticWriteOutputByte .equ 3
-SemanticPropagate       .equ 4
-SemanticEndLoop         .equ 5
-SemanticReturn          .equ 6
-SemanticStaticU8Array   .equ 7
-SemanticReadInputByte   .equ 8
-SemanticStoreResultU8   .equ 9
-SemanticLoadArrayU8     .equ 10
-SemanticWriteOutputU8   .equ 11
-SemanticCallLiteralU8   .equ 12
-SemanticWriteLocalU8    .equ 13
-SemanticBeginForwardU8  .equ 14
-SemanticIfParameterZero .equ 15
-SemanticReturnParameter .equ 16
-SemanticEndIf           .equ 17
-SemanticReturnSelfMinus .equ 18
-SemanticEndRoutine      .equ 19
-SemanticDefineProgramU8 .equ 20
-SemanticBeginMain       .equ 21
-SemanticDeclareLocalU8  .equ 22
-SemanticLiteralU8       .equ 23
-SemanticLoadProgramU8   .equ 24
-SemanticLoadLocalU8     .equ 25
-SemanticMultiplyU8      .equ 26
-SemanticAddU8           .equ 27
-SemanticStoreProgramU8  .equ 28
-SemanticStoreLocalU8    .equ 29
-SemanticWriteValueU8    .equ 30
-SemanticEndMain         .equ 31
-SemanticDefineProgram16 .equ 32
-SemanticDeclareLocal16  .equ 33
-SemanticLiteral16       .equ 34
-SemanticLoadProgram16   .equ 35
-SemanticLoadLocal16     .equ 36
-SemanticAdd8            .equ 37
-SemanticAdd16           .equ 38
-SemanticSubtract8       .equ 39
-SemanticSubtract16      .equ 40
-SemanticMultiply8       .equ 41
-SemanticMultiply16      .equ 42
-SemanticDivide8         .equ 43
-SemanticDivide16        .equ 44
-SemanticNegate8         .equ 45
-SemanticNegate16        .equ 46
-SemanticNot8            .equ 47
-SemanticNot16           .equ 48
-SemanticNotBoolean      .equ 49
-SemanticAnd8            .equ 50
-SemanticAnd16           .equ 51
-SemanticOr8             .equ 52
-SemanticOr16            .equ 53
-SemanticXor8            .equ 54
-SemanticXor16           .equ 55
-SemanticModulo8         .equ 56
-SemanticModulo16        .equ 57
-SemanticCompare8        .equ 58
-SemanticCompare16       .equ 59
-SemanticCompareBoolean  .equ 60
-SemanticNarrowU8        .equ 61
-SemanticStoreProgram16  .equ 62
-SemanticStoreLocal16    .equ 63
-SemanticBeginBooleanAnd .equ 64
-SemanticBeginBooleanOr  .equ 65
-SemanticEndBoolean      .equ 66
-SemanticControlLabel    .equ 67
-SemanticBranchFalse     .equ 68
-SemanticJump            .equ 69
-SemanticForSetup        .equ 70
-SemanticForTest         .equ 71
-SemanticForNext         .equ 72
-SemanticForCleanup      .equ 73
-SemanticBeginRoutine    .equ 74
-SemanticLoadParameter8  .equ 75
-SemanticLoadParameter16 .equ 76
-SemanticCallScalar      .equ 77
-SemanticReturnScalar    .equ 78
-SemanticStoreParameter8 .equ 79
-SemanticStoreParameter16 .equ 80
-SemanticEndTypedRoutine .equ 81
+SMDECLU8  EQU 1
+SMFORU8   EQU 2
+SMWROBYT  EQU 3
+SMPROP    EQU 4
+SMENDLP   EQU 5
+SMRET     EQU 6
+SMARRU8   EQU 7
+SMRDIBYT  EQU 8
+SMSTRSU8  EQU 9
+SMLDAU8   EQU 10
+SMWROU8   EQU 11
+SMCLITU8  EQU 12
+SMWRLU8   EQU 13
+SMFWDU8   EQU 14
+SMIFPARZ  EQU 15
+SMRETPAR  EQU 16
+SMENDIF   EQU 17
+SMRTSELF  EQU 18
+SMENDRTN  EQU 19
+SMDEFPU8  EQU 20
+SMBGMAIN  EQU 21
+SMDLCLU8  EQU 22
+SMLITU8   EQU 23
+SMLDPU8   EQU 24
+SMLDLU8   EQU 25
+SMMULU8   EQU 26
+SMADDU8   EQU 27
+SMSTPU8   EQU 28
+SMSTLU8   EQU 29
+SMWRVU8   EQU 30
+SMENMAIN  EQU 31
+SMDEFP16  EQU 32
+SMDECL16  EQU 33
+SMLIT16   EQU 34
+SMLDP16   EQU 35
+SMLDL16   EQU 36
+SMADD8    EQU 37
+SMADD16   EQU 38
+SMSUB8    EQU 39
+SMSUB16   EQU 40
+SMMUL8    EQU 41
+SMMUL16   EQU 42
+SMDIV8    EQU 43
+SMDIV16   EQU 44
+SMNEG8    EQU 45
+SMNEG16   EQU 46
+SMNOT8    EQU 47
+SMNOT16   EQU 48
+SMNOTBL   EQU 49
+SMAND8    EQU 50
+SMAND16   EQU 51
+SMOR8     EQU 52
+SMOR16    EQU 53
+SMXOR8    EQU 54
+SMXOR16   EQU 55
+SMMOD8    EQU 56
+SMMOD16   EQU 57
+SMCMP8    EQU 58
+SMCMP16   EQU 59
+SMCMPBL   EQU 60
+SMNARU8   EQU 61
+SMSTP16   EQU 62
+SMSTL16   EQU 63
+SMBGAND   EQU 64
+SMBGOR    EQU 65
+SMENDBL   EQU 66
+SMCTLLBL  EQU 67
+SMBRFALS  EQU 68
+SMJUMP    EQU 69
+SMFORSET  EQU 70
+SMFTEST   EQU 71
+SMFNEXT   EQU 72
+SMFCLEAN  EQU 73
+SMBEGRTN  EQU 74
+SMLDPAR8  EQU 75
+SMLDPA16  EQU 76
+SMCALLSC  EQU 77
+SMRETSCA  EQU 78
+SMSTPAR8  EQU 79
+SMSTPA16  EQU 80
+SMENTRTN  EQU 81
 ; Production-only extensions retain global ordinals so every historical
 ; conditional layout can still assemble the shared expression parser.
-SemanticConvertInteger  .equ 116
-SemanticDivideSigned    .equ 117
-SemanticPromoteI8Pair   .equ 118
-SemanticReadPortDiscard .equ 119
-SemanticReadPort        .equ 120
-SemanticWritePort       .equ 121
-SemanticPacketService   .equ 122
-SemanticSelectCase      .equ 123
+SMCVTINT  EQU 116
+SMDIVSGN  EQU 117
+SMPRI8    EQU 118
+SMRDPRTD  EQU 119
+SMRDPORT  EQU 120
+SMWRPORT  EQU 121
+SMPKTSVC  EQU 122
+SMSELCS   EQU 123
 
-ComparisonEqual         .equ 0
-ComparisonNotEqual      .equ 1
-ComparisonLess          .equ 2
-ComparisonLessEqual     .equ 3
-ComparisonGreater       .equ 4
-ComparisonGreaterEqual  .equ 5
+RCEQ      EQU 0
+RCNE      EQU 1
+RCLT      EQU 2
+RCLE      EQU 3
+RCGT      EQU 4
+RCGE      EQU 5

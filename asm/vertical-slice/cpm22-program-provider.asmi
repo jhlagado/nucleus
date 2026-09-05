@@ -1,9 +1,7 @@
-extern CpmProgramTargetEntry
-out A,carry,zero
-clobbers BC,DE,HL,IX,IY,sign,parity,halfCarry
-end
+; External contract: PGTARGET
+; Out: A, carry, zero.
+; Clobbers: BC, DE, HL, IX, IY, sign, parity, halfCarry.
 
-extern CpmProgramBdos
-out A
-clobbers BC,DE,HL,IX,IY,carry,zero,sign,parity,halfCarry
-end
+; External contract: PGBDOS
+; Out: A.
+; Clobbers: BC, DE, HL, IX, IY, carry, zero, sign, parity, halfCarry.

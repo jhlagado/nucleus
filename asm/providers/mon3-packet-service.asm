@@ -5,22 +5,22 @@
 ; RST $10) and requires at least three bytes. Carry reports an unsupported
 ; slot or extent to the shared Nucleus trap gateway before any mutation.
 
-NucleusServiceScanKeys .equ 1
-Mon3ApiScanKeys         .equ 16
-NucleusTrapService      .equ 7
+SCANSLOT EQU 1
+SCANAPI  EQU 16
+SRVTRAP  EQU 7
 
-.routine in A,BC,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-PacketService:
-            CP   NucleusServiceScanKeys
-            JR   NZ,PacketServiceFailure
+; In A,BC,HL; out A,BC,DE,HL,carry,zero; clobbers sign,parity,halfCarry.
+PKTSVC:
+            CP   SCANSLOT
+            JR   NZ,.fail
             LD   A,B
             OR   A
-            JR   NZ,PacketServiceScanKeys
+            JR   NZ,.keys
             LD   A,C
             CP   3
-            JR   C,PacketServiceFailure
-PacketServiceScanKeys:
-            LD   C,Mon3ApiScanKeys
+            JR   C,.fail
+.keys:
+            LD   C,SCANAPI
             RST  $10
             PUSH AF
             POP  DE                      ; D=key, E=MON-3 flags
@@ -30,17 +30,15 @@ PacketServiceScanKeys:
             RLCA
             RLCA                         ; MON-3 Z flag into bit zero
             AND  1
-PacketServicePressedReady:
             LD   (HL),A
             INC  HL
             LD   A,E
             AND  1                       ; MON-3 carry flag
-PacketServiceNewReady:
             LD   (HL),A
             OR   A
             RET
 
-PacketServiceFailure:
-            LD   A,NucleusTrapService
+.fail:
+            LD   A,SRVTRAP
             SCF
             RET

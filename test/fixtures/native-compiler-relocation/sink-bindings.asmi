@@ -1,0 +1,12 @@
+; Existing relocation-proof callback address. The test installs one RET there;
+; its diagnostic input must fail before publishing any target output.
+TSBYTE     EQU $5F00
+TSBEGIN    EQU $5F00
+TSPATBYT   EQU $5F00
+TSRTIMG    EQU $5F00
+TSRTINIT   EQU $5F00
+TSPATWRD   EQU $5F00
+TSMAP      EQU $5F00
+TSCOMMIT   EQU $5F00
+TSBANK     EQU $5F00
+TSABORT    EQU $5F00

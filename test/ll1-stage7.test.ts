@@ -16,6 +16,11 @@ import { runProofManifest } from "../src/proof.js";
 const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
 
+const nativeNames: Record<string, string> = Object.assign({}, ...[
+  "atom-state-symbols.json", "atom-tokenizer-symbols.json", "atom-grammar-symbols.json",
+].map(name => JSON.parse(readFileSync(path.resolve(import.meta.dirname, "..", "asm", name), "utf8"))));
+const logicalNames = Object.fromEntries(Object.entries(nativeNames).map(([logical, native]) => [native, logical]));
+
 describe("Stage 7 packed LL(1)", () => {
   it("keeps the statement-dispatch nonterminals in the compact handle group", () => {
     const generated = readFileSync(
@@ -23,7 +28,7 @@ describe("Stage 7 packed LL(1)", () => {
       "utf8",
     );
     expect(generated).toMatch(
-      /HybridLL1Row20: ; routine-body[\s\S]*HybridLL1Row21: ; local-list[\s\S]*HybridLL1Row24: ; statement-sequence[\s\S]*HybridLL1Row25: ; statement/,
+      new RegExp(`${nativeNames.HybridLL1Row20}: ; routine-body[\\s\\S]*${nativeNames.HybridLL1Row21}: ; local-list[\\s\\S]*${nativeNames.HybridLL1Row24}: ; statement-sequence[\\s\\S]*${nativeNames.HybridLL1Row25}: ; statement`),
     );
   });
 
@@ -39,14 +44,14 @@ describe("Stage 7 packed LL(1)", () => {
       "utf8",
     );
     const table = source.match(
-      /KeywordTable:\s*\n([\s\S]*?)KeywordCount\s+\.equ\s+(\d+)/,
+      new RegExp(`${nativeNames.KeywordTable}:\\s*\\n([\\s\\S]*?)${nativeNames.KeywordCount}\\s+EQU\\s+(\\d+)`),
     );
     expect(table).not.toBeNull();
     const entries = [
       ...(table?.[1]?.matchAll(
-        /^\s*\.db\s+"([a-z0-9]+)",(Token[A-Za-z0-9]+)(\+\$80)?\s*$/gm,
+        /^\s*DB\s+"([a-z0-9]+)",([A-Z0-9]+)(\+\$80)?\s*$/gm,
       ) ?? []),
-    ].map((entry) => [entry[1], entry[2], entry[3] !== undefined] as const);
+    ].map((entry) => [entry[1], logicalNames[entry[2]!], entry[3] !== undefined] as const);
     expect(entries).toHaveLength(Number(table?.[2]));
     expect(entries).toEqual([
       ["as", "TokenAs", false],
@@ -89,14 +94,18 @@ describe("Stage 7 packed LL(1)", () => {
     ]);
 
     const offsets = source.match(
-      /KeywordLengthOffsets:\s*\n([\s\S]*?)\n\s*PunctuationTable:/,
+      new RegExp(`${nativeNames.KeywordLengthOffsets}:\\s*\\n([\\s\\S]*?)${nativeNames.KeywordTable}:`),
     );
     expect(offsets).not.toBeNull();
-    const relativeGroups = [
-      ...(offsets?.[1]?.matchAll(
-        /^\s*\.db\s+KeywordLength(\d)-\(KeywordLengthOffsets\+(\d)\)\s*$/gm,
-      ) ?? []),
-    ].map((entry) => [Number(entry[1]), Number(entry[2])] as const);
+    expect([...offsets![1]!.matchAll(/^\s*DB\s+(KWDISP[2-8])$/gm)].map(match => match[1]))
+      .toEqual(["KWDISP2", "KWDISP3", "KWDISP4", "KWDISP5", "KWDISP6", "KWDISP7", "KWDISP8"]);
+    const relativeGroups = [...source.matchAll(/^KWDISP([2-8])\s+EQU\s+([A-Z0-9]+)-\(([A-Z0-9]+)\+(\d)\)$/gm)]
+      .map(entry => {
+        const length = Number(entry[1]);
+        expect(entry[2]).toBe(nativeNames[`KeywordLength${length}`]);
+        expect(entry[3]).toBe(nativeNames.KeywordLengthOffsets);
+        return [length, Number(entry[4])] as const;
+      });
     expect(relativeGroups).toEqual([
       [2, 0],
       [3, 1],
@@ -123,7 +132,7 @@ describe("Stage 7 packed LL(1)", () => {
 
     const basedSuffixes = [
       ...source.matchAll(
-        /^\s*\.db\s+"\$",5\s*\n\s*\.db\s+"%",17\s*\nPunctuationCount\s+\.equ\s+(\d+)$/gm,
+        new RegExp(`^\\s*DB\\s+"\\$",5\\s*\\n\\s*DB\\s+"%",17\\s*\\n${nativeNames.PunctuationCount}\\s+EQU\\s+(\\d+)$`, "gm"),
       ),
     ].map((match) => Number(match[1]));
     expect(basedSuffixes).toEqual([8, 7]);
@@ -142,7 +151,7 @@ describe("Stage 7 packed LL(1)", () => {
     );
     const tokenValue = (name: string): number => {
       const match = source.match(
-        new RegExp(`^${name}\\s+\\.equ\\s+(\\d+)$`, "m"),
+        new RegExp(`^${nativeNames[name]}\\s+EQU\\s+(\\d+)$`, "m"),
       );
       expect(match).not.toBeNull();
       return Number(match?.[1]);
@@ -182,7 +191,7 @@ describe("Stage 7 packed LL(1)", () => {
     );
     expect(grammar.productions).toHaveLength(93);
     expect(generateStage7Tables()).toContain(
-      "HybridLL1ProductionCount  .equ 82",
+      `${nativeNames.HybridLL1ProductionCount} EQU 82`,
     );
     expect(generateStage7ProofActions()).toBe(
       readFileSync(

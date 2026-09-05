@@ -4,140 +4,150 @@
 
 ; Each byte is a displacement from its own cell to the selected group. The
 ; scanner adds it to the full-width cell address; no address bits are packed.
-KeywordLengthOffsets:
-            .db  KeywordLength2-(KeywordLengthOffsets+0)
-            .db  KeywordLength3-(KeywordLengthOffsets+1)
-            .db  KeywordLength4-(KeywordLengthOffsets+2)
-            .db  KeywordLength5-(KeywordLengthOffsets+3)
-            .db  KeywordLength6-(KeywordLengthOffsets+4)
-            .db  KeywordLength7-(KeywordLengthOffsets+5)
-            .db  KeywordLength8-(KeywordLengthOffsets+6)
+KWOFFSET:
+            DB  KWDISP2
+            DB  KWDISP3
+            DB  KWDISP4
+            DB  KWDISP5
+            DB  KWDISP6
+            DB  KWDISP7
+            DB  KWDISP8
 
-KeywordTable:
-KeywordLength2:
-            .db  "as",TokenAs
-            .db  "u8",TokenU8
-            .db  "i8",TokenI8
-            .db  "or",TokenOr
-            .db  "if",TokenIf
-            .db  "to",TokenTo+$80
-KeywordLength3:
-            .db  "var",TokenVar
-            .db  "u16",TokenU16
-            .db  "i16",TokenI16
-            .db  "xor",TokenXor
-            .db  "mod",TokenMod
-            .db  "and",TokenAnd
-            .db  "not",TokenNot
-            .db  "end",TokenEnd
-            .db  "sub",TokenSub
-            .db  "for",TokenFor+$80
-KeywordLength4:
-            .db  "true",TokenTrue
-            .db  "case",TokenCase
-            .db  "fail",TokenFail
-            .db  "else",TokenElse
-            .db  "step",TokenStep
-            .db  "exit",TokenExit+$80
-KeywordLength5:
-            .db  "false",TokenFalse
-            .db  "const",TokenConst
-            .db  "fails",TokenFails
-            .db  "until",TokenUntil
-            .db  "while",TokenWhile+$80
-KeywordLength6:
-            .db  "assert",TokenAssert
-            .db  "select",TokenSelect
-            .db  "return",TokenReturn
-            .db  "elseif",TokenElseIf
-            .db  "record",TokenRecord
-            .db  "string",TokenString
-            .db  "handle",TokenHandle+$80
-KeywordLength7:
-            .db  "boolean",TokenBoolean
-            .db  "forward",TokenForward+$80
-KeywordLength8:
-            .db  "continue",TokenContinue+$80
-KeywordCount            .equ 37
+KWTABLE:
+KWLEN2:
+            DB  "as",TOKENAS
+            DB  "u8",TOKENU8
+            DB  "i8",TOKENI8
+            DB  "or",TOKENOR
+            DB  "if",TOKENIF
+            DB  "to",TOKENTO+$80
+KWLEN3:
+            DB  "var",TOKENVAR
+            DB  "u16",TOKENU16
+            DB  "i16",TOKENI16
+            DB  "xor",TOKENXOR
+            DB  "mod",TOKENMOD
+            DB  "and",TOKENAND
+            DB  "not",TOKENNOT
+            DB  "end",TOKENEND
+            DB  "sub",TOKENSUB
+            DB  "for",TOKENFOR+$80
+KWLEN4:
+            DB  "true",TNTRUE
+            DB  "case",TNCASE
+            DB  "fail",TNFAIL
+            DB  "else",TNELSE
+            DB  "step",TNSTEP
+            DB  "exit",TNEXIT+$80
+KWLEN5:
+            DB  "false",TNFALSE
+            DB  "const",TNCONST
+            DB  "fails",TNFAILS
+            DB  "until",TNUNT
+            DB  "while",TNWHILE+$80
+KWLEN6:
+            DB  "assert",TNASRT
+            DB  "select",TNSEL
+            DB  "return",TNRET
+            DB  "elseif",TNELSEIF
+            DB  "record",TNREC
+            DB  "string",TNSTR
+            DB  "handle",TNHDL+$80
+KWLEN7:
+            DB  "boolean",TNBOOL
+            DB  "forward",TNFWD+$80
+KWLEN8:
+            DB  "continue",TNCONT+$80
 
-PunctuationTable:
-            .db  "=",TokenEquals
-            .db  ",",TokenComma
-            .db  "-",TokenMinus
-            .db  "+",TokenPlus
-            .db  "*",TokenStar
+; Resolve the group-to-cell differences only after both labels are known.
+; ATOM patches each earlier DB reference to this derived byte value.
+KWDISP2 EQU KWLEN2-(KWOFFSET+0)
+KWDISP3 EQU KWLEN3-(KWOFFSET+1)
+KWDISP4 EQU KWLEN4-(KWOFFSET+2)
+KWDISP5 EQU KWLEN5-(KWOFFSET+3)
+KWDISP6 EQU KWLEN6-(KWOFFSET+4)
+KWDISP7 EQU KWLEN7-(KWOFFSET+5)
+KWDISP8 EQU KWLEN8-(KWOFFSET+6)
+KWCOUNT            EQU 37
+
+KWPUNCT:
+            DB  "=",TNEQ
+            DB  ",",TNCOMMA
+            DB  "-",TNMIN
+            DB  "+",TNPLUS
+            DB  "*",TNSTAR
             ; The final two rows are numeric prefixes. Their positions route
             ; to the based-number scanner and their bytes are digit budgets.
-.if AggregateCallSlices
-            .db  ".",TokenDot
-            .db  "$",5
-            .db  "%",17
-PunctuationCount        .equ 8
-.else
-            .db  "$",5
-            .db  "%",17
-PunctuationCount        .equ 7
-.endif
+%IF AggregateCallSlices
+            DB  ".",TOKENDOT
+            DB  "$",5
+            DB  "%",17
+KWPUNCNT        EQU 8
+%ELSE
+            DB  "$",5
+            DB  "%",17
+KWPUNCNT        EQU 7
+%ENDIF
 
-NameMain:               .db "main"
-.if LegacyCompilerSlices
-NameIndex:              .db "index"
-NameBytes:              .db "bytes"
-.endif
-.if AggregateCallSlices
-NameLength:             .db "length"
-NameCapacity:           .db "capacity"
+NAMEMAIN:               DB "main"
+%IF LegacyCompilerSlices
+KWINDEX:              DB "index"
+KWBYTES:              DB "bytes"
+%ENDIF
+%IF AggregateCallSlices
+KWLENGTH:             DB "length"
+KWCAP:           DB "capacity"
 
 ; Predefined services and error constants remain ordinary names to the
 ; tokenizer. The packed table gives the parser one namespace and dispatch
 ; authority without installing source-visible symbol entries.
-Stage8PredefinedTable:
-            .db 13
-NameReadInputByte:
-            .db "readInputByte"
-            .db 15
-NameWriteOutputByte:
-            .db "writeOutputByte"
-            .db 15,"readStorageByte"
-            .db 18,"rewindStorageInput"
-            .db 16,"writeStorageByte"
-            .db 17,"seekStorageOutput"
-            .db 8,"readPort"
-            .db 9,"writePort"
-            .db 7,"service"
-            .db 10,"endOfInput"
-            .db 12,"inputFailure"
-            .db 13,"outputFailure"
-            .db 14,"storageFailure"
-Stage8PredefinedCount .equ 13
+KWPREDEF:
+            DB 13
+KWREADIN:
+            DB "readInputByte"
+            DB 15
+KWWRTOUT:
+            DB "writeOutputByte"
+            DB 15,"readStorageByte"
+            DB 18,"rewindStorageInput"
+            DB 16,"writeStorageByte"
+            DB 17,"seekStorageOutput"
+            DB 8,"readPort"
+            DB 9,"writePort"
+            DB 7,"service"
+            DB 10,"endOfInput"
+            DB 12,"inputFailure"
+            DB 13,"outputFailure"
+            DB 14,"storageFailure"
+KWPRECNT EQU 13
 
 ; Complete service selectors: target ID in bits 0..2, argument type in bits
 ; 3..4, successful u8 result in bit 5, and service kind in bit 7.
-Stage8ServiceSignatureTable:
-            .db Stage8CallableServiceFlag+Stage8ServiceResultU8+Stage8ServiceReadInput
-            .db Stage8CallableServiceFlag+(ScalarTypeU8*8)+Stage8ServiceWriteOutput
-            .db Stage8CallableServiceFlag+Stage8ServiceResultU8+Stage8ServiceReadStorage
-            .db Stage8CallableServiceFlag+Stage8ServiceRewindStorage
-            .db Stage8CallableServiceFlag+(ScalarTypeU8*8)+Stage8ServiceWriteStorage
-            .db Stage8CallableServiceFlag+(ScalarTypeU16*8)+Stage8ServiceSeekStorage
-.else
+KWSIGTAB:
+            DB C8SVCFLG+V8RESU8+V8RDIN
+            DB C8SVCFLG+(TYU8*8)+V8WROUT
+            DB C8SVCFLG+V8RESU8+V8RDSTOR
+            DB C8SVCFLG+V8REWST
+            DB C8SVCFLG+(TYU8*8)+V8WRSTOR
+            DB C8SVCFLG+(TYU16*8)+V8SEEKST
+%ELSE
 ; Earlier proof fixtures retain their deliberately narrower parsers. These
 ; names are their immutable comparison strings and are not a second service
 ; namespace in the active packed LL(1) compiler.
-NameReadInputByte:      .db "readInputByte"
-NameWriteOutputByte:    .db "writeOutputByte"
-.endif
-.if LegacyCompilerSlices
-NameResult:             .db "result"
-.endif
+KWREADIN:      DB "readInputByte"
+KWWRTOUT:    DB "writeOutputByte"
+%ENDIF
+%IF LegacyCompilerSlices
+KWRESULT:             DB "result"
+%ENDIF
 
 ; Constant-comparison truth values. Rows follow the dense Comparison* ordinal
 ; order; columns are equal, less, and greater relations. This is immutable
 ; language data and contains no compiler address or encoded instruction.
-TypedComparisonResults:
-            .db 1,0,0
-            .db 0,1,1
-            .db 0,1,0
-            .db 1,1,0
-            .db 0,0,1
-            .db 1,0,1
+KWCMPRES:
+            DB 1,0,0
+            DB 0,1,1
+            DB 0,1,0
+            DB 1,1,0
+            DB 0,0,1
+            DB 1,0,1

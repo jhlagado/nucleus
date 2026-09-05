@@ -1,18 +1,18 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
 import { describe, expect, it } from "vitest";
 
 describe("native Nucleus CP/M 2.2 TPA layout", () => {
   it("retains every production compiler capacity beside a direct image candidate", async () => {
-    const { symbols } = await assembleAtomSource(
-      "vertical-slice/cpm22-compiler-layout-proof.asm",
+    const { symbols } = await assembleNativeCompiler(
+      "cpm22-native-compiler.asm",
     );
 
     expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_314);
     expect(symbols.CompilerCoreEnd).toBe(0x40bd);
-    expect(symbols.CpmHostVectorStart).toBe(0x4100);
-    expect(symbols.CpmHostVectorStart - symbols.CompilerCoreEnd).toBe(67);
-    expect(symbols.CpmHostVectorTableEnd - symbols.CpmHostVectorStart).toBe(50);
-    expect(symbols.CpmLayoutResidentEnd).toBeLessThanOrEqual(
+    expect(symbols.CpmCompilerHostVectorStart).toBe(0x4100);
+    expect(symbols.CpmCompilerHostVectorStart - symbols.CompilerCoreEnd).toBe(67);
+    expect(symbols.CpmCompilerHostVectorEnd - symbols.CpmCompilerHostVectorStart).toBe(50);
+    expect(symbols.CpmCompilerResidentEnd).toBeLessThanOrEqual(
       symbols.CpmHostResidentLimit,
     );
 

@@ -2,144 +2,144 @@
 ; outside the 16 KiB compiler core. Native development components share this
 ; request block because service calls are synchronous and never nest.
 
-NativeObjectRequest .equ $5A00
+OCREQ       EQU $5A00
 
 ; Compatibility alias retained while existing clients move to the common
 ; names. Both labels in each pair denote the same assembled routine.
-NativeSourceProviderRequest .equ NativeObjectRequest
+SPREQ       EQU OCREQ
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectResetRequest:
-NativeSourceProviderResetRequest:
-            LD   HL,NativeObjectRequest
-            LD   DE,NativeObjectRequest+1
-            LD   BC,NucleusObjectRequestSize-1
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCRESET:
+SPRESET:
+            LD   HL,OCREQ
+            LD   DE,OCREQ+1
+            LD   BC,NORQSIZE-1
             XOR  A
             LD   (HL),A
             LDIR
-            LD   A,NucleusObjectRequestSize
-            LD   (NativeObjectRequest+NucleusObjectRequestSizeField),A
-            LD   A,NucleusObjectAbiVersion
-            LD   (NativeObjectRequest+NucleusObjectRequestAbi),A
+            LD   A,NORQSIZE
+            LD   (OCREQ+NOFSIZE),A
+            LD   A,NOABI
+            LD   (OCREQ+NOFABI),A
             RET
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectCall:
-NativeSourceProviderCallObject:
-            LD   HL,NativeObjectRequest
-            LD   C,NucleusServiceObject
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCCALL:
+SPCALL:
+            LD   HL,OCREQ
+            LD   C,NSOBJECT
             RST  $10
             RET
 
 ; A is openRead or beginWrite, HL is the name, and B is its byte length.
-.routine in A,HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectOpen:
-NativeSourceProviderOpen:
+; Contract: in A,HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCOPEN:
+SPOPEN:
             PUSH AF
             PUSH HL
             PUSH BC
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  BC
             POP  HL
             POP  AF
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestPointer),HL
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFPTR),HL
             LD   A,B
-            LD   (NativeObjectRequest+NucleusObjectRequestLength),A
-            CALL NativeObjectCall
+            LD   (OCREQ+NOFLEN),A
+            CALL OCCALL
             RET  C
-            LD   HL,(NativeObjectRequest+NucleusObjectRequestHandle)
+            LD   HL,(OCREQ+NOFHAND)
             RET
 
 ; HL is the object handle, DE the destination, and BC the requested count.
-.routine in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectRead:
-NativeSourceProviderRead:
+; Contract: in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCREAD:
+SPREAD:
             PUSH HL
             PUSH DE
             PUSH BC
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  BC
             POP  DE
             POP  HL
-            LD   A,NucleusObjectRead
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeObjectRequest+NucleusObjectRequestPointer),DE
-            LD   (NativeObjectRequest+NucleusObjectRequestLength),BC
-            CALL NativeObjectCall
+            LD   A,NOREAD
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFHAND),HL
+            LD   (OCREQ+NOFPTR),DE
+            LD   (OCREQ+NOFLEN),BC
+            CALL OCCALL
             RET  C
-            LD   BC,(NativeObjectRequest+NucleusObjectRequestResult)
+            LD   BC,(OCREQ+NOFRES)
             RET
 
 ; HL is the update handle, DE the source, and BC the exact write count.
-.routine in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectWrite:
-NativeSourceProviderWrite:
+; Contract: in HL,DE,BC out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCWRITE:
+SPWRITE:
             PUSH HL
             PUSH DE
             PUSH BC
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  BC
             POP  DE
             POP  HL
-            LD   A,NucleusObjectWrite
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeObjectRequest+NucleusObjectRequestPointer),DE
-            LD   (NativeObjectRequest+NucleusObjectRequestLength),BC
-            CALL NativeObjectCall
+            LD   A,NOWRITE
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFHAND),HL
+            LD   (OCREQ+NOFPTR),DE
+            LD   (OCREQ+NOFLEN),BC
+            CALL OCCALL
             RET  C
-            LD   HL,(NativeObjectRequest+NucleusObjectRequestResult)
-            LD   DE,(NativeObjectRequest+NucleusObjectRequestLength)
+            LD   HL,(OCREQ+NOFRES)
+            LD   DE,(OCREQ+NOFLEN)
             OR   A
             SBC  HL,DE
-            JP   NZ,NativeObjectInvalid
+            JP   NZ,OCINVAL
             RET
 
 ; HL is the object handle and DE is a 16-bit absolute offset.
-.routine in HL,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectSeek:
-NativeSourceProviderSeek:
+; Contract: in HL,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCSEEK:
+SPSEEK:
             PUSH HL
             PUSH DE
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  DE
             POP  HL
-            LD   A,NucleusObjectSeek
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
-            LD   (NativeObjectRequest+NucleusObjectRequestOffset),DE
-            JP   NativeObjectCall
+            LD   A,NOSEEK
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFHAND),HL
+            LD   (OCREQ+NOFOFF),DE
+            JP   OCCALL
 
 ; HL is the object handle. Rewind is the sequential spool operation; it does
 ; not expose or require random positioning.
-.routine in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectRewind:
+; Contract: in HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCREWIND:
             PUSH HL
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  HL
-            LD   A,NucleusObjectRewind
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
-            JP   NativeObjectCall
+            LD   A,NOREWIND
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFHAND),HL
+            JP   OCCALL
 
 ; A is close, commit, or abort and HL is the object handle.
-.routine in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeObjectTerminal:
-NativeSourceProviderTerminal:
+; Contract: in A,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+OCTERM:
+SPTERM:
             PUSH AF
             PUSH HL
-            CALL NativeObjectResetRequest
+            CALL OCRESET
             POP  HL
             POP  AF
-            LD   (NativeObjectRequest+NucleusObjectRequestOperation),A
-            LD   (NativeObjectRequest+NucleusObjectRequestHandle),HL
-            JP   NativeObjectCall
+            LD   (OCREQ+NOFOPER),A
+            LD   (OCREQ+NOFHAND),HL
+            JP   OCCALL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeObjectInvalid:
-NativeSourceProviderInvalid:
-            LD   A,NucleusStatusInvalid
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+OCINVAL:
+SPINVAL:
+            LD   A,NSTATINV
             SCF
             RET

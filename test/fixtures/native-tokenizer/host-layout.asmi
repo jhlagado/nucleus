@@ -1,0 +1,8 @@
+; Test-only bridge layout. The production source ABI, state and buffers are
+; imported unchanged; only four transport edges and diagnostics are replaced.
+THPCHUNK EQU $C0
+THPRET   EQU $C1
+THPCMP   EQU $C2
+THPMAT   EQU $C3
+         ORG MMCORE
+THSTART:

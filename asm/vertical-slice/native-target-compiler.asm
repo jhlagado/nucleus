@@ -1,10 +1,6 @@
-; Shipping compiler linked to the native host vector rather than AdapterLog.
-
-DebugHooks .equ 0
-NativeStreamingSource .equ 1
-Mon3HostTransport .equ 0
-            .include "target-memory-map.asmi"
-            .include "nucleus-runtime-identity.asmi"
-            .org CompilerCoreBase
-            .include "flat-target-compiler-image.asmi"
-            .include "native-host-vector.asmi"
+; Shipping direct host-vector compiler; profile supplied by entry metadata.
+%INCLUDE "target-memory-map.asmi"
+%INCLUDE "nucleus-runtime-identity.asmi"
+%INCLUDE "compiler-core-origin.asmi"
+%INCLUDE "flat-target-compiler-image.asmi"
+%INCLUDE "native-host-vector.asmi"

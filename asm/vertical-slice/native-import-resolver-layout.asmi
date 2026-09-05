@@ -1,0 +1,7 @@
+; Standalone resolver context and origin, before its three native code parts.
+SRCPARTS    EQU 8
+SRCCHUNK    EQU $7500
+MMCHKEND    EQU $7800
+
+            ORG $8000
+IRCODE:

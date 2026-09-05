@@ -3,655 +3,655 @@
 ; common named-object service and supplies the existing four-event compiler
 ; source ABI.
 
-NativeSourceProviderPlanHandle    .equ $5A10
-NativeSourceProviderSourceHandle  .equ $5A12
-NativeSourceProviderPlanCursor    .equ $5A14
-NativeSourceProviderPlanEnd       .equ $5A16
-NativeSourceProviderPartCount     .equ $5A18
-NativeSourceProviderPartOrdinal   .equ $5A19
-NativeSourceProviderPhase         .equ $5A1A
-NativeSourceProviderPathLength    .equ $5A1B
-NativeSourceProviderNamesHandle   .equ $5A1C
-NativeSourceProviderNamesEnd      .equ $5A1E
-NativeSourceProviderMaterialized  .equ $5A20
-NativeSourceProviderMaterializedLength .equ $5A22
-NativeSourceProviderSavedPointer  .equ $5A23
-NativeSourceProviderSavedLength   .equ $5A25
-NativeSourceProviderSavedPart     .equ $5A26
-NativeSourceProviderSavedOffset   .equ $5A27
-NativeSourceProviderNamePosition  .equ $5A29
-NativeSourceProviderNameHeader    .equ $5A2B
-NativeSourceProviderWorkspaceEnd  .equ $5A2F
+SPPLANH     EQU $5A10
+SPSRCH      EQU $5A12
+SPPLCUR     EQU $5A14
+SPPLEND     EQU $5A16
+SPPARTN     EQU $5A18
+SPPARTID    EQU $5A19
+SPPHASE     EQU $5A1A
+SPPATHN     EQU $5A1B
+SPNAMESH    EQU $5A1C
+SPNAMEND    EQU $5A1E
+SPMATID     EQU $5A20
+SPMATLEN    EQU $5A22
+SPSVPTR     EQU $5A23
+SPSVLEN     EQU $5A25
+SPSVPART    EQU $5A26
+SPSVOFF     EQU $5A27
+SPNAMPOS    EQU $5A29
+SPNAMHDR    EQU $5A2B
+SPWKEND     EQU $5A2F
 
-NativeSourceProviderPlanBuffer    .equ $5A40
-NativeSourceProviderPlanLimit     .equ $5B40
-NativeSourceProviderNameScratch   .equ $5B40
-NativeSourceProviderNameLimit     .equ $5C40
+SPPLANBF    EQU $5A40
+SPPLANLM    EQU $5B40
+SPNAMBUF    EQU $5B40
+SPNAMLM     EQU $5C40
 ; Comparison needs a second spelling buffer because the compiler may compare
 ; a current token materialized in NameScratch. This region is phase-overlaid
 ; by the NOBJ writer only after parsing has finished.
-NativeSourceProviderCompareScratch .equ $5D00
-NativeSourceProviderCompareLimit   .equ $5E00
+SPCMPBUF    EQU $5D00
+SPCMPLIM    EQU $5E00
 
-NativeSourceProviderPhasePart     .equ 0
-NativeSourceProviderPhaseBytes    .equ 1
-NativeSourceProviderPhaseDone     .equ 2
+SPPHPART    EQU 0
+SPPHBYTE    EQU 1
+SPPHDONE    EQU 2
 
 ; The native resolver publishes this fixed tentative-plan name before launch.
 ; A platform binding maps the logical name into its own filesystem.
-NativeSourceProviderPlanName:
-            .db ".nucleus/source-plan.sp1"
-NativeSourceProviderPlanNameLength .equ $-NativeSourceProviderPlanName
-NativeSourceProviderNamesName:
-            .db ".nucleus/retained-names.work"
-NativeSourceProviderNamesNameLength .equ $-NativeSourceProviderNamesName
+SPPLNAME:
+            DB ".nucleus/source-plan.sp1"
+SPPLNAML    EQU $-SPPLNAME
+SPNMNAME:
+            DB ".nucleus/retained-names.work"
+SPNMNAML    EQU $-SPNMNAME
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderLaunchBegin:
-            LD   HL,NativeSourceProviderPlanHandle
-            LD   DE,NativeSourceProviderPlanHandle+1
-            LD   BC,NativeSourceProviderWorkspaceEnd-NativeSourceProviderPlanHandle-1
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPBEGIN:
+            LD   HL,SPPLANH
+            LD   DE,SPPLANH+1
+            LD   BC,SPWKEND-SPPLANH-1
             XOR  A
             LD   (HL),A
             LDIR
-            LD   HL,NativeSourceProviderPlanBuffer
-            LD   (NativeSourceProviderPlanCursor),HL
-            LD   (NativeSourceProviderPlanEnd),HL
-            LD   HL,NativeSourceProviderPlanName
-            LD   B,NativeSourceProviderPlanNameLength
-            LD   A,NucleusObjectOpenRead
-            CALL NativeSourceProviderOpen
+            LD   HL,SPPLANBF
+            LD   (SPPLCUR),HL
+            LD   (SPPLEND),HL
+            LD   HL,SPPLNAME
+            LD   B,SPPLNAML
+            LD   A,NOOPEN
+            CALL SPOPEN
             RET  C
-            LD   (NativeSourceProviderPlanHandle),HL
-            CALL NativeSourceProviderReadHeader
-            JR   C,NativeSourceProviderLaunchCleanupPlan
-            LD   HL,NativeSourceProviderNamesName
-            LD   B,NativeSourceProviderNamesNameLength
-            LD   A,NucleusObjectBeginWrite
-            CALL NativeSourceProviderOpen
-            JR   C,NativeSourceProviderLaunchCleanupPlan
-            LD   (NativeSourceProviderNamesHandle),HL
+            LD   (SPPLANH),HL
+            CALL SPRDHDR
+            JR   C,SPCLNPLN
+            LD   HL,SPNMNAME
+            LD   B,SPNMNAML
+            LD   A,NOBEGIN
+            CALL SPOPEN
+            JR   C,SPCLNPLN
+            LD   (SPNAMESH),HL
             OR   A
             RET
-NativeSourceProviderLaunchCleanupPlan:
-            LD   (NativeSourceProviderPathLength),A
-            LD   HL,(NativeSourceProviderPlanHandle)
-            LD   A,NucleusObjectClose
-            CALL NativeSourceProviderTerminal
+SPCLNPLN:
+            LD   (SPPATHN),A
+            LD   HL,(SPPLANH)
+            LD   A,NOCLOSE
+            CALL SPTERM
             XOR  A
-            LD   (NativeSourceProviderPlanHandle),A
-            LD   (NativeSourceProviderPlanHandle+1),A
-            LD   A,(NativeSourceProviderPathLength)
+            LD   (SPPLANH),A
+            LD   (SPPLANH+1),A
+            LD   A,(SPPATHN)
             SCF
             RET
 
 ; Release every source-side handle. It is safe after success or source error.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderLaunchEnd:
-            LD   HL,(NativeSourceProviderSourceHandle)
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPEND:
+            LD   HL,(SPSRCH)
             LD   A,H
             OR   L
-            JR   Z,NativeSourceProviderClosePlan
-            LD   A,NucleusObjectClose
-            CALL NativeSourceProviderTerminal
+            JR   Z,SPCLOPLN
+            LD   A,NOCLOSE
+            CALL SPTERM
             RET  C
             XOR  A
-            LD   (NativeSourceProviderSourceHandle),A
-            LD   (NativeSourceProviderSourceHandle+1),A
-NativeSourceProviderClosePlan:
-            LD   HL,(NativeSourceProviderPlanHandle)
+            LD   (SPSRCH),A
+            LD   (SPSRCH+1),A
+SPCLOPLN:
+            LD   HL,(SPPLANH)
             LD   A,H
             OR   L
-            JP   Z,NativeSourceProviderAbortNames
-            LD   A,NucleusObjectClose
-            CALL NativeSourceProviderTerminal
+            JP   Z,SPABTNAM
+            LD   A,NOCLOSE
+            CALL SPTERM
             RET  C
             XOR  A
-            LD   (NativeSourceProviderPlanHandle),A
-            LD   (NativeSourceProviderPlanHandle+1),A
-NativeSourceProviderAbortNames:
-            LD   HL,(NativeSourceProviderNamesHandle)
+            LD   (SPPLANH),A
+            LD   (SPPLANH+1),A
+SPABTNAM:
+            LD   HL,(SPNAMESH)
             LD   A,H
             OR   L
             RET  Z
-            LD   A,NucleusObjectAbort
-            CALL NativeSourceProviderTerminal
+            LD   A,NOABORT
+            CALL SPTERM
             RET  C
             XOR  A
-            LD   (NativeSourceProviderNamesHandle),A
-            LD   (NativeSourceProviderNamesHandle+1),A
+            LD   (SPNAMESH),A
+            LD   (SPNAMESH+1),A
             RET
 
 ; Return one raw plan byte in A. Parser accumulators remain live across a
 ; refill, so this byte operation preserves their registers.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderPlanByte:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+SPPLBYTE:
             PUSH BC
             PUSH DE
             PUSH HL
-            CALL NativeSourceProviderPlanByteBody
+            CALL SPPLBODY
             POP  HL
             POP  DE
             POP  BC
             RET
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderPlanByteBody:
-            LD   HL,(NativeSourceProviderPlanCursor)
-            LD   DE,(NativeSourceProviderPlanEnd)
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPPLBODY:
+            LD   HL,(SPPLCUR)
+            LD   DE,(SPPLEND)
             OR   A
             SBC  HL,DE
-            JR   Z,NativeSourceProviderRefillPlan
+            JR   Z,SPREFILL
             ADD  HL,DE
             LD   A,(HL)
             INC  HL
-            LD   (NativeSourceProviderPlanCursor),HL
+            LD   (SPPLCUR),HL
             OR   A
             RET
-NativeSourceProviderRefillPlan:
-            LD   HL,(NativeSourceProviderPlanHandle)
-            LD   DE,NativeSourceProviderPlanBuffer
-            LD   BC,NativeSourceProviderPlanLimit-NativeSourceProviderPlanBuffer
-            CALL NativeSourceProviderRead
+SPREFILL:
+            LD   HL,(SPPLANH)
+            LD   DE,SPPLANBF
+            LD   BC,SPPLANLM-SPPLANBF
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   C
-            JP   Z,NativeSourceProviderInvalid
-            LD   HL,NativeSourceProviderPlanBuffer
-            LD   (NativeSourceProviderPlanCursor),HL
+            JP   Z,SPINVAL
+            LD   HL,SPPLANBF
+            LD   (SPPLCUR),HL
             ADD  HL,BC
-            LD   (NativeSourceProviderPlanEnd),HL
-            JP   NativeSourceProviderPlanByteBody
+            LD   (SPPLEND),HL
+            JP   SPPLBODY
 
 ; HL points at an immutable literal and B is its length.
-.routine in HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderExpectLiteral:
+; Contract: in HL,B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPEXPLIT:
             LD   C,B
-NativeSourceProviderLiteralLoop:
-            CALL NativeSourceProviderPlanByte
+SPLITLOP:
+            CALL SPPLBYTE
             RET  C
             CP   (HL)
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
             INC  HL
             DEC  C
-            JR   NZ,NativeSourceProviderLiteralLoop
+            JR   NZ,SPLITLOP
             RET
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderExpectLineEnd:
-            CALL NativeSourceProviderPlanByte
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPEXPEOL:
+            CALL SPPLBYTE
             RET  C
             CP   10
             RET  Z
             CP   13
-            JP   NZ,NativeSourceProviderInvalid
-            CALL NativeSourceProviderPlanByte
+            JP   NZ,SPINVAL
+            CALL SPPLBYTE
             RET  C
             CP   10
             RET  Z
-            JP   NativeSourceProviderInvalid
+            JP   SPINVAL
 
-NativeSourceProviderHeaderLiteral:
-            .db "SP1 "
-NativeSourceProviderRecordLiteral:
-            .db "P "
-NativeSourceProviderEndLiteral:
-            .db "END"
+SPHDRTXT:
+            DB "SP1 "
+SPRECTXT:
+            DB "P "
+SPENDTXT:
+            DB "END"
 
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderReadHeader:
-            LD   HL,NativeSourceProviderHeaderLiteral
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPRDHDR:
+            LD   HL,SPHDRTXT
             LD   B,4
-            CALL NativeSourceProviderExpectLiteral
+            CALL SPEXPLIT
             RET  C
-            CALL NativeSourceProviderPlanByte
+            CALL SPPLBYTE
             RET  C
             SUB  '1'
-            JP   C,NativeSourceProviderInvalid
-            CP   SourcePartCapacity
-            JP   NC,NativeSourceProviderInvalid
+            JP   C,SPINVAL
+            CP   SRCPARTS
+            JP   NC,SPINVAL
             INC  A
-            LD   (NativeSourceProviderPartCount),A
-            JP   NativeSourceProviderExpectLineEnd
+            LD   (SPPARTN),A
+            JP   SPEXPEOL
 
 ; Parse one canonical decimal byte terminated by a space.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderDecimalSpace:
-            CALL NativeSourceProviderPlanByte
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPDECSP:
+            CALL SPPLBYTE
             RET  C
             CP   '0'
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             CP   '9'+1
-            JP   NC,NativeSourceProviderInvalid
+            JP   NC,SPINVAL
             SUB  '0'
             LD   E,A
             OR   A
-            JR   NZ,NativeSourceProviderDecimalMore
-            CALL NativeSourceProviderPlanByte
+            JR   NZ,SPDECMOR
+            CALL SPPLBYTE
             RET  C
             CP   ' '
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
             XOR  A
             RET
-NativeSourceProviderDecimalMore:
-            CALL NativeSourceProviderPlanByte
+SPDECMOR:
+            CALL SPPLBYTE
             RET  C
             CP   ' '
-            JR   Z,NativeSourceProviderDecimalReady
+            JR   Z,SPDECOK
             CP   '0'
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             CP   '9'+1
-            JP   NC,NativeSourceProviderInvalid
+            JP   NC,SPINVAL
             SUB  '0'
             LD   D,A
             LD   A,E
             ADD  A,A
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             LD   L,A
             ADD  A,A
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             ADD  A,A
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             ADD  A,L
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             ADD  A,D
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             LD   E,A
-            JR   NativeSourceProviderDecimalMore
-NativeSourceProviderDecimalReady:
+            JR   SPDECMOR
+SPDECOK:
             LD   A,E
             RET
 
 ; Read the next P record, open its source object, and retain its path length.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderOpenNextPart:
-            LD   HL,NativeSourceProviderRecordLiteral
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPNXTPRT:
+            LD   HL,SPRECTXT
             LD   B,2
-            CALL NativeSourceProviderExpectLiteral
+            CALL SPEXPLIT
             RET  C
-            CALL NativeSourceProviderDecimalSpace
+            CALL SPDECSP
             RET  C
             ; Bank ordinals are target metadata. The target descriptor checks
             ; them independently; the source streamer only validates u8 syntax.
-            CALL NativeSourceProviderDecimalSpace
+            CALL SPDECSP
             RET  C
             OR   A
-            JP   Z,NativeSourceProviderInvalid
-            LD   (NativeSourceProviderPathLength),A
+            JP   Z,SPINVAL
+            LD   (SPPATHN),A
             LD   B,A
-            LD   HL,NativeSourceProviderNameScratch
-NativeSourceProviderPathLoop:
-            CALL NativeSourceProviderPlanByte
+            LD   HL,SPNAMBUF
+SPPATHLP:
+            CALL SPPLBYTE
             RET  C
             CP   32
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             CP   127
-            JP   NC,NativeSourceProviderInvalid
+            JP   NC,SPINVAL
             CP   '\\'
-            JP   Z,NativeSourceProviderInvalid
+            JP   Z,SPINVAL
             LD   (HL),A
             INC  HL
-            DJNZ NativeSourceProviderPathLoop
-            CALL NativeSourceProviderExpectLineEnd
+            DJNZ SPPATHLP
+            CALL SPEXPEOL
             RET  C
-            LD   HL,NativeSourceProviderNameScratch
-            LD   A,(NativeSourceProviderPathLength)
+            LD   HL,SPNAMBUF
+            LD   A,(SPPATHN)
             LD   B,A
-            LD   A,NucleusObjectOpenRead
-            CALL NativeSourceProviderOpen
+            LD   A,NOOPEN
+            CALL SPOPEN
             RET  C
-            LD   (NativeSourceProviderSourceHandle),HL
-            LD   A,(NativeSourceProviderPartOrdinal)
+            LD   (SPSRCH),HL
+            LD   A,(SPPARTID)
             INC  A
-            LD   (NativeSourceProviderPartOrdinal),A
-            LD   A,NativeSourceProviderPhaseBytes
-            LD   (NativeSourceProviderPhase),A
-            LD   A,(NativeSourceProviderPartOrdinal)
+            LD   (SPPARTID),A
+            LD   A,SPPHBYTE
+            LD   (SPPHASE),A
+            LD   A,(SPPARTID)
             LD   C,A
             LD   A,1
             OR   A
             RET
 
 ; Validate END, exact object EOF, and release the plan handle.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderFinishPlan:
-            LD   HL,NativeSourceProviderEndLiteral
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPFINPLN:
+            LD   HL,SPENDTXT
             LD   B,3
-            CALL NativeSourceProviderExpectLiteral
+            CALL SPEXPLIT
             RET  C
-            CALL NativeSourceProviderExpectLineEnd
+            CALL SPEXPEOL
             RET  C
-            LD   HL,(NativeSourceProviderPlanCursor)
-            LD   DE,(NativeSourceProviderPlanEnd)
+            LD   HL,(SPPLCUR)
+            LD   DE,(SPPLEND)
             OR   A
             SBC  HL,DE
-            JP   NZ,NativeSourceProviderInvalid
-            LD   HL,(NativeSourceProviderPlanHandle)
-            LD   DE,NativeSourceProviderPlanBuffer
+            JP   NZ,SPINVAL
+            LD   HL,(SPPLANH)
+            LD   DE,SPPLANBF
             LD   BC,1
-            CALL NativeSourceProviderRead
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   C
-            JP   NZ,NativeSourceProviderInvalid
-            LD   HL,(NativeSourceProviderPlanHandle)
-            LD   A,NucleusObjectClose
-            CALL NativeSourceProviderTerminal
+            JP   NZ,SPINVAL
+            LD   HL,(SPPLANH)
+            LD   A,NOCLOSE
+            CALL SPTERM
             RET  C
             XOR  A
-            LD   (NativeSourceProviderPlanHandle),A
-            LD   (NativeSourceProviderPlanHandle+1),A
-            LD   A,NativeSourceProviderPhaseDone
-            LD   (NativeSourceProviderPhase),A
+            LD   (SPPLANH),A
+            LD   (SPPLANH+1),A
+            LD   A,SPPHDONE
+            LD   (SPPHASE),A
             LD   A,3
             OR   A
             RET
 
 ; Read and validate the four-byte name record at the current scan position.
 ; Success leaves the spool cursor immediately after the header and B=length.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderReadNameHeader:
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,(NativeSourceProviderSavedOffset)
-            CALL NativeSourceProviderSeek
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPRDNHDR:
+            LD   HL,(SPNAMESH)
+            LD   DE,(SPSVOFF)
+            CALL SPSEEK
             RET  C
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,NativeSourceProviderNameHeader
+            LD   HL,(SPNAMESH)
+            LD   DE,SPNAMHDR
             LD   BC,4
-            CALL NativeSourceProviderRead
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   A
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
             LD   A,C
             CP   4
-            JP   NZ,NativeSourceProviderInvalid
-            LD   A,(NativeSourceProviderNameHeader)
+            JP   NZ,SPINVAL
+            LD   A,(SPNAMHDR)
             OR   A
-            JP   Z,NativeSourceProviderInvalid
+            JP   Z,SPINVAL
             LD   B,A
             RET
 
 ; HL is an opaque retained-name handle. Success proves it is exactly the start
 ; of a record in the current generation and returns B=length.
-.routine in HL out A,B,carry,zero clobbers sign,parity,halfCarry,C,DE,HL
-NativeSourceProviderValidateName:
+; Contract: in HL out A,B,carry,zero clobbers sign,parity,halfCarry,C,DE,HL
+SPCHKNAM:
             LD   A,H
             OR   L
-            JP   Z,NativeSourceProviderInvalid
+            JP   Z,SPINVAL
             DEC  HL
-            LD   (NativeSourceProviderNamePosition),HL
+            LD   (SPNAMPOS),HL
             LD   HL,0
-            LD   (NativeSourceProviderSavedOffset),HL
-NativeSourceProviderValidateNameLoop:
-            LD   HL,(NativeSourceProviderSavedOffset)
-            LD   DE,(NativeSourceProviderNamePosition)
+            LD   (SPSVOFF),HL
+SPCHKLOP:
+            LD   HL,(SPSVOFF)
+            LD   DE,(SPNAMPOS)
             OR   A
             SBC  HL,DE
-            JR   Z,NativeSourceProviderValidateNameFound
-            JP   NC,NativeSourceProviderInvalid
-            CALL NativeSourceProviderReadNameHeader
+            JR   Z,SPCHKOK
+            JP   NC,SPINVAL
+            CALL SPRDNHDR
             RET  C
             LD   A,B
             LD   E,A
             LD   D,0
-            LD   HL,(NativeSourceProviderSavedOffset)
+            LD   HL,(SPSVOFF)
             LD   BC,4
             ADD  HL,BC
-            JP   C,NativeSourceProviderInvalid
+            JP   C,SPINVAL
             ADD  HL,DE
-            JP   C,NativeSourceProviderInvalid
-            LD   (NativeSourceProviderSavedOffset),HL
-            LD   DE,(NativeSourceProviderNamesEnd)
+            JP   C,SPINVAL
+            LD   (SPSVOFF),HL
+            LD   DE,(SPNAMEND)
             OR   A
             SBC  HL,DE
-            JP   NC,NativeSourceProviderValidateNameAtEnd
-            JR   NativeSourceProviderValidateNameLoop
-NativeSourceProviderValidateNameAtEnd:
-            JP   NZ,NativeSourceProviderInvalid
-            LD   HL,(NativeSourceProviderNamePosition)
-            LD   DE,(NativeSourceProviderNamesEnd)
+            JP   NC,SPCHKEND
+            JR   SPCHKLOP
+SPCHKEND:
+            JP   NZ,SPINVAL
+            LD   HL,(SPNAMPOS)
+            LD   DE,(SPNAMEND)
             OR   A
             SBC  HL,DE
-            JP   NZ,NativeSourceProviderInvalid
-            JP   NativeSourceProviderInvalid
-NativeSourceProviderValidateNameFound:
-            LD   HL,(NativeSourceProviderSavedOffset)
-            LD   DE,(NativeSourceProviderNamesEnd)
+            JP   NZ,SPINVAL
+            JP   SPINVAL
+SPCHKOK:
+            LD   HL,(SPSVOFF)
+            LD   DE,(SPNAMEND)
             OR   A
             SBC  HL,DE
-            JP   NC,NativeSourceProviderInvalid
-            JP   NativeSourceProviderReadNameHeader
+            JP   NC,SPINVAL
+            JP   SPRDNHDR
 
 ; Compiler retained-name ABI: HL=bytes, B=length, C=part, DE=part offset.
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderRetainName:
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+SPRETAIN:
             PUSH BC
             PUSH DE
-            CALL NativeSourceProviderRetainNameBody
+            CALL SPRETBOD
             POP  DE
             POP  BC
             RET
-.routine in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderRetainNameBody:
-            LD   (NativeSourceProviderSavedPointer),HL
+; Contract: in HL,B,C,DE out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+SPRETBOD:
+            LD   (SPSVPTR),HL
             LD   A,B
-            LD   (NativeSourceProviderSavedLength),A
+            LD   (SPSVLEN),A
             LD   A,C
-            LD   (NativeSourceProviderSavedPart),A
-            LD   (NativeSourceProviderSavedOffset),DE
+            LD   (SPSVPART),A
+            LD   (SPSVOFF),DE
             LD   A,B
             OR   A
-            JP   Z,NativeSourceProviderInvalid
-            LD   A,(NativeSourceProviderPartOrdinal)
+            JP   Z,SPINVAL
+            LD   A,(SPPARTID)
             CP   C
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
 
             ; A materialized spelling immediately retained again denotes the
             ; same logical name, not a second record.
-            LD   HL,(NativeSourceProviderMaterialized)
+            LD   HL,(SPMATID)
             LD   A,H
             OR   L
-            JR   Z,NativeSourceProviderRetainAppend
-            LD   A,(NativeSourceProviderMaterializedLength)
+            JR   Z,SPAPPEND
+            LD   A,(SPMATLEN)
             CP   B
-            JR   NZ,NativeSourceProviderRetainAppend
-            LD   A,(NativeSourceProviderNameHeader+1)
+            JR   NZ,SPAPPEND
+            LD   A,(SPNAMHDR+1)
             LD   C,A
-            LD   A,(NativeSourceProviderSavedPart)
+            LD   A,(SPSVPART)
             CP   C
-            JR   NZ,NativeSourceProviderRetainAppend
-            LD   HL,(NativeSourceProviderSavedOffset)
-            LD   DE,(NativeSourceProviderNameHeader+2)
+            JR   NZ,SPAPPEND
+            LD   HL,(SPSVOFF)
+            LD   DE,(SPNAMHDR+2)
             OR   A
             SBC  HL,DE
-            JR   NZ,NativeSourceProviderRetainAppend
-            LD   HL,(NativeSourceProviderSavedPointer)
-            LD   DE,NativeSourceProviderNameScratch
+            JR   NZ,SPAPPEND
+            LD   HL,(SPSVPTR)
+            LD   DE,SPNAMBUF
             OR   A
             SBC  HL,DE
-            LD   HL,(NativeSourceProviderMaterialized)
+            LD   HL,(SPMATID)
             RET  Z
 
-NativeSourceProviderRetainAppend:
+SPAPPEND:
             XOR  A
-            LD   (NativeSourceProviderMaterialized),A
-            LD   (NativeSourceProviderMaterialized+1),A
-            LD   HL,(NativeSourceProviderNamesEnd)
+            LD   (SPMATID),A
+            LD   (SPMATID+1),A
+            LD   HL,(SPNAMEND)
             PUSH HL
             LD   DE,4
             ADD  HL,DE
-            JP   C,NativeSourceProviderRetainCapacity
-            LD   A,(NativeSourceProviderSavedLength)
+            JP   C,SPRETCAP
+            LD   A,(SPSVLEN)
             LD   E,A
             LD   D,0
             ADD  HL,DE
-            JP   C,NativeSourceProviderRetainCapacity
-            LD   (NativeSourceProviderNamePosition),HL
+            JP   C,SPRETCAP
+            LD   (SPNAMPOS),HL
             POP  HL
             INC  HL
-            LD   (NativeSourceProviderMaterialized),HL
+            LD   (SPMATID),HL
             DEC  HL
 
-            LD   DE,(NativeSourceProviderSavedOffset)
-            LD   A,(NativeSourceProviderSavedLength)
-            LD   (NativeSourceProviderNameHeader),A
-            LD   A,(NativeSourceProviderSavedPart)
-            LD   (NativeSourceProviderNameHeader+1),A
-            LD   (NativeSourceProviderNameHeader+2),DE
+            LD   DE,(SPSVOFF)
+            LD   A,(SPSVLEN)
+            LD   (SPNAMHDR),A
+            LD   A,(SPSVPART)
+            LD   (SPNAMHDR+1),A
+            LD   (SPNAMHDR+2),DE
 
             EX   DE,HL
-            LD   HL,(NativeSourceProviderNamesHandle)
-            CALL NativeSourceProviderSeek
+            LD   HL,(SPNAMESH)
+            CALL SPSEEK
             RET  C
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,NativeSourceProviderNameHeader
+            LD   HL,(SPNAMESH)
+            LD   DE,SPNAMHDR
             LD   BC,4
-            CALL NativeSourceProviderWrite
+            CALL SPWRITE
             RET  C
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,(NativeSourceProviderSavedPointer)
-            LD   A,(NativeSourceProviderSavedLength)
+            LD   HL,(SPNAMESH)
+            LD   DE,(SPSVPTR)
+            LD   A,(SPSVLEN)
             LD   C,A
             LD   B,0
-            CALL NativeSourceProviderWrite
+            CALL SPWRITE
             RET  C
-            LD   HL,(NativeSourceProviderNamePosition)
-            LD   (NativeSourceProviderNamesEnd),HL
-            LD   HL,(NativeSourceProviderMaterialized)
+            LD   HL,(SPNAMPOS)
+            LD   (SPNAMEND),HL
+            LD   HL,(SPMATID)
             XOR  A
-            LD   (NativeSourceProviderMaterializedLength),A
+            LD   (SPMATLEN),A
             RET
-NativeSourceProviderRetainCapacity:
+SPRETCAP:
             POP  HL
-            LD   A,NucleusStatusCapacity
+            LD   A,NSTATCAP
             SCF
             RET
 
 ; Compiler compare ABI: HL=handle, IX=current bytes, B=length; Z reports equal.
-.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-NativeSourceProviderCompareName:
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+SPCMPNAM:
             LD   A,B
-            LD   (NativeSourceProviderSavedLength),A
-            CALL NativeSourceProviderValidateName
+            LD   (SPSVLEN),A
+            CALL SPCHKNAM
             RET  C
-            LD   A,(NativeSourceProviderSavedLength)
+            LD   A,(SPSVLEN)
             CP   B
-            JR   NZ,NativeSourceProviderNameUnequal
+            JR   NZ,SPNEQUAL
             LD   C,B
             LD   B,0
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,NativeSourceProviderCompareScratch
-            CALL NativeSourceProviderRead
+            LD   HL,(SPNAMESH)
+            LD   DE,SPCMPBUF
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   A
-            JP   NZ,NativeSourceProviderInvalid
-            LD   A,(NativeSourceProviderSavedLength)
+            JP   NZ,SPINVAL
+            LD   A,(SPSVLEN)
             CP   C
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
             LD   B,A
             PUSH IX
             POP  DE
-            LD   HL,NativeSourceProviderCompareScratch
-NativeSourceProviderCompareNameLoop:
+            LD   HL,SPCMPBUF
+SPCMPLOP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,NativeSourceProviderNameUnequal
+            JR   NZ,SPNEQUAL
             INC  DE
             INC  HL
-            DJNZ NativeSourceProviderCompareNameLoop
+            DJNZ SPCMPLOP
             XOR  A
             RET
-NativeSourceProviderNameUnequal:
+SPNEQUAL:
             LD   A,1
             OR   A
             RET
 
 ; Compiler materialize ABI: HL=handle; returns HL=stable bytes and B=length.
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-NativeSourceProviderMaterializeName:
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+SPMATNAM:
             PUSH BC
             PUSH DE
-            CALL NativeSourceProviderMaterializeNameBody
+            CALL SPMATBOD
             PUSH HL
             PUSH AF
             LD   A,B
-            LD   (NativeSourceProviderMaterializedLength),A
+            LD   (SPMATLEN),A
             POP  AF
             POP  HL
             POP  DE
             POP  BC
             PUSH AF
-            LD   A,(NativeSourceProviderMaterializedLength)
+            LD   A,(SPMATLEN)
             LD   B,A
             POP  AF
             RET
-.routine in HL out A,BC,DE,HL,carry,zero,sign,parity,halfCarry
-NativeSourceProviderMaterializeNameBody:
-            LD   (NativeSourceProviderMaterialized),HL
-            CALL NativeSourceProviderValidateName
+; Contract: in HL out A,BC,DE,HL,carry,zero,sign,parity,halfCarry
+SPMATBOD:
+            LD   (SPMATID),HL
+            CALL SPCHKNAM
             RET  C
             LD   A,B
-            LD   (NativeSourceProviderMaterializedLength),A
+            LD   (SPMATLEN),A
             LD   C,A
             LD   B,0
-            LD   HL,(NativeSourceProviderNamesHandle)
-            LD   DE,NativeSourceProviderNameScratch
-            CALL NativeSourceProviderRead
+            LD   HL,(SPNAMESH)
+            LD   DE,SPNAMBUF
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   A
-            JP   NZ,NativeSourceProviderInvalid
-            LD   A,(NativeSourceProviderMaterializedLength)
+            JP   NZ,SPINVAL
+            LD   A,(SPMATLEN)
             CP   C
-            JP   NZ,NativeSourceProviderInvalid
+            JP   NZ,SPINVAL
             LD   B,A
-            LD   HL,NativeSourceProviderNameScratch
+            LD   HL,SPNAMBUF
             XOR  A
             RET
 
 ; Existing compiler source-provider ABI: A=event, C=part, HL=bytes, DE=count.
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-NativeSourceProviderNext:
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+SPNEXT:
             XOR  A
-            LD   (NativeSourceProviderMaterialized),A
-            LD   (NativeSourceProviderMaterialized+1),A
-            LD   A,(NativeSourceProviderPhase)
-            CP   NativeSourceProviderPhaseBytes
-            JR   Z,NativeSourceProviderNextBytes
-            CP   NativeSourceProviderPhaseDone
-            JP   Z,NativeSourceProviderInvalid
-            LD   A,(NativeSourceProviderPartOrdinal)
-            LD   HL,NativeSourceProviderPartCount
+            LD   (SPMATID),A
+            LD   (SPMATID+1),A
+            LD   A,(SPPHASE)
+            CP   SPPHBYTE
+            JR   Z,SPBYTES
+            CP   SPPHDONE
+            JP   Z,SPINVAL
+            LD   A,(SPPARTID)
+            LD   HL,SPPARTN
             CP   (HL)
-            JP   Z,NativeSourceProviderFinishPlan
-            JP   NativeSourceProviderOpenNextPart
-NativeSourceProviderNextBytes:
-            LD   HL,(NativeSourceProviderSourceHandle)
-            LD   DE,NativeSourceChunkBase
-            LD   BC,NativeSourceChunkLimit-NativeSourceChunkBase
-            CALL NativeSourceProviderRead
+            JP   Z,SPFINPLN
+            JP   SPNXTPRT
+SPBYTES:
+            LD   HL,(SPSRCH)
+            LD   DE,SRCCHUNK
+            LD   BC,MMCHKEND-SRCCHUNK
+            CALL SPREAD
             RET  C
             LD   A,B
             OR   C
-            JR   Z,NativeSourceProviderEndPart
+            JR   Z,SPENDPRT
             LD   D,B
             LD   E,C
-            LD   HL,NativeSourceChunkBase
-            LD   A,(NativeSourceProviderPartOrdinal)
+            LD   HL,SRCCHUNK
+            LD   A,(SPPARTID)
             LD   C,A
             XOR  A
             RET
-NativeSourceProviderEndPart:
-            LD   HL,(NativeSourceProviderSourceHandle)
-            LD   A,NucleusObjectClose
-            CALL NativeSourceProviderTerminal
+SPENDPRT:
+            LD   HL,(SPSRCH)
+            LD   A,NOCLOSE
+            CALL SPTERM
             RET  C
             XOR  A
-            LD   (NativeSourceProviderSourceHandle),A
-            LD   (NativeSourceProviderSourceHandle+1),A
-            LD   (NativeSourceProviderPhase),A
-            LD   A,(NativeSourceProviderPartOrdinal)
+            LD   (SPSRCH),A
+            LD   (SPSRCH+1),A
+            LD   (SPPHASE),A
+            LD   A,(SPPARTID)
             LD   C,A
             LD   A,2
             OR   A

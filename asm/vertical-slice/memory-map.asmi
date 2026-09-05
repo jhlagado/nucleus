@@ -3,62 +3,61 @@
 ; Every end symbol is exclusive. The map keeps the 16 KiB compiler-core gate
 ; visible while giving every other account a distinct, bounded proof region.
 
-; Historical module proofs use the resident source adapter. Native target
-; compositions select the streaming adapter before including their own map.
-NativeStreamingSource .equ 0
+; Entry files select the resident or streaming source adapter explicitly.
 
-CompilerCoreBase    .equ $0000
-CompilerCoreLimit   .equ $4000
+MMCORE     EQU $0000
+MMCORLIM   EQU $4000
 
-CompilerWorkBase    .equ $4000
-CompilerWorkLimit   .equ $5000
+MMWORK     EQU $4000
+MMWRKLIM   EQU $5000
 
-SourceBase          .equ $5000
-SourceLimit         .equ $5800
+MMSOURCE   EQU $5000
+MMSRCLIM   EQU $5800
 
-GeneratedBase       .equ $5800
-GeneratedLimit      .equ $6800
+MMGEN      EQU $5800
+MMGENLIM   EQU $6800
 
 ; Historical direct-sink module proofs retain this complete-image region and
 ; its segmented variant. Production target proofs use target-memory-map.asmi
 ; and therefore cannot resolve these symbols.
-GeneratedCodeBase       .equ GeneratedBase
-GeneratedCodeLimit      .equ $6400
-GeneratedRoDataBase     .equ GeneratedCodeLimit
-GeneratedRoDataLimit    .equ GeneratedLimit
+MMGENCOD   EQU MMGEN
+MMGCEND    EQU $6400
+RORDATA    EQU MMGCEND
+MMROEND    EQU MMGENLIM
 
-TargetRuntimeBase   .equ $6800
-TargetRuntimeLimit  .equ $7800
+MMRUN      EQU $6800
+MMRUNEND   EQU $7800
 
-ExecutionBase       .equ $7800
-ExecutionLimit      .equ $8800
+MMEXEC     EQU $7800
+MMEXEND    EQU $8800
 
 ; Runtime state occupies the first page of ExecutionBase. Mutable initialized
 ; data and zero-initialized data occupy adjacent target regions after it.
-ProgramDataBase         .equ ExecutionBase+$0100
-ProgramDataLimit        .equ ProgramDataBase+$0400
-ProgramBssBase          .equ ProgramDataLimit
-ProgramBssLimit         .equ ProgramBssBase+$0400
-ProgramDataRegionLimit  .equ ProgramBssLimit
-ProgramDataRegionCapacity .equ ProgramDataRegionLimit-ProgramDataBase
-GeneratedRoDataCapacity .equ GeneratedRoDataLimit-GeneratedRoDataBase
+MMDATA     EQU MMEXEC+$0100
+MMDATEND   EQU MMDATA+$0400
+MMBSS      EQU MMDATEND
+MMBSSEND   EQU MMBSS+$0400
+MMREGEND   EQU MMBSSEND
+MMREGCAP   EQU MMREGEND-MMDATA
+RORDCAP    EQU MMROEND-RORDATA
 
-ServiceBase         .equ $8800
-ServiceLimit        .equ $9000
+MMSERV     EQU $8800
+MMSRVEND   EQU $9000
 
-ProofBase           .equ $9000
-ProofLimit          .equ $9800
+MMPROOF    EQU $9000
+MMPREND    EQU $9800
 
-SpareBase           .equ $9800
-SpareLimit          .equ $F000
+MMSPARE    EQU $9800
+MMSPEND    EQU $F000
 
 ; Historical direct-sink module proofs keep the prior published image here.
 ; Production target proofs release and account for this complete 4 KiB range.
-BackupBase    .equ $A000
-BackupLimit   .equ $B000
+MMBACK     EQU $A000
+MMBKEND    EQU $B000
 
-StackFloor          .equ $F000
-StackTop            .equ $FF00
+MMSTKBOT   EQU $F000
+STACKTOP   EQU $FF00
 
-HighReservedBase    .equ $FF00
-AddressSpaceLimit   .equ $10000
+MMHIGH     EQU $FF00
+; Highest address is a native word; host output reports its exclusive end +1.
+MMLAST     EQU $FFFF

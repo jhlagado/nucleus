@@ -1,128 +1,128 @@
 ; CP/M command-tail parser and source preflight for native Nucleus. Accepted
 ; forms are no arguments, SOURCE, SOURCE OUTPUT, and ?.
 
-CpmCommandLength          .equ $0080
-CpmCommandStart           .equ $0081
-CpmCommandDefaultFcb1     .equ $005C
-CpmCommandDefaultFcb2     .equ $006C
-CpmCommandReadFunction    .equ 20
-CpmCommandOpenFunction    .equ 15
-CpmCommandDmaFunction     .equ 26
+CCTAILN     EQU $0080
+CCTAIL      EQU $0081
+CCINFCB     EQU $005C
+CCOUTFCB    EQU $006C
+CCFREAD     EQU 20
+CCFOPEN     EQU 15
+CCFDMA      EQU 26
 
-CpmCommandWorkspaceBase   .equ CpmSourceWorkspaceEnd
-CpmCommandDescriptor      .equ CpmCommandWorkspaceBase
-CpmCommandLaunchResult    .equ CpmCommandDescriptor+2
-CpmCompilerOutputName     .equ CpmCommandLaunchResult+9
-CpmCompilerOutputFormat   .equ CpmCompilerOutputName+12
-CpmCommandHelpRequested   .equ CpmCompilerOutputFormat+1
-CpmCommandWorkspaceEnd    .equ CpmCommandHelpRequested+1
+CCWKBASE    EQU CSWKEND
+CCDESC      EQU CCWKBASE
+CCLAUNCH    EQU CCDESC+2
+CCOUTNAM    EQU CCLAUNCH+9
+CCOUTFMT    EQU CCOUTNAM+12
+CCHELP      EQU CCOUTFMT+1
+CCWKEND     EQU CCHELP+1
 
-CpmOutputFormatCom        .equ 0
-CpmOutputFormatBin        .equ 1
-CpmOutputFormatHex        .equ 2
+CCFMTCOM    EQU 0
+CCFMTBIN    EQU 1
+CCFMTHEX    EQU 2
 
-CpmCommandCodeStart:
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmCommandPrepare:
+CCCODE:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CCPREP:
             XOR  A
-            LD   (CpmCommandHelpRequested),A
-            LD   HL,CpmCommandDefaultInput
-            CALL CpmCommandCopyNamePair
+            LD   (CCHELP),A
+            LD   HL,CCDEFIN
+            CALL CCCPPAIR
             LD   A,1
-            LD   (CpmSourcePartCount),A
-            LD   A,(CpmCommandLength)
+            LD   (CSPARTN),A
+            LD   A,(CCTAILN)
             LD   B,A
-            LD   HL,CpmCommandStart
-            CALL CpmCommandSkipSpaces
-            JR   Z,CpmCommandNamesReady
+            LD   HL,CCTAIL
+            CALL CCSKIPSP
+            JR   Z,CCNAMSOK
             CP   '?'
-            JR   NZ,CpmCommandFirstName
+            JR   NZ,CCFIRST
             INC  HL
             DEC  B
-            CALL CpmCommandSkipSpaces
-            JR   NZ,CpmCommandPrepareInvalid
+            CALL CCSKIPSP
+            JR   NZ,CCBADPRE
             LD   A,1
-            LD   (CpmCommandHelpRequested),A
+            LD   (CCHELP),A
             XOR  A
             RET
-CpmCommandFirstName:
-            CALL CpmCommandParseFilename
-            JR   C,CpmCommandPrepareInvalid
-            CALL CpmCommandSkipSpaces
-            JR   Z,CpmCommandCopySingleName
-            CALL CpmCommandParseFilename
-            JR   C,CpmCommandPrepareInvalid
-            CALL CpmCommandSkipSpaces
-            JR   NZ,CpmCommandPrepareInvalid
-CpmCommandCopyNames:
-            LD   HL,CpmCommandDefaultFcb1
+CCFIRST:
+            CALL CCPARSE
+            JR   C,CCBADPRE
+            CALL CCSKIPSP
+            JR   Z,CCCPSING
+            CALL CCPARSE
+            JR   C,CCBADPRE
+            CALL CCSKIPSP
+            JR   NZ,CCBADPRE
+CCCPNAMS:
+            LD   HL,CCINFCB
             LD   A,4
-            CALL CpmCommandCopyNamePair
-            JR   CpmCommandNamesReady
-CpmCommandCopySingleName:
-            LD   HL,CpmCommandDefaultFcb1
-            LD   DE,CpmSourcePartDescriptors
+            CALL CCCPPAIR
+            JR   CCNAMSOK
+CCCPSING:
+            LD   HL,CCINFCB
+            LD   DE,CSDESCS
             LD   BC,12
             LDIR
-            LD   HL,CpmSourcePartDescriptors+9
+            LD   HL,CSDESCS+9
             LD   A,(HL)
             CP   ' '
-            JR   NZ,CpmCommandSingleExtensionReady
+            JR   NZ,CCEXTOK
             LD   (HL),'N'
             INC  HL
             LD   (HL),'U'
-CpmCommandSingleExtensionReady:
-            LD   HL,CpmSourcePartDescriptors
-            LD   DE,CpmCompilerOutputName
+CCEXTOK:
+            LD   HL,CSDESCS
+            LD   DE,CCOUTNAM
             LD   BC,12
             LDIR
-            LD   HL,CpmCompilerOutputName+9
+            LD   HL,CCOUTNAM+9
             LD   (HL),'C'
             INC  HL
             LD   (HL),'O'
             INC  HL
             LD   (HL),'M'
-CpmCommandNamesReady:
-            CALL CpmCommandSelectOutputFormat
-            JR   C,CpmCommandPrepareInvalid
-            LD   HL,CpmSourcePartDescriptors
-            LD   DE,CpmCompilerOutputName
-            CALL CpmCommandNamesEqual
-            JP   Z,CpmCommandConflict
-            LD   HL,CpmSourcePartDescriptors
-            CALL CpmCommandScanSource
+CCNAMSOK:
+            CALL CCSELFMT
+            JR   C,CCBADPRE
+            LD   HL,CSDESCS
+            LD   DE,CCOUTNAM
+            CALL CCNAMEEQ
+            JP   Z,CCCONFL
+            LD   HL,CSDESCS
+            CALL CCSCAN
             RET  C
             XOR  A
             RET
-CpmCommandPrepareInvalid:
-            JP   CpmCommandInvalid
+CCBADPRE:
+            JP   CCINVAL
 
 ; Select the materialized delivery format from the explicit output suffix.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-CpmCommandSelectOutputFormat:
-            LD   DE,CpmCommandOutputExtensions
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+CCSELFMT:
+            LD   DE,CCEXTS
             LD   B,3
             XOR  A
-CpmCommandOutputFormatLoop:
+CCFMTLP:
             PUSH AF
             PUSH BC
             PUSH DE
-            LD   HL,CpmCompilerOutputName+9
+            LD   HL,CCOUTNAM+9
             LD   B,3
-CpmCommandOutputTypeLoop:
+CCTYPELP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,CpmCommandOutputTypeDifferent
+            JR   NZ,CCTYPDIF
             INC  DE
             INC  HL
-            DJNZ CpmCommandOutputTypeLoop
+            DJNZ CCTYPELP
             POP  DE
             POP  BC
             POP  AF
-            LD   (CpmCompilerOutputFormat),A
+            LD   (CCOUTFMT),A
             OR   A
             RET
-CpmCommandOutputTypeDifferent:
+CCTYPDIF:
             POP  DE
             LD   HL,3
             ADD  HL,DE
@@ -130,90 +130,90 @@ CpmCommandOutputTypeDifferent:
             POP  BC
             POP  AF
             INC  A
-            DJNZ CpmCommandOutputFormatLoop
+            DJNZ CCFMTLP
             SCF
             RET
 
 ; Read one selected source sequentially to establish its exact logical length.
 ; Text EOF terminates a part; byte 65,536 fails before descriptor publication.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmCommandScanSource:
-            LD   DE,CpmSourceStreamFcb
-            CALL CpmBuildFcb
-            LD   (CpmCommandDescriptor),HL
-            LD   DE,CpmSourceStreamFcb
-            LD   C,CpmCommandOpenFunction
-            CALL CpmCallBdos
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CCSCAN:
+            LD   DE,CSSTRFCB
+            CALL FCBMAKE
+            LD   (CCDESC),HL
+            LD   DE,CSSTRFCB
+            LD   C,CCFOPEN
+            CALL BDOSCALL
             INC  A
-            JR   Z,CpmCommandNotFound
-            LD   DE,NativeSourceChunkBase
-            LD   C,CpmCommandDmaFunction
-            CALL CpmCallBdos
+            JR   Z,CCNOFILE
+            LD   DE,SRCCHUNK
+            LD   C,CCFDMA
+            CALL BDOSCALL
             LD   HL,0
-CpmCommandSourceRecord:
+CCSRCREC:
             PUSH HL
-            LD   DE,CpmSourceStreamFcb
-            LD   C,CpmCommandReadFunction
-            CALL CpmCallBdos
+            LD   DE,CSSTRFCB
+            LD   C,CCFREAD
+            CALL BDOSCALL
             POP  HL
             OR   A
-            JR   Z,CpmCommandSourceScan
+            JR   Z,CCSRCSCN
             DEC  A
-            JR   NZ,CpmCommandStorage
-            JR   CpmCommandSourceDone
-CpmCommandSourceScan:
+            JR   NZ,CCIOERR
+            JR   CCSRCEND
+CCSRCSCN:
             LD   B,128
-            LD   DE,NativeSourceChunkBase
-CpmCommandSourceByte:
+            LD   DE,SRCCHUNK
+CCSRCBYT:
             LD   A,(DE)
             CP   $1A
-            JR   Z,CpmCommandSourceDone
+            JR   Z,CCSRCEND
             INC  DE
             INC  HL
             LD   A,H
             OR   L
-            JR   Z,CpmCommandCapacity
-            DJNZ CpmCommandSourceByte
-            JR   CpmCommandSourceRecord
-CpmCommandSourceDone:
+            JR   Z,CCCAPERR
+            DJNZ CCSRCBYT
+            JR   CCSRCREC
+CCSRCEND:
             EX   DE,HL
-            LD   HL,(CpmCommandDescriptor)
+            LD   HL,(CCDESC)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             XOR  A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCommandNotFound:
-            LD   A,NucleusStatusNotFound
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CCNOFILE:
+            LD   A,NSTATNF
             SCF
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCommandCapacity:
-            LD   A,NucleusStatusCapacity
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CCCAPERR:
+            LD   A,NSTATCAP
             SCF
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCommandStorage:
-            LD   A,NucleusStatusStorage
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CCIOERR:
+            LD   A,NSTATIO
             SCF
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCommandInvalid:
-            LD   A,NucleusStatusInvalid
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CCINVAL:
+            LD   A,NSTATINV
             SCF
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCommandConflict:
-            LD   A,NucleusStatusConflict
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CCCONFL:
+            LD   A,NSTATCF
             SCF
             RET
 
 ; Raw command-tail helpers validate exact arity and current-drive 8.3 syntax.
-.routine in B,HL out A,B,HL,zero clobbers carry,sign,parity,halfCarry
-CpmCommandSkipSpaces:
+; Contract: in B,HL out A,B,HL,zero clobbers carry,sign,parity,halfCarry
+CCSKIPSP:
             LD   A,B
             OR   A
             RET  Z
@@ -222,110 +222,110 @@ CpmCommandSkipSpaces:
             RET  NZ
             INC  HL
             DEC  B
-            JR   CpmCommandSkipSpaces
+            JR   CCSKIPSP
 
-.routine in B,HL out A,B,HL,carry clobbers zero,sign,parity,halfCarry,C,D
-CpmCommandParseFilename:
+; Contract: in B,HL out A,B,HL,carry clobbers zero,sign,parity,halfCarry,C,D
+CCPARSE:
             LD   D,8
             LD   C,0
-CpmCommandFilenameByte:
+CCFNBYTE:
             LD   A,B
             OR   A
-            JR   Z,CpmCommandFilenameDone
+            JR   Z,CCFNDONE
             LD   A,(HL)
             CP   ' '
-            JR   Z,CpmCommandFilenameDone
+            JR   Z,CCFNDONE
             CP   '.'
-            JR   NZ,CpmCommandFilenameData
+            JR   NZ,CCFNDATA
             LD   A,D
             CP   8
-            JR   NZ,CpmCommandFilenameBad
+            JR   NZ,CCFNBAD
             LD   A,C
             OR   A
-            JR   Z,CpmCommandFilenameBad
+            JR   Z,CCFNBAD
             LD   D,3
             LD   C,0
-            JR   CpmCommandFilenameTake
-CpmCommandFilenameData:
-            CALL CpmCommandFilenameChar
+            JR   CCFNTAKE
+CCFNDATA:
+            CALL CCFNCHAR
             RET  C
             INC  C
             LD   A,D
             CP   C
-            JR   C,CpmCommandFilenameBad
-CpmCommandFilenameTake:
+            JR   C,CCFNBAD
+CCFNTAKE:
             INC  HL
             DEC  B
-            JR   CpmCommandFilenameByte
-CpmCommandFilenameDone:
+            JR   CCFNBYTE
+CCFNDONE:
             LD   A,C
             OR   A
-            JR   Z,CpmCommandFilenameBad
+            JR   Z,CCFNBAD
             RET
-CpmCommandFilenameBad:
+CCFNBAD:
             SCF
             RET
 
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry
-CpmCommandFilenameChar:
+; Contract: in A out A,carry clobbers zero,sign,parity,halfCarry
+CCFNCHAR:
             CP   '!'
             RET  C
             CP   $7F
-            JR   NC,CpmCommandFilenameCharBad
+            JR   NC,CCFNERR
             CP   '*'
-            JR   C,CpmCommandFilenameCharHigh
+            JR   C,CCFNHI
             CP   '-'
-            JR   C,CpmCommandFilenameCharBad
+            JR   C,CCFNERR
             CP   '/'
-            JR   Z,CpmCommandFilenameCharBad
+            JR   Z,CCFNERR
             CP   ':'
-            JR   C,CpmCommandFilenameCharHigh
+            JR   C,CCFNHI
             CP   '@'
-            JR   C,CpmCommandFilenameCharBad
-CpmCommandFilenameCharHigh:
+            JR   C,CCFNERR
+CCFNHI:
             CP   '['
-            JR   C,CpmCommandFilenameCharReady
+            JR   C,CCFNOK
             CP   '^'
-            JR   C,CpmCommandFilenameCharBad
+            JR   C,CCFNERR
             CP   '_'
-            JR   Z,CpmCommandFilenameCharBad
-CpmCommandFilenameCharReady:
+            JR   Z,CCFNERR
+CCFNOK:
             OR   A
             RET
-CpmCommandFilenameCharBad:
+CCFNERR:
             SCF
             RET
 
-.routine in DE,HL out A,zero clobbers carry,sign,parity,halfCarry,B,DE,HL
-CpmCommandNamesEqual:
+; Contract: in DE,HL out A,zero clobbers carry,sign,parity,halfCarry,B,DE,HL
+CCNAMEEQ:
             LD   B,12
-CpmCommandNameByte:
+CCNAMEBY:
             LD   A,(DE)
             CP   (HL)
             RET  NZ
             INC  DE
             INC  HL
-            DJNZ CpmCommandNameByte
+            DJNZ CCNAMEBY
             XOR  A
             RET
 
 ; Copy two twelve-byte FCB name fields separated by A bytes in the source.
-.routine in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmCommandCopyNamePair:
-            LD   DE,CpmSourcePartDescriptors
+; Contract: in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+CCCPPAIR:
+            LD   DE,CSDESCS
             LD   BC,12
             LDIR
             LD   C,A
             ADD  HL,BC
-            LD   DE,CpmCompilerOutputName
+            LD   DE,CCOUTNAM
             LD   BC,12
             LDIR
             RET
 
-CpmCommandCodeEnd:
+CCCODEND:
 
-CpmCommandImmutableStart:
-CpmCommandDefaultInput:  .db 0,"INPUT   ","NU "
-CpmCommandDefaultOutput: .db 0,"OUTPUT  ","COM"
-CpmCommandOutputExtensions: .db "COM","BIN","HEX"
-CpmCommandImmutableEnd:
+CCCONST:
+CCDEFIN:  DB 0,"INPUT   ","NU "
+CCDEFOUT: DB 0,"OUTPUT  ","COM"
+CCEXTS: DB "COM","BIN","HEX"
+CCCONEND:

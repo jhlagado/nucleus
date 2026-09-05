@@ -1,0 +1,4 @@
+; MON3 development services occupy the same fixed region in normal and
+; debug compiler images. This part precedes all service code.
+            ORG $4400
+SYBASE:

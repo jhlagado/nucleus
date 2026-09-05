@@ -5,7 +5,45 @@ on:
   pull_request:
 
 jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Source-isolation tests use Node's TypeScript transformation support.
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:release-source
+
   test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --shard=${{ matrix.shard }}/4
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:release-package
+
+  node20-consumer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,4 +52,24 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run prepublishOnly
+      # Verify the advertised runtime minimum without the development test loader.
+      - run: npm run build
+      - run: npm run check:runtime-boundary
+      - run: npm run test:package
+
+  release-gate:
+    if: ${{ always() }}
+    needs: [source, test, package, node20-consumer]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every release check to succeed
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          PACKAGE_RESULT: ${{ needs.package.result }}
+          NODE20_RESULT: ${{ needs.node20-consumer.result }}
+        run: |
+          test "$SOURCE_RESULT" = success
+          test "$TEST_RESULT" = success
+          test "$PACKAGE_RESULT" = success
+          test "$NODE20_RESULT" = success

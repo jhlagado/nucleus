@@ -1,0 +1,7 @@
+; Use the actual production memory map. Only source-part capacity remains a
+; proof setting until its compiler-state declaration is extracted.
+%INCLUDE "cpm22-target-memory-map.asmi"
+SRCPARTS EQU 8
+
+; All five adapter proofs occupy the host-code region before their own stubs.
+            ORG $4100

@@ -1,4 +1,4 @@
-extern CpmBdos
+extern CPMBDOS
 out A
 clobbers BC,DE,HL,IX,IY,carry,zero,sign,parity,halfCarry
 end

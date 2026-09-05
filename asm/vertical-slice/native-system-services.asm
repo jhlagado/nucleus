@@ -2,119 +2,119 @@
 ; and target-stream services are implemented by Z80 code. Named objects and
 ; runtime-catalogue chunks continue through the narrow platform provider.
 
-NativeSystemSavedStatus .equ NativeSourceProviderWorkspaceEnd
-NativeSystemSavedA      .equ NativeSystemSavedStatus+1
+SYSTATUS    EQU SPWKEND
+SYSAVA      EQU SYSTATUS+1
 
-.routine in A,C out A,BC,DE,HL,IX,IY,carry,zero clobbers sign,parity,halfCarry
-NativeSystemDispatcher:
-            LD   (NativeSystemSavedA),A
+; Contract: in A,C out A,BC,DE,HL,IX,IY,carry,zero clobbers sign,parity,halfCarry
+SYDISPT:
+            LD   (SYSAVA),A
             LD   A,C
-            CP   NucleusServiceCompilerFirst+0
-            JR   Z,NativeSystemSourceNext
-            CP   NucleusServiceCompilerFirst+1
-            JR   Z,NativeSystemRetainName
-            CP   NucleusServiceCompilerFirst+2
-            JR   Z,NativeSystemCompareName
-            CP   NucleusServiceCompilerFirst+3
-            JR   Z,NativeSystemMaterializeName
-            CP   NucleusServiceCompilerFirst+4
-            JP   Z,NativeSystemTargetBegin
-            CP   NucleusServiceCompilerFirst+5
-            JP   Z,NativeSystemTargetImage
-            CP   NucleusServiceCompilerFirst+6
-            JP   Z,NativeSystemRuntime
-            CP   NucleusServiceCompilerFirst+7
-            JP   Z,NativeSystemRuntime
-            CP   NucleusServiceCompilerFirst+8
-            JP   Z,NativeSystemPatchByte
-            CP   NucleusServiceCompilerFirst+9
-            JP   Z,NativeSystemPatchWord
-            CP   NucleusServiceCompilerFirst+10
-            JP   Z,NativeSystemMap
-            CP   NucleusServiceCompilerFirst+11
-            JP   Z,NativeSystemMap
-            CP   NucleusServiceCompilerFirst+12
-            JP   Z,NativeSystemCommit
-            CP   NucleusServiceCompilerFirst+13
-            JP   Z,NativeSystemAbort
-            CP   NucleusServiceCompilerFirst+14
-            JP   Z,NativeSystemLaunchBegin
-            CP   NucleusServiceCompilerFirst+15
-            JP   Z,NativeSystemLaunchEnd
-NativeSystemExternal:
-            LD   A,(NativeSystemSavedA)
-            OUT  (NativeHostMon3NodePort),A
+            CP   NSCOMPF+0
+            JR   Z,SYSOURCE
+            CP   NSCOMPF+1
+            JR   Z,SYRETAIN
+            CP   NSCOMPF+2
+            JR   Z,SYCMPNAM
+            CP   NSCOMPF+3
+            JR   Z,SYMATNAM
+            CP   NSCOMPF+4
+            JP   Z,SYBEGIN
+            CP   NSCOMPF+5
+            JP   Z,SYIMAGE
+            CP   NSCOMPF+6
+            JP   Z,SYRUNTIM
+            CP   NSCOMPF+7
+            JP   Z,SYRUNTIM
+            CP   NSCOMPF+8
+            JP   Z,SYPATCH
+            CP   NSCOMPF+9
+            JP   Z,SYPATWD
+            CP   NSCOMPF+10
+            JP   Z,SYMAP
+            CP   NSCOMPF+11
+            JP   Z,SYMAP
+            CP   NSCOMPF+12
+            JP   Z,SYCOMMIT
+            CP   NSCOMPF+13
+            JP   Z,SYABORT
+            CP   NSCOMPF+14
+            JP   Z,SYLAUNCH
+            CP   NSCOMPF+15
+            JP   Z,SYFINISH
+SYEXTERN:
+            LD   A,(SYSAVA)
+            OUT  (HPMON3),A
             RET
 
-NativeSystemSourceNext:
-            LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderNext
+SYSOURCE:
+            LD   A,(SYSAVA)
+            JP   SPNEXT
 
-NativeSystemRetainName:
-            LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
-            JP   NativeSourceProviderRetainName
+SYRETAIN:
+            LD   A,(SYSAVA)
+            LD   BC,(NHM3BC)
+            JP   SPRETAIN
 
-NativeSystemCompareName:
-            LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderCompareName
+SYCMPNAM:
+            LD   A,(SYSAVA)
+            JP   SPCMPNAM
 
-NativeSystemMaterializeName:
-            LD   A,(NativeSystemSavedA)
-            JP   NativeSourceProviderMaterializeName
+SYMATNAM:
+            LD   A,(SYSAVA)
+            JP   SPMATNAM
 
-NativeSystemTargetBegin:
-            JP   NativeNobjBegin
+SYBEGIN:
+            JP   NJBEGIN
 
-NativeSystemTargetImage:
-            LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
+SYIMAGE:
+            LD   A,(SYSAVA)
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL NativeNobjImageByte
+            CALL NJIMAGE
             POP  IY
             POP  IX
             POP  HL
             POP  BC
             RET
 
-NativeSystemRuntime:
-            LD   A,(NativeHostRuntimeOperation)
-            LD   BC,(NativeHostMon3InputBC)
-            CALL NativeNobjRuntime
-            JR   C,NativeSystemRuntimeFailed
+SYRUNTIM:
+            LD   A,(NHRTOP)
+            LD   BC,(NHM3BC)
+            CALL NJRUNTIM
+            JR   C,SYRTFAIL
             XOR  A
-NativeSystemRuntimeStatus:
-            LD   (NativeHostRuntimeStatus),A
+SYRTSTAT:
+            LD   (NHRTSTAT),A
             RET
-NativeSystemRuntimeFailed:
+SYRTFAIL:
             SCF
-            JR   NativeSystemRuntimeStatus
+            JR   SYRTSTAT
 
-NativeSystemPatchByte:
-            LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
+SYPATCH:
+            LD   A,(SYSAVA)
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL NativeNobjPatchByte
+            CALL NJPATCH
             POP  IY
             POP  IX
             POP  HL
             POP  BC
             RET
 
-NativeSystemPatchWord:
-            LD   BC,(NativeHostMon3InputBC)
+SYPATWD:
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH DE
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL NativeNobjPatchWord
+            CALL NJPATWD
             POP  IY
             POP  IX
             POP  HL
@@ -122,16 +122,16 @@ NativeSystemPatchWord:
             POP  BC
             RET
 
-NativeSystemMap:
-            JP   NativeNobjMap
+SYMAP:
+            JP   NJMAP
 
-NativeSystemCommit:
+SYCOMMIT:
             PUSH BC
             PUSH DE
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL NativeNobjCommit
+            CALL NJCOMMIT
             POP  IY
             POP  IX
             POP  HL
@@ -139,13 +139,13 @@ NativeSystemCommit:
             POP  BC
             RET
 
-NativeSystemAbort:
+SYABORT:
             PUSH BC
             PUSH DE
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL NativeNobjAbort
+            CALL NJABORT
             POP  IY
             POP  IX
             POP  HL
@@ -153,27 +153,27 @@ NativeSystemAbort:
             POP  BC
             RET
 
-NativeSystemLaunchBegin:
-            LD   A,(NativeSystemSavedA)
-            CALL NativeSourceProviderLaunchBegin
+SYLAUNCH:
+            LD   A,(SYSAVA)
+            CALL SPBEGIN
             RET  C
-            LD   C,NucleusServiceCompilerFirst+14
-            OUT  (NativeHostMon3NodePort),A
+            LD   C,NSCOMPF+14
+            OUT  (HPMON3),A
             RET  NC
-            LD   (NativeSystemSavedStatus),A
-            CALL NativeSourceProviderLaunchEnd
-            LD   A,(NativeSystemSavedStatus)
+            LD   (SYSTATUS),A
+            CALL SPEND
+            LD   A,(SYSTATUS)
             SCF
             RET
 
-NativeSystemLaunchEnd:
-            LD   A,(NativeSystemSavedA)
-            LD   (NativeSystemSavedStatus),A
-            CALL NativeSourceProviderLaunchEnd
+SYFINISH:
+            LD   A,(SYSAVA)
+            LD   (SYSTATUS),A
+            CALL SPEND
             RET  C
-            LD   A,(NativeSystemSavedStatus)
-            LD   C,NucleusServiceCompilerFirst+15
-            OUT  (NativeHostMon3NodePort),A
+            LD   A,(SYSTATUS)
+            LD   C,NSCOMPF+15
+            OUT  (HPMON3),A
             RET
 
-NativeSystemServicesEnd:
+SYEND:

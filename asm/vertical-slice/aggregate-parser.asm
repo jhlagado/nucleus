@@ -8,17 +8,17 @@
 ; Initializer bytes are staged privately; the Z80 backend publishes them only
 ; after the complete source has succeeded.
 
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
-AggregateFieldAddress:
-            LD   DE,AggregateFieldTableBase
-            JR   AggregateAddress6
+; Contract: in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+APFLDADR:
+            LD   DE,AFTABBAS
+            JR   APADR6
 
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
-AggregateTypeAddress:
-            SUB  AggregateFirstDynamicTypeId
-            LD   DE,AggregateTypeTableBase
-.routine in A,DE out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
-AggregateAddress6:
+; Contract: in A out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+APTYADR:
+            SUB  AGDYNTYP
+            LD   DE,ATTABBAS
+; Contract: in A,DE out A,HL clobbers carry,zero,sign,parity,halfCarry,DE
+APADR6:
             LD   L,A
             ADD  A,A
             ADD  A,L
@@ -28,34 +28,34 @@ AggregateAddress6:
             ADD  HL,DE
             RET
 
-.if TargetStreamingOutput
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
-TargetBankStateAddress:
-            LD   DE,TargetBankStateBase
-            JR   AggregateAddress6
+%IF TargetStreamingOutput
+; Contract: in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
+FTBKSTAD:
+            LD   DE,TBBAS
+            JR   APADR6
 
-.routine in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
-TargetBankRoLengthAddress:
-            LD   DE,TargetBankRoLengthBase
-            JR   AggregateAddress6
-.endif
+; Contract: in A out A,HL clobbers carry,zero,sign,parity,halfCarry,D,DE
+FTBRLEAD:
+            LD   DE,TBKROBAS
+            JR   APADR6
+%ENDIF
 
-.routine in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
-AggregateGetExtent:
-            CP   AggregateFirstDynamicTypeId
-            JR   NC,AggregateGetDynamicExtent
+; Contract: in A out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
+APGETEXT:
+            CP   AGDYNTYP
+            JR   NC,APGEDYEX
             LD   HL,1
             BIT  1,A
-            JR   NZ,AggregateGetU16Extent
+            JR   NZ,APU16EXT
             OR   A
             RET
-AggregateGetU16Extent:
+APU16EXT:
             INC  L
             OR   A
             RET
-AggregateGetDynamicExtent:
-            CALL AggregateTypeAddress
-            LD   DE,AggregateTypeExtent
+APGEDYEX:
+            CALL APTYADR
+            LD   DE,ATEXT
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
@@ -66,62 +66,62 @@ AggregateGetDynamicExtent:
 
 ; Append the complete descriptor in AggregateCandidate*. No structural
 ; lookup is performed, so this entry creates nominal record identity.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateAppendType:
-            LD   A,(AggregateTypeCount)
-            CP   AggregateTypeCapacity
-            JR   NC,AggregateTypeCapacityFailure
-            ADD  A,AggregateFirstDynamicTypeId
-            CALL AggregateTypeAddress
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APAPPTY:
+            LD   A,(ATCNT)
+            CP   ATCAP
+            JR   NC,APTYCAER
+            ADD  A,AGDYNTYP
+            CALL APTYADR
             LD   D,H
             LD   E,L
-            LD   HL,AggregateCandidateKind
-            LD   BC,AggregateTypeEntrySize
+            LD   HL,ANKIND
+            LD   BC,ATENTSZ
             LDIR
-            LD   A,(AggregateTypeCount)
-            ADD  A,AggregateFirstDynamicTypeId
+            LD   A,(ATCNT)
+            ADD  A,AGDYNTYP
             LD   C,A
-            LD   HL,AggregateTypeCount
+            LD   HL,ATCNT
             INC  (HL)
             LD   A,C
             OR   A
             RET
-AggregateTypeCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticTypeMetadataCapacity
+APTYCAER:
+            CALL DGINLINE
+            DB  DGTYPCAP
 
 ; Intern a structural string or array descriptor. CandidateKind/Aux/Length and
 ; CandidateExtent must already be complete. Extent is not part of structural
 ; identity; the first four bytes determine it for structural types.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateInternType:
-            LD   A,(AggregateTypeCount)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APINTY:
+            LD   A,(ATCNT)
             OR   A
-            JR   Z,AggregateAppendType
+            JR   Z,APAPPTY
             LD   B,A
-            LD   C,AggregateFirstDynamicTypeId
-AggregateInternLoop:
+            LD   C,AGDYNTYP
+APINLP:
             LD   A,C
-            CALL AggregateTypeAddress
-            LD   DE,AggregateCandidateKind
+            CALL APTYADR
+            LD   DE,ANKIND
             PUSH BC
             LD   B,4
-AggregateInternCompareLoop:
+APINCMLP:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,AggregateInternDifferent
+            JR   NZ,APINDF
             INC  DE
             INC  HL
-            DJNZ AggregateInternCompareLoop
+            DJNZ APINCMLP
             POP  BC
-            JR   AggregateInternFound
-AggregateInternDifferent:
+            JR   APINFND
+APINDF:
             POP  BC
-AggregateInternNext:
+APINNX:
             INC  C
-            DJNZ AggregateInternLoop
-            JR   AggregateAppendType
-AggregateInternFound:
+            DJNZ APINLP
+            JR   APAPPTY
+APINFND:
             LD   A,C
             OR   A
             RET
@@ -129,69 +129,69 @@ AggregateInternFound:
 ; Collect array suffixes in source order. The complete type is formed only
 ; after the last suffix, so u8[3][2] can be interned as u8[2] and then as
 ; three elements of that row type.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-AggregateBeginArrayType:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+APBGARTY:
             XOR  A
-            LD   (AggregateTypeDimensionCount),A
-            LD   (AggregateTypeOpenArrayFlag),A
+            LD   (ADCNT),A
+            LD   (ATOAFLAG),A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-AggregateRejectOpenViewCurrent:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstOpenViewTypeId
-            JP   NC,AggregateTypeShapeFailure
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+APROVWCU:
+            LD   A,(ACTYPID)
+            CP   AGOVIEW
+            JP   NC,APTYSHER
             OR   A
             RET
 
 ; HL is one already-checked positive concrete dimension.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
-AggregateSaveArrayDimension:
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
+APSVARDI:
+            CALL APROVWCU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateTypeDimensionCount)
-            CP   AggregateTypeDimensionCapacity
-            JR   NC,AggregateTypeCapacityFailure
+%ENDIF
+            LD   A,(ADCNT)
+            CP   ADCAP
+            JR   NC,APTYCAER
             LD   C,L
             LD   B,H
             ADD  A,A
             ADD  A,A
             LD   E,A
             LD   D,0
-            LD   HL,AggregateTypeDimensionBase
+            LD   HL,ADBAS
             ADD  HL,DE
             LD   (HL),C
             INC  HL
             LD   (HL),B
             INC  HL
-            LD   DE,(TokenStartOffset)
+            LD   DE,(TNSTOFF)
             LD   (HL),E
             INC  HL
             LD   (HL),D
-            LD   HL,AggregateTypeDimensionCount
+            LD   HL,ADCNT
             INC  (HL)
             OR   A
             RET
 
 ; The only omitted array bound is the first suffix of a formal-parameter
 ; type. Later placement checks keep the completed view parameter-only.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-AggregateSaveOpenArrayDimension:
-            LD   A,(AggregateTypeDimensionCount)
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+APSOARDI:
+            LD   A,(ADCNT)
             LD   B,A
-            LD   A,(AggregateTypeOpenArrayFlag)
+            LD   A,(ATOAFLAG)
             OR   B
-            JP   NZ,AggregateTypeShapeFailure
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
+            JP   NZ,APTYSHER
+            CALL APROVWCU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   DE,AggregateTypeOpenArrayPosition
-            CALL CompilerCopyTokenPosition
+%ENDIF
+            LD   DE,ATOAPOS
+            CALL DGCOPYTK
             LD   A,1
-            LD   (AggregateTypeOpenArrayFlag),A
+            LD   (ATOAFLAG),A
             OR   A
             RET
 
@@ -199,87 +199,87 @@ AggregateSaveOpenArrayDimension:
 ; its closing bracket. The recursive suffix collector has already buffered the
 ; following token, so restore the retained suffix position only for an open
 ; array; concrete types and string[] keep their existing diagnostic positions.
-.routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-AggregateRejectOpenViewPlacement:
-            LD   A,(AggregateCurrentTypeId)
+; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
+APROVWPL:
+            LD   A,(ACTYPID)
             OR   A
-            JP   P,AggregateRejectOpenViewCurrent
-            LD   HL,AggregateTypeOpenArrayPosition
-            CALL CompilerRestoreTokenPosition
-            JR   AggregateRejectOpenViewCurrent
+            JP   P,APROVWCU
+            LD   HL,ATOAPOS
+            CALL DGRESTTK
+            JR   APROVWCU
 
 ; Wrap AggregateCurrentTypeId in one concrete array dimension. HL is the
 ; dimension length and the previous current type becomes the exact element ID.
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateWrapArrayCurrent:
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APWRARCU:
+            CALL APROVWCU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   (AggregateCandidateAux),A
-            LD   (AggregateCandidateLength),HL
+%ENDIF
+            LD   (ANAUX),A
+            LD   (ANLEN),HL
             LD   B,H
             LD   C,L
-            LD   A,(AggregateCandidateAux)
-            CALL AggregateGetExtent
+            LD   A,(ANAUX)
+            CALL APGETEXT
             LD   D,H
             LD   E,L
             LD   HL,0
-AggregateWrapArrayExtentLoop:
+APWAEXLP:
             ADD  HL,DE
-.if CompilerNonlocalDiagnostics
-            JR   C,AggregateProgramDataCapacityFailure
-.else
-            JP   C,AggregateProgramDataCapacityFailure
-.endif
-.if CompilerNonlocalDiagnostics
+%IF CompilerNonlocalDiagnostics
+            JR   C,APPDCAER
+%ELSE
+            JP   C,APPDCAER
+%ENDIF
+%IF CompilerNonlocalDiagnostics
             PUSH BC
-.endif
-            CALL AggregateCheckExtentCapacity
-.if CompilerNonlocalDiagnostics
+%ENDIF
+            CALL APCKEXCA
+%IF CompilerNonlocalDiagnostics
             POP  BC
-.endif
-.if CompilerDiagnosticReturns
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  BC
             LD   A,B
             OR   C
-            JR   NZ,AggregateWrapArrayExtentLoop
-            LD   (AggregateCandidateExtent),HL
-            LD   A,AggregateTypeKindArray
-            LD   (AggregateCandidateKind),A
-            CALL AggregateInternType
-.if CompilerDiagnosticReturns
+            JR   NZ,APWAEXLP
+            LD   (ANEXT),HL
+            LD   A,ATKARRAY
+            LD   (ANKIND),A
+            CALL APINTY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   (AggregateCurrentTypeId),A
+%ENDIF
+            LD   (ACTYPID),A
             OR   A
             RET
 
 ; Apply saved concrete dimensions from innermost to outermost, then apply an
 ; optional outer open view. The buffer itself stays outside source-visible
 ; type identity and is reused by the next type parse.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateFinishArrayType:
-            LD   A,(AggregateTypeDimensionCount)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APFIARTY:
+            LD   A,(ADCNT)
             OR   A
-            JR   Z,AggregateFinishArrayOpen
-            LD   DE,(TokenStartOffset)
-            LD   (AggregateTypeResumeOffset),DE
+            JR   Z,APFIAROP
+            LD   DE,(TNSTOFF)
+            LD   (ATRESOFF),DE
             LD   B,A
             ADD  A,A
             ADD  A,A
             LD   E,A
             LD   D,0
-            LD   HL,AggregateTypeDimensionBase
+            LD   HL,ADBAS
             ADD  HL,DE
-AggregateFinishArrayLoop:
+APFIARLP:
             DEC  HL
             LD   D,(HL)
             DEC  HL
             LD   E,(HL)
-            LD   (TokenStartOffset),DE
+            LD   (TNSTOFF),DE
             DEC  HL
             LD   D,(HL)
             DEC  HL
@@ -287,523 +287,523 @@ AggregateFinishArrayLoop:
             PUSH BC
             PUSH HL
             EX   DE,HL
-            CALL AggregateWrapArrayCurrent
+            CALL APWRARCU
             POP  HL
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            DJNZ AggregateFinishArrayLoop
-            LD   DE,(AggregateTypeResumeOffset)
-            LD   (TokenStartOffset),DE
-AggregateFinishArrayOpen:
-            LD   A,(AggregateTypeOpenArrayFlag)
+%ENDIF
+            DJNZ APFIARLP
+            LD   DE,(ATRESOFF)
+            LD   (TNSTOFF),DE
+APFIAROP:
+            LD   A,(ATOAFLAG)
             OR   A
-            JR   Z,AggregateFinishArrayReady
-            CALL AggregateRejectOpenViewCurrent
-.if CompilerDiagnosticReturns
+            JR   Z,APFIARRD
+            CALL APROVWCU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            OR   AggregateOpenArrayTypeMask
-            LD   (AggregateCurrentTypeId),A
-AggregateFinishArrayReady:
-            LD   A,(AggregateCurrentTypeId)
+%ENDIF
+            OR   AGOAMSK
+            LD   (ACTYPID),A
+APFIARRD:
+            LD   A,(ACTYPID)
             OR   A
             RET
 
 ; The first compiler admits one aggregate object up to the selected complete
 ; program-data region. HL is a nonzero mathematical extent.
-.if SegmentedOutput
-.if CompilerNonlocalDiagnostics
+%IF SegmentedOutput
+%IF CompilerNonlocalDiagnostics
 ; Production diagnostics never return, so B can select the exact
 ; capacity diagnostic without adding a second copy of the word predicate.
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
-AggregateCheckExtentCapacity:
-            LD   B,DiagnosticProgramDataCapacity
-            JR   AggregateCheckSegmentedCapacity
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+APCKEXCA:
+            LD   B,DGPDCAP
+            JR   APCKSECA
 
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
-AggregateCheckReadOnlyCapacity:
-            LD   B,DiagnosticReadOnlyCapacity
-.routine in B,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
-AggregateCheckSegmentedCapacity:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+APCRDOCA:
+            LD   B,DGROCAP
+; Contract: in B,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
+APCKSECA:
             LD   A,H
             CP   4
-            JR   C,AggregateSegmentedCapacityReady
-            JR   NZ,AggregateSegmentedCapacityFailure
+            JR   C,APSECARD
+            JR   NZ,APSECAER
             LD   A,L
             OR   A
-            JR   NZ,AggregateSegmentedCapacityFailure
-AggregateSegmentedCapacityReady:
+            JR   NZ,APSECAER
+APSECARD:
             OR   A
             RET
-AggregateSegmentedCapacityFailure:
+APSECAER:
             LD   A,B
-            JP   CompilerSetDiagnostic
-.else
+            JP   DGSET
+%ELSE
 ; Returning-diagnostic historical layouts retain independently balanced
 ; routines so their public preservation contracts remain unchanged.
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
-AggregateCheckExtentCapacity:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+APCKEXCA:
             LD   A,H
             CP   4
-            JR   C,AggregateExtentCapacityReady
-            JR   NZ,AggregateExtentCapacityFailure
+            JR   C,APEXCARD
+            JR   NZ,APEXCAER
             LD   A,L
             OR   A
-            JR   NZ,AggregateExtentCapacityFailure
-AggregateExtentCapacityReady:
+            JR   NZ,APEXCAER
+APEXCARD:
             OR   A
             RET
-AggregateExtentCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticProgramDataCapacity
+APEXCAER:
+            CALL DGINLINE
+            DB  DGPDCAP
 
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
-AggregateCheckReadOnlyCapacity:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+APCRDOCA:
             LD   A,H
             CP   4
-            JR   C,AggregateReadOnlyCapacityReady
-            JR   NZ,AggregateReadOnlyCapacityFailure
+            JR   C,APROCARD
+            JR   NZ,APROCAER
             LD   A,L
             OR   A
-            JR   NZ,AggregateReadOnlyCapacityFailure
-AggregateReadOnlyCapacityReady:
+            JR   NZ,APROCAER
+APROCARD:
             OR   A
             RET
-AggregateReadOnlyCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticReadOnlyCapacity
-.endif
-.else
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
-AggregateCheckExtentCapacity:
+APROCAER:
+            CALL DGINLINE
+            DB  DGROCAP
+%ENDIF
+%ELSE
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry
+APCKEXCA:
             LD   A,H
             OR   A
-            JR   NZ,AggregateExtentCapacityFailure
-AggregateExtentCapacityReady:
+            JR   NZ,APEXCAER
+APEXCARD:
             OR   A
             RET
-AggregateExtentCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticProgramDataCapacity
-.endif
+APEXCAER:
+            CALL DGINLINE
+            DB  DGPDCAP
+%ENDIF
 
-.if HybridLL1Full
-AggregateTypeShapeFailure:
-            CALL SetDiagInline
-            .db  DiagnosticTypeBound
-AggregateProgramDataCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticProgramDataCapacity
-AggregateStringCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticStringCapacity
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseBound:
-            LD   A,ScalarTypeU16
-            CALL TypedExpressionBeginConstant
-.if CompilerDiagnosticReturns
+%IF HybridLL1Full
+APTYSHER:
+            CALL DGINLINE
+            DB  DGTYPBND
+APPDCAER:
+            CALL DGINLINE
+            DB  DGPDCAP
+APSTCAER:
+            CALL DGINLINE
+            DB  DGSTRCAP
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPBND:
+            LD   A,TYU16
+            CALL TYEXBGK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   D,A
-            AND  ScalarMetaConstant
-            JP   Z,AggregateTypeShapeFailure
-            LD   E,ScalarTypeU16
+            AND  MTCONST
+            JP   Z,APTYSHER
+            LD   E,TYU16
             LD   A,D
-            CALL TypedCheckAssignable
-.if CompilerDiagnosticReturns
+            CALL TYCKASG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,H
             OR   L
-            JR   Z,AggregateTypeShapeFailure
+            JR   Z,APTYSHER
             PUSH HL
-            LD   E,TokenRightBracket
-            CALL ParserExpect
+            LD   E,TNRBRK
+            CALL PSEXPECT
             POP  HL
             RET
 
-AggregateTypeShapeFailure:
-            CALL SetDiagInline
-            .db  DiagnosticTypeBound
+APTYSHER:
+            CALL DGINLINE
+            DB  DGTYPBND
 
 ; Parse any admitted aggregate type. Bounds and complete extents are retained
 ; as words. Object allocation is still bounded by the selected program-data
 ; region, and exceeding that implementation capacity receives a capacity
 ; diagnostic rather than changing the source type.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseType:
-            CALL AggregateBeginArrayType
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPTY:
+            CALL APBGARTY
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenU8
-            JR   Z,AggregateTypeU8
-            CP   TokenU16
-            JR   Z,AggregateTypeU16
-            CP   TokenI8
-            JR   Z,AggregateTypeI8
-            CP   TokenI16
-            JR   Z,AggregateTypeI16
-            CP   TokenBoolean
-            JR   Z,AggregateTypeBoolean
-            CP   TokenString
-            JR   Z,AggregateParseStringType
-            CP   TokenName
-            JR   NZ,AggregateTypeShapeFailure
-            CALL SymbolLookupCurrent
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TOKENU8
+            JR   Z,APTYU8
+            CP   TOKENU16
+            JR   Z,APTYU16
+            CP   TOKENI8
+            JR   Z,APTYI8
+            CP   TOKENI16
+            JR   Z,APTYI16
+            CP   TNBOOL
+            JR   Z,APTYBL
+            CP   TNSTR
+            JR   Z,APPSTRTY
+            CP   TNNAME
+            JR   NZ,APTYSHER
+            CALL SBLOOKUP
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   D,A
-            AND  SymbolRecordTypeFlag+SymbolAggregateFlag
-            CP   SymbolRecordTypeFlag
-            JR   NZ,AggregateTypeShapeFailure
+            AND  SYRECTYP+SYAGGFLG
+            CP   SYRECTYP
+            JR   NZ,APTYSHER
             LD   A,C
-            JR   AggregateTypeBaseReady
-AggregateTypeU8:
-            LD   A,AggregateTypeIdU8
-            JR   AggregateTypeBaseReady
-AggregateTypeU16:
-            LD   A,AggregateTypeIdU16
-            JR   AggregateTypeBaseReady
-AggregateTypeI8:
-            LD   A,AggregateTypeIdI8
-            JR   AggregateTypeBaseReady
-AggregateTypeI16:
-            LD   A,AggregateTypeIdI16
-            JR   AggregateTypeBaseReady
-AggregateTypeBoolean:
-            LD   A,AggregateTypeIdBoolean
-            JR   AggregateTypeBaseReady
-AggregateParseStringType:
-            LD   E,TokenLeftBracket
-            CALL ParserExpect
-.if CompilerDiagnosticReturns
+            JR   APTYBARD
+APTYU8:
+            LD   A,ATIDU8
+            JR   APTYBARD
+APTYU16:
+            LD   A,ATIDU16
+            JR   APTYBARD
+APTYI8:
+            LD   A,ATIDI8
+            JR   APTYBARD
+APTYI16:
+            LD   A,ATIDI16
+            JR   APTYBARD
+APTYBL:
+            LD   A,ATIDBOOL
+            JR   APTYBARD
+APPSTRTY:
+            LD   E,TNLBRK
+            CALL PSEXPECT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL AggregateParseBound
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL APPBND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,H
             OR   A
-            JP   NZ,AggregateStringCapacityFailure
+            JP   NZ,APSTCAER
             LD   A,L
             OR   A
-            JP   Z,AggregateTypeShapeFailure
+            JP   Z,APTYSHER
             CP   254
-            JP   NC,AggregateStringCapacityFailure
+            JP   NC,APSTCAER
             LD   A,L
-            LD   (AggregateCandidateAux),A
-            LD   (AggregateCandidateLength),HL
-            LD   A,AggregateTypeKindString
-            LD   (AggregateCandidateKind),A
+            LD   (ANAUX),A
+            LD   (ANLEN),HL
+            LD   A,ATKSTR
+            LD   (ANKIND),A
             INC  HL
             INC  HL
-            LD   (AggregateCandidateExtent),HL
-            CALL AggregateInternType
-.if CompilerDiagnosticReturns
+            LD   (ANEXT),HL
+            CALL APINTY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-AggregateTypeBaseReady:
-            LD   (AggregateCurrentTypeId),A
-AggregateParseArraySuffixLoop:
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
+%ENDIF
+APTYBARD:
+            LD   (ACTYPID),A
+APPASFLP:
+            CALL PSPEEK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenLeftBracket
-            JR   Z,AggregateParseArraySuffix
-            JP   AggregateFinishArrayType
-AggregateParseArraySuffix:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TNLBRK
+            JR   Z,APPARSFX
+            JP   APFIARTY
+APPARSFX:
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSPEEK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenRightBracket
-            JR   NZ,AggregateParseConcreteArraySuffix
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TNRBRK
+            JR   NZ,APPCARSF
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL AggregateSaveOpenArrayDimension
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL APSOARDI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   AggregateParseArraySuffixLoop
-AggregateParseConcreteArraySuffix:
-            CALL AggregateParseBound
-.if CompilerDiagnosticReturns
+%ENDIF
+            JR   APPASFLP
+APPCARSF:
+            CALL APPBND
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL AggregateSaveArrayDimension
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL APSVARDI
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   AggregateParseArraySuffixLoop
-AggregateProgramDataCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticProgramDataCapacity
-AggregateStringCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticStringCapacity
-.endif
+%ENDIF
+            JR   APPASFLP
+APPDCAER:
+            CALL DGINLINE
+            DB  DGPDCAP
+APSTCAER:
+            CALL DGINLINE
+            DB  DGSTRCAP
+%ENDIF
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateCheckFieldDuplicate:
-            LD   A,(AggregateCurrentFieldCount)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APCKFLDU:
+            LD   A,(ACFLDCNT)
             OR   A
             RET  Z
             LD   C,A
-            LD   A,(AggregateCurrentFieldStart)
-AggregateFieldDuplicateLoop:
+            LD   A,(ACFLDST)
+APFLDULP:
             PUSH AF
             PUSH BC
-            CALL AggregateFieldAddress
-            CALL TokenNameRecordEquals
-            JR   C,AggregateFieldDuplicateUnwind
+            CALL APFLDADR
+            CALL TKRECEQ
+            JR   C,APFLDUUN
             POP  BC
             POP  AF
             INC  A
             DEC  C
-            JR   NZ,AggregateFieldDuplicateLoop
+            JR   NZ,APFLDULP
             OR   A
             RET
-AggregateFieldDuplicateUnwind:
+APFLDUUN:
             POP  BC
             POP  AF
-AggregateFieldDuplicateFailure:
-            JP   TypedDuplicateNameFailure
+APFLDUER:
+            JP   TYDUNMER
 
-.if HybridLL1Full
-AggregateRecordEmptyFailure:
-            CALL SetDiagInline
-            .db  DiagnosticRecordEmpty
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseRecordAfterTake:
-            LD   E,TokenName
-            CALL ParserExpect
-.if CompilerDiagnosticReturns
+%IF HybridLL1Full
+APREEMER:
+            CALL DGINLINE
+            DB  DGRECEMP
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPREATK:
+            LD   E,TNNAME
+            CALL PSEXPECT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedRetainDeclarationName
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYRTDCNM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateTypeCount)
-            CP   AggregateTypeCapacity
-            JP   NC,AggregateTypeCapacityFailure
-            LD   A,(AggregateRecordCount)
-            CP   AggregateRecordCapacity
-            JP   NC,AggregateTypeCapacityFailure
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   A,(ATCNT)
+            CP   ATCAP
+            JP   NC,APTYCAER
+            LD   A,(ARCNT)
+            CP   ARCAP
+            JP   NC,APTYCAER
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateFieldCount)
-            LD   (AggregateCurrentFieldStart),A
+%ENDIF
+            LD   A,(AFCNT)
+            LD   (ACFLDST),A
             XOR  A
-            LD   (AggregateCurrentFieldCount),A
+            LD   (ACFLDCNT),A
             LD   H,A
             LD   L,A
-            LD   (AggregateCurrentRecordExtent),HL
-AggregateRecordFieldLoop:
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
+            LD   (ACRECEXT),HL
+APREFLLP:
+            CALL PSPEEK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenEnd
-            JR   Z,AggregateRecordFinish
-            CP   TokenName
-            JP   NZ,AggregateTypeShapeFailure
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TOKENEND
+            JR   Z,APRECFIN
+            CP   TNNAME
+            JP   NZ,APTYSHER
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL AggregateCheckFieldDuplicate
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL APCKFLDU
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateFieldCount)
+%ENDIF
+            LD   A,(AFCNT)
             LD   B,A
-            LD   A,(AggregateCurrentFieldCount)
+            LD   A,(ACFLDCNT)
             ADD  A,B
-            CP   AggregateFieldCapacity
-            JP   NC,AggregateTypeCapacityFailure
+            CP   AFCAP
+            JP   NC,APTYCAER
             PUSH AF
-            CALL AggregateFieldAddress
-            CALL TokenRetainNameAtHL
+            CALL APFLDADR
+            CALL TKRETAIN
             POP  AF
             PUSH HL
-            CALL ParserExpectAs
+            CALL PSXAS
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             PUSH HL
-            CALL AggregateParseType
+            CALL APPTY
             POP  HL
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   B,A
             INC  HL
             LD   (HL),B
             INC  HL
-            LD   DE,(AggregateCurrentRecordExtent)
+            LD   DE,(ACRECEXT)
             LD   (HL),E
             INC  HL
             LD   (HL),D
             PUSH DE
             LD   A,B
-            CALL AggregateGetExtent
+            CALL APGETEXT
             POP  DE
             ADD  HL,DE
-            JP   C,AggregateProgramDataCapacityFailure
-            CALL AggregateCheckExtentCapacity
-.if CompilerDiagnosticReturns
+            JP   C,APPDCAER
+            CALL APCKEXCA
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   (AggregateCurrentRecordExtent),HL
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            LD   (ACRECEXT),HL
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,AggregateCurrentFieldCount
+%ENDIF
+            LD   HL,ACFLDCNT
             INC  (HL)
-            JR   AggregateRecordFieldLoop
-AggregateRecordFinish:
-            LD   A,(AggregateCurrentFieldCount)
+            JR   APREFLLP
+APRECFIN:
+            LD   A,(ACFLDCNT)
             OR   A
-            JR   Z,AggregateRecordEmptyFailure
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+            JR   Z,APREEMER
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,AggregateTypeKindRecord
-            LD   (AggregateCandidateKind),A
-            LD   A,(AggregateCurrentFieldStart)
-            LD   (AggregateCandidateAux),A
-            LD   A,(AggregateCurrentFieldCount)
-            LD   (AggregateCandidateLength),A
+%ENDIF
+            LD   A,ATKREC
+            LD   (ANKIND),A
+            LD   A,(ACFLDST)
+            LD   (ANAUX),A
+            LD   A,(ACFLDCNT)
+            LD   (ANLEN),A
             XOR  A
-            LD   (AggregateCandidateLength+1),A
-            LD   HL,(AggregateCurrentRecordExtent)
-            LD   (AggregateCandidateExtent),HL
-            CALL AggregateAppendType
-.if CompilerDiagnosticReturns
+            LD   (ANLEN+1),A
+            LD   HL,(ACRECEXT)
+            LD   (ANEXT),HL
+            CALL APAPPTY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   (AggregateCurrentTypeId),A
-            LD   D,SymbolInfoRecordType
-            LD   A,(AggregateCurrentTypeId)
+%ENDIF
+            LD   (ACTYPID),A
+            LD   D,SIRECTYP
+            LD   A,(ACTYPID)
             LD   C,A
             LD   B,0
-            CALL TypedPrepareCurrentWord
-.if CompilerDiagnosticReturns
+            CALL TYPRCUWD
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL SymbolCommit
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL SBCOMMIT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateCurrentFieldCount)
-            LD   HL,AggregateFieldCount
+%ENDIF
+            LD   A,(ACFLDCNT)
+            LD   HL,AFCNT
             ADD  A,(HL)
             LD   (HL),A
-            LD   HL,AggregateRecordCount
+            LD   HL,ARCNT
             INC  (HL)
-.if AggregateCallSlices
-            JP   Stage7ParseTopLevel
-.else
-            JP   TypedParseTopLevel
-.endif
-AggregateRecordEmptyFailure:
-            CALL SetDiagInline
-            .db  DiagnosticRecordEmpty
-.endif
+%IF AggregateCallSlices
+            JP   S7PTOPLV
+%ELSE
+            JP   TYPTOPLV
+%ENDIF
+APREEMER:
+            CALL DGINLINE
+            DB  DGRECEMP
+%ENDIF
 
-AggregateInitializerCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticInitializerCapacity
+APINCAER:
+            CALL DGINLINE
+            DB  DGINICAP
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,HL
-AggregateInitializerLeave:
-            LD   HL,AggregateInitializerDepth
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,HL
+APINILV:
+            LD   HL,AIDEP
             DEC  (HL)
             OR   A
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
-AggregateWriteByte:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+APWRBY:
             LD   B,A
-            LD   HL,(AggregateCurrentObjectOffset)
-            LD   DE,AggregateInitializerBase
+            LD   HL,(ACOBJOFF)
+            LD   DE,AIBAS
             ADD  HL,DE
             LD   A,B
             LD   (HL),A
-            LD   HL,(AggregateCurrentObjectOffset)
+            LD   HL,(ACOBJOFF)
             INC  HL
-            LD   (AggregateCurrentObjectOffset),HL
+            LD   (ACOBJOFF),HL
             OR   A
             RET
 
 ; Decode the already tokenized string literal directly from resident source.
 ; B is the fixed capacity. The enclosing object is already zeroed, so the
 ; final cursor advances over padding without rewriting it.
-.routine in B out A,B,carry,zero clobbers sign,parity,halfCarry,C,D,DE,HL
-AggregateDecodeString:
-            LD   A,(TokenLength)
+; Contract: in B out A,B,carry,zero clobbers sign,parity,halfCarry,C,D,DE,HL
+APDECSTR:
+            LD   A,(TNLEN)
             LD   C,A
             PUSH BC
-            CALL AggregateWriteByte
+            CALL APWRBY
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,B
             SUB  C
             LD   B,A
-            LD   HL,(TokenLexemePointer)
+            LD   HL,(TNLEXPTR)
             INC  HL
-AggregateDecodeStringLoop:
+APDESTLP:
             LD   A,C
             OR   A
-            JR   Z,AggregateDecodeStringAdvancePadding
+            JR   Z,APDSADPA
             LD   A,(HL)
             INC  HL
-            CP   "\\"
-            JR   NZ,AggregateDecodeStringWrite
+            CP   $5C
+            JR   NZ,APDESTWR
             LD   A,(HL)
             INC  HL
-            CP   "x"
-            JR   Z,AggregateDecodeStringHex
-            CP   "0"
-            JR   Z,AggregateDecodeStringZero
-            CP   "n"
-            JR   Z,AggregateDecodeStringNewline
-            CP   "r"
-            JR   Z,AggregateDecodeStringReturn
-            CP   "t"
-            JR   Z,AggregateDecodeStringTab
-            JR   AggregateDecodeStringWrite
-AggregateDecodeStringHex:
+            CP   'x'
+            JR   Z,APDESTHE
+            CP   '0'
+            JR   Z,APDESTRZ
+            CP   'n'
+            JR   Z,APDESTNL
+            CP   'r'
+            JR   Z,APDESTRE
+            CP   't'
+            JR   Z,APDESTTA
+            JR   APDESTWR
+APDESTHE:
             LD   A,(HL)
             INC  HL
-            CALL TokenIsHexDigit
+            CALL TKHEX
             ADD  A,A
             ADD  A,A
             ADD  A,A
@@ -811,225 +811,225 @@ AggregateDecodeStringHex:
             LD   D,A
             LD   A,(HL)
             INC  HL
-            CALL TokenIsHexDigit
+            CALL TKHEX
             OR   D
-            JR   AggregateDecodeStringWrite
-AggregateDecodeStringZero:
+            JR   APDESTWR
+APDESTRZ:
             XOR  A
-            JR   AggregateDecodeStringWrite
-AggregateDecodeStringNewline:
+            JR   APDESTWR
+APDESTNL:
             LD   A,10
-            JR   AggregateDecodeStringWrite
-AggregateDecodeStringReturn:
+            JR   APDESTWR
+APDESTRE:
             LD   A,13
-            JR   AggregateDecodeStringWrite
-AggregateDecodeStringTab:
+            JR   APDESTWR
+APDESTTA:
             LD   A,9
-AggregateDecodeStringWrite:
+APDESTWR:
             PUSH BC
             PUSH HL
-            CALL AggregateWriteByte
+            CALL APWRBY
             POP  HL
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  C
-            JR   AggregateDecodeStringLoop
-AggregateDecodeStringAdvancePadding:
+            JR   APDESTLP
+APDSADPA:
             LD   E,B
             LD   D,0
             INC  DE                      ; permanent terminator at capacity+1
-            LD   HL,(AggregateCurrentObjectOffset)
+            LD   HL,(ACOBJOFF)
             ADD  HL,DE
-            LD   (AggregateCurrentObjectOffset),HL
+            LD   (ACOBJOFF),HL
             OR   A
             RET
 
-AggregateInitializerShapeFailure:
-            CALL SetDiagInline
-            .db  DiagnosticInitializerShape
-AggregateInitializerCountFailure:
-            CALL SetDiagInline
-            .db  DiagnosticInitializerCount
+APINSHER:
+            CALL DGINLINE
+            DB  DGINISHP
+APINCNER:
+            CALL DGINLINE
+            DB  DGINICNT
 
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-AggregatePeekPreserveBC:
+; Contract: out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+APPKPRBC:
             PUSH BC
-            CALL ParserPeek
+            CALL PSPEEK
             POP  BC
             RET
 
-.routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-AggregateTakePreserveBC:
+; Contract: out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+APTKPRBC:
             PUSH BC
-            CALL ParserTake
+            CALL PSTK
             POP  BC
             RET
 
-.routine in A,BC,zero out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-AggregateExpectCommaPreserveBC:
-            JR   Z,AggregateInitializerCountFailure
-            CP   TokenComma
-            JR   NZ,AggregateInitializerShapeFailure
-            JR   AggregateTakePreserveBC
+; Contract: in A,BC,zero out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+APXCPRBC:
+            JR   Z,APINCNER
+            CP   TNCOMMA
+            JR   NZ,APINSHER
+            JR   APTKPRBC
 
 ; Parse one type-directed static initializer at the current image cursor.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseInitializer:
-            CP   AggregateFirstDynamicTypeId
-            JR   C,AggregateParseScalarInitializer
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPINI:
+            CP   AGDYNTYP
+            JR   C,APPSCINI
             LD   C,A
-            CALL AggregatePeekPreserveBC
-.if CompilerDiagnosticReturns
+            CALL APPKPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenName
+%ENDIF
+            CP   TNNAME
             LD   A,C
-            JP   Z,AggregateParseConstantInitializer
+            JP   Z,APPKINI
             PUSH AF
-            CALL AggregateTypeAddress
+            CALL APTYADR
             LD   A,(HL)
             POP  DE
             LD   E,D
             LD   D,0
-            CP   AggregateTypeKindString
-            JR   Z,AggregateParseStringInitializer
-            CP   AggregateTypeKindRecord
-            JR   Z,AggregateParseRecordInitializer
-            CP   AggregateTypeKindArray
-            JP   Z,AggregateParseArrayInitializer
-            JR   AggregateInitializerShapeFailure
+            CP   ATKSTR
+            JR   Z,APPSTINI
+            CP   ATKREC
+            JR   Z,APPREINI
+            CP   ATKARRAY
+            JP   Z,APPARINI
+            JR   APINSHER
 
-AggregateParseScalarInitializer:
+APPSCINI:
             LD   E,A
             PUSH DE
-            CALL TypedExpressionBeginConstant
+            CALL TYEXBGK
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL TypedCheckAssignable
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL TYCKASG
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            AND  ScalarMetaConstant
-            JP   Z,TypedTypeFailure
+%ENDIF
+            AND  MTCONST
+            JP   Z,TYTYER
             LD   A,L
             PUSH DE
             PUSH HL
-            CALL AggregateWriteByte
+            CALL APWRBY
             POP  HL
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             LD   A,E
             BIT  1,A
-            JR   NZ,AggregateParseScalarU16High
+            JR   NZ,APU16HI
             OR   A
             RET
-AggregateParseScalarU16High:
+APU16HI:
             LD   A,H
-            JP   AggregateWriteByte
+            JP   APWRBY
 
-AggregateParseStringInitializer:
+APPSTINI:
             EX   DE,HL
             LD   A,L
-            CALL AggregateTypeAddress
+            CALL APTYADR
             INC  HL
             LD   B,(HL)
             PUSH BC
-            LD   E,TokenStringLiteral
-            CALL ParserExpect
+            LD   E,TNSTRLIT
+            CALL PSEXPECT
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(TokenLength)
+%ENDIF
+            LD   A,(TNLEN)
             CP   B
-            JR   C,AggregateParseStringDecode
-            JR   Z,AggregateParseStringDecode
-            CALL SetDiagInline
-            .db  DiagnosticStringLength
-AggregateParseStringDecode:
+            JR   C,APPSTDEC
+            JR   Z,APPSTDEC
+            CALL DGINLINE
+            DB  DGSTRLEN
+APPSTDEC:
             ; AggregateZeroCurrentObject already defined the complete object,
             ; so decoding need only overwrite the length and payload bytes.
-            JP   AggregateDecodeString
+            JP   APDECSTR
 
-.routine in A,BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
-AggregateBeginCompositeInitializer:
+; Contract: in A,BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
+APBGCMIN:
             PUSH AF
-            CALL AggregatePeekPreserveBC
+            CALL APPKPRBC
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   D
-.if TargetStreamingOutput
-            JP   NZ,AggregateInitializerShapeFailure
-.else
-            JP   NZ,AggregateInitializerShapeFailure
-.endif
-            CALL AggregateTakePreserveBC
-.if CompilerDiagnosticReturns
+%IF TargetStreamingOutput
+            JP   NZ,APINSHER
+%ELSE
+            JP   NZ,APINSHER
+%ENDIF
+            CALL APTKPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateInitializerDepth)
-            CP   AggregateInitializerDepthCapacity
-            JP   NC,AggregateInitializerCapacityFailure
+%ENDIF
+            LD   A,(AIDEP)
+            CP   AIDEPCAP
+            JP   NC,APINCAER
             INC  A
-            LD   (AggregateInitializerDepth),A
+            LD   (AIDEP),A
             OR   A
             RET
 
-AggregateParseRecordInitializer:
+APPREINI:
             EX   DE,HL
             LD   A,L
-            CALL AggregateTypeAddress
+            CALL APTYADR
             INC  HL
             LD   B,(HL)
             INC  HL
             LD   C,(HL)
-            LD   A,TokenLeftParen
-            CALL AggregateBeginCompositeInitializer
-.if CompilerDiagnosticReturns
+            LD   A,TNLPAR
+            CALL APBGCMIN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-AggregateRecordInitializerLoop:
+%ENDIF
+APREINLP:
             PUSH BC
             LD   A,B
-            CALL AggregateFieldAddress
+            CALL APFLDADR
             INC  HL
             INC  HL
             INC  HL
             LD   A,(HL)
-            CALL AggregateParseInitializer
+            CALL APPINI
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             INC  B
             DEC  C
-            JR   Z,AggregateRecordInitializerExpectClose
-            CALL AggregatePeekPreserveBC
-.if CompilerDiagnosticReturns
+            JR   Z,APRINXCL
+            CALL APPKPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenRightParen
-            CALL AggregateExpectCommaPreserveBC
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TNRPAR
+            CALL APXCPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   AggregateRecordInitializerLoop
-AggregateRecordInitializerExpectClose:
-            LD   BC,(TokenRightParen<<8)|TokenRightBracket
-            JR   AggregateInitializerExpectClose
+%ENDIF
+            JR   APREINLP
+APRINXCL:
+            LD   BC,TNRPAR*256+TNRBRK
+            JR   APINIXCL
 
-AggregateParseArrayInitializer:
+APPARINI:
             EX   DE,HL
             LD   A,L
-            CALL AggregateTypeAddress
+            CALL APTYADR
             INC  HL
             LD   C,(HL)
             INC  HL
@@ -1038,116 +1038,116 @@ AggregateParseArrayInitializer:
             LD   D,(HL)
             PUSH BC
             PUSH DE
-            LD   A,TokenLeftBracket
-            CALL AggregateBeginCompositeInitializer
+            LD   A,TNLBRK
+            CALL APBGCMIN
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-AggregateArrayInitializerLoop:
+%ENDIF
+APARINLP:
             PUSH BC
             PUSH DE
             LD   A,C
-            CALL AggregateParseInitializer
+            CALL APPINI
             POP  DE
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             DEC  DE
             LD   A,D
             OR   E
-            JR   Z,AggregateArrayInitializerExpectClose
+            JR   Z,APAINXCL
             PUSH DE
-            CALL AggregatePeekPreserveBC
+            CALL APPKPRBC
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenRightBracket
+%ENDIF
+            CP   TNRBRK
             PUSH DE
-            CALL AggregateExpectCommaPreserveBC
+            CALL APXCPRBC
             POP  DE
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JR   AggregateArrayInitializerLoop
-AggregateArrayInitializerExpectClose:
-            LD   BC,(TokenRightBracket<<8)|TokenRightParen
+%ENDIF
+            JR   APARINLP
+APAINXCL:
+            LD   BC,TNRBRK*256+TNRPAR
 
-.routine in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
-AggregateInitializerExpectClose:
-            CALL AggregatePeekPreserveBC
-.if CompilerDiagnosticReturns
+; Contract: in BC out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
+APINIXCL:
+            CALL APPKPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             CP   B
-            JR   Z,AggregateInitializerTakeClose
+            JR   Z,APINTKCL
             CP   C
-            JP   Z,AggregateInitializerShapeFailure
-            JP   AggregateInitializerCountFailure
-AggregateInitializerTakeClose:
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+            JP   Z,APINSHER
+            JP   APINCNER
+APINTKCL:
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   AggregateInitializerLeave
+%ENDIF
+            JP   APINILV
 
 ; Copy an earlier exact-type aggregate constant into the current initializer
 ; position. The symbol scan derives its offset in the declaration-ordered
 ; read-only staging suffix, avoiding another retained workspace field.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseConstantInitializer:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPKINI:
             LD   C,A
-            CALL AggregateTakePreserveBC
-.if CompilerDiagnosticReturns
+            CALL APTKPRBC
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(SymbolCount)
+%ENDIF
+            LD   A,(SYCNT)
             OR   A
-            JR   Z,AggregateConstantInitializerMissing
+            JR   Z,APKINMIS
             LD   B,A
-            LD   IX,SymbolTableBase
-            LD   IY,(StaticImageLength)
-            LD   DE,StaticImageBase
+            LD   IX,SYTABBAS
+            LD   IY,(IMGLEN)
+            LD   DE,IMGBAS
             ADD  IY,DE
-AggregateConstantInitializerScan:
+APKINSCN:
             PUSH IX
             POP  HL
-            CALL TokenNameRecordEquals
-            JR   C,AggregateConstantInitializerCopy
+            CALL TKRECEQ
+            JR   C,APKINICP
             LD   A,(IX+3)
-            AND  SymbolAggregateFlag+SymbolClassMask
-            CP   SymbolAggregateFlag+SymbolClassConstant
-            JR   NZ,AggregateConstantInitializerNext
-            LD   A,(IX+SymbolTypeId)
-            CALL AggregateGetExtent
+            AND  SYAGGFLG+SCMSK
+            CP   SYAGGFLG+SCCONST
+            JR   NZ,APKININX
+            LD   A,(IX+SYTYPID)
+            CALL APGETEXT
             EX   DE,HL
             ADD  IY,DE
-AggregateConstantInitializerNext:
-            LD   DE,SymbolEntrySize
+APKININX:
+            LD   DE,SYENTSZ
             ADD  IX,DE
-            DJNZ AggregateConstantInitializerScan
-AggregateConstantInitializerMissing:
-            JP   SymbolLookupMissing
-AggregateConstantInitializerCopy:
+            DJNZ APKINSCN
+APKINMIS:
+            JP   SBLOOKNO
+APKINICP:
             LD   A,(IX+3)
-            AND  SymbolAggregateFlag+SymbolClassMask
-            CP   SymbolAggregateFlag+SymbolClassConstant
-            JP   NZ,TypedTypeFailure
-            LD   A,(IX+SymbolTypeId)
+            AND  SYAGGFLG+SCMSK
+            CP   SYAGGFLG+SCCONST
+            JP   NZ,TYTYER
+            LD   A,(IX+SYTYPID)
             CP   C
-            JP   NZ,TypedTypeFailure
-            CALL AggregateGetExtent
+            JP   NZ,TYTYER
+            CALL APGETEXT
             LD   B,H
             LD   C,L
-            LD   DE,(AggregateCurrentObjectOffset)
+            LD   DE,(ACOBJOFF)
             PUSH DE
             ADD  HL,DE
-            LD   (AggregateCurrentObjectOffset),HL
+            LD   (ACOBJOFF),HL
             POP  HL
-            LD   DE,AggregateInitializerBase
+            LD   DE,AIBAS
             ADD  HL,DE
             EX   DE,HL
             PUSH IY
@@ -1158,13 +1158,13 @@ AggregateConstantInitializerCopy:
 
 ; Zero exactly the candidate object's complete extent before applying an
 ; explicit initializer. This also defines every byte of a zero initializer.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-AggregateZeroCurrentObject:
-            LD   HL,(AggregateCurrentObjectOffset)
-            LD   DE,AggregateInitializerBase
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
+APZCUOBJ:
+            LD   HL,(ACOBJOFF)
+            LD   DE,AIBAS
             ADD  HL,DE
-            LD   BC,(AggregateCurrentObjectExtent)
-AggregateZeroCurrentLoop:
+            LD   BC,(ACOBJEXT)
+APZCURLP:
             LD   A,B
             OR   C
             RET  Z
@@ -1172,136 +1172,136 @@ AggregateZeroCurrentLoop:
             LD   (HL),A
             INC  HL
             DEC  BC
-            JR   AggregateZeroCurrentLoop
+            JR   APZCURLP
 
 ; The current token is the program variable name.
-.if HybridLL1Full
-.else
-.routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-AggregateParseProgramAfterVar:
-            CALL TypedRetainDeclarationName
-.if CompilerDiagnosticReturns
+%IF HybridLL1Full
+%ELSE
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
+APPPGAVA:
+            CALL TYRTDCNM
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL ParserExpectAs
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL PSXAS
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CALL AggregateParseType
-.if CompilerDiagnosticReturns
+%ENDIF
+            CALL APPTY
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   (AggregateCurrentTypeId),A
-            CALL AggregateGetExtent
-            LD   (AggregateCurrentObjectExtent),HL
-            LD   DE,(StaticImageLength)
-            LD   (AggregateCurrentObjectOffset),DE
+%ENDIF
+            LD   (ACTYPID),A
+            CALL APGETEXT
+            LD   (ACOBJEXT),HL
+            LD   DE,(IMGLEN)
+            LD   (ACOBJOFF),DE
             ADD  HL,DE
-            JP   C,AggregateProgramDataCapacityFailure
+            JP   C,APPDCAER
             LD   A,H
             OR   A
-            JP   NZ,AggregateProgramDataCapacityFailure
-            LD   (AggregateCurrentObjectEnd),HL
-            CALL AggregateZeroCurrentObject
-.if CompilerDiagnosticReturns
+            JP   NZ,APPDCAER
+            LD   (ACOBJEND),HL
+            CALL APZCUOBJ
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
+%ENDIF
             XOR  A
-            LD   (AggregateInitializerDepth),A
-            LD   (AggregateHasInitializer),A
-            CALL ParserPeek
-.if CompilerDiagnosticReturns
+            LD   (AIDEP),A
+            LD   (AGHASINI),A
+            CALL PSPEEK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            CP   TokenEquals
-            JR   NZ,AggregateProgramInitializerDone
-            CALL ParserTake
-.if CompilerDiagnosticReturns
+%ENDIF
+            CP   TNEQ
+            JR   NZ,APPGINDN
+            CALL PSTK
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,(StaticImageLength)
-            LD   (AggregateCurrentObjectOffset),HL
-            LD   A,(AggregateCurrentTypeId)
+%ENDIF
+            LD   HL,(IMGLEN)
+            LD   (ACOBJOFF),HL
+            LD   A,(ACTYPID)
             LD   B,A
             PUSH BC
-            CALL AggregateParseInitializer
-.if CompilerDiagnosticBranches
-            JR   C,AggregateProgramInitializerFailure
-.endif
+            CALL APPINI
+%IF CompilerDiagnosticBranches
+            JR   C,APPGINER
+%ENDIF
             POP  BC
             LD   A,1
-            LD   (AggregateHasInitializer),A
+            LD   (AGHASINI),A
             LD   A,B
-            LD   (AggregateCurrentTypeId),A
-            LD   HL,(AggregateCurrentObjectOffset)
-            LD   DE,(AggregateCurrentObjectEnd)
+            LD   (ACTYPID),A
+            LD   HL,(ACOBJOFF)
+            LD   DE,(ACOBJEND)
             OR   A
             SBC  HL,DE
-            JP   NZ,AggregateInitializerCountFailure
-            JR   AggregateProgramInitializerDone
-.if CompilerDiagnosticBranches
-AggregateProgramInitializerFailure:
+            JP   NZ,APINCNER
+            JR   APPGINDN
+%IF CompilerDiagnosticBranches
+APPGINER:
             POP  BC
             SCF
             RET
-.endif
-AggregateProgramInitializerDone:
-            CALL ParserExpectLine
-.if CompilerDiagnosticReturns
+%ENDIF
+APPGINDN:
+            CALL PSXLN
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   BC,(StaticImageLength)
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstDynamicTypeId
-            JR   C,AggregateProgramScalarInfo
-            LD   D,SymbolInfoAggregateProgram
-            JR   AggregateProgramPrepareSymbol
-AggregateProgramScalarInfo:
-            OR   SymbolClassProgram
+%ENDIF
+            LD   BC,(IMGLEN)
+            LD   A,(ACTYPID)
+            CP   AGDYNTYP
+            JR   C,APPGSCIN
+            LD   D,SIAGPROG
+            JR   APPGPRSY
+APPGSCIN:
+            OR   SCPROG
             LD   D,A
-AggregateProgramPrepareSymbol:
+APPGPRSY:
             PUSH BC
-            CALL TypedPrepareCurrentWord
+            CALL TYPRCUWD
             POP  BC
-.if CompilerDiagnosticReturns
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   A,(AggregateCurrentTypeId)
+%ENDIF
+            LD   A,(ACTYPID)
             INC  HL
             LD   (HL),A
-            CALL SymbolCommit
-.if CompilerDiagnosticReturns
+            CALL SBCOMMIT
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            LD   HL,(AggregateCurrentObjectEnd)
-            LD   (StaticImageLength),HL
+%ENDIF
+            LD   HL,(ACOBJEND)
+            LD   (IMGLEN),HL
             LD   A,L
-            LD   (NextProgramSlot),A
-.if AggregateCallSlices
-            JP   Stage7ParseTopLevel
-.else
-            JP   TypedParseTopLevel
-.endif
-.endif
+            LD   (NXPROG),A
+%IF AggregateCallSlices
+            JP   S7PTOPLV
+%ELSE
+            JP   TYPTOPLV
+%ENDIF
+%ENDIF
 
 ; Dedicated Stage 6 compile entry. Historical slices keep AggregateMode clear;
 ; this entry makes the complete static-image path authoritative.
-.if AggregateCallSlices
-.else
-            .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CompileAggregateSlice:
-            CALL CompileSliceInitialize
+%IF AggregateCallSlices
+%ELSE
+            ; Contract: in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+CPAGSL:
+            CALL CPSLINIT
             LD   A,1
-            LD   (AggregateMode),A
-.if HybridLL1Full
+            LD   (AGMODE),A
+%IF HybridLL1Full
             XOR  A
-            LD   (Stage7CurrentRoutine),A
-            CALL HybridLL1Parse
-.else
-            CALL ParserParseProgram
-.endif
-.if CompilerDiagnosticReturns
+            LD   (C7RTN),A
+            CALL LLPARSE
+%ELSE
+            CALL PSPPG
+%ENDIF
+%IF CompilerDiagnosticReturns
             RET  C
-.endif
-            JP   SemanticSinkFinish
-.endif
+%ENDIF
+            JP   TMFINISH
+%ENDIF

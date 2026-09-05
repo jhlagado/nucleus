@@ -1,34 +1,34 @@
 ; Minimal direct-Z80 runtime and target-independent output service adapter.
 
-.routine out carry,zero clobbers sign,parity,halfCarry,A,HL
-Reset:
+; ABI: out carry,zero clobbers sign,parity,halfCarry,A,HL
+RESET:
             XOR  A
-            LD   (TrapNumber),A
-            LD   (TrapRoutine),A
-            LD   (TrapError),A
-            LD   (ServiceOutputLength),A
-            LD   (ServiceOutputByte),A
+            LD   (RTTRPNO),A
+            LD   (RTTRPRTN),A
+            LD   (RTTRPERR),A
+            LD   (VOUTLEN),A
+            LD   (ESVCOUT),A
             LD   HL,0
-            LD   (TrapOffset),HL
-            LD   A,RunReady
-            LD   (RunState),A
+            LD   (RTTRPOFF),HL
+            LD   A,RUNREADY
+            LD   (RUNSTATE),A
             OR   A
             RET
 
 ; Input A is the byte. Carry returns a recoverable failure, with A as its code.
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry,B
-WriteOutputByte:
+; ABI: in A out A,carry,zero clobbers sign,parity,halfCarry,B
+RTWRITE:
             LD   B,A
-            LD   A,(ServiceForceFailure)
+            LD   A,(ESVCFAIL)
             OR   A
-            JR   NZ,WriteOutputByteFailure
+            JR   NZ,RTWRERR
             LD   A,B
-            LD   (ServiceOutputByte),A
+            LD   (ESVCOUT),A
             LD   A,1
-            LD   (ServiceOutputLength),A
+            LD   (VOUTLEN),A
             XOR  A
             RET
-WriteOutputByteFailure:
+RTWRERR:
             LD   A,3
             SCF
             RET

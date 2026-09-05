@@ -1,0 +1,20 @@
+; Test-only addresses stand for independently implemented CP/M providers.
+; Wrapper execution tests install destructive provider stubs at these addresses.
+CSNEXT    EQU $7000
+CSRETAIN  EQU $7010
+CSCMPNAM  EQU $7020
+CSMATNAM  EQU $7030
+DOBEGIN   EQU $7040
+DOIMGBYT  EQU $7050
+DORTIMG   EQU $7060
+DORTINIT  EQU $7070
+DOPATBYT  EQU $7080
+DOPATWRD  EQU $7090
+DOMAP     EQU $70A0
+DOCOMMIT  EQU $70B0
+DOABORT   EQU $70C0
+%IF CpmHighHostOrigin
+            ORG $8013
+%ELSE
+            ORG $0100
+%ENDIF

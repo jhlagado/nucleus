@@ -1,6 +1,13 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCompilerRelocation } from "../scripts/assemble-native-compiler-relocation.mjs";
+
+it("has no legacy assembly adapter available for relocation", () => {
+  expect(existsSync(new URL("../scripts/atom-source.mjs", import.meta.url))).toBe(false);
+  expect(existsSync(new URL("../scripts/atom-source-translation.mjs", import.meta.url))).toBe(false);
+});
 
 interface RelocatedImage {
   readonly origin: number;
@@ -12,34 +19,28 @@ interface RelocatedImage {
 }
 
 const assembleAt = async (origin: number): Promise<RelocatedImage> => {
-  const entry = "vertical-slice/native-target-compiler.asm";
-  const result = await assembleAtomSource(entry, {
-    target: { start: origin, capacity: Math.min(0xffff, 0x10000 - origin) },
-    overrides: new Map([
-      [
-        entry,
-        [
-          "DebugHooks .equ 0",
-          "NativeStreamingSource .equ 0",
-          '.include "target-memory-map.asmi"',
-          '.include "nucleus-runtime-identity.asmi"',
-          "TargetSinkImageByte .equ $5F00",
-          "TargetSinkBegin .equ $5F00",
-          "TargetSinkPatchByte .equ $5F00",
-          "TargetSinkRuntimeImage .equ $5F00",
-          "TargetSinkRuntimeInitialImage .equ $5F00",
-          "TargetSinkPatchWord .equ $5F00",
-          "TargetSinkMapFlat .equ $5F00",
-          "TargetSinkCommit .equ $5F00",
-          "TargetSinkMapBanked .equ $5F00",
-          "TargetSinkAbort .equ $5F00",
-          `.org $${origin.toString(16)}`,
-          '.include "flat-target-compiler-image.asmi"',
-          "",
-        ].join("\n"),
-      ],
-    ]),
-  });
+  const result = await assembleNativeCompilerRelocation(origin);
+  const identities = result.project.parts.map(part => part.logicalIdentity);
+  expect(identities).toContain("asm/vertical-slice/flat-target-compiler-image.asmi");
+  expect(identities).toContain("asm/vertical-slice/typed-expression-z80-body.asm");
+  expect(identities).not.toContain("asm/vertical-slice/compiler-core-origin.asmi");
+  for (const part of result.project.parts) {
+    const bytes = readFileSync(path.resolve(import.meta.dirname, "..", part.logicalIdentity));
+    expect(part.originalBytes, part.logicalIdentity).toEqual(new Uint8Array(bytes));
+    expect(part.compilerBytes.length, part.logicalIdentity).toBe(bytes.length);
+    // Official preprocessing may blank directives/inactive source, but may not
+    // rewrite active assembler input or move its source offsets/newlines.
+    const rewrittenOffsets: number[] = [];
+    for (let index = 0; index < bytes.length; index += 1) {
+      const original = bytes[index];
+      const prepared = part.compilerBytes[index];
+      if (prepared !== original &&
+          (original === 10 || original === 13 || prepared !== 32)) {
+        rewrittenOffsets.push(index);
+      }
+    }
+    expect(rewrittenOffsets, part.logicalIdentity).toEqual([]);
+  }
   const program = parseIntelHex(result.hex);
   if (program.writeRanges === undefined)
     throw new Error("Relocation image has no initialized-address map");

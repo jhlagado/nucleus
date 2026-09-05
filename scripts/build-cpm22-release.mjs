@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 
-import { assembleAtomSource } from "./atom-source.mjs";
+import { assembleNativeCompiler } from "./assemble-native-compiler.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const entry = "vertical-slice/cpm22-native-compiler.asm";
@@ -20,7 +20,7 @@ if (atomRevision === undefined) {
   throw new Error("atom-z80 must select one exact Git revision");
 }
 
-const assembled = await assembleAtomSource(entry);
+const assembled = await assembleNativeCompiler("cpm22-native-compiler.asm");
 const memory = parseIntelHex(assembled.hex).memory;
 const loadAddress = assembled.symbols.CpmCompilerTransientStart;
 const endAddress = assembled.symbols.CpmCompilerResidentEnd;
