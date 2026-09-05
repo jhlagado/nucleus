@@ -185,18 +185,18 @@ ProofStart:
             JP   C,ProofFailParameterCapacity
             CALL EncodeAggregateProgram
             JP   C,ProofFailEncode
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofCopyGeneratedSize),HL
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailOutput
             LD   A,(MMDATA)
@@ -212,18 +212,18 @@ ProofStart:
             JP   C,ProofFailForwardCompile
             CALL EncodeAggregateProgram
             JP   C,ProofFailForwardEncode
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofForwardGeneratedSize),HL
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailForwardFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailForwardRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailForwardOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailForwardOutput
             LD   A,(MMDATA)
@@ -239,18 +239,18 @@ ProofStart:
             JP   C,ProofFailStringCompile
             CALL EncodeAggregateProgram
             JP   C,ProofFailStringEncode
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofStringGeneratedSize),HL
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailStringRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailStringOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailStringOutput
             LD   A,(MMDATA)
@@ -280,7 +280,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
             LD   A,(RTTRPNO)
@@ -303,7 +303,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
             LD   A,(RTTRPNO)
@@ -319,7 +319,7 @@ ProofStart:
             LD   DE,Stage7SealedArraySourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailStringCompile
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             LD   DE,1020
             OR   A
             SBC  HL,DE
@@ -332,13 +332,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailStringRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailStringOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailStringOutput
             LD   A,166
@@ -346,19 +346,19 @@ ProofStart:
             LD   DE,Stage7LargeDataSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailStringCompile
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,510
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringStorage
             CALL EncodeAggregateProgram
             JP   C,ProofFailStringEncode
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,510
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringStorage
-            LD   HL,(GeneratedDataSize)
+            LD   HL,(GNDATSZ)
             LD   DE,510
             OR   A
             SBC  HL,DE
@@ -366,10 +366,10 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailStringFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailStringRun
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailStringOutput
             LD   A,(MMDATA)
@@ -393,19 +393,19 @@ ProofStart:
             LD   DE,Stage7DataCapacityAcceptedSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailDataCapacityAccepted
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailDataCapacityAccepted
             CALL EncodeAggregateProgram
             JP   C,ProofFailDataCapacityAccepted
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailDataCapacityAccepted
-            LD   HL,(GeneratedDataSize)
+            LD   HL,(GNDATSZ)
             LD   DE,1024
             OR   A
             SBC  HL,DE
@@ -415,7 +415,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailDataCapacityAccepted
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailDataCapacityAccepted
             LD   A,(MMDATA)
@@ -431,7 +431,7 @@ ProofStart:
             LD   A,168
             LD   HL,Stage7DataCapacityRejectedSource
             LD   DE,Stage7DataCapacityRejectedSourceEnd
-            LD   A,DiagnosticProgramDataCapacity
+            LD   A,DGPDCAP
             LD   BC,Stage7DataCapacityRejectedPoint-Stage7DataCapacityRejectedSource
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailDataCapacityRejected
@@ -448,14 +448,14 @@ ProofStart:
             LD   DE,Stage7BssCapacityAcceptedSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailBssCapacityAccepted
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBssCapacityAccepted
             CALL EncodeAggregateProgram
             JP   C,ProofFailBssCapacityAccepted
-            LD   HL,(GeneratedBssSize)
+            LD   HL,(GNBSSSZ)
             LD   DE,1024
             OR   A
             SBC  HL,DE
@@ -465,7 +465,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBssCapacityAccepted
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailBssCapacityAccepted
             LD   A,(MMBSS)
@@ -481,7 +481,7 @@ ProofStart:
             LD   A,171
             LD   HL,Stage7BssCapacityRejectedSource
             LD   DE,Stage7BssCapacityRejectedSourceEnd
-            LD   A,DiagnosticProgramDataCapacity
+            LD   A,DGPDCAP
             LD   BC,Stage7BssCapacityRejectedPoint-Stage7BssCapacityRejectedSource
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailBssCapacityRejected
@@ -500,7 +500,7 @@ ProofStart:
             LD   DE,Stage7WideAggregateSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailWideAggregate
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             LD   DE,1002
             OR   A
             SBC  HL,DE
@@ -510,13 +510,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailWideAggregate
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailWideAggregate
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailWideAggregate
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailWideAggregate
             LD   A,(MMBSS+499)
@@ -531,7 +531,7 @@ ProofStart:
             LD   A,174
             LD   HL,Stage7WideRecordRejectedSource
             LD   DE,Stage7WideRecordRejectedSourceEnd
-            LD   A,DiagnosticProgramDataCapacity
+            LD   A,DGPDCAP
             LD   BC,Stage7WideRecordRejectedPoint-Stage7WideRecordRejectedSource
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailWideRecordCapacity
@@ -543,15 +543,15 @@ ProofStart:
             LD   DE,Stage7WideInitializedSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailWideInitializer
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,256
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailWideInitializer
-            LD   A,(StaticImageBase)
+            LD   A,(IMGBAS)
             CP   1
             JP   NZ,ProofFailWideInitializer
-            LD   A,(StaticImageBase+255)
+            LD   A,(IMGBAS+255)
             CP   1
             JP   NZ,ProofFailWideInitializer
             CALL EncodeAggregateProgram
@@ -559,7 +559,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailWideInitializer
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailWideInitializer
             LD   A,(MMDATA)
@@ -574,7 +574,7 @@ ProofStart:
             LD   DE,Stage7WordLengthInterningSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailWordLengthInterning
-            LD   A,(AggregateTypeCount)
+            LD   A,(ATCNT)
             CP   2
             JP   NZ,ProofFailWordLengthInterning
 
@@ -585,10 +585,10 @@ ProofStart:
             LD   DE,Stage7SealedArraySourceEnd
             CALL CompileAggregateCallSlice
             JP   NC,ProofFailStringCapacity
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticStringCapacity
+            LD   A,(DGCODE)
+            CP   DGSTRCAP
             JP   NZ,ProofFailStringCapacity
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,Stage7SealedArrayCapacityPoint-Stage7SealedArraySource
             OR   A
             SBC  HL,DE
@@ -600,10 +600,10 @@ ProofStart:
             LD   DE,Stage7SealedArraySourceEnd
             CALL CompileAggregateCallSlice
             JP   NC,ProofFailStringCapacity
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticStringCapacity
+            LD   A,(DGCODE)
+            CP   DGSTRCAP
             JP   NZ,ProofFailStringCapacity
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,Stage7SealedArrayCapacityPoint-Stage7SealedArraySource
             OR   A
             SBC  HL,DE
@@ -615,12 +615,12 @@ ProofStart:
             JP   C,ProofFailBoundsCompile
             CALL EncodeAggregateProgram
             JP   C,ProofFailBoundsEncode
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofBoundsGeneratedSize),HL
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBoundsFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailBoundsRun
             LD   A,(RTTRPNO)
@@ -631,7 +631,7 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBoundsRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailBoundsRun
             LD   A,(MMDATA)
@@ -640,67 +640,67 @@ ProofStart:
             LD   A,(MMDATA+1)
             CP   7
             JP   NZ,ProofFailBoundsStorage
-            LD   A,DiagnosticIntegerRange
+            LD   A,DGINTRNG
             LD   BC,86
             LD   HL,Stage7ConstantBoundsSource
             LD   DE,Stage7ConstantBoundsSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailConstantBounds
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,116
             LD   HL,Stage7NominalMismatchSource
             LD   DE,Stage7NominalMismatchSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailNominalMismatch
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,200
             LD   HL,Stage7TransientMisuseSource
             LD   DE,Stage7TransientMisuseSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailTransientMisuse
-            LD   A,DiagnosticRoutineCapacity
+            LD   A,DGRTNCAP
             LD   BC,Stage7RoutineCapacityPoint-Stage7RoutineCapacitySource
             LD   HL,Stage7RoutineCapacitySource
             LD   DE,Stage7RoutineCapacitySourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailRoutineCapacity
-            LD   A,DiagnosticParameterCapacity
+            LD   A,DGPARCAP
             LD   BC,Stage7ParameterCapacityPoint-Stage7ParameterCapacitySource
             LD   HL,Stage7ParameterCapacitySource
             LD   DE,Stage7ParameterCapacitySourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailParameterCapacity
-            LD   A,DiagnosticExpressionCapacity
+            LD   A,DGEXPCAP
             LD   BC,118
             LD   HL,Stage7CallDepthSource
             LD   DE,Stage7CallDepthSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailCallDepth
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,11
             LD   HL,Stage7ParameterRoutineCollisionSource
             LD   DE,Stage7ParameterRoutineCollisionSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailParameterRoutineCollision
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,46
             LD   HL,Stage7StringLengthWriteSource
             LD   DE,Stage7StringLengthWriteSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailStringLengthWrite
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,6
             LD   HL,Stage7MainParameterSource
             LD   DE,Stage7MainParameterSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailMainParameter
-            LD   A,DiagnosticExpectedRight
+            LD   A,DXRPAR
             LD   BC,9
             LD   HL,Stage7MainParameterSyntaxSource
             LD   DE,Stage7MainParameterSyntaxSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailMainParameterSyntax
-            LD   A,DiagnosticExpectedLine
+            LD   A,DXLINE
             LD   BC,11
             LD   HL,Stage7MainResultSource
             LD   DE,Stage7MainResultSourceEnd
@@ -711,43 +711,43 @@ ProofStart:
             LD   DE,Stage7RoutineFailsSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailRoutineFails
-            LD   A,DiagnosticExpectedTopLevel
+            LD   A,DXTOPLVL
             LD   BC,12
             LD   HL,Stage7MissingMainSource
             LD   DE,Stage7MissingMainSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailMissingMain
-            LD   A,DiagnosticExpectedEof
+            LD   A,DXEOF
             LD   BC,15
             LD   HL,Stage7AfterMainSource
             LD   DE,Stage7AfterMainSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailAfterMain
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,4
             LD   HL,Stage7ServiceRoutineSource
             LD   DE,Stage7ServiceRoutineSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailServiceRoutine
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,6
             LD   HL,Stage7ServiceParameterSource
             LD   DE,Stage7ServiceParameterSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailServiceParameter
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,4
             LD   HL,Stage7ServiceVariableSource
             LD   DE,Stage7ServiceVariableSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailServiceVariable
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,245
             LD   HL,Stage7ScalarSuffixPoisonSource
             LD   DE,Stage7ScalarSuffixPoisonSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailScalarSuffix
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,66
             LD   HL,Stage7RecordIndexSource
             LD   DE,Stage7RecordIndexSourceEnd
@@ -761,47 +761,47 @@ ProofStart:
             LD   DE,Stage7StructuredRoutineSourceEnd
             CALL ProofCompileAndRunSuccess
             JP   C,ProofFailStructuredRoutines
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailStructuredRoutines
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailStructuredRoutines
             CALL ProofRunRecursiveCapacity
             JP   C,ProofFailRecursiveCapacity
             CALL ProofRunSuffixFailures
             JP   C,ProofFailSuffixCapacity
-            LD   A,DiagnosticExpectedComma
+            LD   A,DXCOMMA
             LD   BC,48
             LD   HL,Stage7TooFewArgumentsSource
             LD   DE,Stage7TooFewArgumentsSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailTooFewArguments
-            LD   A,DiagnosticExpectedRight
+            LD   A,DXRPAR
             LD   BC,37
             LD   HL,Stage7TooManyArgumentsSource
             LD   DE,Stage7TooManyArgumentsSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailTooManyArguments
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,88
             LD   HL,Stage7ScalarForAggregateSource
             LD   DE,Stage7ScalarForAggregateSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailScalarForAggregate
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,79
             LD   HL,Stage7AggregateForScalarSource
             LD   DE,Stage7AggregateForScalarSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailAggregateForScalar
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,60
             LD   HL,Stage7ScalarResultAggregateSource
             LD   DE,Stage7ScalarResultAggregateSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailScalarResultAggregate
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,59
             LD   HL,Stage7AggregateResultScalarSource
             LD   DE,Stage7AggregateResultScalarSourceEnd
@@ -816,39 +816,39 @@ ProofStart:
             LD   DE,Stage7AggregateConstantSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailAggregateConstant
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,3
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailAggregateConstant
-            LD   HL,(ReadOnlyImageLength)
+            LD   HL,(ROILEN)
             LD   DE,11
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(StaticImageBase)
+            LD   A,(IMGBAS)
             CP   1
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(StaticImageBase+3)
+            LD   A,(IMGBAS+3)
             CP   7
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(StaticImageBase+7)
+            LD   A,(IMGBAS+7)
             CP   2
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(StaticImageBase+9)
+            LD   A,(IMGBAS+9)
             CP   3
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(StaticImageBase+11)
+            LD   A,(IMGBAS+11)
             OR   A
             JP   NZ,ProofFailAggregateConstant
             CALL EncodeAggregateProgram
             JP   C,ProofFailAggregateConstant
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,14
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailAggregateConstant
-            LD   HL,(GeneratedDataSize)
+            LD   HL,(GNDATSZ)
             LD   DE,3
             OR   A
             SBC  HL,DE
@@ -858,13 +858,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailAggregateConstant
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailAggregateConstant
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Y'
             JP   NZ,ProofFailAggregateConstant
             LD   A,(MMDATA)
@@ -877,50 +877,50 @@ ProofStart:
             CP   9
             JP   NZ,ProofFailAggregateConstant
 
-            LD   A,DiagnosticReadOnlyAssignment
+            LD   A,DGROASGN
             LD   BC,Stage7ReadOnlyWholeAssignmentPoint-Stage7ReadOnlyWholeAssignmentSource
             LD   HL,Stage7ReadOnlyWholeAssignmentSource
             LD   DE,Stage7ReadOnlyWholeAssignmentSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailReadOnlyAssignment
-            LD   A,DiagnosticReadOnlyAssignment
+            LD   A,DGROASGN
             LD   BC,Stage7ReadOnlyFieldAssignmentPoint-Stage7ReadOnlyFieldAssignmentSource
             LD   HL,Stage7ReadOnlyFieldAssignmentSource
             LD   DE,Stage7ReadOnlyFieldAssignmentSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailReadOnlyAssignment
-            LD   A,DiagnosticReadOnlyAssignment
+            LD   A,DGROASGN
             LD   BC,Stage7ReadOnlyArrayAssignmentPoint-Stage7ReadOnlyArrayAssignmentSource
             LD   HL,Stage7ReadOnlyArrayAssignmentSource
             LD   DE,Stage7ReadOnlyArrayAssignmentSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailReadOnlyAssignment
-            LD   A,DiagnosticReadOnlyAssignment
+            LD   A,DGROASGN
             LD   BC,Stage7ReadOnlyStringAssignmentPoint-Stage7ReadOnlyStringAssignmentSource
             LD   HL,Stage7ReadOnlyStringAssignmentSource
             LD   DE,Stage7ReadOnlyStringAssignmentSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailReadOnlyAssignment
 
-            LD   A,DiagnosticInitializerCount
+            LD   A,DGINICNT
             LD   BC,Stage7AggregateConstantIncompletePoint-Stage7AggregateConstantIncompleteSource
             LD   HL,Stage7AggregateConstantIncompleteSource
             LD   DE,Stage7AggregateConstantIncompleteSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailAggregateConstantInitializer
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage7AggregateConstantWrongTypePoint-Stage7AggregateConstantWrongTypeSource
             LD   HL,Stage7AggregateConstantWrongTypeSource
             LD   DE,Stage7AggregateConstantWrongTypeSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailAggregateConstantWrongType
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage7AggregateConstantRuntimePoint-Stage7AggregateConstantRuntimeSource
             LD   HL,Stage7AggregateConstantRuntimeSource
             LD   DE,Stage7AggregateConstantRuntimeSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailAggregateConstantRuntime
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage7AggregateConstantScalarTypePoint-Stage7AggregateConstantScalarTypeSource
             LD   HL,Stage7AggregateConstantScalarTypeSource
             LD   DE,Stage7AggregateConstantScalarTypeSourceEnd
@@ -931,19 +931,19 @@ ProofStart:
             LD   DE,Stage7ReadOnlyCapacityAcceptedSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofFailReadOnlyCapacity
-            LD   HL,(ReadOnlyImageLength)
+            LD   HL,(ROILEN)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailReadOnlyCapacity
             CALL EncodeAggregateProgram
             JP   C,ProofFailReadOnlyCapacity
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,1024
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailReadOnlyCapacity
-            LD   HL,(GeneratedDataSize)
+            LD   HL,(GNDATSZ)
             LD   A,H
             OR   L
             JP   NZ,ProofFailReadOnlyCapacity
@@ -951,13 +951,13 @@ ProofStart:
             LD   (RORDATA),A
             LD   A,$5A
             LD   (RORDATA+1023),A
-            LD   A,DiagnosticReadOnlyCapacity
+            LD   A,DGROCAP
             LD   BC,Stage7ReadOnlyCapacityRejectedPoint-Stage7ReadOnlyCapacityRejectedSource
             LD   HL,Stage7ReadOnlyCapacityRejectedSource
             LD   DE,Stage7ReadOnlyCapacityRejectedSourceEnd
             CALL ProofExpectCompileDiagnostic
             JP   C,ProofFailReadOnlyCapacity
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,1024
             OR   A
             SBC  HL,DE
@@ -1052,8 +1052,8 @@ ProofCheckProgramCapacityRejected:
             LD   BC,$A55A
             CALL AggregateCheckExtentCapacity
             JR   NC,ProofCapacityStateFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticProgramDataCapacity
+            LD   A,(DGCODE)
+            CP   DGPDCAP
             JR   NZ,ProofCapacityStateFailure
             JR   ProofCheckCapacityState
 
@@ -1062,8 +1062,8 @@ ProofCheckReadOnlyCapacityRejected:
             LD   BC,$A55A
             CALL AggregateCheckReadOnlyCapacity
             JR   NC,ProofCapacityStateFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticReadOnlyCapacity
+            LD   A,(DGCODE)
+            CP   DGROCAP
             JR   NZ,ProofCapacityStateFailure
 
 ; These entry routines tail-jump here with their own return word still present.
@@ -1120,10 +1120,10 @@ ProofExpectCompileDiagnostic:
             CALL CompileAggregateCallSlice
             JR   NC,ProofExpectedDiagnosticFailure
             LD   A,(ProofExpectedDiagnostic)
-            LD   HL,DiagnosticCode
+            LD   HL,DGCODE
             CP   (HL)
             JR   NZ,ProofExpectedDiagnosticFailure
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
@@ -1146,7 +1146,7 @@ ProofCompileAndRunSuccess:
             CALL Reset
             CALL ProofCallGenerated
             RET  C
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             RET  Z
             SCF
@@ -1166,7 +1166,7 @@ ProofRunRecursiveCapacity:
             CALL Reset
             CALL ProofCallGenerated
             RET  C
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JR   NZ,ProofRecursiveCapacityFailure
             LD   A,(RTTRPNO)
@@ -1195,13 +1195,13 @@ ProofRunSuffixFailures:
             LD   HL,Stage7SuffixLengthSource
             LD   DE,Stage7SuffixLengthSourceEnd
             CALL ProofPrepareSuffix
-            LD   A,AggregateTypeKindString
-            LD   (AggregateTypeTableBase+AggregateTypeKind),A
+            LD   A,ATKSTR
+            LD   (ATTABBAS+ATKIND),A
             LD   A,3
-            LD   (AggregateTypeTableBase+AggregateTypeAux),A
-            LD   HL,SemanticBufferLimit
-            LD   (SinkCursor),HL
-            LD   A,AggregateFirstDynamicTypeId
+            LD   (ATTABBAS+ATAUX),A
+            LD   HL,SMBUFLIM
+            LD   (SKCUR),HL
+            LD   A,AGDYNTYP
             CALL ProofExpectSuffixCapacity
             RET  C
 
@@ -1209,25 +1209,25 @@ ProofRunSuffixFailures:
             LD   HL,Stage7SuffixFieldSource
             LD   DE,Stage7SuffixFieldSourceEnd
             CALL ProofPrepareSuffix
-            LD   A,AggregateTypeKindRecord
-            LD   (AggregateTypeTableBase+AggregateTypeKind),A
+            LD   A,ATKREC
+            LD   (ATTABBAS+ATKIND),A
             XOR  A
-            LD   (AggregateTypeTableBase+AggregateRecordFieldStart),A
+            LD   (ATTABBAS+ARFLDST),A
             INC  A
-            LD   (AggregateTypeTableBase+AggregateRecordFieldCount),A
+            LD   (ATTABBAS+ARFLDCNT),A
             XOR  A
-            LD   (AggregateTypeTableBase+AggregateRecordFieldCount+1),A
+            LD   (ATTABBAS+ARFLDCNT+1),A
             LD   HL,Stage7SuffixFieldSource+1
-            LD   (AggregateFieldTableBase),HL
+            LD   (AFTABBAS),HL
             LD   A,5
-            LD   (AggregateFieldTableBase+2),A
-            LD   A,ScalarTypeU8
-            LD   (AggregateFieldTableBase+3),A
+            LD   (AFTABBAS+2),A
+            LD   A,TYU8
+            LD   (AFTABBAS+3),A
             XOR  A
-            LD   (AggregateFieldTableBase+4),A
-            LD   HL,SemanticBufferLimit-1
-            LD   (SinkCursor),HL
-            LD   A,AggregateFirstDynamicTypeId
+            LD   (AFTABBAS+4),A
+            LD   HL,SMBUFLIM-1
+            LD   (SKCUR),HL
+            LD   A,AGDYNTYP
             CALL ProofExpectSuffixCapacity
             RET  C
 
@@ -1235,16 +1235,16 @@ ProofRunSuffixFailures:
             LD   HL,Stage7SuffixIndexSource
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
-            LD   A,AggregateTypeKindArray
-            LD   (AggregateTypeTableBase+AggregateTypeKind),A
-            LD   A,ScalarTypeU8
-            LD   (AggregateTypeTableBase+AggregateTypeAux),A
+            LD   A,ATKARRAY
+            LD   (ATTABBAS+ATKIND),A
+            LD   A,TYU8
+            LD   (ATTABBAS+ATAUX),A
             LD   A,2
-            LD   (AggregateTypeTableBase+AggregateTypeLength),A
-            LD   (AggregateTypeTableBase+AggregateTypeExtent),A
-            LD   HL,SemanticBufferLimit-7
-            LD   (SinkCursor),HL
-            LD   A,AggregateFirstDynamicTypeId
+            LD   (ATTABBAS+ATLEN),A
+            LD   (ATTABBAS+ATEXT),A
+            LD   HL,SMBUFLIM-7
+            LD   (SKCUR),HL
+            LD   A,AGDYNTYP
             CALL ProofExpectSuffixCapacity
             RET  C
 
@@ -1252,16 +1252,16 @@ ProofRunSuffixFailures:
             LD   HL,Stage7SuffixIndexSource
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
-            LD   A,AggregateTypeKindString
-            LD   (AggregateTypeTableBase+AggregateTypeKind),A
+            LD   A,ATKSTR
+            LD   (ATTABBAS+ATKIND),A
             LD   A,3
-            LD   (AggregateTypeTableBase+AggregateTypeAux),A
-            LD   (AggregateTypeTableBase+AggregateTypeLength),A
+            LD   (ATTABBAS+ATAUX),A
+            LD   (ATTABBAS+ATLEN),A
             INC  A
-            LD   (AggregateTypeTableBase+AggregateTypeExtent),A
-            LD   HL,SemanticBufferLimit-6
-            LD   (SinkCursor),HL
-            LD   A,AggregateFirstDynamicTypeId
+            LD   (ATTABBAS+ATEXT),A
+            LD   HL,SMBUFLIM-6
+            LD   (SKCUR),HL
+            LD   A,AGDYNTYP
             CALL ProofExpectSuffixCapacity
             RET  C
 
@@ -1269,9 +1269,9 @@ ProofRunSuffixFailures:
             LD   HL,Stage7SuffixIndexSource
             LD   DE,Stage7SuffixIndexSourceEnd
             CALL ProofPrepareSuffix
-            LD   A,AggregateTypeKindRecord
-            LD   (AggregateTypeTableBase+AggregateTypeKind),A
-            LD   A,AggregateFirstDynamicTypeId
+            LD   A,ATKREC
+            LD   (ATTABBAS+ATKIND),A
+            LD   A,AGDYNTYP
             CALL ProofExpectSuffixTypeFailure
             RET
 
@@ -1279,39 +1279,39 @@ ProofRunSuffixFailures:
 ProofPrepareSuffix:
             CALL CompileSliceInitialize
             LD   A,1
-            LD   (ExpressionEmitEnabled),A
-            LD   A,ScalarTypeU16
-            LD   (ExpressionExpectedType),A
+            LD   (EXEMITON),A
+            LD   A,TYU16
+            LD   (EXEXPTYP),A
             XOR  A
-            LD   (ExpressionSuppressFault),A
-            LD   (ExpressionStackDepth),A
+            LD   (EXSUPFLT),A
+            LD   (EXSTKDEP),A
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofExpectSuffixCapacity:
-            LD   (Stage7PathType),A
+            LD   (S7PATHT),A
             LD   HL,0
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
-            LD   A,(Stage7PathType)
+            LD   A,(S7PATHT)
             CALL Stage7ParsePathSuffix
             JR   NC,ProofSuffixFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSinkCapacity
+            LD   A,(DGCODE)
+            CP   DGSNKCAP
             JR   NZ,ProofSuffixFailure
             JP   ProofCheckCurrentSP
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofExpectSuffixTypeFailure:
-            LD   (Stage7PathType),A
+            LD   (S7PATHT),A
             LD   HL,0
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
-            LD   A,(Stage7PathType)
+            LD   A,(S7PATHT)
             CALL Stage7ParsePathSuffix
             JR   NC,ProofSuffixFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTypeMismatch
+            LD   A,(DGCODE)
+            CP   DGTYPMIS
             JR   NZ,ProofSuffixFailure
 ProofCheckCurrentSP:
             LD   HL,0
@@ -1331,17 +1331,17 @@ ProofSuffixFailure:
 .routine in B,C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofRunInvalidCopy:
             LD   A,2
-            LD   (StaticImageLength),A
+            LD   (IMGLEN),A
             LD   A,$11
-            LD   (StaticImageBase),A
+            LD   (IMGBAS),A
             LD   A,$22
-            LD   (StaticImageBase+1),A
-            LD   HL,SemanticBufferBase
+            LD   (IMGBAS+1),A
+            LD   HL,SMBUFBAS
             LD   (HL),5
             INC  HL
-            LD   (HL),SemanticBeginMain
+            LD   (HL),SMBGMAIN
             INC  HL
-            LD   (HL),SemanticLoadProgramAlias
+            LD   (HL),SMLDPALS
             INC  HL
             LD   DE,MMDATA
             LD   A,B
@@ -1353,7 +1353,7 @@ ProofInvalidCopyDestinationReady:
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   (HL),SemanticLoadProgramAlias
+            LD   (HL),SMLDPALS
             INC  HL
             LD   DE,MMDATA
             LD   A,C
@@ -1365,7 +1365,7 @@ ProofInvalidCopySourceReady:
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   (HL),SemanticCopyAggregate
+            LD   (HL),SMCOPYAG
             INC  HL
             LD   (HL),1
             INC  HL
@@ -1375,13 +1375,13 @@ ProofInvalidCopySourceReady:
             INC  HL
             LD   (HL),$12
             INC  HL
-            LD   (HL),SemanticEndMain
+            LD   (HL),SMENMAIN
             CALL EncodeAggregateProgram
             JR   C,ProofInvalidCopyFailure
             CALL Reset
             CALL ProofCallGenerated
             JR   C,ProofInvalidCopyFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JR   NZ,ProofInvalidCopyFailure
             LD   A,(RTTRPNO)
@@ -1408,34 +1408,34 @@ ProofInvalidCopyFailure:
 ; compare every formerly published byte with the transaction backup.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ProofCheckEncodeRollback:
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofExpectedOffset),HL
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   (ProofExpectedRoDataSize),HL
             LD   A,$99
-            LD   (StaticImageBase),A
+            LD   (IMGBAS),A
             LD   A,1
-            LD   (StaticImageLength),A
-            LD   HL,SemanticBufferBase
+            LD   (IMGLEN),A
+            LD   HL,SMBUFBAS
             LD   (HL),2
             INC  HL
-            LD   (HL),SemanticBeginMain
+            LD   (HL),SMBGMAIN
             INC  HL
-            LD   (HL),SemanticEndMain
+            LD   (HL),SMENMAIN
             LD   HL,MMGEN+4
             CALL EncodeAggregateProgramWithinLimit
             JR   NC,ProofEncodeRollbackFailure
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofEncodeRollbackFailure
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   DE,(ProofExpectedRoDataSize)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofEncodeRollbackFailure
-            LD   BC,(GeneratedSize)
+            LD   BC,(GNSZ)
             LD   HL,MMGEN
             LD   DE,MMBACK
 ProofEncodeRollbackCompare:
@@ -1450,7 +1450,7 @@ ProofEncodeRollbackCompare:
             DEC  BC
             JR   ProofEncodeRollbackCompare
 ProofEncodeRollbackReady:
-            LD   BC,(GeneratedRoDataSize)
+            LD   BC,(GNROSZ)
             LD   HL,RORDATA
             LD   DE,MMBACK+(RORDATA-MMGEN)
 ProofEncodeRollbackRoDataCompare:
@@ -1482,11 +1482,11 @@ ProofCheckSegmentOverlap:
             CALL BeginSegmentedProgram
             RET  C
             LD   HL,MMGENCOD+1
-            LD   (SegmentRoDataEntry+SegmentEntryBase),HL
+            LD   (SGROENT+SGENTBAS),HL
             CALL ValidateSegmentTable
             JR   NC,ProofSegmentOverlapFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticOutputSegment
+            LD   A,(DGCODE)
+            CP   DGOUTSEG
             JR   NZ,ProofSegmentOverlapFailure
             CALL AbortSegmentedProgram
             OR   A
@@ -1495,9 +1495,9 @@ ProofSegmentOverlapFailure:
             SCF
             RET
 
-ProofFailCompile: LD A,(DiagnosticCode)
+ProofFailCompile: LD A,(DGCODE)
                   LD (ProofStatus),A
-                  LD A,(DiagnosticOffset)
+                  LD A,(DGOFF)
                   JP ProofFailed
 ProofFailEncode:  LD A,2
                   JP ProofFailed

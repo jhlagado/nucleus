@@ -26,9 +26,9 @@ KeywordFail:
             .db  "fail"
 KeywordEnd:
             .db  "end"
-NameMain:
+NAMEMAIN:
             .db  "main"
-NameWriteOutputByte:
+KWWRTOUT:
             .db  "writeOutputByte"
 CompilerImmutableEnd:
 CompilerCoreEnd:
@@ -58,10 +58,10 @@ ProofStart:
             LD   DE,AcceptedSourceEnd
             CALL CompileVerticalSlice
             JP   C,ProofFailAcceptedCompile
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             OR   A
             JP   NZ,ProofFailAcceptedDiagnostic
-            LD   HL,SemanticBufferBase
+            LD   HL,SMBUFBAS
             LD   DE,ExpectedOperations
             LD   B,6
             CALL ProofCompareBytes
@@ -72,28 +72,28 @@ ProofStart:
             LD   DE,MalformedSourceEnd
             CALL CompileVerticalSlice
             JP   NC,ProofFailMalformedAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticExpectedEnd
+            LD   A,(DGCODE)
+            CP   DXEND
             JP   NZ,ProofFailMalformedCode
-            LD   A,(DiagnosticPartId)
+            LD   A,(DGPARTID)
             CP   9
             JP   NZ,ProofFailMalformedPart
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,MalformedSourceEnd-MalformedSource
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailMalformedOffset
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,3
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailMalformedLine
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailMalformedColumn
-            LD   A,(SemanticBufferBase)
+            LD   A,(SMBUFBAS)
             OR   A
             JP   NZ,ProofFailMalformedOutput
 
@@ -151,8 +151,8 @@ ProofFailed:
             HALT
 
 ExpectedOperations:
-            .db  4,SemanticLoadU8,"A",SemanticWriteOutputByte
-            .db  SemanticPropagate,SemanticReturn
+            .db  4,SMLDU8,"A",SMWROBYT
+            .db  SMPROP,SMRET
 
 ProofStatus:
             .db  0

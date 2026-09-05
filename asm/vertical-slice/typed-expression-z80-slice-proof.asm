@@ -195,7 +195,7 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
 
             ; TokenEof shares zero with the empty lookahead marker. Repeated
             ; peeks therefore re-run the tokenizer, but must reproduce the
@@ -203,9 +203,9 @@ ProofStart:
             LD   A,79
             LD   HL,TypedExpressionCapacitySourceEnd
             LD   DE,TypedExpressionCapacitySourceEnd
-            CALL SourceInitialize
+            CALL SAINIT
             XOR  A
-            LD   (ParserLookaheadKind),A
+            LD   (PSLOOK),A
             LD   BC,$FFFF
             CALL ParserPeek
             JP   C,ProofFailEofLookahead
@@ -223,53 +223,53 @@ ProofStart:
             CALL ParserTake
             JP   C,ProofFailEofLookahead
             JP   NZ,ProofFailEofLookahead
-            LD   A,(ParserLookaheadKind)
+            LD   A,(PSLOOK)
             OR   A
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(SourceCursor)
+            LD   HL,(SSCUR)
             LD   DE,TypedExpressionCapacitySourceEnd
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(SourceOffset)
+            LD   HL,(SSOFF)
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(SourceLine)
+            LD   HL,(SSLINE)
             DEC  HL
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(SourceColumn)
+            LD   HL,(SSCOL)
             DEC  HL
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(TokenStartOffset)
+            LD   HL,(TNSTOFF)
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(TokenStartLine)
+            LD   HL,(TNSTLINE)
             DEC  HL
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   HL,(TokenStartColumn)
+            LD   HL,(TNSTCOL)
             DEC  HL
             LD   A,H
             OR   L
             JP   NZ,ProofFailEofLookahead
-            LD   A,TokenPlus
+            LD   A,TNPLUS
             CALL TypedTakeOperator
             JP   C,ProofFailEofLookahead
             JP   Z,ProofFailEofLookahead
             CP   $FF
             JP   NZ,ProofFailEofLookahead
-            LD   A,(ParserLookaheadKind)
+            LD   A,(PSLOOK)
             OR   A
             JP   NZ,ProofFailEofLookahead
-            LD   A,(ExpressionOperator)
-            CP   TokenPlus
+            LD   A,(EXOP)
+            CP   TNPLUS
             JP   NZ,ProofFailEofLookahead
 
             LD   A,80
@@ -282,13 +282,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailAcceptedState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailAcceptedLength
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   1
             JP   NZ,ProofFailAcceptedValue
             LD   A,(MMGEN+3)       ; out
@@ -301,7 +301,7 @@ ProofStart:
             LD   A,H
             OR   L
             JP   NZ,ProofFailAcceptedWord
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (TypedGeneratedSize),HL
 
             LD   A,90
@@ -314,13 +314,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailDefaultState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailDefaultOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             OR   A
             JP   NZ,ProofFailDefaultOutput
             LD   HL,(MMGEN+4)      ; word defaults to zero
@@ -341,7 +341,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailNarrowState
             LD   A,(RTTRPNO)
@@ -366,7 +366,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailDivideState
             LD   A,(RTTRPNO)
@@ -384,43 +384,43 @@ ProofStart:
             LD   A,83
             LD   HL,TypedImplicitNarrowSource
             LD   DE,TypedImplicitNarrowSourceEnd
-            LD   C,DiagnosticTypeMismatch
+            LD   C,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailImplicitNarrow
             LD   A,84
             LD   HL,TypedBooleanMixSource
             LD   DE,TypedBooleanMixSourceEnd
-            LD   C,DiagnosticTypeMismatch
+            LD   C,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailBooleanMix
             LD   A,85
             LD   HL,TypedChainSource
             LD   DE,TypedChainSourceEnd
-            LD   C,DiagnosticComparisonChain
+            LD   C,DGCMPCHN
             CALL ProofExpectDiagnostic
             JP   C,ProofFailChain
             LD   A,86
             LD   HL,TypedConstantDivideSource
             LD   DE,TypedConstantDivideSourceEnd
-            LD   C,DiagnosticDivisionZero
+            LD   C,DGDIVZER
             CALL ProofExpectDiagnostic
             JP   C,ProofFailConstantDivide
             LD   A,87
             LD   HL,TypedConstantNarrowSource
             LD   DE,TypedConstantNarrowSourceEnd
-            LD   C,DiagnosticNarrowing
+            LD   C,DGNAR
             CALL ProofExpectDiagnostic
             JP   C,ProofFailConstantNarrow
             LD   A,88
             LD   HL,TypedLiteralOverflowSource
             LD   DE,TypedLiteralOverflowSourceEnd
-            LD   C,DiagnosticLexical
+            LD   C,DGLEX
             CALL ProofExpectDiagnostic
             JP   C,ProofFailLiteralOverflow
             LD   A,89
             LD   HL,TypedTranscriptCapacitySource
             LD   DE,TypedTranscriptCapacitySourceEnd
-            LD   C,DiagnosticSinkCapacity
+            LD   C,DGSNKCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailTranscriptCapacity
 
@@ -431,61 +431,61 @@ ProofStart:
             CALL SemanticSinkReset
             LD   C,255
 ProofFillOperationCount:
-            LD   A,SemanticLiteral16
+            LD   A,SMLIT16
             CALL SemanticSinkOperation
             JP   C,ProofFailOperationCapacityFill
             DEC  C
             JR   NZ,ProofFillOperationCount
-            LD   A,(SinkOperationCount)
+            LD   A,(SKOPCNT)
             CP   255
             JP   NZ,ProofFailOperationCapacityBoundary
-            LD   HL,(SinkCursor)
-            LD   DE,SemanticBufferBase+256
+            LD   HL,(SKCUR)
+            LD   DE,SMBUFBAS+256
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOperationCapacityBoundary
-            LD   A,SemanticLiteral16
+            LD   A,SMLIT16
             CALL SemanticSinkOperation
             JP   NC,ProofFailOperationCapacityAccept
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSinkCapacity
+            LD   A,(DGCODE)
+            CP   DGSNKCAP
             JP   NZ,ProofFailOperationCapacityDiagnostic
 
             LD   A,91
             LD   HL,TypedExpressionCapacitySource
             LD   DE,TypedExpressionCapacitySourceEnd
-            LD   C,DiagnosticExpressionCapacity
+            LD   C,DGEXPCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailExpressionCapacity
 
             LD   A,92
             LD   HL,TypedDynamicZeroSource
             LD   DE,TypedDynamicZeroSourceEnd
-            LD   C,DiagnosticDivisionZero
+            LD   C,DGDIVZER
             CALL ProofExpectDiagnostic
             JP   C,ProofFailDynamicZero
             LD   A,93
             LD   HL,TypedUnaryMinusOverflowSource
             LD   DE,TypedUnaryMinusOverflowSourceEnd
-            LD   C,DiagnosticIntegerRange
+            LD   C,DGINTRNG
             CALL ProofExpectDiagnostic
             JP   C,ProofFailUnaryMinusRange
             LD   A,94
             LD   HL,TypedNotOverflowSource
             LD   DE,TypedNotOverflowSourceEnd
-            LD   C,DiagnosticIntegerRange
+            LD   C,DGINTRNG
             CALL ProofExpectDiagnostic
             JP   C,ProofFailNotRange
             LD   A,95
             LD   HL,TypedMalformedHexSource
             LD   DE,TypedMalformedHexSourceEnd
-            LD   C,DiagnosticLexical
+            LD   C,DGLEX
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMalformedHex
             LD   A,96
             LD   HL,TypedMalformedSuffixSource
             LD   DE,TypedMalformedSuffixSourceEnd
-            LD   C,DiagnosticLexical
+            LD   C,DGLEX
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMalformedSuffix
 
@@ -495,31 +495,31 @@ ProofFillOperationCount:
             LD   A,100
             LD   HL,TypedSuppressedDivideTypeSource
             LD   DE,TypedSuppressedDivideTypeSourceEnd
-            LD   C,DiagnosticIntegerRange
+            LD   C,DGINTRNG
             CALL ProofExpectDiagnostic
             JP   C,ProofFailSuppressedDivideType
             LD   A,101
             LD   HL,TypedSuppressedNarrowTypeSource
             LD   DE,TypedSuppressedNarrowTypeSourceEnd
-            LD   C,DiagnosticIntegerRange
+            LD   C,DGINTRNG
             CALL ProofExpectDiagnostic
             JP   C,ProofFailSuppressedNarrowType
             LD   A,102
             LD   HL,TypedMissingConversionRightSource
             LD   DE,TypedMissingConversionRightSourceEnd
-            LD   C,DiagnosticExpectedRight
+            LD   C,DXRPAR
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMissingConversionRight
             LD   A,103
             LD   HL,TypedMissingParenRightSource
             LD   DE,TypedMissingParenRightSourceEnd
-            LD   C,DiagnosticExpectedRight
+            LD   C,DXRPAR
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMissingParenRight
             LD   A,104
             LD   HL,TypedMalformedAfterLeftSource
             LD   DE,TypedMalformedAfterLeftSourceEnd
-            LD   C,DiagnosticLexical
+            LD   C,DGLEX
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMalformedAfterLeft
 
@@ -529,17 +529,17 @@ ProofFillOperationCount:
             LD   A,105
             LD   HL,TypedDefaultLocalCapacitySource
             LD   DE,TypedDefaultLocalCapacitySourceEnd
-            CALL SourceInitialize
+            CALL SAINIT
             CALL SemanticSinkReset
             XOR  A
-            LD   (ParserLookaheadKind),A
+            LD   (PSLOOK),A
             CALL SymbolReset
-            LD   HL,SemanticBufferLimit-3
-            LD   (SinkCursor),HL
+            LD   HL,SMBUFLIM-3
+            LD   (SKCUR),HL
             CALL TypedParseLocalDeclaration
             JP   NC,ProofFailDefaultLocalCapacity
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSinkCapacity
+            LD   A,(DGCODE)
+            CP   DGSNKCAP
             JP   NZ,ProofFailDefaultLocalCapacity
 
             ; Exercise paths absent from the primary program: named u8 and
@@ -555,10 +555,10 @@ ProofFillOperationCount:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailCoverageState
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   255
             JP   NZ,ProofFailCoverageOutput
             LD   A,(MMGEN+4)       ; dynamic Boolean conjunction
@@ -577,7 +577,7 @@ ProofFillOperationCount:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailConversionState
             LD   HL,(MMGEN+4)
@@ -600,7 +600,7 @@ ProofFillOperationCount:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailNestedDivideState
             LD   HL,(RTTRPOFF)
@@ -626,7 +626,7 @@ ProofFillOperationCount:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailNestedNarrowState
             LD   HL,(RTTRPOFF)
@@ -641,41 +641,41 @@ ProofFillOperationCount:
             ; Defensive invariant failures use their own diagnostics rather
             ; than masquerading as semantic-transcript exhaustion.
             XOR  A
-            LD   (ExpressionStackDepth),A
+            LD   (EXSTKDEP),A
             LD   HL,1
-            LD   A,ScalarMetaConstant+ScalarTypeU8
+            LD   A,MTCONST+TYU8
             CALL TypedRestoreOperands
             JP   NC,ProofFailExpressionUnderflow
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticInternalOperation
+            LD   A,(DGCODE)
+            CP   DGINTOP
             JP   NZ,ProofFailExpressionUnderflow
 
-            LD   A,EmitBooleanFixupCapacity
-            LD   (EmitBooleanFixupDepth),A
+            LD   A,EBFCAP
+            LD   (EBFDEP),A
             LD   DE,0
             CALL TypedPushBooleanFixup
             JP   NC,ProofFailBooleanCapacity
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticBooleanFixupCapacity
+            LD   A,(DGCODE)
+            CP   DGBFXCAP
             JP   NZ,ProofFailBooleanCapacity
 
             XOR  A
-            LD   (EmitBooleanFixupDepth),A
+            LD   (EBFDEP),A
             LD   B,A
             CALL TypedPopBooleanFixup
             JP   NC,ProofFailBooleanUnderflow
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticInternalOperation
+            LD   A,(DGCODE)
+            CP   DGINTOP
             JP   NZ,ProofFailBooleanUnderflow
 
             LD   A,1
-            LD   (SemanticBufferBase),A
-            LD   A,SemanticLiteralU8
-            LD   (SemanticPayloadBase),A
+            LD   (SMBUFBAS),A
+            LD   A,SMLITU8
+            LD   (SMPAYBAS),A
             CALL TypedDispatch
             JP   NC,ProofFailRetiredOperation
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticInternalOperation
+            LD   A,(DGCODE)
+            CP   DGINTOP
             JP   NZ,ProofFailRetiredOperation
 
             ; A unary template that exhausts the output after three bytes
@@ -686,11 +686,11 @@ ProofFillOperationCount:
             ADD  HL,SP
             LD   (ProofExpectedSP),HL
             XOR  A
-            LD   (DiagnosticCode),A
+            LD   (DGCODE),A
             LD   HL,MMGEN
-            LD   (EmitCursor),HL
+            LD   (EMCUR),HL
             LD   HL,MMGEN+3
-            LD   (EmitLimit),HL
+            LD   (EMLIM),HL
             LD   A,$CC
             LD   (MMGEN+3),A
             CALL TypedNegate16
@@ -701,10 +701,10 @@ ProofFillOperationCount:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailUnaryEmitStack
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSinkCapacity
+            LD   A,(DGCODE)
+            CP   DGSNKCAP
             JP   NZ,ProofFailUnaryEmitDiagnostic
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             LD   DE,MMGEN+3
             OR   A
             SBC  HL,DE
@@ -722,11 +722,11 @@ ProofFillOperationCount:
             JP   NZ,ProofFailUnaryEmitCanary
 
             LD   A,1
-            LD   (EmitBooleanFixupDepth),A
+            LD   (EBFDEP),A
             CALL TypedEndMain
             JP   NC,ProofFailUnbalancedBoolean
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticInternalOperation
+            LD   A,(DGCODE)
+            CP   DGINTOP
             JP   NZ,ProofFailUnbalancedBoolean
 
             CALL ProofCheckArithmeticFastPaths
@@ -751,7 +751,7 @@ ProofExpectDiagnostic:
             CALL CompileSlice
             POP  BC
             JR   NC,ProofExpectedDiagnosticNo
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CP   C
             JR   NZ,ProofExpectedDiagnosticNo
             OR   A

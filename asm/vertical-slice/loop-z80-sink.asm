@@ -4,15 +4,15 @@
 EmitByte:
 .if TargetStreamingOutput
             LD   B,A
-            LD   HL,(EmitLimit)
+            LD   HL,(EMLIM)
             LD   A,H
             OR   L
             JP   Z,TargetCapacityFailure
             DEC  HL
-            LD   (EmitLimit),HL
-            LD   HL,(EmitCursor)
+            LD   (EMLIM),HL
+            LD   HL,(EMCUR)
             PUSH BC
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             LD   C,A
             LD   A,B
             PUSH HL
@@ -21,13 +21,13 @@ EmitByte:
             POP  BC
             JP   C,TargetOutputFailure
             INC  HL
-            LD   (EmitCursor),HL
+            LD   (EMCUR),HL
             OR   A
             RET
 .else
             LD   B,A
-            LD   HL,(EmitCursor)
-            LD   DE,(EmitLimit)
+            LD   HL,(EMCUR)
+            LD   DE,(EMLIM)
             OR   A
             SBC  HL,DE
             ADD  HL,DE
@@ -36,7 +36,7 @@ EmitByteRoom:
             LD   A,B
             LD   (HL),A
             INC  HL
-            LD   (EmitCursor),HL
+            LD   (EMCUR),HL
             OR   A
             RET
 .endif
@@ -208,7 +208,7 @@ EmitGo:
 ; Patch one Z80 relative displacement. DE is the operand and HL the target.
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 PatchRelative:
-            LD   (EmitPatchAddress),DE
+            LD   (EMPATCH),DE
             INC  DE
             OR   A
             SBC  HL,DE
@@ -221,8 +221,8 @@ PatchRelative:
 PatchStore:
 .if TargetStreamingOutput
             LD   B,C
-            LD   HL,(EmitPatchAddress)
-            LD   A,(TargetOutputBank)
+            LD   HL,(EMPATCH)
+            LD   A,(TGOUTBNK)
             LD   C,A
             LD   A,B
             CALL TargetSinkPatchByte
@@ -230,23 +230,23 @@ PatchStore:
             OR   A
             RET
 .else
-            LD   DE,(EmitPatchAddress)
+            LD   DE,(EMPATCH)
             LD   A,C
             LD   (DE),A
             OR   A
             RET
 .endif
 PatchInvalid:
-            CALL SetDiagInline
-            .db  DiagnosticFixupRange
+            CALL DGINLINE
+            .db  DGFIXRNG
 
 .if TargetStreamingOutput
 .else
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 BeginProgram:
-            LD   (EmitLimit),HL
-            LD   BC,(GeneratedSize)
-            LD   (PublishedSize),BC
+            LD   (EMLIM),HL
+            LD   BC,(GNSZ)
+            LD   (PUSZ),BC
             LD   A,B
             OR   C
             JR   Z,BeginProgramReady
@@ -255,13 +255,13 @@ BeginProgram:
             LDIR
 BeginProgramReady:
             LD   HL,MMGEN
-            LD   (EmitCursor),HL
+            LD   (EMCUR),HL
             OR   A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 AbortProgram:
-            LD   BC,(PublishedSize)
+            LD   BC,(PUSZ)
             LD   A,B
             OR   C
             JR   Z,AbortProgramSize
@@ -269,8 +269,8 @@ AbortProgram:
             LD   DE,MMGEN
             LDIR
 AbortProgramSize:
-            LD   HL,(PublishedSize)
-            LD   (GeneratedSize),HL
+            LD   HL,(PUSZ)
+            LD   (GNSZ),HL
             SCF
             RET
 .endif
@@ -283,24 +283,24 @@ AbortProgramSize:
 .routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 BeginSegmentedProgram:
             PUSH HL
-            LD   HL,GeneratedSize
-            LD   DE,PublishedSize
+            LD   HL,GNSZ
+            LD   DE,PUSZ
             LD   BC,8
             LDIR
-            LD   BC,(GeneratedSize)
+            LD   BC,(GNSZ)
             LD   HL,MMGENCOD
             LD   DE,MMBACK
             CALL SegmentCopyIfAny
-            LD   BC,(GeneratedRoDataSize)
+            LD   BC,(GNROSZ)
             LD   HL,RORDATA
             LD   DE,MMBACK+(RORDATA-MMGEN)
             CALL SegmentCopyIfAny
             LD   HL,SegmentInitialTable
-            LD   DE,SegmentTableBase
-            LD   BC,SegmentEntrySize*SegmentCapacity
+            LD   DE,SGTABBAS
+            LD   BC,SGENTSZ*SGCAP
             LDIR
             POP  HL
-            LD   (SegmentCodeEntry+SegmentEntryLimit),HL
+            LD   (SGCDENT+SGENTLIM),HL
 
             CALL ValidateSegmentTable
 .if CompilerDiagnosticReturns
@@ -332,22 +332,22 @@ SegmentCopyIfAny:
 SelectOutputSegment:
             OR   A
             JR   NZ,SelectOutputSegmentRoData
-            LD   DE,(EmitCursor)
-            LD   (SegmentRoDataCursor),DE
-            LD   HL,SegmentCodeEntry
+            LD   DE,(EMCUR)
+            LD   (SGROCUR),DE
+            LD   HL,SGCDENT
             JR   SelectOutputSegmentReady
 SelectOutputSegmentRoData:
-            LD   HL,SegmentRoDataEntry
+            LD   HL,SGROENT
 SelectOutputSegmentReady:
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (EmitCursor),DE
+            LD   (EMCUR),DE
             INC  HL
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (EmitLimit),DE
+            LD   (EMLIM),DE
             OR   A
             RET
 
@@ -356,27 +356,27 @@ SelectOutputSegmentReady:
 ; be published.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ValidateSegmentTable:
-            LD   IX,SegmentTableBase
-            LD   B,SegmentCapacity
+            LD   IX,SGTABBAS
+            LD   B,SGCAP
 ValidateSegmentEntryLoop:
-            LD   L,(IX+SegmentEntryBase)
-            LD   H,(IX+SegmentEntryBase+1)
-            LD   E,(IX+SegmentEntryLimit)
-            LD   D,(IX+SegmentEntryLimit+1)
+            LD   L,(IX+SGENTBAS)
+            LD   H,(IX+SGENTBAS+1)
+            LD   E,(IX+SGENTLIM)
+            LD   D,(IX+SGENTLIM+1)
             OR   A
             SBC  HL,DE
             JR   NC,SegmentTableFailure
-            LD   DE,SegmentEntrySize
+            LD   DE,SGENTSZ
             ADD  IX,DE
             DJNZ ValidateSegmentEntryLoop
-            LD   HL,(SegmentCodeEntry+SegmentEntryLimit)
-            LD   DE,(SegmentRoDataEntry+SegmentEntryBase)
+            LD   HL,(SGCDENT+SGENTLIM)
+            LD   DE,(SGROENT+SGENTBAS)
             CALL SegmentRequireOrder
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(SegmentDataEntry+SegmentEntryLimit)
-            LD   DE,(SegmentBssEntry+SegmentEntryBase)
+            LD   HL,(SGDATENT+SGENTLIM)
+            LD   DE,(SGBSSENT+SGENTBAS)
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 SegmentRequireOrder:
             OR   A
@@ -388,21 +388,21 @@ SegmentOrderReady:
             OR   A
             RET
 SegmentTableFailure:
-            CALL SetDiagInline
-            .db  DiagnosticOutputSegment
+            CALL DGINLINE
+            .db  DGOUTSEG
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 AbortSegmentedProgram:
-            LD   BC,(PublishedSize)
+            LD   BC,(PUSZ)
             LD   HL,MMBACK
             LD   DE,MMGENCOD
             CALL SegmentCopyIfAny
-            LD   BC,(PublishedRoDataSize)
+            LD   BC,(PUROSZ)
             LD   HL,MMBACK+(RORDATA-MMGEN)
             LD   DE,RORDATA
             CALL SegmentCopyIfAny
-            LD   HL,PublishedSize
-            LD   DE,GeneratedSize
+            LD   HL,PUSZ
+            LD   DE,GNSZ
             LD   BC,8
             LDIR
             SCF
@@ -410,20 +410,20 @@ AbortSegmentedProgram:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 FinishSegmentedProgram:
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             LD   DE,MMGENCOD
             OR   A
             SBC  HL,DE
-            LD   (GeneratedSize),HL
-            LD   HL,(SegmentRoDataCursor)
+            LD   (GNSZ),HL
+            LD   HL,(SGROCUR)
             LD   DE,RORDATA
             OR   A
             SBC  HL,DE
-            LD   (GeneratedRoDataSize),HL
-            LD   HL,(StaticImageLength)
-            LD   (GeneratedDataSize),HL
-            LD   HL,(ProgramBssLength)
-            LD   (GeneratedBssSize),HL
+            LD   (GNROSZ),HL
+            LD   HL,(IMGLEN)
+            LD   (GNDATSZ),HL
+            LD   HL,(PGBSSLEN)
+            LD   (GNBSSSZ),HL
             OR   A
             RET
 .endif
@@ -458,25 +458,25 @@ EncodeLoopProgramBody:
             LD   HL,MMGENLIM
             CALL BeginProgram
 
-            LD   A,(SemanticBufferBase+2)
+            LD   A,(SMBUFBAS+2)
             CALL EmitLoadDImmediate
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(SemanticBufferBase+4)
+            LD   A,(SMBUFBAS+4)
             CALL EmitLoadDImmediate
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 
-            LD   HL,(EmitCursor)
-            LD   (EmitLoopHead),HL
+            LD   HL,(EMCUR)
+            LD   (EMLOOP),HL
             CALL EmitByteInlineChecked
             .db  $7A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(SemanticBufferBase+5)
+            LD   A,(SMBUFBAS+5)
             CALL EmitCompareImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -485,9 +485,9 @@ EncodeLoopProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitExitFixup),DE
+            LD   (EMEXIT),DE
 
-            LD   A,(SemanticBufferBase+7)
+            LD   A,(SMBUFBAS+7)
             CALL EmitLoadAImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -502,13 +502,13 @@ EncodeLoopProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitFailureFixup),DE
+            LD   (EMFAIL),DE
             CALL EmitByteInlineChecked
             .db  $7A
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(SemanticBufferBase+5)
+            LD   A,(SMBUFBAS+5)
             DEC  A
             CALL EmitCompareImmediate
 .if CompilerDiagnosticReturns
@@ -518,7 +518,7 @@ EncodeLoopProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitUpdateExitFixup),DE
+            LD   (EMUPEXIT),DE
             CALL EmitByteInlineChecked
             .db  $14
 .if CompilerDiagnosticReturns
@@ -528,18 +528,18 @@ EncodeLoopProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitLoopHead)
+            LD   HL,(EMLOOP)
             CALL PatchRelative
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 
-            LD   DE,(EmitExitFixup)
+            LD   DE,(EMEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitUpdateExitFixup)
+            LD   DE,(EMUPEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -549,12 +549,12 @@ EncodeLoopProgramBody:
             RET  C
 .endif
 
-            LD   DE,(EmitFailureFixup)
+            LD   DE,(EMFAIL)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,LoopFailureOffset
+            LD   HL,LPFAIL
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -720,19 +720,19 @@ EmitRunEnding:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,RunState-RTSTATE
+            LD   DE,RUNSTATE-RTSTATE
             CALL EmitStoreTargetStateA
 .else
-            LD   HL,RunState
+            LD   HL,RUNSTATE
             CALL EmitStoreA
 .endif
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   A,(TargetDescriptorEntryBankValue)
+            LD   A,(TDENTVAL)
             LD   D,A
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             CP   D
             JR   Z,EmitRunEndingLocal
             LD   A,D
@@ -740,7 +740,7 @@ EmitRunEnding:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(TargetTerminalAddress)
+            LD   HL,(TGTERM)
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -748,7 +748,7 @@ EmitRunEnding:
             LD   A,10                     ; far-jump vector ordinal
             JP   EmitTargetVectorJump
 EmitRunEndingLocal:
-            LD   HL,(TargetTerminalAddress)
+            LD   HL,(TGTERM)
             LD   A,$C3
             JR   EmitOpcodeWord
 .else
@@ -785,7 +785,7 @@ EmitRelativePlaceholder:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             PUSH HL
             XOR  A
             CALL EmitByte
@@ -803,7 +803,7 @@ EmitJrCPlaceholder:
 PatchWord:
 .if TargetStreamingOutput
             PUSH BC
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             LD   C,A
             CALL TargetSinkPatchWord
             POP  BC
@@ -823,18 +823,18 @@ PatchWord:
 ; Patch a stored displacement to the current output position.
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 PatchHere:
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             JP   PatchRelative
 
 .if TargetStreamingOutput
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 FinishProgram:
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             LD   DE,MMGEN
             OR   A
             SBC  HL,DE
-            LD   (GeneratedSize),HL
+            LD   (GNSZ),HL
             OR   A
             RET
 .endif
@@ -844,10 +844,10 @@ FinishProgram:
 CallBackendStart:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 NextSemanticByte:
-            LD   HL,(SemanticReadCursor)
+            LD   HL,(SMRDCUR)
             LD   A,(HL)
             INC  HL
-            LD   (SemanticReadCursor),HL
+            LD   (SMRDCUR),HL
             OR   A
             RET
 
@@ -866,16 +866,16 @@ ReadSemanticWord:
 .if LegacyEncoders
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 DispatchCallOperations:
-            LD   HL,SemanticPayloadBase
-            LD   (SemanticReadCursor),HL
-            LD   A,(SemanticBufferBase)
+            LD   HL,SMPAYBAS
+            LD   (SMRDCUR),HL
+            LD   A,(SMBUFBAS)
             OR   A
             RET  Z
             LD   B,A
 DispatchCallNext:
             PUSH BC
             CALL NextSemanticByte
-            SUB  SemanticCallLiteralU8
+            SUB  SMCLITU8
             CP   CallOperationCount
             JR   NC,DispatchCallInvalid
             ADD  A,A
@@ -900,8 +900,8 @@ DispatchCallReturn:
             RET
 DispatchCallInvalid:
             POP  BC
-            CALL SetDiagInline
-            .db  DiagnosticSinkCapacity
+            CALL DGINLINE
+            .db  DGSNKCAP
 
 CallOperationTable:
             .dw CallLiteral
@@ -931,14 +931,14 @@ CallLiteral:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitExitFixup),DE
+            LD   (EMEXIT),DE
             CALL EmitByteInlineChecked
             .db  $CD
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (EmitRoutineCallFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMRTNCFX),HL
             LD   HL,0
             CALL EmitWord
 .if CompilerDiagnosticReturns
@@ -948,7 +948,7 @@ CallLiteral:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitExitFixup)
+            LD   DE,(EMEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -957,7 +957,7 @@ CallLiteral:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitUpdateExitFixup),DE
+            LD   (EMUPEXIT),DE
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -971,15 +971,15 @@ CallWriteLocal:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitFailureFixup),DE
+            LD   (EMFAIL),DE
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 CallBeginForward:
             CALL NextSemanticByte
-            LD   HL,(EmitCursor)
-            LD   (EmitRoutineAddress),HL
-            LD   DE,(EmitRoutineCallFixup)
+            LD   HL,(EMCUR)
+            LD   (EMRTNADR),HL
+            LD   DE,(EMRTNCFX)
             JP   PatchWord
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -999,7 +999,7 @@ CallIfParameterZero:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitIfFixup),DE
+            LD   (EMIFFIX),DE
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -1013,7 +1013,7 @@ CallReturnParameter:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 CallEndIf:
-            LD   DE,(EmitIfFixup)
+            LD   DE,(EMIFFIX)
             JP   PatchHere
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
@@ -1042,7 +1042,7 @@ CallReturnSelfMinus:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitRoutineAddress)
+            LD   HL,(EMRTNADR)
             CALL EmitCall
 .if CompilerDiagnosticReturns
             RET  C
@@ -1056,7 +1056,7 @@ CallReturnSelfMinus:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 CallEndRoutine:
-            LD   HL,(EmitRoutineAddress)
+            LD   HL,(EMRTNADR)
             LD   A,H
             OR   L
             RET  NZ
@@ -1064,12 +1064,12 @@ CallEndRoutine:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitUpdateExitFixup)
+            LD   DE,(EMUPEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,CallCapacityOffset
+            LD   HL,CLCAPOFF
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1078,12 +1078,12 @@ CallEndRoutine:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitFailureFixup)
+            LD   DE,(EMFAIL)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,CallFailureOffset
+            LD   HL,CLFAIL
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1100,7 +1100,7 @@ EncodeCallProgramBody:
             LD   HL,MMGENLIM
             CALL BeginProgram
             LD   HL,0
-            LD   (EmitRoutineAddress),HL
+            LD   (EMRTNADR),HL
             CALL DispatchCallOperations
 .if CompilerDiagnosticReturns
             RET  C
@@ -1117,16 +1117,16 @@ CallBackendEnd:
 ExpressionBackendStart:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 DispatchExpressionOperations:
-            LD   HL,SemanticPayloadBase
-            LD   (SemanticReadCursor),HL
-            LD   A,(SemanticBufferBase)
+            LD   HL,SMPAYBAS
+            LD   (SMRDCUR),HL
+            LD   A,(SMBUFBAS)
             OR   A
             RET  Z
             LD   B,A
 DispatchExpressionNext:
             PUSH BC
             CALL NextSemanticByte
-            SUB  SemanticDefineProgramU8
+            SUB  SMDEFPU8
             CP   ExpressionOperationCount
             JR   NC,DispatchExpressionInvalid
             ADD  A,A
@@ -1151,8 +1151,8 @@ DispatchExpressionReturn:
             RET
 DispatchExpressionInvalid:
             POP  BC
-            CALL SetDiagInline
-            .db  DiagnosticSinkCapacity
+            CALL DGINLINE
+            .db  DGSNKCAP
 
 ExpressionOperationTable:
             .dw ExpressionDefineProgram
@@ -1178,10 +1178,10 @@ ExpressionProgramAddress:
             BIT  7,D
             JR   Z,ExpressionTargetDataAddress
             RES  7,D
-            LD   HL,(TargetBssBase)
+            LD   HL,(TGBSSBAS)
             JR   ExpressionTargetAddressReady
 ExpressionTargetDataAddress:
-            LD   HL,(TargetContextDataBase)
+            LD   HL,(TCDATBAS)
 ExpressionTargetAddressReady:
             ADD  HL,DE
             OR   A
@@ -1210,8 +1210,8 @@ ExpressionDefineProgram:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 ExpressionBeginMain:
-            LD   DE,(EmitDataFixup)
-            LD   HL,(EmitCursor)
+            LD   DE,(EMDATFIX)
+            LD   HL,(EMCUR)
             CALL PatchWord
             LD   HL,ExpressionFrameBytes
             JP   EmitEight
@@ -1326,7 +1326,7 @@ ExpressionWrite:
             CALL NextSemanticByte
             LD   H,A
             LD   L,C
-            LD   (EmitLoopHead),HL
+            LD   (EMLOOP),HL
             CALL EmitByteInlineChecked
             .db  $F1
 .if CompilerDiagnosticReturns
@@ -1341,7 +1341,7 @@ ExpressionWrite:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitFailureFixup),DE
+            LD   (EMFAIL),DE
             RET
 .endif
 
@@ -1361,7 +1361,7 @@ ExpressionEndMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitFailureFixup)
+            LD   DE,(EMFAIL)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -1370,7 +1370,7 @@ ExpressionEndMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitLoopHead)
+            LD   HL,(EMLOOP)
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1390,8 +1390,8 @@ EncodeExpressionProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (EmitDataFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMDATFIX),HL
             LD   HL,0
             CALL EmitWord
 .if CompilerDiagnosticReturns
@@ -1428,8 +1428,8 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitExitFixup),DE
-            LD   HL,ArrayInputFailureOffset
+            LD   (EMEXIT),DE
+            LD   HL,ARYIFAIL
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1438,14 +1438,14 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitFailureFixup),DE
+            LD   (EMFAIL),DE
 
-            LD   DE,(EmitExitFixup)
+            LD   DE,(EMEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(SemanticBufferBase+2)
+            LD   A,(SMBUFBAS+2)
             CALL EmitCompareImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -1454,7 +1454,7 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitUpdateExitFixup),DE
+            LD   (EMUPEXIT),DE
             CALL EmitByteInlineChecked
             .db  $5F
 .if CompilerDiagnosticReturns
@@ -1470,8 +1470,8 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (EmitDataFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMDATFIX),HL
             LD   HL,0
             CALL EmitWord
 .if CompilerDiagnosticReturns
@@ -1496,8 +1496,8 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitLoopHead),DE
-            LD   HL,ArrayOutputFailureOffset
+            LD   (EMLOOP),DE
+            LD   HL,ARYOFAIL
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1506,9 +1506,9 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitCodeStart),DE
+            LD   (EMCODST),DE
 
-            LD   DE,(EmitLoopHead)
+            LD   DE,(EMLOOP)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -1518,12 +1518,12 @@ EncodeArrayProgramBody:
             RET  C
 .endif
 
-            LD   DE,(EmitUpdateExitFixup)
+            LD   DE,(EMUPEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,ArrayBoundsOffset
+            LD   HL,ARYBOFF
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
@@ -1547,14 +1547,14 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (EmitExitFixup),DE
+            LD   (EMEXIT),DE
 
-            LD   DE,(EmitFailureFixup)
+            LD   DE,(EMFAIL)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitCodeStart)
+            LD   DE,(EMCODST)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -1563,7 +1563,7 @@ EncodeArrayProgramBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitExitFixup)
+            LD   DE,(EMEXIT)
             CALL PatchHere
 .if CompilerDiagnosticReturns
             RET  C
@@ -1573,10 +1573,10 @@ EncodeArrayProgramBody:
             RET  C
 .endif
 
-            LD   HL,(EmitCursor)
-            LD   DE,(EmitDataFixup)
+            LD   HL,(EMCUR)
+            LD   DE,(EMDATFIX)
             CALL PatchWord
-            LD   HL,SemanticBufferBase+3
+            LD   HL,SMBUFBAS+3
             LD   C,4
 EmitArrayData:
             LD   A,(HL)

@@ -832,13 +832,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   "Y"
             JP   NZ,ProofRunFailure
             LD   A,(RTDEPTH)
@@ -854,9 +854,9 @@ ProofStart:
             JP   C,ProofFailed
             CALL ProofResetServices
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,"A"
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofFailed
             LD   A,"A"
@@ -916,16 +916,16 @@ ProofStart:
             JP   C,ProofFailed
             CALL ProofCheckSuccessNoOutput
             JP   C,ProofFailed
-            LD   A,(ServiceStorageOutputLength)
+            LD   A,(VSOLEN)
             CP   2
             JP   NZ,ProofFailed
-            LD   A,(ServiceStorageOutputCursor)
+            LD   A,(VSOCUR)
             CP   1
             JP   NZ,ProofFailed
-            LD   A,(ServiceStorageOutputBase)
+            LD   A,(VSOBAS)
             CP   "Z"
             JP   NZ,ProofFailed
-            LD   A,(ServiceStorageOutputBase+1)
+            LD   A,(VSOBAS+1)
             CP   "B"
             JP   NZ,ProofFailed
 
@@ -948,9 +948,9 @@ ProofStart:
             JP   C,ProofFailed
             CALL ProofResetServices
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,2
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofFailed
             LD   A,1
@@ -967,9 +967,9 @@ ProofStart:
             JP   C,ProofFailed
             CALL ProofResetServices
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             XOR  A
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofFailed
             LD   A,3
@@ -980,7 +980,7 @@ ProofStart:
             LD   A,21
             LD   (ProofCase),A
             LD   A,51
-            LD   B,DiagnosticHandleLine
+            LD   B,DGHDLINE
             LD   IX,Chapter21_10UnconsumedPoint-Chapter21_10UnconsumedSource
             LD   HL,Chapter21_10UnconsumedSource
             LD   DE,Chapter21_10UnconsumedSourceEnd
@@ -990,7 +990,7 @@ ProofStart:
             LD   A,22
             LD   (ProofCase),A
             LD   A,52
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_10NominalPoint+5-Chapter21_10NominalSource
             LD   HL,Chapter21_10NominalSource
             LD   DE,Chapter21_10NominalSourceEnd
@@ -1000,7 +1000,7 @@ ProofStart:
             LD   A,23
             LD   (ProofCase),A
             LD   A,53
-            LD   B,DiagnosticInitializerCount
+            LD   B,DGINICNT
             LD   IX,Chapter21_10InitializerPoint-Chapter21_10InitializerSource
             LD   HL,Chapter21_10InitializerSource
             LD   DE,Chapter21_10InitializerSourceEnd
@@ -1010,7 +1010,7 @@ ProofStart:
             LD   A,24
             LD   (ProofCase),A
             LD   A,54
-            LD   B,DiagnosticExpectedType
+            LD   B,DXTYP
             LD   IX,Chapter21_10AggregateLocalPoint-Chapter21_10AggregateLocalSource
             LD   HL,Chapter21_10AggregateLocalSource
             LD   DE,Chapter21_10AggregateLocalSourceEnd
@@ -1020,7 +1020,7 @@ ProofStart:
             LD   A,25
             LD   (ProofCase),A
             LD   A,55
-            LD   B,DiagnosticRoutineFlow
+            LD   B,DGRTNFLW
             LD   IX,Chapter21_10RoutineFlowPoint+3-Chapter21_10RoutineFlowSource
             LD   HL,Chapter21_10RoutineFlowSource
             LD   DE,Chapter21_10RoutineFlowSourceEnd
@@ -1030,7 +1030,7 @@ ProofStart:
             LD   A,26
             LD   (ProofCase),A
             LD   A,56
-            LD   B,DiagnosticUnknownName
+            LD   B,DGUNKNAM
             LD   IX,Chapter21_10LaterPoint-Chapter21_10LaterSource
             LD   HL,Chapter21_10LaterSource
             LD   DE,Chapter21_10LaterSourceEnd
@@ -1040,7 +1040,7 @@ ProofStart:
             LD   A,27
             LD   (ProofCase),A
             LD   A,57
-            LD   B,DiagnosticExpectedRight
+            LD   B,DXRPAR
             LD   IX,Chapter21_10MainSignaturePoint-Chapter21_10MainSignatureSource
             LD   HL,Chapter21_10MainSignatureSource
             LD   DE,Chapter21_10MainSignatureSourceEnd
@@ -1050,7 +1050,7 @@ ProofStart:
             LD   A,28
             LD   (ProofCase),A
             LD   A,58
-            LD   B,DiagnosticActiveCounter
+            LD   B,DGACTCTR
             LD   IX,Chapter21_10ActiveCounterName-Chapter21_10ActiveCounterSource
             LD   HL,Chapter21_10ActiveCounterSource
             LD   DE,Chapter21_10ActiveCounterSourceEnd
@@ -1060,18 +1060,18 @@ ProofStart:
             LD   A,60
             LD   (ProofCase),A
             LD   A,69
-            LD   B,DiagnosticIntegerRange
+            LD   B,DGINTRNG
             LD   IX,Chapter21_10ExactUsePoint-Chapter21_10ExactUseSource
             LD   HL,Chapter21_10ExactUseSource
             LD   DE,Chapter21_10ExactUseSourceEnd
             CALL ProofExpectDiagnosticSingle
             JP   C,ProofFailed
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,5
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,9
             OR   A
             SBC  HL,DE
@@ -1080,18 +1080,18 @@ ProofStart:
             LD   A,61
             LD   (ProofCase),A
             LD   A,70
-            LD   B,DiagnosticIntegerRange
+            LD   B,DGINTRNG
             LD   IX,Chapter21_10ExactNestedPoint-Chapter21_10ExactNestedSource
             LD   HL,Chapter21_10ExactNestedSource
             LD   DE,Chapter21_10ExactNestedSourceEnd
             CALL ProofExpectDiagnosticSingle
             JP   C,ProofFailed
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,5
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,10
             OR   A
             SBC  HL,DE
@@ -1100,7 +1100,7 @@ ProofStart:
             LD   A,62
             LD   (ProofCase),A
             LD   A,71
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_10BooleanAsIntegerPoint-Chapter21_10BooleanAsIntegerSource
             LD   HL,Chapter21_10BooleanAsIntegerSource
             LD   DE,Chapter21_10BooleanAsIntegerSourceEnd
@@ -1110,7 +1110,7 @@ ProofStart:
             LD   A,63
             LD   (ProofCase),A
             LD   A,72
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_10IntegerAsBooleanPoint-Chapter21_10IntegerAsBooleanSource
             LD   HL,Chapter21_10IntegerAsBooleanSource
             LD   DE,Chapter21_10IntegerAsBooleanSourceEnd
@@ -1120,7 +1120,7 @@ ProofStart:
             LD   A,29
             LD   (ProofCase),A
             LD   A,59
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             LD   IX,Chapter21_10HexPoint-Chapter21_10HexSource
             LD   HL,Chapter21_10HexSource
             LD   DE,Chapter21_10HexSourceEnd
@@ -1130,7 +1130,7 @@ ProofStart:
             LD   A,64
             LD   (ProofCase),A
             LD   A,73
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             LD   IX,Chapter21_10BinaryPoint-Chapter21_10BinarySource
             LD   HL,Chapter21_10BinarySource
             LD   DE,Chapter21_10BinarySourceEnd
@@ -1140,18 +1140,18 @@ ProofStart:
             LD   A,30
             LD   (ProofCase),A
             LD   A,2
-            LD   B,DiagnosticUnknownName
+            LD   B,DGUNKNAM
             LD   C,2
             LD   IX,Chapter21_11BadPoint+4-Chapter21_11BadPart2
             LD   HL,Chapter21_11BadDescriptors
             CALL ProofExpectDiagnosticParts
             JP   C,ProofFailed
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,12
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,5
             OR   A
             SBC  HL,DE
@@ -1191,7 +1191,7 @@ ProofStart:
             LD   A,33
             LD   (ProofCase),A
             LD   A,9
-            LD   B,DiagnosticSourcePartCapacity
+            LD   B,DGSPTCAP
             LD   C,0
             LD   IX,0
             LD   HL,Chapter21CapacityDescriptors
@@ -1216,7 +1216,7 @@ ProofStart:
             LD   A,34
             LD   (ProofCase),A
             LD   A,2
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             LD   C,71
             LD   IX,Chapter21OpenDelimiterPart1End-Chapter21OpenDelimiterPart1
             LD   HL,Chapter21OpenDelimiterDescriptors
@@ -1308,7 +1308,7 @@ ProofStart:
             LD   A,67
             LD   (ProofCase),A
             LD   A,76
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_17BooleanPoint-Chapter21_17BooleanSource
             LD   HL,Chapter21_17BooleanSource
             LD   DE,Chapter21_17BooleanSourceEnd
@@ -1329,7 +1329,7 @@ ProofStart:
             LD   A,69
             LD   (ProofCase),A
             LD   A,78
-            LD   B,DiagnosticDivisionZero
+            LD   B,DGDIVZER
             LD   IX,Chapter21_18ZeroPoint-Chapter21_18ZeroSource
             LD   HL,Chapter21_18ZeroSource
             LD   DE,Chapter21_18ZeroSourceEnd
@@ -1345,9 +1345,9 @@ ProofStart:
             JP   C,ProofFailed
             CALL ProofResetServices
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             XOR  A
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofFailed
             LD   A,3
@@ -1376,7 +1376,7 @@ ProofStart:
             LD   A,72
             LD   (ProofCase),A
             LD   A,81
-            LD   B,DiagnosticAssertionFailed
+            LD   B,DGASSERT
             LD   IX,Chapter21_19FalsePoint-Chapter21_19FalseSource
             LD   HL,Chapter21_19FalseSource
             LD   DE,Chapter21_19FalseSourceEnd
@@ -1386,7 +1386,7 @@ ProofStart:
             LD   A,73
             LD   (ProofCase),A
             LD   A,82
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_19TypePoint-Chapter21_19TypeSource
             LD   HL,Chapter21_19TypeSource
             LD   DE,Chapter21_19TypeSourceEnd
@@ -1407,7 +1407,7 @@ ProofStart:
             LD   A,75
             LD   (ProofCase),A
             LD   A,84
-            LD   B,DiagnosticReadOnlyAssignment
+            LD   B,DGROASGN
             LD   IX,Chapter21_20ReadOnlyPoint-Chapter21_20ReadOnlySource
             LD   HL,Chapter21_20ReadOnlySource
             LD   DE,Chapter21_20ReadOnlySourceEnd
@@ -1417,18 +1417,18 @@ ProofStart:
             LD   A,76
             LD   (ProofCase),A
             LD   A,85
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             LD   IX,HistoricalBadHexEscapePoint-HistoricalBadHexEscapeSource
             LD   HL,HistoricalBadHexEscapeSource
             LD   DE,HistoricalBadHexEscapeSourceEnd
             CALL ProofExpectDiagnosticSingle
             JP   C,ProofFailed
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,27
             OR   A
             SBC  HL,DE
@@ -1437,18 +1437,18 @@ ProofStart:
             LD   A,77
             LD   (ProofCase),A
             LD   A,86
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             LD   IX,HistoricalShortHexEscapePoint-HistoricalShortHexEscapeSource
             LD   HL,HistoricalShortHexEscapeSource
             LD   DE,HistoricalShortHexEscapeSourceEnd
             CALL ProofExpectDiagnosticSingle
             JP   C,ProofFailed
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailed
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,27
             OR   A
             SBC  HL,DE
@@ -1468,7 +1468,7 @@ ProofStart:
             LD   A,79
             LD   (ProofCase),A
             LD   A,88
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             LD   IX,Chapter21_22BooleanPoint+4-Chapter21_22BooleanSource
             LD   HL,Chapter21_22BooleanSource
             LD   DE,Chapter21_22BooleanSourceEnd
@@ -1498,8 +1498,8 @@ ProofRunSingle:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 ProofUpdateMaxGenerated:
-            LD   HL,(GeneratedSize)
-            LD   DE,(GeneratedRoDataSize)
+            LD   HL,(GNSZ)
+            LD   DE,(GNROSZ)
             ADD  HL,DE
             LD   B,H
             LD   C,L
@@ -1511,13 +1511,13 @@ ProofUpdateMaxGenerated:
             LD   H,B
             LD   L,C
             LD   (ProofMaxGenerated),HL
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofMaxGeneratedCode),HL
-            LD   HL,(GeneratedRoDataSize)
+            LD   HL,(GNROSZ)
             LD   (ProofMaxGeneratedRoData),HL
-            LD   HL,(GeneratedDataSize)
+            LD   HL,(GNDATSZ)
             LD   (ProofMaxGeneratedData),HL
-            LD   HL,(GeneratedBssSize)
+            LD   HL,(GNBSSSZ)
             LD   (ProofMaxGeneratedBss),HL
 ProofUpdateMaxDone:
             XOR  A
@@ -1528,27 +1528,27 @@ ProofUpdateMaxDone:
 ; semantic operation or generated byte.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 ProofComparePublishedProgram:
-            LD   HL,(GeneratedSize)
-            LD   DE,(PublishedSize)
+            LD   HL,(GNSZ)
+            LD   DE,(PUSZ)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofComparePublishedNo
-            LD   HL,(GeneratedRoDataSize)
-            LD   DE,(PublishedRoDataSize)
+            LD   HL,(GNROSZ)
+            LD   DE,(PUROSZ)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofComparePublishedNo
-            LD   HL,(GeneratedDataSize)
-            LD   DE,(PublishedDataSize)
+            LD   HL,(GNDATSZ)
+            LD   DE,(PUDATSZ)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofComparePublishedNo
-            LD   HL,(GeneratedBssSize)
-            LD   DE,(PublishedBssSize)
+            LD   HL,(GNBSSSZ)
+            LD   DE,(PUBSSSZ)
             OR   A
             SBC  HL,DE
             JR   NZ,ProofComparePublishedNo
-            LD   BC,(GeneratedSize)
+            LD   BC,(GNSZ)
             LD   HL,MMGEN
             LD   DE,MMBACK
 ProofComparePublishedLoop:
@@ -1563,7 +1563,7 @@ ProofComparePublishedLoop:
             DEC  BC
             JR   ProofComparePublishedLoop
 ProofComparePublishedRoData:
-            LD   BC,(GeneratedRoDataSize)
+            LD   BC,(GNROSZ)
             LD   HL,RORDATA
             LD   DE,MMBACK+(RORDATA-MMGEN)
 ProofComparePublishedRoDataLoop:
@@ -1616,14 +1616,14 @@ ProofExpectDiagnosticParts:
             JR   NC,ProofDiagnosticFailure
 ProofCheckDiagnostic:
             LD   A,(ProofExpectedDiagnostic)
-            LD   HL,DiagnosticCode
+            LD   HL,DGCODE
             CP   (HL)
             JR   NZ,ProofDiagnosticFailure
             LD   A,(ProofExpectedPart)
-            LD   HL,DiagnosticPartId
+            LD   HL,DGPARTID
             CP   (HL)
             JR   NZ,ProofDiagnosticFailure
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
@@ -1636,20 +1636,20 @@ ProofDiagnosticFailure:
 ProofResetServices:
             CALL Reset
             XOR  A
-            LD   (ServiceInputLength),A
-            LD   (ServiceStorageInputLength),A
+            LD   (VINLEN),A
+            LD   (VSILEN),A
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,HL
 ProofCheckOutput:
             LD   B,A
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JR   NZ,ProofCheckFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JR   NZ,ProofCheckFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   B
             JR   NZ,ProofCheckFailure
             LD   A,(RTDEPTH)
@@ -1661,10 +1661,10 @@ ProofCheckFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 ProofCheckSuccessNoOutput:
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JR   NZ,ProofCheckFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JR   NZ,ProofCheckFailure
             LD   A,(RTDEPTH)
@@ -1677,7 +1677,7 @@ ProofCheckSuccessNoOutput:
 ProofCheckTrap:
             LD   (ProofExpectedTrap),A
             LD   (ProofExpectedOffset),BC
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JR   NZ,ProofCheckFailure
             LD   A,(ProofExpectedTrap)

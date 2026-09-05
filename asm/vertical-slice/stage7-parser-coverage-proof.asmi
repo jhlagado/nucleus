@@ -112,13 +112,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofConstantFrameFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofConstantRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofConstantOutputFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   2
             JP   NZ,ProofConstantOutputFailure
             LD   A,160
@@ -128,18 +128,18 @@ ProofStart:
             JR   C,ProofCompileFailure
             CALL EncodeAggregateProgram
             JR   C,ProofEncodeFailure
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (ProofGeneratedSize),HL
             CALL Reset
             CALL ProofCallGenerated
             JR   C,ProofFrameFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JR   NZ,ProofRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JR   NZ,ProofOutputFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   9
             JR   NZ,ProofOutputFailure
             LD   A,(MMDATA+1)

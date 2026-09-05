@@ -16,384 +16,384 @@ HybridLL1ActionOrdinalTypeI8 .equ 77
 HybridLL1ActionOrdinalTypeI16 .equ 78
 
 HybridLL1RowDirectory:
-            .db HybridLL1Row0-HybridLL1Rows,DiagnosticExpectedTopLevel ; compilation-unit
-            .db HybridLL1Row1-HybridLL1Rows,DiagnosticExpectedTopLevel ; top-level-list
-            .db HybridLL1Row2-HybridLL1Rows,DiagnosticExpectedTopLevel ; top-level-declaration
-            .db HybridLL1Row3-HybridLL1Rows,DiagnosticExpectedTopLevel ; const-declaration
-            .db HybridLL1Row4-HybridLL1Rows,DiagnosticExpectedEqual ; const-declaration-tail
-            .db HybridLL1Row5-HybridLL1Rows,DiagnosticExpectedTopLevel ; assert-declaration
-            .db HybridLL1Row6-HybridLL1Rows,DiagnosticExpectedTopLevel ; program-var-declaration
-            .db HybridLL1Row7-HybridLL1Rows,DiagnosticExpectedEqual ; program-initializer-opt
-            .db HybridLL1Row8-HybridLL1Rows,DiagnosticExpectedTopLevel ; record-declaration
-            .db HybridLL1Row9-HybridLL1Rows,DiagnosticRecordEmpty ; record-fields
-            .db HybridLL1Row10-HybridLL1Rows,DiagnosticExpectedScalar ; record-field-tail
-            .db HybridLL1Row11-HybridLL1Rows,DiagnosticExpectedScalar ; record-field
-            .db HybridLL1Row12-HybridLL1Rows,DiagnosticExpectedForward ; forward-declaration
-            .db HybridLL1Row13-HybridLL1Rows,DiagnosticExpectedSub ; sub-definition
-            .db HybridLL1Row14-HybridLL1Rows,DiagnosticExpectedLeft ; sub-definition-tail
-            .db HybridLL1Row15-HybridLL1Rows,DiagnosticExpectedRight ; parameter-list
-            .db HybridLL1Row16-HybridLL1Rows,DiagnosticExpectedRight ; parameter-tail
-            .db HybridLL1Row17-HybridLL1Rows,DiagnosticExpectedScalar ; parameter
-            .db HybridLL1Row18-HybridLL1Rows,DiagnosticExpectedLine ; result-opt
-            .db HybridLL1Row19-HybridLL1Rows,DiagnosticExpectedLine ; fails-opt
-            .db HybridLL1Row20-HybridLL1Rows,DiagnosticExpectedScalar ; routine-body
-            .db HybridLL1Row21-HybridLL1Rows,DiagnosticExpectedScalar ; local-list
-            .db HybridLL1Row22-HybridLL1Rows,DiagnosticExpectedVar ; local-declaration
-            .db HybridLL1Row23-HybridLL1Rows,DiagnosticExpectedLine ; local-initializer-opt
-            .db HybridLL1Row24-HybridLL1Rows,DiagnosticExpectedScalar ; statement-sequence
-            .db HybridLL1Row25-HybridLL1Rows,DiagnosticExpectedScalar ; statement
-            .db HybridLL1Row26-HybridLL1Rows,DiagnosticExpectedReturn ; return-statement
-            .db HybridLL1Row27-HybridLL1Rows,DiagnosticExpectedLine ; return-value-opt
-            .db HybridLL1Row28-HybridLL1Rows,DiagnosticExpectedFail ; fail-statement
-            .db HybridLL1Row29-HybridLL1Rows,DiagnosticFailureContext ; name-statement-tail
-            .db HybridLL1Row30-HybridLL1Rows,DiagnosticExpectedLoop ; transfer-statement
-            .db HybridLL1Row31-HybridLL1Rows,DiagnosticExpectedIf ; if-statement
-            .db HybridLL1Row32-HybridLL1Rows,DiagnosticExpectedScalar ; if-tail
-            .db HybridLL1Row33-HybridLL1Rows,DiagnosticExpectedScalar ; while-statement
-            .db HybridLL1Row34-HybridLL1Rows,DiagnosticExpectedFor ; for-statement
-            .db HybridLL1Row35-HybridLL1Rows,DiagnosticExpectedScalar ; for-bound
-            .db HybridLL1Row36-HybridLL1Rows,DiagnosticExpectedLine ; for-step-opt
-            .db HybridLL1Row37-HybridLL1Rows,DiagnosticExpectedType ; type
-            .db HybridLL1Row38-HybridLL1Rows,DiagnosticExpectedType ; type-atom
-            .db HybridLL1Row39-HybridLL1Rows,DiagnosticExpectedScalar ; string-capacity
-            .db HybridLL1Row40-HybridLL1Rows,DiagnosticExpectedScalar ; type-array-opt
-            .db HybridLL1Row41-HybridLL1Rows,DiagnosticExpectedScalar ; type-array-bound
-            .db HybridLL1Row42-HybridLL1Rows-$100,DiagnosticExpectedType ; scalar-type
-            .db HybridLL1Row43-HybridLL1Rows-$100,DiagnosticExpectedCase ; select-statement
-            .db HybridLL1Row44-HybridLL1Rows-$100,DiagnosticExpectedEnd ; select-case-tail
-            .db HybridLL1Row45-HybridLL1Rows-$100,DiagnosticExpectedCase ; select-case
-            .db HybridLL1Row46-HybridLL1Rows-$100,DiagnosticExpectedLine ; select-value-tail
+            .db HybridLL1Row0-HybridLL1Rows,DXTOPLVL ; compilation-unit
+            .db HybridLL1Row1-HybridLL1Rows,DXTOPLVL ; top-level-list
+            .db HybridLL1Row2-HybridLL1Rows,DXTOPLVL ; top-level-declaration
+            .db HybridLL1Row3-HybridLL1Rows,DXTOPLVL ; const-declaration
+            .db HybridLL1Row4-HybridLL1Rows,DXEQ ; const-declaration-tail
+            .db HybridLL1Row5-HybridLL1Rows,DXTOPLVL ; assert-declaration
+            .db HybridLL1Row6-HybridLL1Rows,DXTOPLVL ; program-var-declaration
+            .db HybridLL1Row7-HybridLL1Rows,DXEQ ; program-initializer-opt
+            .db HybridLL1Row8-HybridLL1Rows,DXTOPLVL ; record-declaration
+            .db HybridLL1Row9-HybridLL1Rows,DGRECEMP ; record-fields
+            .db HybridLL1Row10-HybridLL1Rows,DXSCA ; record-field-tail
+            .db HybridLL1Row11-HybridLL1Rows,DXSCA ; record-field
+            .db HybridLL1Row12-HybridLL1Rows,DXFWD ; forward-declaration
+            .db HybridLL1Row13-HybridLL1Rows,DXSUB ; sub-definition
+            .db HybridLL1Row14-HybridLL1Rows,DXLPAR ; sub-definition-tail
+            .db HybridLL1Row15-HybridLL1Rows,DXRPAR ; parameter-list
+            .db HybridLL1Row16-HybridLL1Rows,DXRPAR ; parameter-tail
+            .db HybridLL1Row17-HybridLL1Rows,DXSCA ; parameter
+            .db HybridLL1Row18-HybridLL1Rows,DXLINE ; result-opt
+            .db HybridLL1Row19-HybridLL1Rows,DXLINE ; fails-opt
+            .db HybridLL1Row20-HybridLL1Rows,DXSCA ; routine-body
+            .db HybridLL1Row21-HybridLL1Rows,DXSCA ; local-list
+            .db HybridLL1Row22-HybridLL1Rows,DXVAR ; local-declaration
+            .db HybridLL1Row23-HybridLL1Rows,DXLINE ; local-initializer-opt
+            .db HybridLL1Row24-HybridLL1Rows,DXSCA ; statement-sequence
+            .db HybridLL1Row25-HybridLL1Rows,DXSCA ; statement
+            .db HybridLL1Row26-HybridLL1Rows,DXRET ; return-statement
+            .db HybridLL1Row27-HybridLL1Rows,DXLINE ; return-value-opt
+            .db HybridLL1Row28-HybridLL1Rows,DXFAIL ; fail-statement
+            .db HybridLL1Row29-HybridLL1Rows,DGFAICTX ; name-statement-tail
+            .db HybridLL1Row30-HybridLL1Rows,DXLOOP ; transfer-statement
+            .db HybridLL1Row31-HybridLL1Rows,DXIF ; if-statement
+            .db HybridLL1Row32-HybridLL1Rows,DXSCA ; if-tail
+            .db HybridLL1Row33-HybridLL1Rows,DXSCA ; while-statement
+            .db HybridLL1Row34-HybridLL1Rows,DXFOR ; for-statement
+            .db HybridLL1Row35-HybridLL1Rows,DXSCA ; for-bound
+            .db HybridLL1Row36-HybridLL1Rows,DXLINE ; for-step-opt
+            .db HybridLL1Row37-HybridLL1Rows,DXTYP ; type
+            .db HybridLL1Row38-HybridLL1Rows,DXTYP ; type-atom
+            .db HybridLL1Row39-HybridLL1Rows,DXSCA ; string-capacity
+            .db HybridLL1Row40-HybridLL1Rows,DXSCA ; type-array-opt
+            .db HybridLL1Row41-HybridLL1Rows,DXSCA ; type-array-bound
+            .db HybridLL1Row42-HybridLL1Rows-$100,DXTYP ; scalar-type
+            .db HybridLL1Row43-HybridLL1Rows-$100,DXCASE ; select-statement
+            .db HybridLL1Row44-HybridLL1Rows-$100,DXEND ; select-case-tail
+            .db HybridLL1Row45-HybridLL1Rows-$100,DXCASE ; select-case
+            .db HybridLL1Row46-HybridLL1Rows-$100,DXLINE ; select-value-tail
 HybridLL1RowDirectoryEnd:
 HybridLL1Rows:
 HybridLL1Row0: ; compilation-unit
             .db 0+$80
-            .db TokenAssert
-            .db TokenConst
-            .db TokenEof
-            .db TokenForward
-            .db TokenRecord
-            .db TokenSub
-            .db TokenVar+$80
+            .db TNASRT
+            .db TNCONST
+            .db TOKENEOF
+            .db TNFWD
+            .db TNREC
+            .db TOKENSUB
+            .db TOKENVAR+$80
 HybridLL1Row1: ; top-level-list
             .db 1
-            .db TokenAssert
-            .db TokenConst
-            .db TokenForward
-            .db TokenRecord
-            .db TokenSub
-            .db TokenVar+$80
+            .db TNASRT
+            .db TNCONST
+            .db TNFWD
+            .db TNREC
+            .db TOKENSUB
+            .db TOKENVAR+$80
             .db 2+$80
-            .db TokenEof+$80
+            .db TOKENEOF+$80
 HybridLL1Row2: ; top-level-declaration
             .db 3
-            .db TokenConst+$80
+            .db TNCONST+$80
             .db 4
-            .db TokenAssert+$80
+            .db TNASRT+$80
             .db 5
-            .db TokenVar+$80
+            .db TOKENVAR+$80
             .db 6
-            .db TokenRecord+$80
+            .db TNREC+$80
             .db 7
-            .db TokenForward+$80
+            .db TNFWD+$80
             .db 8+$80
-            .db TokenSub+$80
+            .db TOKENSUB+$80
 HybridLL1Row3: ; const-declaration
             .db 9+$80
-            .db TokenConst+$80
+            .db TNCONST+$80
 HybridLL1Row4: ; const-declaration-tail
             .db 10
-            .db TokenEquals+$80
+            .db TNEQ+$80
             .db 11+$80
-            .db TokenAs+$80
+            .db TOKENAS+$80
 HybridLL1Row5: ; assert-declaration
             .db 12+$80
-            .db TokenAssert+$80
+            .db TNASRT+$80
 HybridLL1Row6: ; program-var-declaration
             .db 13+$80
-            .db TokenVar+$80
+            .db TOKENVAR+$80
 HybridLL1Row7: ; program-initializer-opt
             .db 14
-            .db TokenEquals+$80
+            .db TNEQ+$80
             .db 2+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row8: ; record-declaration
             .db 15+$80
-            .db TokenRecord+$80
+            .db TNREC+$80
 HybridLL1Row9: ; record-fields
             .db 16+$80
-            .db TokenName+$80
+            .db TNNAME+$80
 HybridLL1Row10: ; record-field-tail
             .db 16
-            .db TokenName+$80
+            .db TNNAME+$80
             .db 2+$80
-            .db TokenEnd+$80
+            .db TOKENEND+$80
 HybridLL1Row11: ; record-field
             .db 17+$80
-            .db TokenName+$80
+            .db TNNAME+$80
 HybridLL1Row12: ; forward-declaration
             .db 18+$80
-            .db TokenForward+$80
+            .db TNFWD+$80
 HybridLL1Row13: ; sub-definition
             .db 19+$80
-            .db TokenSub+$80
+            .db TOKENSUB+$80
 HybridLL1Row14: ; sub-definition-tail
             .db 20
-            .db TokenLeftParen+$80
+            .db TNLPAR+$80
             .db 21+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row15: ; parameter-list
             .db 22
-            .db TokenName+$80
+            .db TNNAME+$80
             .db 2+$80
-            .db TokenRightParen+$80
+            .db TNRPAR+$80
 HybridLL1Row16: ; parameter-tail
             .db 23
-            .db TokenComma+$80
+            .db TNCOMMA+$80
             .db 2+$80
-            .db TokenRightParen+$80
+            .db TNRPAR+$80
 HybridLL1Row17: ; parameter
             .db 24+$80
-            .db TokenName+$80
+            .db TNNAME+$80
 HybridLL1Row18: ; result-opt
             .db 25
-            .db TokenAs+$80
+            .db TOKENAS+$80
             .db 2+$80
-            .db TokenFails
-            .db TokenNewline+$80
+            .db TNFAILS
+            .db TNNL+$80
 HybridLL1Row19: ; fails-opt
             .db 26
-            .db TokenFails+$80
+            .db TNFAILS+$80
             .db 2+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row20: ; routine-body
             .db 27
-            .db TokenCase
-            .db TokenContinue
-            .db TokenEnd
-            .db TokenExit
-            .db TokenFail
-            .db TokenFor
-            .db TokenIf
-            .db TokenName
-            .db TokenReturn
-            .db TokenSelect
-            .db TokenVar
-            .db TokenWhile+$80
+            .db TNCASE
+            .db TNCONT
+            .db TOKENEND
+            .db TNEXIT
+            .db TNFAIL
+            .db TOKENFOR
+            .db TOKENIF
+            .db TNNAME
+            .db TNRET
+            .db TNSEL
+            .db TOKENVAR
+            .db TNWHILE+$80
             .db 28+$80
-            .db TokenElse
-            .db TokenElseIf+$80
+            .db TNELSE
+            .db TNELSEIF+$80
 HybridLL1Row21: ; local-list
             .db 29
-            .db TokenVar+$80
+            .db TOKENVAR+$80
             .db 2
-            .db TokenContinue
-            .db TokenEnd
-            .db TokenExit
-            .db TokenFail
-            .db TokenFor
-            .db TokenIf
-            .db TokenName
-            .db TokenReturn
-            .db TokenSelect
-            .db TokenWhile+$80
+            .db TNCONT
+            .db TOKENEND
+            .db TNEXIT
+            .db TNFAIL
+            .db TOKENFOR
+            .db TOKENIF
+            .db TNNAME
+            .db TNRET
+            .db TNSEL
+            .db TNWHILE+$80
             .db 81+$80
-            .db TokenCase+$80
+            .db TNCASE+$80
 HybridLL1Row22: ; local-declaration
             .db 30+$80
-            .db TokenVar+$80
+            .db TOKENVAR+$80
 HybridLL1Row23: ; local-initializer-opt
             .db 31
-            .db TokenEquals+$80
+            .db TNEQ+$80
             .db 32+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row24: ; statement-sequence
             .db 33
-            .db TokenContinue
-            .db TokenExit
-            .db TokenFail
-            .db TokenFor
-            .db TokenIf
-            .db TokenName
-            .db TokenReturn
-            .db TokenSelect
-            .db TokenWhile+$80
+            .db TNCONT
+            .db TNEXIT
+            .db TNFAIL
+            .db TOKENFOR
+            .db TOKENIF
+            .db TNNAME
+            .db TNRET
+            .db TNSEL
+            .db TNWHILE+$80
             .db 2+$80
-            .db TokenCase
-            .db TokenElse
-            .db TokenElseIf
-            .db TokenEnd
-            .db TokenEof+$80
+            .db TNCASE
+            .db TNELSE
+            .db TNELSEIF
+            .db TOKENEND
+            .db TOKENEOF+$80
 HybridLL1Row25: ; statement
             .db 34
-            .db TokenName+$80
+            .db TNNAME+$80
             .db 35
-            .db TokenReturn+$80
+            .db TNRET+$80
             .db 36
-            .db TokenFail+$80
+            .db TNFAIL+$80
             .db 37
-            .db TokenContinue
-            .db TokenExit+$80
+            .db TNCONT
+            .db TNEXIT+$80
             .db 38
-            .db TokenIf+$80
+            .db TOKENIF+$80
             .db 39
-            .db TokenWhile+$80
+            .db TNWHILE+$80
             .db 40
-            .db TokenFor+$80
+            .db TOKENFOR+$80
             .db 41+$80
-            .db TokenSelect+$80
+            .db TNSEL+$80
 HybridLL1Row26: ; return-statement
             .db 42+$80
-            .db TokenReturn+$80
+            .db TNRET+$80
 HybridLL1Row27: ; return-value-opt
             .db 43
-            .db TokenCharacter
-            .db TokenFalse
-            .db TokenI16
-            .db TokenI8
-            .db TokenLeftParen
-            .db TokenMinus
-            .db TokenName
-            .db TokenNot
-            .db TokenNumber
-            .db TokenPlus
-            .db TokenTrue
-            .db TokenU16
-            .db TokenU8+$80
+            .db TNCHAR
+            .db TNFALSE
+            .db TOKENI16
+            .db TOKENI8
+            .db TNLPAR
+            .db TNMIN
+            .db TNNAME
+            .db TOKENNOT
+            .db TNNUM
+            .db TNPLUS
+            .db TNTRUE
+            .db TOKENU16
+            .db TOKENU8+$80
             .db 44+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row28: ; fail-statement
             .db 45+$80
-            .db TokenFail+$80
+            .db TNFAIL+$80
 HybridLL1Row29: ; name-statement-tail
             .db 46
-            .db TokenNewline+$80
+            .db TNNL+$80
             .db 47+$80
-            .db TokenHandle+$80
+            .db TNHDL+$80
 HybridLL1Row30: ; transfer-statement
             .db 48
-            .db TokenExit+$80
+            .db TNEXIT+$80
             .db 49+$80
-            .db TokenContinue+$80
+            .db TNCONT+$80
 HybridLL1Row31: ; if-statement
             .db 50+$80
-            .db TokenIf+$80
+            .db TOKENIF+$80
 HybridLL1Row32: ; if-tail
             .db 51
-            .db TokenElseIf+$80
+            .db TNELSEIF+$80
             .db 52
-            .db TokenElse+$80
+            .db TNELSE+$80
             .db 53+$80
-            .db TokenEnd+$80
+            .db TOKENEND+$80
 HybridLL1Row33: ; while-statement
             .db 54+$80
-            .db TokenWhile+$80
+            .db TNWHILE+$80
 HybridLL1Row34: ; for-statement
             .db 55+$80
-            .db TokenFor+$80
+            .db TOKENFOR+$80
 HybridLL1Row35: ; for-bound
             .db 56
-            .db TokenTo+$80
+            .db TOKENTO+$80
             .db 57+$80
-            .db TokenUntil+$80
+            .db TNUNT+$80
 HybridLL1Row36: ; for-step-opt
             .db 58
-            .db TokenStep+$80
+            .db TNSTEP+$80
             .db 59+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1Row37: ; type
             .db 60+$80
-            .db TokenBoolean
-            .db TokenI16
-            .db TokenI8
-            .db TokenName
-            .db TokenString
-            .db TokenU16
-            .db TokenU8+$80
+            .db TNBOOL
+            .db TOKENI16
+            .db TOKENI8
+            .db TNNAME
+            .db TNSTR
+            .db TOKENU16
+            .db TOKENU8+$80
 HybridLL1Row38: ; type-atom
             .db 61
-            .db TokenBoolean
-            .db TokenI16
-            .db TokenI8
-            .db TokenU16
-            .db TokenU8+$80
+            .db TNBOOL
+            .db TOKENI16
+            .db TOKENI8
+            .db TOKENU16
+            .db TOKENU8+$80
             .db 62
-            .db TokenName+$80
+            .db TNNAME+$80
             .db 63+$80
-            .db TokenString+$80
+            .db TNSTR+$80
 HybridLL1Row39: ; string-capacity
             .db 64
-            .db TokenCharacter
-            .db TokenFalse
-            .db TokenI16
-            .db TokenI8
-            .db TokenLeftParen
-            .db TokenMinus
-            .db TokenName
-            .db TokenNot
-            .db TokenNumber
-            .db TokenPlus
-            .db TokenTrue
-            .db TokenU16
-            .db TokenU8+$80
+            .db TNCHAR
+            .db TNFALSE
+            .db TOKENI16
+            .db TOKENI8
+            .db TNLPAR
+            .db TNMIN
+            .db TNNAME
+            .db TOKENNOT
+            .db TNNUM
+            .db TNPLUS
+            .db TNTRUE
+            .db TOKENU16
+            .db TOKENU8+$80
             .db 65+$80
-            .db TokenRightBracket+$80
+            .db TNRBRK+$80
 HybridLL1Row40: ; type-array-opt
             .db 66
-            .db TokenLeftBracket+$80
+            .db TNLBRK+$80
             .db 2+$80
-            .db TokenComma
-            .db TokenEquals
-            .db TokenFails
-            .db TokenNewline
-            .db TokenRightParen+$80
+            .db TNCOMMA
+            .db TNEQ
+            .db TNFAILS
+            .db TNNL
+            .db TNRPAR+$80
 HybridLL1Row41: ; type-array-bound
             .db 67
-            .db TokenCharacter
-            .db TokenFalse
-            .db TokenI16
-            .db TokenI8
-            .db TokenLeftParen
-            .db TokenMinus
-            .db TokenName
-            .db TokenNot
-            .db TokenNumber
-            .db TokenPlus
-            .db TokenTrue
-            .db TokenU16
-            .db TokenU8+$80
+            .db TNCHAR
+            .db TNFALSE
+            .db TOKENI16
+            .db TOKENI8
+            .db TNLPAR
+            .db TNMIN
+            .db TNNAME
+            .db TOKENNOT
+            .db TNNUM
+            .db TNPLUS
+            .db TNTRUE
+            .db TOKENU16
+            .db TOKENU8+$80
             .db 68+$80
-            .db TokenRightBracket+$80
+            .db TNRBRK+$80
 HybridLL1Row42: ; scalar-type
             .db 69
-            .db TokenU8+$80
+            .db TOKENU8+$80
             .db 70
-            .db TokenU16+$80
+            .db TOKENU16+$80
             .db 71
-            .db TokenBoolean+$80
+            .db TNBOOL+$80
             .db 72
-            .db TokenI8+$80
+            .db TOKENI8+$80
             .db 73+$80
-            .db TokenI16+$80
+            .db TOKENI16+$80
 HybridLL1Row43: ; select-statement
             .db 74+$80
-            .db TokenSelect+$80
+            .db TNSEL+$80
 HybridLL1Row44: ; select-case-tail
             .db 75
-            .db TokenCase+$80
+            .db TNCASE+$80
             .db 78
-            .db TokenElse+$80
+            .db TNELSE+$80
             .db 79
-            .db TokenEnd+$80
+            .db TOKENEND+$80
             .db 80+$80
-            .db TokenEof+$80
+            .db TOKENEOF+$80
 HybridLL1Row45: ; select-case
             .db 76+$80
-            .db TokenCase+$80
+            .db TNCASE+$80
 HybridLL1Row46: ; select-value-tail
             .db 77
-            .db TokenComma+$80
+            .db TNCOMMA+$80
             .db 2+$80
-            .db TokenNewline+$80
+            .db TNNL+$80
 HybridLL1RowsEnd:
 
 HybridLL1ProductionDirectory:
@@ -485,7 +485,7 @@ HybridLL1ProductionDirectoryHigh:
 HybridLL1ProductionDirectoryEnd:
 HybridLL1Productions:
 HybridLL1Production0: ; compilation-unit
-            .db TokenEof,$80,$41
+            .db TOKENEOF,$80,$41
 HybridLL1Production1: ; top-level-list
             .db $41,$42
 HybridLL1Production2: ; top-level-list
@@ -502,51 +502,51 @@ HybridLL1Production7: ; top-level-declaration
 HybridLL1Production8: ; top-level-declaration
             .db $4d
 HybridLL1Production9: ; const-declaration
-            .db $44,$82,TokenName,TokenConst,$81
+            .db $44,$82,TNNAME,TNCONST,$81
 HybridLL1Production10: ; const-declaration-tail
-            .db $85,TokenNewline,$84,$83,TokenEquals
+            .db $85,TNNL,$84,$83,TNEQ
 HybridLL1Production11: ; const-declaration-tail
-            .db $89,TokenNewline,$88,$87,TokenEquals,$86,$65,TokenAs
+            .db $89,TNNL,$88,$87,TNEQ,$86,$65,TOKENAS
 HybridLL1Production12: ; assert-declaration
-            .db $8b,TokenNewline,$83,TokenAssert,$8a,$81
+            .db $8b,TNNL,$83,TNASRT,$8a,$81
 HybridLL1Production13: ; program-var-declaration
-            .db $8d,TokenNewline,$47,$8c,$65,TokenAs,$82,TokenName,TokenVar,$81
+            .db $8d,TNNL,$47,$8c,$65,TOKENAS,$82,TNNAME,TOKENVAR,$81
 HybridLL1Production14: ; program-initializer-opt
-            .db $88,$87,TokenEquals
+            .db $88,$87,TNEQ
 HybridLL1Production15: ; record-declaration
-            .db $8f,TokenNewline,TokenEnd,$49,TokenNewline,$8e,TokenName,TokenRecord,$81
+            .db $8f,TNNL,TOKENEND,$49,TNNL,$8e,TNNAME,TNREC,$81
 HybridLL1Production16: ; record-fields
             .db $4a,$4b
 HybridLL1Production17: ; record-field
-            .db $91,TokenNewline,$65,TokenAs,$90,TokenName
+            .db $91,TNNL,$65,TOKENAS,$90,TNNAME
 HybridLL1Production18: ; forward-declaration
-            .db $94,TokenNewline,$53,$52,TokenRightParen,$4f,TokenLeftParen,$93,$92,TokenName,TokenSub,TokenForward
+            .db $94,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$93,$92,TNNAME,TOKENSUB,TNFWD
 HybridLL1Production19: ; sub-definition
-            .db $4e,$92,TokenName,TokenSub
+            .db $4e,$92,TNNAME,TOKENSUB
 HybridLL1Production20: ; sub-definition-tail
-            .db $97,$54,$96,TokenNewline,$53,$52,TokenRightParen,$4f,TokenLeftParen,$95
+            .db $97,$54,$96,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$95
 HybridLL1Production21: ; sub-definition-tail
-            .db $97,$54,TokenNewline,$98
+            .db $97,$54,TNNL,$98
 HybridLL1Production22: ; parameter-list
             .db $50,$51
 HybridLL1Production23: ; parameter-tail
-            .db $50,$51,TokenComma
+            .db $50,$51,TNCOMMA
 HybridLL1Production24: ; parameter
-            .db $9a,$65,TokenAs,$99,TokenName
+            .db $9a,$65,TOKENAS,$99,TNNAME
 HybridLL1Production25: ; result-opt
-            .db $9c,$65,$9b,TokenAs
+            .db $9c,$65,$9b,TOKENAS
 HybridLL1Production26: ; fails-opt
-            .db $9d,TokenFails
+            .db $9d,TNFAILS
 HybridLL1Production27: ; routine-body
-            .db TokenNewline,TokenEnd,$58,$55
+            .db TNNL,TOKENEND,$58,$55
 HybridLL1Production28: ; routine-body
             .db $9e
 HybridLL1Production29: ; local-list
             .db $55,$56
 HybridLL1Production30: ; local-declaration
-            .db $a0,TokenNewline,$57,$9f,$6a,TokenAs,$82,TokenName,TokenVar
+            .db $a0,TNNL,$57,$9f,$6a,TOKENAS,$82,TNNAME,TOKENVAR
 HybridLL1Production31: ; local-initializer-opt
-            .db $a3,$a2,$a1,TokenEquals
+            .db $a3,$a2,$a1,TNEQ
 HybridLL1Production32: ; local-initializer-opt
             .db $a4
 HybridLL1Production33: ; statement-sequence
@@ -554,11 +554,11 @@ HybridLL1Production33: ; statement-sequence
 HybridLL1Production34: ; statement
             .db $5d,$a5
 HybridLL1Production35: ; statement
-            .db TokenNewline,$5a
+            .db TNNL,$5a
 HybridLL1Production36: ; statement
-            .db TokenNewline,$5c
+            .db TNNL,$5c
 HybridLL1Production37: ; statement
-            .db TokenNewline,$5e
+            .db TNNL,$5e
 HybridLL1Production38: ; statement
             .db $5f
 HybridLL1Production39: ; statement
@@ -569,39 +569,39 @@ HybridLL1ProductionsHigh:
 HybridLL1Production41: ; statement
             .db $6b
 HybridLL1Production42: ; return-statement
-            .db $5b,$a6,TokenReturn
+            .db $5b,$a6,TNRET
 HybridLL1Production43: ; return-value-opt
             .db $a8,$a7
 HybridLL1Production44: ; return-value-opt
             .db $a9
 HybridLL1Production45: ; fail-statement
-            .db $ab,$a2,$aa,TokenFail
+            .db $ab,$a2,$aa,TNFAIL
 HybridLL1Production46: ; name-statement-tail
-            .db TokenNewline
+            .db TNNL
 HybridLL1Production47: ; name-statement-tail
-            .db $ad,TokenNewline,TokenEnd,$58,TokenNewline,$ac,TokenName,TokenHandle
+            .db $ad,TNNL,TOKENEND,$58,TNNL,$ac,TNNAME,TNHDL
 HybridLL1Production48: ; transfer-statement
-            .db $ae,TokenExit
+            .db $ae,TNEXIT
 HybridLL1Production49: ; transfer-statement
-            .db $af,TokenContinue
+            .db $af,TNCONT
 HybridLL1Production50: ; if-statement
-            .db $b2,TokenNewline,TokenEnd,$60,$58,$b1,TokenNewline,$a2,$b0,TokenIf
+            .db $b2,TNNL,TOKENEND,$60,$58,$b1,TNNL,$a2,$b0,TOKENIF
 HybridLL1Production51: ; if-tail
-            .db $60,$58,$b1,TokenNewline,$a2,$b3,TokenElseIf
+            .db $60,$58,$b1,TNNL,$a2,$b3,TNELSEIF
 HybridLL1Production52: ; if-tail
-            .db $b5,$58,TokenNewline,$b4,TokenElse
+            .db $b5,$58,TNNL,$b4,TNELSE
 HybridLL1Production53: ; if-tail
             .db $b6
 HybridLL1Production54: ; while-statement
-            .db $b9,TokenNewline,TokenEnd,$58,$b8,TokenNewline,$a2,$b7,TokenWhile
+            .db $b9,TNNL,TOKENEND,$58,$b8,TNNL,$a2,$b7,TNWHILE
 HybridLL1Production55: ; for-statement
-            .db $bc,TokenNewline,TokenEnd,$58,$bb,TokenNewline,$64,$a2,$63,$a2,TokenEquals,$ba,TokenName,TokenFor
+            .db $bc,TNNL,TOKENEND,$58,$bb,TNNL,$64,$a2,$63,$a2,TNEQ,$ba,TNNAME,TOKENFOR
 HybridLL1Production56: ; for-bound
-            .db $bd,TokenTo
+            .db $bd,TOKENTO
 HybridLL1Production57: ; for-bound
-            .db $be,TokenUntil
+            .db $be,TNUNT
 HybridLL1Production58: ; for-step-opt
-            .db $c0,$bf,TokenStep
+            .db $c0,$bf,TNSTEP
 HybridLL1Production59: ; for-step-opt
             .db $c1
 HybridLL1Production60: ; type
@@ -609,41 +609,41 @@ HybridLL1Production60: ; type
 HybridLL1Production61: ; type-atom
             .db $6a
 HybridLL1Production62: ; type-atom
-            .db $c4,TokenName
+            .db $c4,TNNAME
 HybridLL1Production63: ; type-atom
-            .db TokenRightBracket,$67,TokenLeftBracket,TokenString
+            .db TNRBRK,$67,TNLBRK,TNSTR
 HybridLL1Production64: ; string-capacity
             .db $c6,$83,$c5
 HybridLL1Production65: ; string-capacity
             .db $c7
 HybridLL1Production66: ; type-array-opt
-            .db $68,$69,TokenLeftBracket
+            .db $68,$69,TNLBRK
 HybridLL1Production67: ; type-array-bound
-            .db $c8,TokenRightBracket,$83,$c5
+            .db $c8,TNRBRK,$83,$c5
 HybridLL1Production68: ; type-array-bound
-            .db $c9,TokenRightBracket
+            .db $c9,TNRBRK
 HybridLL1Production69: ; scalar-type
-            .db $ca,TokenU8
+            .db $ca,TOKENU8
 HybridLL1Production70: ; scalar-type
-            .db $cb,TokenU16
+            .db $cb,TOKENU16
 HybridLL1Production71: ; scalar-type
-            .db $cc,TokenBoolean
+            .db $cc,TNBOOL
 HybridLL1Production72: ; scalar-type
-            .db $cd,TokenI8
+            .db $cd,TOKENI8
 HybridLL1Production73: ; scalar-type
-            .db $ce,TokenI16
+            .db $ce,TOKENI16
 HybridLL1Production74: ; select-statement
-            .db $6c,$6d,TokenNewline,$d0,$a2,$cf,TokenSelect
+            .db $6c,$6d,TNNL,$d0,$a2,$cf,TNSEL
 HybridLL1Production75: ; select-case-tail
             .db $6c,$6d
 HybridLL1Production76: ; select-case
-            .db $d5,$58,$d4,TokenNewline,$6e,$d3,$d2,$d1,TokenCase
+            .db $d5,$58,$d4,TNNL,$6e,$d3,$d2,$d1,TNCASE
 HybridLL1Production77: ; select-value-tail
-            .db $6e,$d3,$d2,TokenComma
+            .db $6e,$d3,$d2,TNCOMMA
 HybridLL1Production78: ; select-case-tail
-            .db $d7,TokenNewline,TokenEnd,$58,TokenNewline,$d6,TokenElse
+            .db $d7,TNNL,TOKENEND,$58,TNNL,$d6,TNELSE
 HybridLL1Production79: ; select-case-tail
-            .db TokenNewline,$d8,TokenEnd
+            .db TNNL,$d8,TOKENEND
 HybridLL1Production80: ; select-case-tail
             .db $d9
 HybridLL1Production81: ; local-list

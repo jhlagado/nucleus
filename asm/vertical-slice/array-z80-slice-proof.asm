@@ -70,27 +70,27 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   (ServiceInputFailure),A
-            LD   (ServiceFailureCall),A
+            LD   (VINFAIL),A
+            LD   (SVFAIL),A
 
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
             CALL CompileSlice
             JP   C,ProofFailCompile
-            LD   HL,SemanticBufferBase
+            LD   HL,SMBUFBAS
             LD   DE,ExpectedArrayOperations
             LD   B,14
             CALL ProofCompareBytes
             JP   C,ProofFailOperations
             CALL EncodeArrayProgram
             JP   C,ProofFailEncode
-            LD   HL,(GeneratedSize)
-            LD   DE,ArrayProgramSize
+            LD   HL,(GNSZ)
+            LD   DE,ARYPGSZ
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
-            LD   HL,GeneratedArrayEnd-4
+            LD   HL,GNARREND-4
             LD   DE,ExpectedArrayBytes
             LD   B,4
             CALL ProofCompareBytes
@@ -98,42 +98,42 @@ ProofStart:
 
             CALL ProofConfigureSuccessInput
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailSuccessState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailSuccessOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   "B"
             JP   NZ,ProofFailSuccessByte
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             CP   1
             JP   NZ,ProofFailSuccessInput
 
             CALL ProofConfigureBoundsInput
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailBoundsState
             LD   A,(RTTRPNO)
             CP   1
             JP   NZ,ProofFailBoundsTrap
             LD   HL,(RTTRPOFF)
-            LD   DE,ArrayBoundsOffset
+            LD   DE,ARYBOFF
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBoundsOffset
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailBoundsOutput
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             CP   1
             JP   NZ,ProofFailBoundsInput
 
             CALL ProofConfigureNoInput
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailInputState
             LD   A,(RTTRPNO)
@@ -143,20 +143,20 @@ ProofStart:
             CP   1
             JP   NZ,ProofFailInputError
             LD   HL,(RTTRPOFF)
-            LD   DE,ArrayInputFailureOffset
+            LD   DE,ARYIFAIL
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailInputOffset
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailInputOutput
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             OR   A
             JP   NZ,ProofFailInputCursor
 
             CALL ProofConfigureOutputFailure
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailOutputState
             LD   A,(RTTRPNO)
@@ -166,11 +166,11 @@ ProofStart:
             CP   3
             JP   NZ,ProofFailOutputError
             LD   HL,(RTTRPOFF)
-            LD   DE,ArrayOutputFailureOffset
+            LD   DE,ARYOFAIL
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOutputOffset
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailOutputAtomic
 
@@ -179,27 +179,27 @@ ProofStart:
             LD   DE,BadArraySourceEnd
             CALL CompileSlice
             JP   NC,ProofFailBadAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticExpectedComma
+            LD   A,(DGCODE)
+            CP   DXCOMMA
             JP   NZ,ProofFailBadCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,BadArrayValue-BadArraySource
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBadPosition
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBadPosition
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,BadArrayValue-BadArraySource+1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailBadPosition
 
             LD   A,$5A
-            LD   (RunState),A
+            LD   (RUNSTATE),A
             LD   A,40
             LD   HL,ArrayProofSource
             LD   DE,ArrayProofSourceEnd
@@ -208,20 +208,20 @@ ProofStart:
             LD   HL,MMGEN+10
             CALL EncodeArrayProgramWithinLimit
             JP   NC,ProofFailCapacityAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSinkCapacity
+            LD   A,(DGCODE)
+            CP   DGSNKCAP
             JP   NZ,ProofFailCapacityCode
-            LD   HL,(GeneratedSize)
-            LD   DE,ArrayProgramSize
+            LD   HL,(GNSZ)
+            LD   DE,ARYPGSZ
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailCapacityPublished
             LD   HL,MMGEN
             LD   DE,MMBACK
-            LD   B,ArrayProgramSize
+            LD   B,ARYPGSZ
             CALL ProofCompareBytes
             JP   C,ProofFailCapacityPublished
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   $5A
             JP   NZ,ProofFailCapacityState
 
@@ -242,44 +242,44 @@ ProofStart:
 ProofConfigureSuccessInput:
             CALL Reset
             XOR  A
-            LD   (ServiceInputFailure),A
-            LD   (ServiceFailureCall),A
+            LD   (VINFAIL),A
+            LD   (SVFAIL),A
             INC  A
-            LD   (ServiceInputLength),A
-            LD   (ServiceInputBase),A
+            LD   (VINLEN),A
+            LD   (VINBAS),A
             RET
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureBoundsInput:
             CALL Reset
             XOR  A
-            LD   (ServiceInputFailure),A
-            LD   (ServiceFailureCall),A
+            LD   (VINFAIL),A
+            LD   (SVFAIL),A
             INC  A
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,4
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             RET
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureNoInput:
             CALL Reset
             XOR  A
-            LD   (ServiceInputFailure),A
-            LD   (ServiceFailureCall),A
-            LD   (ServiceInputLength),A
+            LD   (VINFAIL),A
+            LD   (SVFAIL),A
+            LD   (VINLEN),A
             RET
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,B,C,HL
 ProofConfigureOutputFailure:
             CALL Reset
             XOR  A
-            LD   (ServiceInputFailure),A
+            LD   (VINFAIL),A
             INC  A
-            LD   (ServiceFailureCall),A
-            LD   (ServiceInputLength),A
+            LD   (SVFAIL),A
+            LD   (VINLEN),A
             LD   A,2
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             RET
 
 .routine in B,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
@@ -366,10 +366,10 @@ ProofFailed:
             HALT
 
 ExpectedArrayOperations:
-            .db 8,SemanticStaticU8Array,4,65,66,67,68
-            .db SemanticReadInputByte,SemanticPropagate,SemanticStoreResultU8
-            .db SemanticLoadArrayU8,SemanticWriteOutputU8
-            .db SemanticPropagate,SemanticReturn
+            .db 8,SMARRU8,4,65,66,67,68
+            .db SMRDIBYT,SMPROP,SMSTRSU8
+            .db SMLDAU8,SMWROU8
+            .db SMPROP,SMRET
 ExpectedArrayBytes:     .db 65,66,67,68
 ProofStatus:            .db 0
 ProofCase:              .db 0

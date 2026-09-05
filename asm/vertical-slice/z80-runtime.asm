@@ -6,12 +6,12 @@ Reset:
             LD   (RTTRPNO),A
             LD   (RTTRPRTN),A
             LD   (RTTRPERR),A
-            LD   (ServiceOutputLength),A
+            LD   (VOUTLEN),A
             LD   (ServiceOutputByte),A
             LD   HL,0
             LD   (RTTRPOFF),HL
-            LD   A,RunReady
-            LD   (RunState),A
+            LD   A,RUNREADY
+            LD   (RUNSTATE),A
             OR   A
             RET
 
@@ -25,7 +25,7 @@ RTWRITE:
             LD   A,B
             LD   (ServiceOutputByte),A
             LD   A,1
-            LD   (ServiceOutputLength),A
+            LD   (VOUTLEN),A
             XOR  A
             RET
 RTWRERR:

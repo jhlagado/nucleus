@@ -91,31 +91,31 @@ ProofStart:
             LD   DE,CallProofSourceEnd
             CALL CompileCallSlice
             JP   C,ProofFailCompile
-            LD   A,(SemanticBufferBase)
+            LD   A,(SMBUFBAS)
             CP   9
             JP   NZ,ProofFailOperations
             CALL EncodeCallProgram
             JP   C,ProofFailEncode
-            LD   HL,(GeneratedSize)
-            LD   DE,CallProgramSize
+            LD   HL,(GNSZ)
+            LD   DE,CLPROGSZ
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
-            LD   HL,(SemanticReadCursor)
-            LD   DE,SemanticBufferBase+$10
+            LD   HL,(SMRDCUR)
+            LD   DE,SMBUFBAS+$10
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTranscriptEnd
 
             CALL Reset
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailSuccessState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailSuccessOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             OR   A
             JP   NZ,ProofFailSuccessByte
             LD   A,(RTDEPTH)
@@ -131,20 +131,20 @@ ProofStart:
             LD   A,3
             LD   (RTACTLIM),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailCapacityState
             LD   A,(RTTRPNO)
             CP   5
             JP   NZ,ProofFailCapacityTrap
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailCapacityOutput
             LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofFailCapacityActivation
             LD   HL,(RTTRPOFF)
-            LD   DE,CallCapacityOffset
+            LD   DE,CLCAPOFF
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailCapacityOffset
@@ -157,9 +157,9 @@ ProofStart:
 
             CALL Reset
             LD   A,1
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailOutputState
             LD   A,(RTTRPNO)
@@ -169,11 +169,11 @@ ProofStart:
             CP   3
             JP   NZ,ProofFailOutputError
             LD   HL,(RTTRPOFF)
-            LD   DE,CallFailureOffset
+            LD   DE,CLFAIL
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOutputOffset
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailOutputBytes
             LD   A,(RTDEPTH)
@@ -185,10 +185,10 @@ ProofStart:
             LD   DE,BadCompletionSourceEnd
             CALL CompileCallSlice
             JP   NC,ProofFailBadAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticForwardMismatch
+            LD   A,(DGCODE)
+            CP   DGFWDMIS
             JP   NZ,ProofFailBadCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,BadCompletionName-BadCompletionSource
             OR   A
             SBC  HL,DE

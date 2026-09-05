@@ -41,7 +41,7 @@ CpmCompilerPrintHelp:
 
 CpmCompilerCompileFailure:
             CALL DOABORT
-            LD   A,(SourceHostStatus)
+            LD   A,(SSHOST)
             OR   A
             JR   NZ,CpmCompilerPrintHostError
             JR   CpmCompilerPrintDiagnostic
@@ -59,23 +59,23 @@ CpmCompilerPrintHostError:
 CpmCompilerPrintDiagnostic:
             LD   DE,CpmCompilerDiagnosticText
             CALL CpmCompilerPrintText
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CALL CpmCompilerPrintByte
             LD   DE,CpmCompilerPartText
             CALL CpmCompilerPrintText
-            LD   A,(DiagnosticPartId)
+            LD   A,(DGPARTID)
             CALL CpmCompilerPrintByte
             LD   DE,CpmCompilerOffsetText
             CALL CpmCompilerPrintText
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             CALL CpmCompilerPrintWord
             LD   DE,CpmCompilerLineText
             CALL CpmCompilerPrintText
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             CALL CpmCompilerPrintWord
             LD   DE,CpmCompilerColumnText
             CALL CpmCompilerPrintText
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             CALL CpmCompilerPrintWord
 
 CpmCompilerPrintNewline:

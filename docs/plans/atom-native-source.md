@@ -65,11 +65,17 @@ proof and four memory maps have direct native assembly checks. CP/M adapter
 proofs import the actual map and ABI; their temporary numeric copies are removed.
 The host still receives the mathematical address-space limit of 65,536.
 
-The next bounded compiler wave is state declarations alongside the source
-adapter, tokenizer and keyword table. These require coordinated shared names
-and real streaming-host proofs. The current scanner still lists 4,610 long
-names requiring migration, across 5,577 declared names; this is source-adapter
-debt, not a measure of compiler size or a percentage of work remaining.
+The [state and tokenizer report](../reports/atom-native-state-tokenizer.md)
+records five native state files and the source adapter, tokenizer, keyword
+table and native source host. The resident trace now uses native assembly in
+the ordinary proof harness. Fresh streaming proofs import those same leaves.
+Grammar analysis retains its logical vocabulary while table generation uses
+the new physical token and diagnostic names.
+
+The next bounded wave is generated grammar and packed-parser composition,
+alongside remaining native host interfaces. The current scanner still lists
+3,686 long names requiring migration, across 5,595 declared names; this is
+source-adapter debt, not compiler size or a percentage of work remaining.
 
 Current inventory also identifies three constraints for the later full
 compiler composition. The host-only address-space limit is 65,536 and must

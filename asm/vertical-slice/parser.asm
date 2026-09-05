@@ -3,15 +3,15 @@
 ; Store the first diagnostic at the current token start. Carry denotes failure.
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,HL
 CompilerSetDiagnostic:
-            LD   (DiagnosticCode),A
-            LD   A,(SourcePartId)
-            LD   (DiagnosticPartId),A
-            LD   HL,(TokenStartOffset)
-            LD   (DiagnosticOffset),HL
-            LD   HL,(TokenStartLine)
-            LD   (DiagnosticLine),HL
-            LD   HL,(TokenStartColumn)
-            LD   (DiagnosticColumn),HL
+            LD   (DGCODE),A
+            LD   A,(SSPARTID)
+            LD   (DGPARTID),A
+            LD   HL,(TNSTOFF)
+            LD   (DGOFF),HL
+            LD   HL,(TNSTLINE)
+            LD   (DGLINE),HL
+            LD   HL,(TNSTCOL)
+            LD   (DGCOL),HL
             SCF
             RET
 
@@ -19,7 +19,7 @@ CompilerSetDiagnostic:
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 ParserExpect:
             PUSH DE
-            CALL TokenizerNext
+            CALL TKNEXT
             POP  DE
             RET  C
             CP   E
@@ -29,113 +29,113 @@ ParserExpect:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 ParserExpectMain:
-            LD   D,DiagnosticExpectedMain
-            LD   E,TokenName
+            LD   D,DXMAIN
+            LD   E,TNNAME
             CALL ParserExpect
             RET  C
-            LD   HL,NameMain
+            LD   HL,NAMEMAIN
             LD   B,4
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   NC,ParserExpectMainNo
             OR   A
             RET
 ParserExpectMainNo:
-            LD   A,DiagnosticExpectedMain
+            LD   A,DXMAIN
             JP   CompilerSetDiagnostic
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 ParserExpectWrite:
-            LD   D,DiagnosticExpectedWrite
-            LD   E,TokenName
+            LD   D,DXWR
+            LD   E,TNNAME
             CALL ParserExpect
             RET  C
-            LD   HL,NameWriteOutputByte
+            LD   HL,KWWRTOUT
             LD   B,15
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   NC,ParserExpectWriteNo
             OR   A
             RET
 ParserExpectWriteNo:
-            LD   A,DiagnosticExpectedWrite
+            LD   A,DXWR
             JP   CompilerSetDiagnostic
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 ParserParseProgram:
-            LD   D,DiagnosticExpectedSub
-            LD   E,TokenSub
+            LD   D,DXSUB
+            LD   E,TOKENSUB
             CALL ParserExpect
             RET  C
             CALL ParserExpectMain
             RET  C
-            LD   D,DiagnosticExpectedLeft
-            LD   E,TokenLeftParen
+            LD   D,DXLPAR
+            LD   E,TNLPAR
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedRight
-            LD   E,TokenRightParen
+            LD   D,DXRPAR
+            LD   E,TNRPAR
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedFails
-            LD   E,TokenFails
+            LD   D,DXFAILS
+            LD   E,TNFAILS
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedLine
-            LD   E,TokenNewline
+            LD   D,DXLINE
+            LD   E,TNNL
             CALL ParserExpect
             RET  C
 
             CALL ParserExpectWrite
             RET  C
-            LD   D,DiagnosticExpectedLeft
-            LD   E,TokenLeftParen
+            LD   D,DXLPAR
+            LD   E,TNLPAR
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedChar
-            LD   E,TokenCharacter
+            LD   D,DXCHAR
+            LD   E,TNCHAR
             CALL ParserExpect
             RET  C
-            LD   A,(TokenValue)
-            LD   (ParsedOutputByte),A
-            LD   D,DiagnosticExpectedRight
-            LD   E,TokenRightParen
+            LD   A,(TNVALUE)
+            LD   (PSOUTBYT),A
+            LD   D,DXRPAR
+            LD   E,TNRPAR
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedElse
-            LD   E,TokenElse
+            LD   D,DXELSE
+            LD   E,TNELSE
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedFail
-            LD   E,TokenFail
+            LD   D,DXFAIL
+            LD   E,TNFAIL
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedLine
-            LD   E,TokenNewline
+            LD   D,DXLINE
+            LD   E,TNNL
             CALL ParserExpect
             RET  C
 
-            LD   D,DiagnosticExpectedEnd
-            LD   E,TokenEnd
+            LD   D,DXEND
+            LD   E,TOKENEND
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedLine
-            LD   E,TokenNewline
+            LD   D,DXLINE
+            LD   E,TNNL
             CALL ParserExpect
             RET  C
-            LD   D,DiagnosticExpectedEof
-            LD   E,TokenEof
+            LD   D,DXEOF
+            LD   E,TOKENEOF
             CALL ParserExpect
             RET  C
-            LD   A,(ParsedOutputByte)
+            LD   A,(PSOUTBYT)
             OR   A
             RET
 
 ; A is the stable source-part identity; HL..DE is the half-open byte range.
 .routine in A,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CompileVerticalSlice:
-            CALL SourceInitialize
+            CALL SAINIT
             XOR  A
-            LD   (DiagnosticCode),A
-            LD   (DiagnosticPartId),A
+            LD   (DGCODE),A
+            LD   (DGPARTID),A
             CALL SemanticSinkReset
             CALL ParserParseProgram
             RET  C

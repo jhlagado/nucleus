@@ -161,7 +161,7 @@ NHCompileFailure:
             LD   A,(NativeHostAsyncStatus)
             OR   A
             JP   NZ,NHActiveHostFailure
-            LD   A,(SourceHostStatus)
+            LD   A,(SSHOST)
             OR   A
             JP   NZ,NHActiveHostFailure
             CALL NativeHostWriteDiagnosticResult
@@ -245,14 +245,14 @@ NativeHostWriteDiagnosticResult:
             CALL NativeHostClearLaunchResult
             LD   (HL),NativeHostLaunchOutcomeDiagnostic
             INC  HL
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (HL),A
             INC  HL
-            LD   A,(DiagnosticPartId)
+            LD   A,(DGPARTID)
             LD   (HL),A
             INC  HL
             EX   DE,HL
-            LD   HL,DiagnosticOffset
+            LD   HL,DGOFF
             LD   BC,6
             LDIR
             RET
@@ -287,6 +287,6 @@ NativeHostResumeRuntimeRequest:
             RET
 NHAsyncFailure:
             LD   (NativeHostAsyncStatus),A
-            LD   SP,(CompilerAbortSp)
+            LD   SP,(CPABRTSP)
             SCF
             RET

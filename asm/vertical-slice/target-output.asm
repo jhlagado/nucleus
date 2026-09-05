@@ -8,8 +8,8 @@ TargetEmitEntryPlaceholder:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (EmitDataFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMDATFIX),HL
             LD   HL,0
             JP   EmitWord
 
@@ -36,38 +36,38 @@ TargetEmitTerminalTest:
 ; IX points at the stable compact descriptor supplied by the adapter.
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 BeginTargetFlatProgram:
-            LD   A,TargetOutputClosed
-            LD   (TargetOutputBank),A
-            LD   L,(IX+TargetDescriptorRuntimeIdentity)
-            LD   H,(IX+TargetDescriptorRuntimeIdentity+1)
+            LD   A,TGOUTCLS
+            LD   (TGOUTBNK),A
+            LD   L,(IX+TDRTID)
+            LD   H,(IX+TDRTID+1)
             LD   DE,RIABI
             OR   A
             SBC  HL,DE
             JP   NZ,TargetConfigurationFailure
-            LD   A,(IX+TargetDescriptorFlags)
-            CP   TargetDescriptorEstablishStack+1
+            LD   A,(IX+TDFLGS)
+            CP   TDSETSTK+1
             JP   NC,TargetConfigurationFailure
-            LD   (TargetStackMode),A
+            LD   (TGSTKMOD),A
             ; Retain both checked descriptor regions as complete full-width
             ; word pairs. Their final MAP positions are not adjacent.
             PUSH IX
             POP  HL
-            LD   DE,TargetDescriptorImageBase
+            LD   DE,TDIMGBAS
             ADD  HL,DE
-            LD   DE,TargetImageBase
+            LD   DE,TGIMGBAS
             LD   BC,4
             LDIR
-            LD   DE,TargetWritableBase
+            LD   DE,TGWRBAS
             LD   BC,4
             LDIR
-            LD   HL,(TargetImageBase)
-            LD   DE,(TargetImageCapacity)
+            LD   HL,(TGIMGBAS)
+            LD   DE,(TGIMGCAP)
             CALL TargetValidateRegion
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(TargetWritableBase)
-            LD   DE,(TargetWritableCapacity)
+            LD   HL,(TGWRBAS)
+            LD   DE,(TGWRCAP)
             CALL TargetValidateRegion
 .if CompilerDiagnosticReturns
             RET  C
@@ -84,14 +84,14 @@ BeginTargetFlatProgram:
             LD   DE,11                   ; LD HL/DE/BC plus LDIR
             ADD  HL,DE
 TargetStartupBss:
-            LD   DE,(ProgramBssLength)
+            LD   DE,(PGBSSLEN)
             LD   A,D
             OR   E
             JR   Z,TargetStartupStack
             LD   DE,9                    ; LD HL/BC plus CALL InitializeBss
             ADD  HL,DE
 TargetStartupStack:
-            LD   A,(TargetStackMode)
+            LD   A,(TGSTKMOD)
             OR   A
             JR   Z,TargetStartupReady
             LD   DE,13                   ; save/select SP plus terminal restore
@@ -99,10 +99,10 @@ TargetStartupStack:
             PUSH HL
             CALL TargetInitializedLength
             JR   C,TargetStartupStackFailure
-            LD   DE,(ProgramBssLength)
+            LD   DE,(PGBSSLEN)
             ADD  HL,DE
             JR   C,TargetStartupStackFailure
-            LD   DE,TargetStackRequirement+2
+            LD   DE,TGSTKREQ+2
             ADD  HL,DE
             JR   C,TargetStartupStackFailure
             CALL TargetSubtractWritableCapacityInclusive
@@ -113,56 +113,56 @@ TargetStartupStackFailure:
 TargetStartupStackFits:
             POP  HL
 TargetStartupReady:
-            LD   (TargetStartupLength),HL
-            LD   (TargetMapRequestStartupLength),HL
+            LD   (TGBOOTLN),HL
+            LD   (TQBOOTLN),HL
             CALL TargetCompareSingleBank
             JP   NZ,TargetBeginBankedProgram
-            LD   HL,(ReadOnlyImageLength)
+            LD   HL,(ROILEN)
             CALL TargetLoadLayoutMode
             JR   Z,TargetFlatReadOnlyReady
-            LD   DE,(StaticImageLength)
+            LD   DE,(IMGLEN)
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
             LD   DE,RIVECBYT+RISTBYT
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
 TargetFlatReadOnlyReady:
-            LD   (TargetReadOnlyLength),HL
+            LD   (TGROLEN),HL
             LD   DE,RIBYTES+3
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
-            LD   DE,(TargetStartupLength)
+            LD   DE,(TGBOOTLN)
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
             EX   DE,HL                    ; DE is fixed prefix length
-            LD   HL,(TargetImageCapacity)
+            LD   HL,(TGIMGCAP)
             OR   A
             SBC  HL,DE
             JR   C,TargetBeginCapacityFailure
             LD   A,H
             OR   L
             JR   Z,TargetBeginCapacityFailure ; at least one code byte is required
-            LD   (EmitLimit),HL           ; remaining code capacity after prefix
-            LD   HL,(TargetImageBase)
+            LD   (EMLIM),HL           ; remaining code capacity after prefix
+            LD   HL,(TGIMGBAS)
             ADD  HL,DE
             JR   C,TargetBeginCapacityFailure
-            LD   (TargetCodeBase),HL
-            LD   HL,(EmitLimit)
-            LD   (TargetCodeCapacity),HL
+            LD   (TGCODBAS),HL
+            LD   HL,(EMLIM)
+            LD   (TGCODCAP),HL
             CALL TargetLoadLayoutMode
             JR   NZ,TargetCodeCapacityReady
-            LD   DE,(TargetCodeBase)
-            LD   HL,(TargetWritableBase)
+            LD   DE,(TGCODBAS)
+            LD   HL,(TGWRBAS)
             OR   A
             SBC  HL,DE
             JR   C,TargetBeginCapacityFailure
             JR   Z,TargetBeginCapacityFailure
-            LD   (TargetCodeCapacity),HL
+            LD   (TGCODCAP),HL
             JR   TargetCodeCapacityReady
 TargetBeginCapacityFailure:
 TargetCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticTargetCapacity
+            CALL DGINLINE
+            .db  DGTGTCAP
 TargetCodeCapacityReady:
             CALL TargetBeginOutput
             XOR  A
@@ -173,15 +173,15 @@ TargetCodeCapacityReady:
             RET  C
 .endif
 
-            LD   HL,(EmitCursor)
-            LD   (TargetLinkedRuntimeBase),HL
+            LD   HL,(EMCUR)
+            LD   (TGLINKRT),HL
             ; The complete prefix and image end were checked before BEGIN, so
             ; this proper-prefix address walk cannot wrap.
             LD   DE,RIBYTES
             ADD  HL,DE
-            LD   DE,(TargetStartupLength)
+            LD   DE,(TGBOOTLN)
             ADD  HL,DE
-            LD   (TargetReadOnlyBase),HL
+            LD   (TGROBAS),HL
             CALL TargetPrepareRuntimeContext
 .if CompilerDiagnosticReturns
             RET  C
@@ -196,7 +196,7 @@ TargetCodeCapacityReady:
 ; Open one adapter generation from the retained full-width descriptor.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetBeginOutput:
-            LD   IX,(TargetDescriptorPointer)
+            LD   IX,(TDPTR)
             CALL TargetSinkBegin
             JP   C,TargetOutputFailure
             RET
@@ -204,38 +204,38 @@ TargetBeginOutput:
 ; Compare the retained bank count with the flat-output count.
 .routine out A,zero clobbers sign,parity,halfCarry
 TargetCompareSingleBank:
-            LD   A,(TargetDescriptorBankCountValue)
+            LD   A,(TDBNKVAL)
             DEC  A
             RET
 
 ; Load and test the selected target layout mode.
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TargetLoadLayoutMode:
-            LD   A,(TargetLayoutMode)
+            LD   A,(TGLAYMOD)
             OR   A
             RET
 
 .routine in A out A,HL
 TargetInitializeOutputBank:
-            LD   (TargetOutputBank),A
-            LD   HL,(TargetImageBase)
-            LD   (TargetMapRequestEntryAddress),HL
-            LD   (TargetMapRequestImageBase),HL
-            LD   (EmitCursor),HL
-            LD   HL,(TargetImageCapacity)
-            LD   (TargetMapRequestImageCapacity),HL
-            LD   (EmitLimit),HL
+            LD   (TGOUTBNK),A
+            LD   HL,(TGIMGBAS)
+            LD   (TQENTADR),HL
+            LD   (TQIMGBAS),HL
+            LD   (EMCUR),HL
+            LD   HL,(TGIMGCAP)
+            LD   (TQIMGCAP),HL
+            LD   (EMLIM),HL
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TargetSaveOutputBank:
-            LD   A,(TargetOutputBank)
-            CP   TargetOutputClosed
+            LD   A,(TGOUTBNK)
+            CP   TGOUTCLS
             RET  Z
             CALL TargetBankStateAddress
             PUSH HL
             POP  DE
-            LD   HL,EmitCursor
+            LD   HL,EMCUR
             PUSH BC
             LD   BC,4
             LDIR
@@ -251,61 +251,61 @@ TargetSelectOutputBank:
             CALL TargetCompareSingleBank
             CP   C
             JP   C,TargetConfigurationFailure
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             CP   C
             RET  Z
             CALL TargetSaveOutputBank
             LD   A,C
-            LD   (TargetOutputBank),A
+            LD   (TGOUTBNK),A
             CALL TargetBankStateAddress
-            LD   DE,EmitCursor
+            LD   DE,EMCUR
             LD   BC,4
             LDIR
 .routine out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 TargetRefreshReadOnlyBounds:
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             CALL TargetBankRoLengthAddress
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   (TargetCurrentRoCapacity),DE
-            LD   HL,(TargetImageBase)
+            LD   (TGCROCAP),DE
+            LD   HL,(TGIMGBAS)
             LD   DE,RIBYTES+3
             ADD  HL,DE
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             LD   D,A
-            LD   A,(TargetDescriptorEntryBankValue)
+            LD   A,(TDENTVAL)
             CP   D
             JR   NZ,TargetSelectRoBaseReady
-            LD   DE,(TargetStartupLength)
+            LD   DE,(TGBOOTLN)
             ADD  HL,DE
             PUSH HL
             CALL TargetInitializedLength
             POP  DE
             ADD  HL,DE
 TargetSelectRoBaseReady:
-            LD   (TargetCurrentRoBase),HL
+            LD   (TGCRBAS),HL
             OR   A
             RET
 
 ; Consume DE bytes from the selected bank after one provider operation.
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 TargetConsumeExtent:
-            LD   HL,(EmitLimit)
+            LD   HL,(EMLIM)
             OR   A
             SBC  HL,DE
             JP   C,TargetCapacityFailure
             LD   B,H
             LD   C,L
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             ADD  HL,DE
             JR   NC,TargetConsumeExtentReady
             LD   A,B
             OR   C
             JP   NZ,TargetCapacityFailure
 TargetConsumeExtentReady:
-            LD   (EmitCursor),HL
-            LD   (EmitLimit),BC
+            LD   (EMCUR),HL
+            LD   (EMLIM),BC
             OR   A
             RET
 
@@ -316,22 +316,22 @@ TargetConsumeExtentReady:
 ; The initialized image always starts at the current output cursor.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitRuntimeInitialImage:
-            LD   A,(TargetOutputBank)
-            LD   HL,(EmitCursor)
+            LD   A,(TGOUTBNK)
+            LD   HL,(EMCUR)
             LD   BC,RIVECBYT+RISTBYT
             OR   A
             JR   TargetEmitRuntimeProvider
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitRuntimeImage:
-            LD   HL,(TargetLinkedRuntimeBase)
+            LD   HL,(TGLINKRT)
             LD   BC,RIBYTES
-            LD   (TargetMapRequestRuntimeLength),BC
+            LD   (TQRTLEN),BC
             SCF
 TargetEmitRuntimeProvider:
             PUSH BC
             LD   DE,RIABI
-            LD   IX,TargetRuntimeContext
+            LD   IX,TGRTCTX
             JR   C,TargetEmitRuntimeProviderCode
             CALL TargetSinkRuntimeInitialImage
             JR   TargetEmitRuntimeProviderReady
@@ -346,8 +346,8 @@ TargetEmitRuntimeProviderReady:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TargetEmitInitialAndStatic:
             CALL TargetEmitRuntimeInitialImage
-            LD   HL,StaticImageBase
-            LD   BC,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   BC,(IMGLEN)
             JP   EmitBlock
 .endif
 
@@ -360,12 +360,12 @@ TargetEmitInitialAndStatic:
 TargetBeginBankedProgram:
             CALL TargetLoadLayoutMode
             JP   Z,TargetConfigurationFailure
-            LD   HL,(TargetImageBase)
+            LD   HL,(TGIMGBAS)
             LD   DE,3
             ADD  HL,DE
-            LD   (TargetLinkedRuntimeBase),HL
+            LD   (TGLINKRT),HL
             LD   HL,0
-            LD   (TargetReadOnlyBase),HL
+            LD   (TGROBAS),HL
             CALL TargetPrepareRuntimeContext
 .if CompilerDiagnosticReturns
             RET  C
@@ -375,7 +375,7 @@ TargetBeginBankedProgram:
             LD   C,A
             JR   TargetStartFreshOutputBank
 TargetEmitBankPrefixLoop:
-            LD   A,(TargetDescriptorEntryBankValue)
+            LD   A,(TDENTVAL)
             CP   C
             JR   NZ,TargetEmitBankEmptySlot
             LD   A,$C3
@@ -402,14 +402,14 @@ TargetEmitBankRuntime:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(TargetDescriptorEntryBankValue)
+            LD   A,(TDENTVAL)
             CP   C
             JR   NZ,TargetEmitBankPrefixNext
-            LD   HL,(EmitCursor)
-            LD   DE,(TargetStartupLength)
+            LD   HL,(EMCUR)
+            LD   DE,(TGBOOTLN)
             ADD  HL,DE
             JP   C,TargetCapacityFailure
-            LD   (TargetReadOnlyBase),HL
+            LD   (TGROBAS),HL
 .if CompilerDiagnosticReturns
 .else
             PUSH BC
@@ -422,8 +422,8 @@ TargetEmitBankRuntime:
             CALL TargetEmitRuntimeInitialImage
             RET  C
             PUSH BC
-            LD   HL,StaticImageBase
-            LD   BC,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   BC,(IMGLEN)
             CALL EmitBlock
             POP  BC
             RET  C
@@ -434,7 +434,7 @@ TargetEmitBankRuntime:
 TargetEmitBankPrefixNext:
             CALL TargetSaveOutputBank
             INC  C
-            LD   A,(TargetDescriptorBankCountValue)
+            LD   A,(TDBNKVAL)
             CP   C
             JP   Z,TargetEmitBankedAggregateConstants
 TargetStartFreshOutputBank:
@@ -464,7 +464,7 @@ TargetSubtractWritableCapacityInclusive:
             DEC  HL
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,DE
 TargetSubtractWritableCapacity:
-            LD   DE,(TargetWritableCapacity)
+            LD   DE,(TGWRCAP)
             OR   A
             SBC  HL,DE
             RET
@@ -474,18 +474,18 @@ TargetSubtractWritableCapacity:
 ; half-open regions are disjoint. Every partial overlap is rejected.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetClassifyFlatLayout:
-            LD   HL,(TargetWritableBase)
-            LD   DE,(TargetImageBase)
+            LD   HL,(TGWRBAS)
+            LD   DE,(TGIMGBAS)
             OR   A
             SBC  HL,DE                    ; writable offset from image base
             JR   C,TargetWritableBeforeImage
-            LD   DE,(TargetImageCapacity)
+            LD   DE,(TGIMGCAP)
             PUSH HL
             OR   A
             SBC  HL,DE
             POP  BC                       ; BC = writable offset
             JR   NC,TargetFlatRomReady    ; starts at or after image end
-            LD   HL,(TargetImageCapacity)
+            LD   HL,(TGIMGCAP)
             OR   A
             SBC  HL,BC                    ; remaining image capacity
             CALL TargetSubtractWritableCapacity
@@ -493,70 +493,70 @@ TargetClassifyFlatLayout:
             XOR  A
             JR   TargetLayoutModeReady
 TargetWritableBeforeImage:
-            LD   HL,(TargetImageBase)
-            LD   DE,(TargetWritableBase)
+            LD   HL,(TGIMGBAS)
+            LD   DE,(TGWRBAS)
             OR   A
             SBC  HL,DE                    ; distance to image start
             CALL TargetSubtractWritableCapacity
             JP   C,TargetConfigurationFailure
 TargetFlatRomReady:
-            LD   A,TargetLayoutRom
+            LD   A,TGLAYROM
 TargetLayoutModeReady:
-            LD   (TargetLayoutMode),A
+            LD   (TGLAYMOD),A
             LD   B,A
-            LD   A,(TargetStackMode)
+            LD   A,(TGSTKMOD)
             ADD  A,A
             OR   B
             LD   H,A
             LD   L,1
-            LD   (TargetMapRequestRevision),HL
+            LD   (TQREV),HL
             RET
 
 ; Build the compiler-owned portion of the complete operating-layer link
 ; context. Service destinations are supplied by the adapter at this call.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetPrepareRuntimeContext:
-            LD   HL,(TargetLinkedRuntimeBase)
-            LD   (TargetContextRuntimeBase),HL
-            LD   HL,(TargetWritableBase)
-            LD   (TargetContextWritableBase),HL
-            LD   (TargetMapRequestWritableBase),HL
-            LD   DE,(TargetWritableCapacity)
-            LD   (TargetContextWritableCapacity),DE
-            LD   (TargetMapRequestWritableCapacity),DE
-            LD   (TargetContextVectorBase),HL
+            LD   HL,(TGLINKRT)
+            LD   (TCRTBAS),HL
+            LD   HL,(TGWRBAS)
+            LD   (TCWRBAS),HL
+            LD   (TQWRBAS),HL
+            LD   DE,(TGWRCAP)
+            LD   (TCWRCAP),DE
+            LD   (TQWRCAP),DE
+            LD   (TCVECBAS),HL
             LD   DE,RIVECBYT
-            LD   (TargetMapRequestVectorLength),DE
+            LD   (TQVECLEN),DE
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
-            LD   (TargetContextStateBase),HL
+            LD   (TCSTBAS),HL
             LD   DE,RISTBYT
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
-            LD   (TargetContextDataBase),HL
+            LD   (TCDATBAS),HL
             ; Continue the address walk once to the BSS base, then form the
             ; independent initialized-plus-BSS capacity from the same static
             ; length. Both additions remain checked at full word width.
-            LD   BC,(StaticImageLength)
+            LD   BC,(IMGLEN)
             ADD  HL,BC
             JR   C,TargetPrepareCapacityFailure
-            LD   (TargetBssBase),HL
-            LD   (TargetMapRequestBssBase),HL
-            LD   DE,(ProgramBssLength)
-            LD   (TargetMapRequestBssLength),DE
+            LD   (TGBSSBAS),HL
+            LD   (TQBSSBAS),HL
+            LD   DE,(PGBSSLEN)
+            LD   (TQBSSLEN),DE
             LD   H,B
             LD   L,C
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
-            LD   (TargetContextDataCapacity),HL
+            LD   (TCDATCAP),HL
             CALL TargetCompareSingleBank
             JR   Z,TargetPrepareFlatRoData
             LD   HL,0
-            LD   (TargetContextRoDataBase),HL
-            LD   (TargetContextRoDataCapacity),HL
+            LD   (TCROBAS),HL
+            LD   (TCROCAP),HL
             JR   TargetContextRoDataFinished
 TargetPrepareFlatRoData:
-            LD   HL,(TargetReadOnlyBase)
+            LD   HL,(TGROBAS)
             CALL TargetLoadLayoutMode
             JR   Z,TargetContextRoDataReady
             ; This is a sub-walk of the already checked flat ROM prefix.
@@ -565,13 +565,13 @@ TargetPrepareFlatRoData:
             POP  DE
             ADD  HL,DE
 TargetContextRoDataReady:
-            LD   (TargetContextRoDataBase),HL
-            LD   HL,(ReadOnlyImageLength)
-            LD   (TargetContextRoDataCapacity),HL
+            LD   (TCROBAS),HL
+            LD   HL,(ROILEN)
+            LD   (TCROCAP),HL
 TargetContextRoDataFinished:
             CALL TargetInitializedLength
             JR   C,TargetPrepareCapacityFailure
-            LD   DE,(ProgramBssLength)
+            LD   DE,(PGBSSLEN)
             ADD  HL,DE
             JR   C,TargetPrepareCapacityFailure
             CALL TargetSubtractWritableCapacityInclusive
@@ -586,21 +586,21 @@ TargetWritableAllocationReady:
 ; DE is the helper offset published by nucleus-runtime-identity.asmi.
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 EmitRuntimeCall:
-            LD   HL,(TargetLinkedRuntimeBase)
+            LD   HL,(TGLINKRT)
             ADD  HL,DE
             JP   EmitCall
 
 ; Resolve one identity-fixed writable-state offset for generated operands.
 .routine in DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 TargetStateAddress:
-            LD   HL,(TargetContextStateBase)
+            LD   HL,(TCSTBAS)
             ADD  HL,DE
             OR   A
             RET
 
 .routine out DE,HL,carry clobbers halfCarry
 TargetInitializedLength:
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,RIVECBYT+RISTBYT
             ADD  HL,DE
             RET
@@ -618,7 +618,7 @@ TargetVectorAddress:
             ADD  A,E
             LD   E,A
             LD   D,0
-            LD   HL,(TargetContextVectorBase)
+            LD   HL,(TCVECBAS)
             ADD  HL,DE
             RET
 
@@ -633,13 +633,13 @@ EmitTargetVectorJump:
 ; while the main operand remains the ordinary checked forward fixup.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 TargetEmitStartup:
-            LD   DE,(EmitDataFixup)
-            LD   HL,(EmitCursor)
+            LD   DE,(EMDATFIX)
+            LD   HL,(EMCUR)
             CALL PatchWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(TargetStackMode)
+            LD   A,(TGSTKMOD)
             OR   A
             JR   Z,TargetStartupCopy
             LD   HL,0
@@ -657,8 +657,8 @@ TargetEmitStartup:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(TargetWritableBase)
-            LD   DE,(TargetWritableCapacity)
+            LD   HL,(TGWRBAS)
+            LD   DE,(TGWRCAP)
             ADD  HL,DE                    ; $0000 denotes mathematical $10000
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
@@ -677,12 +677,12 @@ TargetEmitStartup:
 TargetStartupCopy:
             CALL TargetLoadLayoutMode
             JR   Z,TargetStartupClear
-            LD   HL,(TargetReadOnlyBase)
+            LD   HL,(TGROBAS)
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(TargetWritableBase)
+            LD   DE,(TGWRBAS)
             CALL EmitLoadDeImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -698,16 +698,16 @@ TargetStartupCopy:
             RET  C
 .endif
 TargetStartupClear:
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             LD   A,H
             OR   L
             JR   Z,TargetStartupEntry
-            LD   HL,(TargetBssBase)
+            LD   HL,(TGBSSBAS)
             CALL EmitLoadHl
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             CALL EmitLoadBcImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -718,7 +718,7 @@ TargetStartupClear:
             RET  C
 .endif
 TargetStartupEntry:
-            LD   A,(TargetStackMode)
+            LD   A,(TGSTKMOD)
             OR   A
             LD   A,$C3                    ; JP main when inheriting SP
             JR   Z,TargetStartupEmitEntry
@@ -728,9 +728,9 @@ TargetStartupEmitEntry:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (TargetTerminalAddress),HL
-            LD   A,(TargetStackMode)
+            LD   HL,(EMCUR)
+            LD   (TGTERM),HL
+            LD   A,(TGSTKMOD)
             OR   A
             JR   Z,TargetStartupTerminalState
             LD   HL,TargetStartupRestoreBytes
@@ -740,7 +740,7 @@ TargetStartupEmitEntry:
             RET  C
 .endif
 TargetStartupTerminalState:
-            LD   DE,RunState-RTSTATE
+            LD   DE,RUNSTATE-RTSTATE
             LD   C,RTSUCC
             CALL TargetEmitTerminalTest
 .if CompilerDiagnosticReturns
@@ -769,26 +769,26 @@ TargetStartupTerminalState:
 FinishTargetFlatProgram:
             CALL TargetCompareSingleBank
             JR   NZ,FinishTargetBankedProgram
-            LD   HL,(EmitCursor)
-            LD   DE,(TargetCodeBase)
+            LD   HL,(EMCUR)
+            LD   DE,(TGCODBAS)
             OR   A
             SBC  HL,DE
-            LD   (TargetCodeLength),HL
+            LD   (TGCODLEN),HL
             ; Loaded output appends the initialized run image after code. ROM
             ; output already emitted the same bytes before source code.
             CALL TargetLoadLayoutMode
             JR   NZ,TargetLoadedDataReady
-            LD   HL,(TargetWritableBase)
-            LD   (EmitCursor),HL
+            LD   HL,(TGWRBAS)
+            LD   (EMCUR),HL
             XOR  A
-            LD   (TargetOutputBank),A
+            LD   (TGOUTBNK),A
             CALL TargetInitializedLength
-            LD   (EmitLimit),HL
+            LD   (EMLIM),HL
 .if CompilerDiagnosticBranches
             CALL TargetEmitRuntimeInitialImage
             JP   C,AbortTargetProgram
-            LD   HL,StaticImageBase
-            LD   BC,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   BC,(IMGLEN)
             CALL EmitBlock
             JP   C,AbortTargetProgram
 .else
@@ -799,13 +799,13 @@ FinishTargetFlatProgram:
             ; remaining capacity from the final initialized-data end to the
             ; mathematical image end. Modular subtraction also represents a
             ; legal image end at $10000.
-            LD   HL,(TargetImageBase)
-            LD   DE,(TargetImageCapacity)
+            LD   HL,(TGIMGBAS)
+            LD   DE,(TGIMGCAP)
             ADD  HL,DE
-            LD   DE,(EmitCursor)
+            LD   DE,(EMCUR)
             OR   A
             SBC  HL,DE
-            LD   (EmitLimit),HL
+            LD   (EMLIM),HL
 TargetLoadedDataReady:
             CALL TargetSaveOutputBank
             JR   C,TargetFinishOutputFailureNear
@@ -830,7 +830,7 @@ FinishTargetBankedProgram:
             JR   TargetLoadedDataReady
 
 TargetConfigurationFailure:
-            LD   A,DiagnosticTargetConfiguration
+            LD   A,DGTGTCFG
             JR   TargetDiagnosticReady
 ; Fixup resolution closes the bank selector before MAP/COMMIT, while the sink
 ; generation remains open. Abort that late phase here; the production
@@ -844,7 +844,7 @@ TargetFinishOutputFailure:
 TargetOutputFailure:
             OR   A
             JR   NZ,TargetDiagnosticReady
-            LD   A,DiagnosticTargetOutput
+            LD   A,DGTGTOUT
 TargetDiagnosticReady:
             JP   CompilerSetDiagnostic
 
@@ -853,36 +853,36 @@ TargetDiagnosticReady:
 ; Z reports the flat one-bank case.
 .routine out A,carry,zero,IX clobbers sign,parity,halfCarry,B,DE,HL
 TargetPrepareMapRequest:
-            LD   A,(TargetDescriptorEntryBankValue)
-            LD   (TargetMapRequestEntryBank),A
-            LD   (TargetMapRequestDataLoadBank),A
-            LD   A,(TargetSourcePartCount)
-            LD   (TargetMapRequestPartCount),A
-            LD   HL,(TargetPartBanksPointer)
-            LD   (TargetMapRequestPartBanks),HL
+            LD   A,(TDENTVAL)
+            LD   (TQENTBNK),A
+            LD   (TQDLBNK),A
+            LD   A,(TGSRCPTS)
+            LD   (TQPARTCT),A
+            LD   HL,(TGPBPTR)
+            LD   (TQPBANKS),HL
             CALL TargetInitializedLength
-            LD   (TargetMapRequestInitializedLength),HL
-            LD   (TargetMapRequestDataLoadLength),HL
-            LD   HL,TargetStackRequirement
-            LD   (TargetMapRequestStackRequirement),HL
+            LD   (TQINILEN),HL
+            LD   (TQDLLEN),HL
+            LD   HL,TGSTKREQ
+            LD   (TQSTKREQ),HL
             CALL TargetLoadLayoutMode
-            LD   HL,(TargetWritableBase)
+            LD   HL,(TGWRBAS)
             JR   Z,TargetMapRequestDataLoadAddressReady
-            LD   HL,(TargetReadOnlyBase)
+            LD   HL,(TGROBAS)
 TargetMapRequestDataLoadAddressReady:
-            LD   (TargetMapRequestDataLoadAddress),HL
-            LD   HL,TargetBankStateBase
-            LD   (TargetMapRequestBankState),HL
-            LD   A,(TargetDescriptorBankCountValue)
-            LD   (TargetMapRequestBankCount),A
+            LD   (TQDLADR),HL
+            LD   HL,TBBAS
+            LD   (TQBNKST),HL
+            LD   A,(TDBNKVAL)
+            LD   (TQBNKCNT),A
             DEC  A
-            LD   IX,TargetMapRequest
+            LD   IX,TQBASE
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 AbortTargetProgram:
             PUSH AF
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             INC  A
             CALL NZ,TargetSinkAbort
             POP  AF

@@ -5,28 +5,28 @@
 ; Typed dispatch and loop dispatch are currently mutually exclusive. These
 ; aliases make the temporary reuse visible; merging the dispatchers requires
 ; dedicated storage or a new liveness proof.
-EmitTypedTrapPosition .equ EmitLoopHead
-EmitTypedWidth        .equ EmitCodeStart
-EmitTypedDestination  .equ EmitCodeStart+1
+EmitTypedTrapPosition .equ EMLOOP
+EmitTypedWidth        .equ EMCODST
+EmitTypedDestination  .equ EMCODST+1
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedDispatch:
-            LD   HL,SemanticPayloadBase
-            LD   (SemanticReadCursor),HL
+            LD   HL,SMPAYBAS
+            LD   (SMRDCUR),HL
             XOR  A
-            LD   (EmitBooleanFixupDepth),A
-            LD   (EmitControlFixupCount),A
-            LD   HL,EmitControlLabelValidBase
+            LD   (EBFDEP),A
+            LD   (ECFCNT),A
+            LD   HL,ECLVBAS
 .if TargetStreamingOutput
-            LD   B,EmitControlLabelCapacity*EmitControlLabelSize
+            LD   B,ECLCAP*ECLSZ
 .else
-            LD   B,EmitControlLabelCapacity
+            LD   B,ECLCAP
 .endif
 TypedResetControlLabels:
             LD   (HL),A
             INC  HL
             DJNZ TypedResetControlLabels
-            LD   A,(SemanticBufferBase)
+            LD   A,(SMBUFBAS)
             OR   A
 .if TargetStreamingOutput
 .if DebugHooks
@@ -42,11 +42,11 @@ TypedDispatchNext:
             PUSH BC
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSemanticStartPort),A
+            OUT  (DTSEMST),A
 .endif
 .endif
             CALL NextSemanticByte
-            SUB  SemanticDefineProgramU8
+            SUB  SMDEFPU8
             CP   TypedOperationCount
             JR   NC,TypedInvalidPopped
             CALL TypedPrefetchFirstOperand
@@ -75,7 +75,7 @@ TypedDispatchReturn:
             RET  C
 .endif
 TypedDispatchComplete:
-            OUT  (DebugTraceSemanticEndPort),A
+            OUT  (DTSEMEND),A
             RET
 .else
             JP   StructuredResolveFixups
@@ -240,7 +240,7 @@ Stage8InvokePacketService:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(TargetTerminalAddress)
+            LD   DE,(TGTERM)
             CALL EmitLoadDeImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -313,8 +313,8 @@ TypedBeginMain:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedBeginProgramFrame:
-            LD   DE,(EmitDataFixup)
-            LD   HL,(EmitCursor)
+            LD   DE,(EMDATFIX)
+            LD   HL,(EMCUR)
             CALL PatchWord
             JP   TypedSaveRootFrame
 
@@ -451,12 +451,12 @@ TypedXor8      .equ TypedBinary8Select
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedBinary8Select:
             LD   A,C
-            CP   SemanticAnd8-SemanticDefineProgramU8
+            CP   SMAND8-SMDEFPU8
             JR   NC,TypedBinary8Bitwise
-            ADD  A,EmitPairAdd8*2-(SemanticAdd8-SemanticDefineProgramU8)
+            ADD  A,EmitPairAdd8*2-(SMADD8-SMDEFPU8)
             JR   TypedBinary8Scale
 TypedBinary8Bitwise:
-            ADD  A,EmitPairAnd8*2-(SemanticAnd8-SemanticDefineProgramU8)
+            ADD  A,EmitPairAnd8*2-(SMAND8-SMDEFPU8)
 TypedBinary8Scale:
             RRCA                         ; all adjusted selectors are even
             LD   C,A
@@ -570,7 +570,7 @@ TypedReadTrapAndPop:
 
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedEmitTrapHead:
-            LD   (EmitExitFixup),DE
+            LD   (EMEXIT),DE
             LD   HL,(EmitTypedTrapPosition)
             JP   EmitLoadHl
 
@@ -1009,7 +1009,7 @@ TypedEmitTrapTail:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitExitFixup)
+            LD   DE,(EMEXIT)
 TypedPatchHere:
             JP   PatchHere
 
@@ -1041,10 +1041,10 @@ TypedRootFrameReady:
 .endif
             PUSH HL
 .if TargetStreamingOutput
-            LD   DE,RootSP-RTSTATE
+            LD   DE,ROOTSP-RTSTATE
             CALL TargetStateAddress
 .else
-            LD   HL,RootSP
+            LD   HL,ROOTSP
 .endif
             CALL EmitWord
             POP  HL
@@ -1058,10 +1058,10 @@ TypedRootFrameReady:
             RET  C
 .endif
 .if TargetStreamingOutput
-            LD   DE,RootIX-RTSTATE
+            LD   DE,ROOTIX-RTSTATE
             CALL TargetStateAddress
 .else
-            LD   HL,RootIX
+            LD   HL,ROOTIX
 .endif
             JP   EmitWord
 
@@ -1071,7 +1071,7 @@ TypedRootFrameReady:
 TypedBeginRoutine:
             CALL NextSemanticByte
             LD   (EmitTypedWidth),A
-            LD   C,ControlRoutineLabel
+            LD   C,CRLBL
             CALL StructuredDefineLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -1117,7 +1117,7 @@ TypedCallScalar:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   C,ControlRoutineLabel
+            LD   C,CRLBL
             LD   A,$CD                    ; CALL nn
             CALL StructuredEmitFixup
 .if CompilerDiagnosticReturns
@@ -1151,9 +1151,9 @@ TypedReturnScalar:
 
 .routine in DE out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL
 TypedPushBooleanFixup:
-            LD   HL,EmitBooleanFixupDepth
+            LD   HL,EBFDEP
             LD   A,(HL)
-            CP   EmitBooleanFixupCapacity
+            CP   EBFCAP
             JR   NC,TypedBooleanFixupCapacity
             INC  (HL)
             INC  HL
@@ -1168,12 +1168,12 @@ TypedPushBooleanFixup:
             OR   A
             RET
 TypedBooleanFixupCapacity:
-            CALL SetDiagInline
-            .db  DiagnosticBooleanFixupCapacity
+            CALL DGINLINE
+            .db  DGBFXCAP
 
 .routine in B out A,carry,zero,DE clobbers sign,parity,halfCarry,B,C,HL
 TypedPopBooleanFixup:
-            LD   HL,EmitBooleanFixupDepth
+            LD   HL,EBFDEP
             LD   A,(HL)
             DEC  A
             JP   M,TypedInternalOperation
@@ -1209,7 +1209,7 @@ TypedBeginBoolean:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 TypedEndMain:
-            LD   A,(EmitBooleanFixupDepth)
+            LD   A,(EBFDEP)
             OR   A
             JP   NZ,TypedInternalOperation
             CALL ExpressionRestoreFrame
@@ -1233,7 +1233,7 @@ EncodeProgramHeader:
 ; existing entry jump transfers to main.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 EncodeSegmentedProgramHeader:
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   A,H
             OR   L
             JR   Z,EncodeSegmentedBss
@@ -1247,7 +1247,7 @@ EncodeSegmentedProgramHeader:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             CALL EmitLoadBcImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -1258,7 +1258,7 @@ EncodeSegmentedProgramHeader:
             RET  C
 .endif
 EncodeSegmentedBss:
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             LD   A,H
             OR   L
             JR   Z,EncodeSegmentedEntry
@@ -1267,7 +1267,7 @@ EncodeSegmentedBss:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(ProgramBssLength)
+            LD   HL,(PGBSSLEN)
             CALL EmitLoadBcImmediate
 .if CompilerDiagnosticReturns
             RET  C
@@ -1290,8 +1290,8 @@ EncodeProgramEntry:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(EmitCursor)
-            LD   (EmitDataFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMDATFIX),HL
             LD   HL,0
             JP   EmitWord
 

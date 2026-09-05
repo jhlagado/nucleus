@@ -4,10 +4,10 @@
 
 ; Aggregate initializer staging is dead while a routine body is parsed, so
 ; the for/flow action scratch safely reuses its first thirteen bytes.
-HybridLL1ForMode       .equ AggregateInitializerBase
+HybridLL1ForMode       .equ AIBAS
 HybridLL1ForStep       .equ HybridLL1ForMode+1
 HybridLL1FlowStackBase .equ HybridLL1ForStep+2
-HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+ControlFrameCapacity
+HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+CFCAP
 
 .routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
 HybridLL1StepConstant:
@@ -26,7 +26,7 @@ HybridLL1StepConstant:
 ; island retains the recursive, type-directed aggregate initializer machinery.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1StaticInitializer:
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   B,A
             PUSH BC
             CALL AggregateParseInitializer
@@ -35,13 +35,13 @@ HybridLL1StaticInitializer:
             RET  C
 .endif
             LD   A,B
-            LD   (DeclarationInfo),A
+            LD   (DCINFO),A
             OR   A
             RET
 
 HybridLL1StrayClause:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedEnd
+            CALL DGINLINE
+            .db  DXEND
 
 HybridLL1MissingSelectEnd .equ HybridLL1StrayClause
 
@@ -54,7 +54,7 @@ HybridLL1SetScalarTypeAction:
             JR   C,HybridLL1SetCurrentType
             ADD  A,13
 HybridLL1SetCurrentType:
-            LD   (AggregateCurrentTypeId),A
+            LD   (ACTYPID),A
             OR   A
             RET
 
@@ -65,33 +65,33 @@ HybridLL1ResolveRecordType:
             RET  C
 .endif
             LD   D,A
-            LD   (DeclarationInfo),A
-            LD   (DeclarationPayload),BC
-            AND  SymbolRecordTypeFlag+SymbolAggregateFlag
-            CP   SymbolRecordTypeFlag
+            LD   (DCINFO),A
+            LD   (DCPAY),BC
+            AND  SYRECTYP+SYAGGFLG
+            CP   SYRECTYP
             JP   NZ,AggregateTypeShapeFailure
             LD   A,C
             JR   HybridLL1SetCurrentType
 
 HybridLL1BeginTypeBound:
 HybridLL1ExpectU16:
-            LD   A,ScalarTypeU16
+            LD   A,TYU16
             JR   HybridLL1SaveExpectedType
 
 ; Return the checked, positive, byte-sized constant bound in HL.
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
 HybridLL1CheckedBound:
-            LD   A,(ExpressionRightMeta)
+            LD   A,(EXRMETA)
             LD   D,A
-            AND  ScalarMetaConstant
+            AND  MTCONST
             JP   Z,AggregateTypeShapeFailure
-            LD   E,ScalarTypeU16
+            LD   E,TYU16
             LD   A,D
             CALL TypedCheckAssignable
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(ExpressionRightValue)
+            LD   HL,(EXRVAL)
             LD   A,H
             OR   L
             JP   Z,AggregateTypeShapeFailure
@@ -110,13 +110,13 @@ HybridLL1MakeStringType:
             CP   254
             JP   NC,AggregateStringCapacityFailure
             LD   A,L
-            LD   (AggregateCandidateAux),A
-            LD   (AggregateCandidateLength),HL
-            LD   A,AggregateTypeKindString
-            LD   (AggregateCandidateKind),A
+            LD   (ANAUX),A
+            LD   (ANLEN),HL
+            LD   A,ATKSTR
+            LD   (ANKIND),A
             INC  HL
             INC  HL
-            LD   (AggregateCandidateExtent),HL
+            LD   (ANEXT),HL
 HybridLL1InternCurrentType:
             CALL AggregateInternType
 .if CompilerDiagnosticReturns
@@ -126,7 +126,7 @@ HybridLL1InternCurrentType:
 
 ; `string[]` is a parameter-only view rather than an interned object type.
 HybridLL1MakeOpenStringType:
-            LD   A,AggregateOpenStringTypeId
+            LD   A,AGOSTR
             JR   HybridLL1SetCurrentType
 
 HybridLL1BeginArrayType .equ AggregateBeginArrayType
@@ -148,32 +148,32 @@ HybridLL1FinishArrayType .equ AggregateFinishArrayType
 HybridLL1RetainDeclarationName .equ TypedRetainDeclarationName
 
 HybridLL1SaveExpectedType:
-            LD   (ExpressionExpectedType),A
+            LD   (EXEXPTYP),A
             OR   A
             RET
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
 HybridLL1FinishConstantExpression:
-            LD   HL,(ExpressionRightValue)
-            LD   A,(ExpressionRightMeta)
+            LD   HL,(EXRVAL)
+            LD   A,(EXRMETA)
             LD   D,A
-            AND  ScalarMetaConstant
+            AND  MTCONST
             JP   Z,TypedTypeFailure
             LD   A,D
             CALL TypedInferredConstantType
 HybridLL1ConstantTypeReady:
-            LD   (DeclarationInfo),A
-            LD   HL,(ExpressionRightValue)
-            LD   (DeclarationPayload),HL
+            LD   (DCINFO),A
+            LD   HL,(EXRVAL)
+            LD   (DCPAY),HL
             OR   A
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1CommitConstant:
-            LD   A,(DeclarationInfo)
-            OR   SymbolClassConstant
+            LD   A,(DCINFO)
+            OR   SCCONST
             LD   D,A
-            LD   BC,(DeclarationPayload)
+            LD   BC,(DCPAY)
             CALL TypedPrepareCurrentWord
 .if CompilerDiagnosticReturns
             RET  C
@@ -184,28 +184,28 @@ HybridLL1CommitConstant:
 HybridLL1CommitAggregateConstant:
 .if TargetStreamingOutput
             CALL Stage7AllocateBankReadOnly
-            LD   (DeclarationInfo),A
-            LD   (DeclarationPayload),BC
-            LD   A,(DeclarationInfo)
+            LD   (DCINFO),A
+            LD   (DCPAY),BC
+            LD   A,(DCINFO)
             RLCA
             RLCA
             RLCA
             RLCA
-            OR   SymbolAggregateFlag+SymbolClassConstant
-            LD   (DeclarationInfo),A
+            OR   SYAGGFLG+SCCONST
+            LD   (DCINFO),A
 .endif
-            LD   BC,(ReadOnlyImageLength)
-            LD   D,SymbolAggregateFlag+SymbolClassConstant
+            LD   BC,(ROILEN)
+            LD   D,SYAGGFLG+SCCONST
 .if TargetStreamingOutput
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   D,A
-            LD   BC,(DeclarationPayload)
+            LD   BC,(DCPAY)
 .endif
             CALL TypedPrepareCurrentWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(AggregateCurrentTypeId)
+            LD   A,(ACTYPID)
             INC  HL
             LD   (HL),A
             CALL Stage7AppendReadOnlyObject
@@ -219,18 +219,18 @@ HybridLL1BeginAssert .equ TypedRetainDeclarationNameReady
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1CommitAssert:
             CALL HybridLL1RestoreSubName
-            LD   A,(ExpressionRightMeta)
-            AND  ScalarMetaConstant+ScalarMetaTypeMask
-            CP   ScalarMetaConstant+ScalarTypeBoolean
+            LD   A,(EXRMETA)
+            AND  MTCONST+MTTYPMSK
+            CP   MTCONST+TYBOOL
             JR   NZ,HybridLL1AssertTypeFailure
-            LD   A,(ExpressionRightValue)
+            LD   A,(EXRVAL)
             OR   A
             RET  NZ
-            CALL SetDiagInline
-            .db  DiagnosticAssertionFailed
+            CALL DGINLINE
+            .db  DGASSERT
 HybridLL1AssertTypeFailure:
-            CALL SetDiagInline
-            .db  DiagnosticTypeMismatch
+            CALL DGINLINE
+            .db  DGTYPMIS
 
 ; ------------------------------------------------------ program declarations
 
@@ -241,33 +241,33 @@ HybridLL1SaveObjectType:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (DeclarationInfo),A
+            LD   (DCINFO),A
             CALL AggregateGetExtent
-            LD   (AggregateCurrentObjectExtent),HL
-            LD   (AggregateCurrentObjectEnd),HL
+            LD   (ACOBJEXT),HL
+            LD   (ACOBJEND),HL
             LD   HL,0
-            LD   (AggregateCurrentObjectOffset),HL
+            LD   (ACOBJOFF),HL
             CALL AggregateZeroCurrentObject
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             XOR  A
-            LD   (AggregateInitializerDepth),A
-            LD   (AggregateHasInitializer),A
+            LD   (AIDEP),A
+            LD   (AGHASINI),A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1SaveAggregateConstantType:
-            LD   A,(AggregateCurrentTypeId)
-            CP   AggregateFirstDynamicTypeId
+            LD   A,(ACTYPID)
+            CP   AGDYNTYP
             JP   C,TypedTypeFailure
             JR   HybridLL1SaveObjectType
 
 HybridLL1FinishProgramInitializer:
             LD   A,1
-            LD   (AggregateHasInitializer),A
-            LD   HL,(AggregateCurrentObjectOffset)
-            LD   DE,(AggregateCurrentObjectEnd)
+            LD   (AGHASINI),A
+            LD   HL,(ACOBJOFF)
+            LD   DE,(ACOBJEND)
             OR   A
             SBC  HL,DE
             JP   NZ,AggregateInitializerCountFailure
@@ -276,19 +276,19 @@ HybridLL1FinishProgramInitializer:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CommitProgramVariable:
-            LD   A,(AggregateHasInitializer)
+            LD   A,(AGHASINI)
             OR   A
             JR   NZ,HybridLL1AllocateDataObject
             JR   HybridLL1AllocateBssObject
 HybridLL1CommitObjectReady:
             PUSH BC
-            LD   A,(DeclarationInfo)
-            CP   AggregateFirstDynamicTypeId
+            LD   A,(DCINFO)
+            CP   AGDYNTYP
             JR   C,HybridLL1ProgramScalarInfo
-            LD   D,SymbolInfoAggregateProgram
+            LD   D,SIAGPROG
             JR   HybridLL1ProgramPrepareSymbol
 HybridLL1ProgramScalarInfo:
-            OR   SymbolClassProgram
+            OR   SCPROG
             LD   D,A
 HybridLL1ProgramPrepareSymbol:
             CALL TypedPrepareCurrentWord
@@ -296,7 +296,7 @@ HybridLL1ProgramPrepareSymbol:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             CALL SymbolCommitTyped
 .if CompilerDiagnosticReturns
             RET  C
@@ -307,46 +307,46 @@ HybridLL1ProgramPrepareSymbol:
 ; Return the absolute target address of one initialized program object in BC.
 ; The complete prepared bytes are appended to the rodata-backed data image.
 HybridLL1AllocateDataObject:
-            LD   DE,(StaticImageLength)
+            LD   DE,(IMGLEN)
             CALL HybridLL1AllocateObjectEnd
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             PUSH HL
-            LD   DE,(ReadOnlyImageLength)
+            LD   DE,(ROILEN)
             ADD  HL,DE
             CALL AggregateCheckExtentCapacity
             POP  HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (StaticImageLength),HL
-            LD   BC,(ReadOnlyImageLength)
+            LD   (IMGLEN),HL
+            LD   BC,(ROILEN)
             LD   A,B
             OR   C
             JR   Z,HybridLL1DataShiftReady
-            LD   HL,StaticImageBase
-            LD   DE,(AggregateCurrentObjectOffset)
+            LD   HL,IMGBAS
+            LD   DE,(ACOBJOFF)
             ADD  HL,DE
             ADD  HL,BC
             DEC  HL
-            LD   DE,(AggregateCurrentObjectExtent)
+            LD   DE,(ACOBJEXT)
             PUSH HL
             ADD  HL,DE
             EX   DE,HL
             POP  HL
             LDDR
 HybridLL1DataShiftReady:
-            LD   BC,(AggregateCurrentObjectExtent)
-            LD   HL,AggregateInitializerBase
-            LD   DE,(AggregateCurrentObjectOffset)
+            LD   BC,(ACOBJEXT)
+            LD   HL,AIBAS
+            LD   DE,(ACOBJOFF)
             PUSH HL
-            LD   HL,StaticImageBase
+            LD   HL,IMGBAS
             ADD  HL,DE
             EX   DE,HL
             POP  HL
             LDIR
-            LD   BC,(AggregateCurrentObjectOffset)
+            LD   BC,(ACOBJOFF)
 .if TargetStreamingOutput
             ; Target transcripts retain a segment-relative offset. Bit 15 is
             ; clear for initialized data and set for BSS.
@@ -361,12 +361,12 @@ HybridLL1DataShiftReady:
 
 ; Return the absolute target address of one default-initialized object in BC.
 HybridLL1AllocateBssObject:
-            LD   DE,(ProgramBssLength)
+            LD   DE,(PGBSSLEN)
             CALL HybridLL1AllocateObjectEnd
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (ProgramBssLength),HL
+            LD   (PGBSSLEN),HL
             LD   B,D
             LD   C,E
 .if TargetStreamingOutput
@@ -388,9 +388,9 @@ HybridLL1AllocateBssObject:
 ; the old offset in DE and the checked mathematical end in HL.
 .routine in DE out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 HybridLL1AllocateObjectEnd:
-            LD   (AggregateCurrentObjectOffset),DE
-            LD   HL,(AggregateCurrentObjectExtent)
-            LD   DE,(AggregateCurrentObjectOffset)
+            LD   (ACOBJOFF),DE
+            LD   HL,(ACOBJEXT)
+            LD   DE,(ACOBJOFF)
             ADD  HL,DE
 HybridLL1CheckProgramSegmentEnd:
 ; Initialized data and BSS use the same exact 1 KiB extent rule and diagnostic
@@ -405,19 +405,19 @@ HybridLL1BeginRecord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(AggregateTypeCount)
-            CP   AggregateTypeCapacity
+            LD   A,(ATCNT)
+            CP   ATCAP
             JP   NC,AggregateTypeCapacityFailure
-            LD   A,(AggregateRecordCount)
-            CP   AggregateRecordCapacity
+            LD   A,(ARCNT)
+            CP   ARCAP
             JP   NC,AggregateTypeCapacityFailure
-            LD   A,(AggregateFieldCount)
-            LD   (AggregateCurrentFieldStart),A
+            LD   A,(AFCNT)
+            LD   (ACFLDST),A
             XOR  A
-            LD   (AggregateCurrentFieldCount),A
+            LD   (ACFLDCNT),A
             LD   H,A
             LD   L,A
-            LD   (AggregateCurrentRecordExtent),HL
+            LD   (ACRECEXT),HL
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -426,12 +426,12 @@ HybridLL1BeginRecordField:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(AggregateFieldCount)
-            CP   AggregateFieldCapacity
+            LD   A,(AFCNT)
+            CP   AFCAP
             JP   NC,AggregateTypeCapacityFailure
             PUSH AF
             CALL AggregateFieldAddress
-            CALL TokenRetainNameAtHL
+            CALL TKRETAIN
             POP  AF
             OR   A
             RET
@@ -442,19 +442,19 @@ HybridLL1CommitRecordField:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(AggregateFieldCount)
+            LD   A,(AFCNT)
             CALL AggregateFieldAddress
             INC  HL
             INC  HL
             INC  HL
-            LD   A,(AggregateCurrentTypeId)
+            LD   A,(ACTYPID)
             LD   (HL),A
             INC  HL
-            LD   DE,(AggregateCurrentRecordExtent)
+            LD   DE,(ACRECEXT)
             LD   (HL),E
             INC  HL
             LD   (HL),D
-            LD   A,(AggregateCurrentTypeId)
+            LD   A,(ACTYPID)
             PUSH DE
             CALL AggregateGetExtent
             POP  DE
@@ -464,34 +464,34 @@ HybridLL1CommitRecordField:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (AggregateCurrentRecordExtent),HL
-            LD   HL,AggregateCurrentFieldCount
+            LD   (ACRECEXT),HL
+            LD   HL,ACFLDCNT
             INC  (HL)
-            LD   HL,AggregateFieldCount
+            LD   HL,AFCNT
             INC  (HL)
             XOR  A
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1CommitRecord:
-            LD   A,(AggregateCurrentFieldCount)
+            LD   A,(ACFLDCNT)
             OR   A
             JP   Z,AggregateRecordEmptyFailure
-            LD   A,AggregateTypeKindRecord
-            LD   (AggregateCandidateKind),A
-            LD   HL,(AggregateCurrentFieldStart)
-            LD   (AggregateCandidateAux),HL
+            LD   A,ATKREC
+            LD   (ANKIND),A
+            LD   HL,(ACFLDST)
+            LD   (ANAUX),HL
             XOR  A
-            LD   (AggregateCandidateLength+1),A
-            LD   HL,(AggregateCurrentRecordExtent)
-            LD   (AggregateCandidateExtent),HL
+            LD   (ANLEN+1),A
+            LD   HL,(ACRECEXT)
+            LD   (ANEXT),HL
             CALL AggregateAppendType
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (AggregateCurrentTypeId),A
-            LD   D,SymbolInfoRecordType
-            LD   A,(AggregateCurrentTypeId)
+            LD   (ACTYPID),A
+            LD   D,SIRECTYP
+            LD   A,(ACTYPID)
             LD   C,A
             LD   B,0
             CALL TypedPrepareCurrentWord
@@ -502,7 +502,7 @@ HybridLL1CommitRecord:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,AggregateRecordCount
+            LD   HL,ARCNT
             INC  (HL)
             XOR  A
             RET
@@ -511,14 +511,14 @@ HybridLL1CommitRecord:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 HybridLL1RequireBeforeMain:
-            LD   A,DiagnosticExpectedEof
+            LD   A,DXEOF
 
 ; A selects the exact diagnostic if the current signature is main. Ordinary
 ; routines return normally; compiler diagnostics retain the caller's token.
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 HybridLL1RequireNonMain:
             LD   D,A
-            LD   A,(Stage7CurrentRoutine)
+            LD   A,(C7RTN)
             INC  A
             RET  NZ
             LD   A,D
@@ -526,15 +526,15 @@ HybridLL1RequireNonMain:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
 HybridLL1RequireMain:
-            LD   A,(Stage7CurrentRoutine)
+            LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1RequireOrdinaryForwards
-            LD   A,(Stage8ForwardMainFlags)
-            AND  Stage8RoutineIncomplete
+            LD   A,(S8FMFLG)
+            AND  S8RTNINC
             JR   NZ,HybridLL1IncompleteForward
             JR   HybridLL1MissingMain
 HybridLL1RequireOrdinaryForwards:
-            LD   A,(Stage7RoutineCount)
+            LD   A,(R7CNT)
             LD   B,A
             XOR  A
             LD   C,A
@@ -544,20 +544,20 @@ HybridLL1RequireForwardLoop:
             RET  Z
             LD   A,C
             CALL Stage7RoutineAddress
-            LD   DE,Stage7RoutineFlags
+            LD   DE,R7FLGS
             ADD  HL,DE
             LD   A,(HL)
-            AND  Stage8RoutineIncomplete
+            AND  S8RTNINC
             JR   NZ,HybridLL1IncompleteForward
             INC  C
             DEC  B
             JR   HybridLL1RequireForwardLoop
 HybridLL1MissingMain:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedTopLevel
+            CALL DGINLINE
+            .db  DXTOPLVL
 HybridLL1IncompleteForward:
-            CALL SetDiagInline
-            .db  DiagnosticForwardIncomplete
+            CALL DGINLINE
+            .db  DGFWDINC
 
 ; The grammar deliberately treats the lexeme `main` as the same NAME token as
 ; ordinary routine names. This action is the one semantic discriminator.
@@ -566,7 +566,7 @@ HybridLL1RetainSubName .equ TypedRetainDeclarationNameReady
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1RestoreSubName:
             CALL TypedRestoreDeclarationToken
-            LD   HL,DeclarationNamePosition
+            LD   HL,DCNAMPOS
             CALL CompilerRestoreTokenPosition
             OR   A
             RET
@@ -574,8 +574,8 @@ HybridLL1RestoreSubName:
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1ResetParametersAndResult:
             XOR  A
-            LD   (Stage7CurrentParameterCount),A
-            LD   (Stage7CurrentResultType),A
+            LD   (C7PARCNT),A
+            LD   (C7RESTYP),A
             RET
 
 .if CompilerDiagnosticReturns
@@ -598,26 +598,26 @@ HybridLL1BeginSub:
             CALL HybridLL1ClassifySubName
 .endif
             JR   C,HybridLL1BeginMainSignature
-            LD   A,(Stage7RoutineCount)
-            CP   Stage7RoutineCapacity
+            LD   A,(R7CNT)
+            CP   R7CAP
             JR   NC,HybridLL1RoutineCapacityFailure
             CALL Stage7RejectCurrentDeclarationName
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7RoutineCount)
-            LD   (Stage7CurrentRoutine),A
+            LD   A,(R7CNT)
+            LD   (C7RTN),A
             CALL Stage7RoutineAddress
-            CALL TokenRetainNameAtHL
+            CALL TKRETAIN
             INC  HL
-            LD   A,(Stage7ParameterCount)
+            LD   A,(P7CNT)
             LD   (HL),A
-            LD   (Stage7CurrentParameterStart),A
+            LD   (C7PARST),A
             CALL HybridLL1ResetParametersAndResult
 .if TargetStreamingOutput
             CALL TargetPackCurrentBank
 .endif
-            LD   (Stage7CurrentFlags),A
+            LD   (C7FLGS),A
             RET
 HybridLL1BeginMainSignature:
 .if TargetStreamingOutput
@@ -626,25 +626,25 @@ HybridLL1BeginMainSignature:
             RET  C
 .endif
 .endif
-            LD   A,(Stage8ForwardMainFlags)
-            AND  Stage8RoutineIncomplete
+            LD   A,(S8FMFLG)
+            AND  S8RTNINC
             JP   NZ,TypedDuplicateNameFailure
             CALL Stage7RejectCurrentDeclarationName
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   A,$FF
-            LD   (Stage7CurrentRoutine),A
+            LD   (C7RTN),A
             CALL HybridLL1ResetParametersAndResult
-            LD   A,Stage7RoutineMain
+            LD   A,R7MAIN
 .if TargetStreamingOutput
             CALL TargetPackCurrentBank
 .endif
-            LD   (Stage7CurrentFlags),A
+            LD   (C7FLGS),A
             RET
 HybridLL1RoutineCapacityFailure:
-            CALL SetDiagInline
-            .db  DiagnosticRoutineCapacity
+            CALL DGINLINE
+            .db  DGRTNCAP
 
 ; A forward uses the ordinary signature builder, then publishes that sole
 ; signature without opening a body or emitting code.
@@ -654,12 +654,12 @@ HybridLL1BeginForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,Stage8RoutineIncomplete
+            LD   B,S8RTNINC
             JR   HybridLL1SetRoutineFlag
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitForward:
-            LD   A,(Stage7CurrentRoutine)
+            LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1CommitForwardMain
             DEC  A
@@ -667,15 +667,15 @@ HybridLL1CommitForward:
             XOR  A
             RET
 HybridLL1CommitForwardMain:
-            LD   A,(Stage7CurrentFlags)
-            LD   (Stage8ForwardMainFlags),A
+            LD   A,(C7FLGS)
+            LD   (S8FMFLG),A
             XOR  A
-            LD   (Stage7CurrentRoutine),A
+            LD   (C7RTN),A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1RetainParameter:
-            LD   A,DiagnosticExpectedRight
+            LD   A,DXRPAR
             CALL HybridLL1RequireNonMain
 .if CompilerDiagnosticReturns
             RET  C
@@ -684,11 +684,11 @@ HybridLL1RetainParameter:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,DeclarationNamePointer
-            CALL TokenRetainNameAtHL
+            LD   HL,DCNAMPTR
+            CALL TKRETAIN
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceDeclarationPort),A
+            OUT  (DTDECL),A
 .endif
 .endif
             OR   A
@@ -697,11 +697,11 @@ HybridLL1RetainParameter:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1CommitParameter:
             CALL TypedRestoreDeclarationToken
-            LD   A,(AggregateCurrentTypeId)
+            LD   A,(ACTYPID)
             JP   Stage7AppendParameter
 
 HybridLL1AllowSubResult:
-            LD   A,DiagnosticExpectedLine
+            LD   A,DXLINE
             JP   HybridLL1RequireNonMain
 
 HybridLL1SaveSubResult:
@@ -709,16 +709,16 @@ HybridLL1SaveSubResult:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (Stage7CurrentResultType),A
+            LD   (C7RESTYP),A
             OR   A
             RET
 
 HybridLL1MarkSubFails:
-            LD   B,Stage7RoutineFails
+            LD   B,R7FAILS
 HybridLL1SetRoutineFlag:
-            LD   A,(Stage7CurrentFlags)
+            LD   A,(C7FLGS)
             OR   B
-            LD   (Stage7CurrentFlags),A
+            LD   (C7FLGS),A
             OR   A
             RET
 
@@ -737,11 +737,11 @@ HybridLL1BeginForwardBody:
             JR   C,HybridLL1BeginForwardMainBody
             CALL Stage7FindRoutineCurrent
             JR   NZ,HybridLL1ForwardMissing
-            LD   (Stage7CurrentRoutine),A
+            LD   (C7RTN),A
             CALL Stage7RoutineAddress
-            LD   DE,Stage7RoutineParameterStart
+            LD   DE,R7PARST
             ADD  HL,DE
-            LD   DE,Stage7CurrentParameterStart
+            LD   DE,C7PARST
             LD   BC,4
             LDIR
             LD   A,(HL)
@@ -760,7 +760,7 @@ HybridLL1BeginForwardBody:
 .endif
             AND  $FB
             LD   (HL),A
-            LD   (Stage7CurrentFlags),A
+            LD   (C7FLGS),A
             JR   HybridLL1OpenRoutineBody
 .if TargetStreamingOutput
 .if CompilerDiagnosticBranches
@@ -778,27 +778,27 @@ HybridLL1BeginForwardMainBody:
             RET  C
 .endif
 .endif
-            LD   A,(Stage8ForwardMainFlags)
+            LD   A,(S8FMFLG)
             BIT  2,A
             JR   Z,HybridLL1ForwardMissing
             AND  $FB
-            LD   (Stage7CurrentFlags),A
-            LD   (Stage8ForwardMainFlags),A
+            LD   (C7FLGS),A
+            LD   (S8FMFLG),A
             CALL HybridLL1ResetParametersAndResult
             DEC  A
-            LD   (Stage7CurrentRoutine),A
+            LD   (C7RTN),A
 .if CompilerNonlocalDiagnostics
             JR   HybridLL1BeginMainBody
 .else
             JP   HybridLL1BeginMainBody
 .endif
 HybridLL1ForwardMissing:
-            CALL SetDiagInline
-            .db  DiagnosticUnknownName
+            CALL DGINLINE
+            .db  DGUNKNAM
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginSubBody:
-            LD   A,(Stage7CurrentRoutine)
+            LD   A,(C7RTN)
             INC  A
 .if CompilerNonlocalDiagnostics
             JR   Z,HybridLL1BeginMainBody
@@ -812,64 +812,64 @@ HybridLL1BeginSubBody:
 .routine in A out A,BC,DE,HL clobbers carry,zero,sign,parity,halfCarry
 HybridLL1PublishRoutine:
             CALL Stage7RoutineAddress
-            LD   DE,Stage7RoutineParameterCount
+            LD   DE,R7PARCNT
             ADD  HL,DE
             EX   DE,HL
-            LD   A,(Stage7CurrentRoutine)
-            ADD  A,Stage7RoutineLabelBase
-            LD   (Stage7CallLabel),A
-            LD   HL,Stage7CurrentParameterCount
+            LD   A,(C7RTN)
+            ADD  A,R7LBLBAS
+            LD   (S7CALLBL),A
+            LD   HL,C7PARCNT
             LD   BC,4
             LDIR
-            LD   HL,Stage7RoutineCount
+            LD   HL,R7CNT
             INC  (HL)
             RET
 .if TargetStreamingOutput
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 HybridLL1PutThenCurrentBank:
             CALL SemanticSinkPut
-            LD   A,(Stage7CurrentFlags)
+            LD   A,(C7FLGS)
             CALL TargetUnpackBank
             JP   SemanticSinkPut
 .endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1SaveGlobalsResetLocals:
-            LD   A,(SymbolCount)
-            LD   (Stage7GlobalSymbolCount),A
+            LD   A,(SYCNT)
+            LD   (S7GLBCNT),A
             XOR  A
-            LD   (NextLocalSlot),A
-            LD   (ControlDepth),A
+            LD   (NXLOCAL),A
+            LD   (CTDEP),A
             RET
 HybridLL1OpenRoutineBody:
             CALL HybridLL1SaveGlobalsResetLocals
 .if TargetStreamingOutput
 .else
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
-            LD   A,ControlRoutineValue
+            LD   A,CRVAL
             JR   NZ,HybridLL1RoutineKindReady
             XOR  A
 HybridLL1RoutineKindReady:
-            LD   (ControlRoutineKind),A
-            LD   A,(Stage7CurrentResultType)
-            LD   (ControlResultType),A
+            LD   (CRKIND),A
+            LD   A,(C7RESTYP)
+            LD   (CTRESTYP),A
 .endif
             LD   A,1
-            LD   (ControlSequenceFallsThrough),A
+            LD   (CTFALLS),A
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceRoutinePort),A
+            OUT  (DTROUT),A
 .endif
 .endif
-            LD   A,(Stage7CallLabel)
+            LD   A,(S7CALLBL)
             LD   C,A
-            LD   A,SemanticBeginGeneralRoutine
+            LD   A,SMBGGRTN
             CALL ParserEmitOperationC
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentParameterCount)
+            LD   A,(C7PARCNT)
 .if TargetStreamingOutput
             CALL HybridLL1PutThenCurrentBank
 .if CompilerDiagnosticReturns
@@ -881,9 +881,9 @@ HybridLL1RoutineKindReady:
             RET  C
 .endif
 .endif
-            LD   A,(Stage7CurrentParameterCount)
+            LD   A,(C7PARCNT)
             LD   B,A
-            LD   A,(Stage7CurrentParameterStart)
+            LD   A,(C7PARST)
             LD   D,A
             XOR  A
             LD   E,A
@@ -907,19 +907,19 @@ HybridLL1InstallParameterLoop:
             JR   HybridLL1InstallParameterLoop
 
 HybridLL1BeginMainBody:
-            LD   A,(Stage7CurrentFlags)
-            LD   (Stage8ForwardMainFlags),A
+            LD   A,(C7FLGS)
+            LD   (S8FMFLG),A
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceRoutinePort),A
+            OUT  (DTROUT),A
 .endif
 .endif
-            LD   A,SemanticBeginCallableMain
+            LD   A,SMBGCMN
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentFlags)
+            LD   A,(C7FLGS)
 .if TargetStreamingOutput
             CALL HybridLL1PutThenCurrentBank
 .if CompilerDiagnosticReturns
@@ -934,8 +934,8 @@ HybridLL1BeginMainBody:
             CALL HybridLL1SaveGlobalsResetLocals
 .if TargetStreamingOutput
 .else
-            LD   (Stage7CurrentResultType),A
-            LD   (ControlRoutineKind),A
+            LD   (C7RESTYP),A
+            LD   (CRKIND),A
 .endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
@@ -945,54 +945,54 @@ HybridLL1SetFallsThrough:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndSub:
-            LD   A,(Stage7CurrentRoutine)
+            LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1EndMainBody
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             JR   Z,HybridLL1EndRoutineEmit
-            LD   A,(ControlSequenceFallsThrough)
+            LD   A,(CTFALLS)
             OR   A
             JP   NZ,TypedRoutineFlowFailure
 HybridLL1EndRoutineEmit:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
             CALL HybridLL1EmitRoutineEnd
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage7GlobalSymbolCount)
-            LD   (SymbolCount),A
+            LD   A,(S7GLBCNT)
+            LD   (SYCNT),A
             XOR  A
-            LD   (NextLocalSlot),A
+            LD   (NXLOCAL),A
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 HybridLL1EmitRoutineEnd:
             CALL HybridLL1TestRoutineFails
-            LD   A,SemanticEndGeneralRoutine
+            LD   A,SMENGRTN
             JR   Z,HybridLL1EmitRoutineEndSelected
-            LD   A,SemanticEndFailableRoutine
+            LD   A,SMENFRTN
 HybridLL1EmitRoutineEndSelected:
             JP   SemanticSinkOperation
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1TestRoutineFails:
-            LD   A,(Stage7CurrentFlags)
-            AND  Stage7RoutineFails
+            LD   A,(C7FLGS)
+            AND  R7FAILS
             RET
 HybridLL1EndMainBody:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
             CALL HybridLL1EmitRoutineEnd
@@ -1008,30 +1008,30 @@ HybridLL1EndMainBody:
 HybridLL1BeginFail:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             CALL HybridLL1TestRoutineFails
             JR   Z,HybridLL1FailureContext
-            LD   HL,(TokenStartOffset)
-            LD   (Stage8FailureOffset),HL
-            LD   A,ScalarTypeU8
+            LD   HL,(TNSTOFF)
+            LD   (S8FAIOFF),HL
+            LD   A,TYU8
             JP   HybridLL1SaveExpectedType
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CommitFail:
-            LD   E,ScalarTypeU8
+            LD   E,TYU8
             CALL HybridLL1CheckFailureResult
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticFailRoutine
+            LD   A,SMFAILRT
 HybridLL1FailOperationReady:
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(Stage8FailureOffset)
+            LD   HL,(S8FAIOFF)
             LD   A,L
 .if CompilerDiagnosticReturns
             PUSH HL
@@ -1052,7 +1052,7 @@ HybridLL1NoFallthrough:
             XOR  A
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1StoreFallthrough:
-            LD   (ControlSequenceFallsThrough),A
+            LD   (CTFALLS),A
             OR   A
             RET
 
@@ -1060,8 +1060,8 @@ HybridLL1StoreFallthrough:
 ; recoverable failure.
 .routine in E out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
 HybridLL1CheckFailureResult:
-            LD   A,(ExpressionRightMeta)
-            LD   HL,(ExpressionRightValue)
+            LD   A,(EXRMETA)
+            LD   HL,(EXRVAL)
             CALL TypedCheckAssignable
 .if CompilerDiagnosticReturns
             RET  C
@@ -1069,8 +1069,8 @@ HybridLL1CheckFailureResult:
             JP   Stage8RequireNoPendingFailure
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 HybridLL1FailureContext:
-            CALL SetDiagInline
-            .db  DiagnosticFailureContext
+            CALL DGINLINE
+            .db  DGFAICTX
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 ; Both callers have already observed a nonzero Stage8DirectFailable. The
@@ -1080,7 +1080,7 @@ Stage8ConsumePropagation:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenElse
+            CP   TNELSE
             JR   NZ,HybridLL1FailureContext
 Stage8ConsumePropagationSelected:
             CALL HybridLL1TestRoutineFails
@@ -1089,7 +1089,7 @@ Stage8ConsumePropagationSelected:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenFail
+            LD   E,TNFAIL
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1098,37 +1098,37 @@ Stage8ConsumePropagationSelected:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenHandle
+            CP   TNHDL
             JR   Z,HybridLL1FailureContext
-            CP   TokenElse
+            CP   TNELSE
             JR   Z,HybridLL1FailureContext
-            LD   A,Stage8CallModePropagateRoutine
+            LD   A,M8PROP
 Stage8PropagationModeReady:
-            LD   HL,(Stage8CallModePointer)
+            LD   HL,(M8PTR)
             LD   (HL),A
             INC  HL
             INC  HL
-            LD   A,(Stage8RetainedCarriers)
+            LD   A,(S8CARR)
             LD   (HL),A
 Stage8ClearPendingFailure:
             XOR  A
-            LD   (Stage8DirectFailable),A
-            LD   (Stage8RetainedCarriers),A
+            LD   (S8DIRFBL),A
+            LD   (S8CARR),A
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 Stage8SelectFailureConsumer:
-            LD   A,(Stage8DirectFailable)
+            LD   A,(S8DIRFBL)
             OR   A
             JR   NZ,Stage8SelectPendingFailure
-            LD   (Stage8RetainedCarriers),A
+            LD   (S8CARR),A
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenElse
+            CP   TNELSE
             JR   Z,HybridLL1FailureContext
-            CP   TokenHandle
+            CP   TNHDL
             JP   Z,HybridLL1HandleContext
             OR   A
             RET
@@ -1149,11 +1149,11 @@ Stage8SelectPendingFailure:
 .endif
             DEC  A                       ; newline becomes zero
             JP   Z,HybridLL1HandleContext
-            CP   TokenElse-1
+            CP   TNELSE-1
             JR   Z,Stage8ConsumePropagationSelected
-            CP   TokenHandle-1
+            CP   TNHDL-1
             JR   NZ,HybridLL1FailureContext
-            LD   B,ControlKindHandler
+            LD   B,CKHDL
             CALL HybridLL1PushFlowFrameAndLabelA
 .if CompilerDiagnosticReturns
             RET  C
@@ -1162,22 +1162,22 @@ Stage8SelectPendingFailure:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(Stage8CallModePointer)
-            LD   (HL),Stage8CallModeHandle
-            LD   B,ControlFrameLabelA
+            LD   HL,(M8PTR)
+            LD   (HL),M8HDL
+            LD   B,CFLBLA
             CALL HybridLL1TopFrameFieldToC
-            LD   HL,(Stage8CallModePointer)
+            LD   HL,(M8PTR)
             INC  HL
             LD   (HL),C
             INC  HL
-            LD   A,(Stage8RetainedCarriers)
+            LD   A,(S8CARR)
             LD   (HL),A
             JR   Stage8ClearPendingFailure
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 Stage8RetainOneAndSelectFailure:
             LD   A,1
-            LD   (Stage8RetainedCarriers),A
+            LD   (S8CARR),A
             JR   Stage8SelectFailureConsumer
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1186,8 +1186,8 @@ HybridLL1LookupDeclaration:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (DeclarationInfo),A
-            LD   (DeclarationPayload),BC
+            LD   (DCINFO),A
+            LD   (DCPAY),BC
             LD   D,A
             RET
 
@@ -1195,8 +1195,8 @@ HybridLL1LookupDeclaration:
 HybridLL1BeginHandle:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
-            OUT  (DebugTraceContextPushPort),A
+            OUT  (DTSOURCE),A
+            OUT  (DTPUSH),A
 .endif
 .endif
             CALL HybridLL1LookupDeclaration
@@ -1208,7 +1208,7 @@ HybridLL1BeginHandle:
             RET  C
 .endif
             JP   Z,TypedTypeFailure
-            CP   SymbolClassLocal
+            CP   SCLOC
             JR   NZ,Stage8HandlerCounterReady
             CALL ControlCheckActiveCounter
 .if CompilerDiagnosticReturns
@@ -1216,30 +1216,30 @@ HybridLL1BeginHandle:
 .endif
 Stage8HandlerCounterReady:
             CALL TypedDeclarationScalarType
-            CP   ScalarTypeU8
+            CP   TYU8
             JP   NZ,TypedTypeFailure
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1TopFrameFieldToC
-            LD   D,SemanticSkipHandler
+            LD   D,SMSKIPHD
             CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             CALL HybridLL1TopFrameFieldToC
-            LD   D,SemanticBeginHandler
+            LD   D,SMBEGHDL
             CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            AND  SymbolClassMask
-            CP   SymbolClassProgram
-            LD   HL,(DeclarationPayload)
+            AND  SCMSK
+            CP   SCPROG
+            LD   HL,(DCPAY)
             JR   Z,HybridLL1BeginHandleProgramPayload
             LD   A,L
             CALL SemanticSinkPut
@@ -1256,12 +1256,12 @@ HybridLL1BeginHandlePayloadReady:
 HybridLL1EndHandle:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1TopFrameFieldToC
-            LD   D,SemanticEndHandler
+            LD   D,SMENDHDL
             CALL ControlEmitOperationByte
 .if CompilerDiagnosticReturns
             RET  C
@@ -1271,7 +1271,7 @@ HybridLL1EndHandle:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 Stage8RequireNoPendingFailure:
-            LD   A,(Stage8DirectFailable)
+            LD   A,(S8DIRFBL)
             OR   A
             RET  Z
             JP   HybridLL1FailureContext
@@ -1282,18 +1282,18 @@ Stage8RequireNoPendingFailure:
 HybridLL1SaveLocalType:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
-            LD   A,(AggregateCurrentTypeId)
-            OR   SymbolClassLocal
-            LD   (DeclarationInfo),A
-            LD   A,(NextLocalSlot)
+            LD   A,(ACTYPID)
+            OR   SCLOC
+            LD   (DCINFO),A
+            LD   A,(NXLOCAL)
             LD   C,A
             LD   B,0
-            LD   (DeclarationPayload),BC
+            LD   (DCPAY),BC
             PUSH BC
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   D,A
             CALL TypedPrepareRoutineWord
             POP  BC
@@ -1316,27 +1316,27 @@ HybridLL1BeginLocalInitializer:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1DefaultLocalInitializer:
             LD   A,1
-            LD   (ExpressionEmitEnabled),A
-            LD   A,SemanticLiteral16
+            LD   (EXEMITON),A
+            LD   A,SMLIT16
             CALL TypedEmitOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   HL,0
 .if CompilerNonlocalDiagnostics
-            LD   (ExpressionRightValue),HL
+            LD   (EXRVAL),HL
 .endif
             CALL TypedEmitWord
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL TypedDeclarationScalarType
-            OR   ScalarMetaConstant
-            LD   (ExpressionRightMeta),A
+            OR   MTCONST
+            LD   (EXRMETA),A
 .if CompilerNonlocalDiagnostics
 .else
             LD   HL,0
-            LD   (ExpressionRightValue),HL
+            LD   (EXRVAL),HL
 .endif
             OR   A
             RET
@@ -1347,14 +1347,14 @@ HybridLL1FinishLocalInitializer:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(Stage8DirectFailable)
+            LD   A,(S8DIRFBL)
             OR   A
             JP   NZ,Stage8ConsumePropagation
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenElse
+            CP   TNELSE
             JP   Z,HybridLL1FailureContext
             OR   A
             RET
@@ -1366,15 +1366,15 @@ HybridLL1ValidateDeclarationExpression:
 
 .routine in E out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
 HybridLL1CheckExpressionAssignable:
-            LD   HL,(ExpressionRightValue)
-            LD   A,(ExpressionRightMeta)
+            LD   HL,(EXRVAL)
+            LD   A,(EXRMETA)
             JP   TypedCheckAssignable
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CommitLocal:
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   D,A
-            LD   A,(DeclarationPayload)
+            LD   A,(DCPAY)
             LD   C,A
             CALL TypedEmitStoreByInfo
 .if CompilerDiagnosticReturns
@@ -1393,19 +1393,19 @@ HybridLL1CommitLocal:
 HybridLL1NameStatement:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(TokenStartOffset)
-            LD   (ExpressionCallOffset),HL
-            LD   (Stage7CallOffset),HL
+            LD   HL,(TNSTOFF)
+            LD   (EXCALOFF),HL
+            LD   (S7CALOFF),HL
             CALL Stage8MatchPredefinedCurrent
             JR   NC,HybridLL1OrdinaryNameStatement
-            CP   Stage8PredefinedConstantBase
+            CP   P8CONST
             JP   NC,TypedTypeFailure
             LD   C,B
             CALL Stage8ParseServiceCall
@@ -1427,24 +1427,24 @@ HybridLL1ParseAssignment:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            AND  SymbolAggregateFlag
+            AND  SYAGGFLG
             JP   NZ,Stage7ParseAggregateAssignment
             LD   A,D
             CALL TypedRequireScalarSymbolClass
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   SymbolClassLocal
+            CP   SCLOC
             JR   NZ,HybridLL1StatementCounterChecked
             CALL ControlCheckActiveCounter
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   D,A
 HybridLL1StatementCounterChecked:
             LD   A,D
-            AND  SymbolClassMask
+            AND  SCMSK
             JP   Z,TypedTypeFailure
             CALL ParserExpectEqual
 .if CompilerDiagnosticReturns
@@ -1467,30 +1467,30 @@ HybridLL1StatementCounterChecked:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   BC,(DeclarationPayload)
-            LD   A,(DeclarationInfo)
+            LD   BC,(DCPAY)
+            LD   A,(DCINFO)
             LD   D,A
             JP   TypedEmitStoreByInfo
 HybridLL1BeginReturnValue:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             RET  Z
-            CP   AggregateFirstDynamicTypeId
+            CP   AGDYNTYP
             RET  NC
             JP   HybridLL1SaveExpectedType
 
 .if TargetStreamingOutput
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 HybridLL1RequireReturnType:
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             JP   Z,TypedRoutineFlowFailure
-            CP   AggregateFirstDynamicTypeId
+            CP   AGDYNTYP
             RET
 .endif
 
@@ -1499,10 +1499,10 @@ HybridLL1ReturnValue:
 .if TargetStreamingOutput
             CALL HybridLL1RequireReturnType
 .else
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             JP   Z,TypedRoutineFlowFailure
-            CP   AggregateFirstDynamicTypeId
+            CP   AGDYNTYP
 .endif
             JR   NC,HybridLL1ReturnAggregateValue
             CALL TypedExpressionBeginRuntime
@@ -1512,7 +1512,7 @@ HybridLL1ReturnAggregateValue:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (Stage7PathType),A
+            LD   (S7PATHT),A
             OR   A
             RET
 
@@ -1520,10 +1520,10 @@ HybridLL1CommitReturn:
 .if TargetStreamingOutput
             CALL HybridLL1RequireReturnType
 .else
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             JP   Z,TypedRoutineFlowFailure
-            CP   AggregateFirstDynamicTypeId
+            CP   AGDYNTYP
 .endif
             JR   NC,HybridLL1CommitAggregateReturn
             LD   E,A
@@ -1532,9 +1532,9 @@ HybridLL1CommitReturn:
             RET  C
 .endif
             CALL HybridLL1TestRoutineFails
-            LD   A,SemanticReturnScalar
+            LD   A,SMRETSCA
             JR   Z,HybridLL1ReturnScalarSelected
-            LD   A,SemanticReturnFailableScalar
+            LD   A,SMRTFS
 HybridLL1ReturnScalarSelected:
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
@@ -1543,7 +1543,7 @@ HybridLL1ReturnScalarSelected:
             JR   HybridLL1ReturnCommitted
 HybridLL1CommitAggregateReturn:
             LD   D,A
-            LD   A,(Stage7PathType)
+            LD   A,(S7PATHT)
             CP   D
             JP   NZ,TypedTypeFailure
             CALL Stage8RequireNoPendingFailure
@@ -1551,9 +1551,9 @@ HybridLL1CommitAggregateReturn:
             RET  C
 .endif
             CALL HybridLL1TestRoutineFails
-            LD   A,SemanticReturnAggregate
+            LD   A,SMRETAGG
             JR   Z,HybridLL1ReturnAggregateSelected
-            LD   A,SemanticReturnFailableAggregate
+            LD   A,SMRTFA
 HybridLL1ReturnAggregateSelected:
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
@@ -1564,7 +1564,7 @@ HybridLL1ReturnCommitted:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CommitBareReturn:
-            LD   A,(Stage7CurrentResultType)
+            LD   A,(C7RESTYP)
             OR   A
             JP   NZ,TypedRoutineFlowFailure
             CALL HybridLL1EmitRoutineEnd
@@ -1582,21 +1582,21 @@ HybridLL1CommitBareReturn:
 HybridLL1EmitTransferAction:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             DEC  A
 HybridLL1EmitTransfer:
-            LD   (DeclarationInfo),A
+            LD   (DCINFO),A
             CALL ControlFindLoop
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,ControlFrameExit
-            LD   A,(DeclarationInfo)
-            CP   TokenExit
+            LD   DE,CFEXIT
+            LD   A,(DCINFO)
+            CP   TNEXIT
             JR   Z,HybridLL1TransferSelected
-            LD   DE,ControlFrameContinue
+            LD   DE,CFCONT
 HybridLL1TransferSelected:
             ADD  HL,DE
             LD   C,(HL)
@@ -1608,18 +1608,18 @@ HybridLL1TransferSelected:
 ; control-frame kind supplied in B.
 .routine in B out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
 HybridLL1PushFlowFrame:
-            LD   A,(ControlDepth)
-            CP   ControlFrameCapacity
+            LD   A,(CTDEP)
+            CP   CFCAP
             JP   NC,ControlCapacityFailure
             CALL HybridLL1FlowAddress
-            LD   A,(ControlSequenceFallsThrough)
+            LD   A,(CTFALLS)
             LD   (HL),A
             LD   A,B
             JP   ControlPushFrame
 
 .routine out A,DE,HL clobbers carry,zero,sign,parity,halfCarry
 HybridLL1FlowAddress:
-            LD   A,(ControlDepth)
+            LD   A,(CTDEP)
             LD   E,A
             LD   D,0
             LD   HL,HybridLL1FlowStackBase
@@ -1648,7 +1648,7 @@ HybridLL1CombineFlow:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1CheckBooleanResult:
-            LD   E,ScalarTypeBoolean
+            LD   E,TYBOOL
 HybridLL1CheckTypedResult:
             CALL Stage8RequireNoPendingFailure
 .if CompilerDiagnosticReturns
@@ -1660,11 +1660,11 @@ HybridLL1CheckTypedResult:
 HybridLL1BeginIf:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
-            OUT  (DebugTraceContextPushPort),A
+            OUT  (DTSOURCE),A
+            OUT  (DTPUSH),A
 .endif
 .endif
-            LD   B,ControlKindIf
+            LD   B,CKIF
             CALL HybridLL1PushFlowFrame
 .if CompilerDiagnosticReturns
             RET  C
@@ -1677,11 +1677,11 @@ HybridLL1BeginIf:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,ControlFrameCounter-ControlFrameLabelA
+            LD   DE,CFCTR-CFLBLA
             ADD  HL,DE
             LD   (HL),1
 HybridLL1ExpectBoolean:
-            LD   A,ScalarTypeBoolean
+            LD   A,TYBOOL
             JP   HybridLL1SaveExpectedType
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1690,7 +1690,7 @@ HybridLL1BeginIfBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
 
 .routine in B out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginConditionBody:
@@ -1712,20 +1712,20 @@ HybridLL1BeginBranchClause:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             JR   HybridLL1EmitFrameLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginElseIf:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             CALL HybridLL1BeginBranchClause
@@ -1742,7 +1742,7 @@ HybridLL1BeginElseIf:
 HybridLL1BeginElse:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             CALL HybridLL1BeginBranchClause
@@ -1754,7 +1754,7 @@ HybridLL1FinishElse:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameMode
+            LD   B,CFMODE
             CALL ControlTopFrameField
             LD   (HL),1
             XOR  A
@@ -1766,7 +1766,7 @@ HybridLL1FinishIfClauses:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
 
 ; B selects a field in the active control frame. All callers have already
 ; established that frame; the helper preserves their existing precondition.
@@ -1779,21 +1779,21 @@ HybridLL1EmitFrameLabel:
 HybridLL1EndIf:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CALL ControlTopFrame
             PUSH HL
-            LD   DE,ControlFrameCounter
+            LD   DE,CFCTR
             ADD  HL,DE
             LD   A,(HL)
             POP  HL
-            LD   DE,ControlFrameMode
+            LD   DE,CFMODE
             ADD  HL,DE
             AND  (HL)
             XOR  1
@@ -1805,11 +1805,11 @@ HybridLL1EndIf:
 HybridLL1BeginSelect:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
-            OUT  (DebugTraceContextPushPort),A
+            OUT  (DTSOURCE),A
+            OUT  (DTPUSH),A
 .endif
 .endif
-            LD   B,ControlKindSelect
+            LD   B,CKSEL
             CALL HybridLL1PushFlowFrame
 .if CompilerDiagnosticReturns
             RET  C
@@ -1832,20 +1832,20 @@ HybridLL1FinishSelectExpression:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(ExpressionRightMeta)
+            LD   A,(EXRMETA)
             LD   D,A
-            AND  ScalarMetaTypeMask
+            AND  MTTYPMSK
             JR   NZ,HybridLL1SelectTypeReady
 HybridLL1InferSelectType:
             LD   A,D
-            AND  ScalarMetaNegative
+            AND  MTNEG
             RRCA
-            OR   ScalarTypeU16
+            OR   TYU16
 HybridLL1SelectTypeReady:
-            CP   ScalarTypeBoolean
+            CP   TYBOOL
             JP   Z,TypedTypeFailure
             LD   C,A
-            LD   B,ControlFrameMode
+            LD   B,CFMODE
             CALL ControlTopFrameField
             LD   (HL),C
             RET
@@ -1854,7 +1854,7 @@ HybridLL1SelectTypeReady:
 HybridLL1BeginSelectCase:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
+            OUT  (DTSOURCE),A
 .endif
 .endif
             CALL ControlAllocateLabelA
@@ -1868,7 +1868,7 @@ HybridLL1BeginSelectCase:
 ; a runtime value of their own.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1SelectConstantExpression:
-            LD   B,ControlFrameMode
+            LD   B,CFMODE
             CALL ControlTopFrameField
             LD   A,(HL)
             CALL TypedExpressionBeginConstant
@@ -1876,19 +1876,19 @@ HybridLL1SelectConstantExpression:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1FinishSelectCaseValue:
-            LD   A,(ExpressionExpectedType)
+            LD   A,(EXEXPTYP)
             LD   E,A
-            LD   A,(ExpressionRightMeta)
+            LD   A,(EXRMETA)
             OR   A
             JP   P,TypedTypeFailure
             CALL HybridLL1CheckExpressionAssignable
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            AND  ScalarMetaTypeMask
+            AND  MTTYPMSK
             LD   C,A
             PUSH HL
-            LD   A,SemanticSelectCase
+            LD   A,SMSELCS
             CALL ParserEmitOperationC
             POP  HL
 .if CompilerDiagnosticReturns
@@ -1898,19 +1898,19 @@ HybridLL1FinishSelectCaseValue:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             CALL HybridLL1TopFrameFieldToC
             JP   SemanticSinkPut
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginSelectCaseBody:
-            LD   B,ControlFrameContinue
+            LD   B,CFCONT
             CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -1926,13 +1926,13 @@ HybridLL1BeginSelectElse:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndSelectCase:
             CALL StructuredRecordIfClause
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameContinue
+            LD   B,CFCONT
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -1941,7 +1941,7 @@ HybridLL1EndSelectCase:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 HybridLL1DiscardSelectCarrier:
-            LD   A,SemanticForCleanup
+            LD   A,SMFCLEAN
             JP   SemanticSinkOperation
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
@@ -1971,7 +1971,7 @@ HybridLL1EndSelectWithoutElse:
 HybridLL1EndSelect:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
 .if CompilerNonlocalDiagnostics
@@ -1979,7 +1979,7 @@ HybridLL1EndSelect:
 .else
             PUSH BC
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1EmitFrameLabel
 .if CompilerNonlocalDiagnostics
             POP  AF
@@ -1996,11 +1996,11 @@ HybridLL1EndSelect:
 HybridLL1BeginWhile:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
-            OUT  (DebugTraceContextPushPort),A
+            OUT  (DTSOURCE),A
+            OUT  (DTPUSH),A
 .endif
 .endif
-            LD   B,ControlKindWhile
+            LD   B,CKWHILE
             CALL HybridLL1PushFlowFrameAndLabelA
 .if CompilerDiagnosticReturns
             RET  C
@@ -2011,7 +2011,7 @@ HybridLL1BeginWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -2030,36 +2030,36 @@ HybridLL1BeginWhileBody:
             SBC  A,A
             AND  L
             LD   C,A
-            LD   B,ControlFrameMode
+            LD   B,CFMODE
             CALL ControlTopFrameField
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   (HL),C
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             JP   HybridLL1BeginConditionBody
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1EndWhile:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
-            LD   B,ControlFrameContinue
+            LD   B,CFCONT
             CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameMode
+            LD   B,CFMODE
             CALL HybridLL1TopFrameFieldToC
-            XOR  ControlWhileLiteralTrue
+            XOR  CTWHTRUE
             JP   HybridLL1CombineFlow
 
 HybridLL1PopAndRestoreFlow:
@@ -2075,8 +2075,8 @@ HybridLL1PopAndRestoreFlow:
 HybridLL1BeginFor:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceSourcePort),A
-            OUT  (DebugTraceContextPushPort),A
+            OUT  (DTSOURCE),A
+            OUT  (DTPUSH),A
 .endif
 .endif
             ; The streaming parser has consumed the counter name before this
@@ -2084,32 +2084,32 @@ HybridLL1BeginFor:
             ; multipart descriptor; parser lookahead may advance part-local
             ; cursor metadata beyond the token whose action is now running.
 .if NativeStreamingSource
-            LD   HL,(TokenStartOffset)
+            LD   HL,(TNSTOFF)
 .else
 .if TargetStreamingOutput
-            LD   HL,(SourcePartDescriptorCursor)
+            LD   HL,(SSPDCUR)
             LD   DE,-4                  ; current descriptor's source start
             ADD  HL,DE
             LD   E,(HL)
             INC  HL
             LD   D,(HL)
-            LD   HL,(TokenLexemePointer)
+            LD   HL,(TNLEXPTR)
             OR   A
             SBC  HL,DE
 .else
-            LD   HL,(TokenStartOffset)
+            LD   HL,(TNSTOFF)
 .endif
 .endif
-            LD   (Stage7ForOffset),HL
+            LD   (S7FOROFF),HL
             CALL HybridLL1LookupDeclaration
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            AND  SymbolClassMask
-            CP   SymbolClassLocal
+            AND  SCMSK
+            CP   SCLOC
             JP   NZ,StructuredCounterFailure
             LD   A,D
-            AND  ScalarTypeBaseMask
+            AND  TYBASMSK
             JP   Z,StructuredCounterFailure
             CALL ControlCheckActiveCounter
             JP   HybridLL1SetLocalExpectedType
@@ -2153,12 +2153,12 @@ HybridLL1DefaultForStep:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 HybridLL1BeginForBody:
-            LD   B,ControlKindFor
+            LD   B,CKFOR
             CALL HybridLL1PushFlowFrameAndLabelA
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameContinue
+            LD   B,CFCONT
             CALL ControlAllocateInto
 .if CompilerDiagnosticReturns
             RET  C
@@ -2167,18 +2167,18 @@ HybridLL1BeginForBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameCounter
+            LD   B,CFCTR
             CALL ControlTopFrameField
-            LD   A,(DeclarationPayload)
+            LD   A,(DCPAY)
             LD   (HL),A
             INC  HL
             CALL TypedDeclarationScalarType
             LD   D,A
-            AND  ScalarTypeSignedFlag
+            AND  TYSGNFLG
             RRCA
             LD   E,A
             LD   A,D
-            AND  ScalarTypeU16
+            AND  TYU16
             RLCA
             OR   E
             LD   E,A
@@ -2191,7 +2191,7 @@ HybridLL1BeginForBody:
             INC  HL
             LD   (HL),D
             INC  HL
-            LD   DE,(Stage7ForOffset)
+            LD   DE,(S7FOROFF)
             LD   (HL),E
             INC  HL
             LD   (HL),D
@@ -2200,7 +2200,7 @@ HybridLL1BeginForBody:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameLabelA
+            LD   B,CFLBLA
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -2212,10 +2212,10 @@ HybridLL1BeginForBody:
 HybridLL1EndFor:
 .if TargetStreamingOutput
 .if DebugHooks
-            OUT  (DebugTraceContextPopPort),A
+            OUT  (DTPOP),A
 .endif
 .endif
-            LD   B,ControlFrameContinue
+            LD   B,CFCONT
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C
@@ -2224,7 +2224,7 @@ HybridLL1EndFor:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   B,ControlFrameExit
+            LD   B,CFEXIT
             CALL HybridLL1EmitFrameLabel
 .if CompilerDiagnosticReturns
             RET  C

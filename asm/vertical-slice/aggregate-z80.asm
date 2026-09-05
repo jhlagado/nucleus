@@ -10,20 +10,20 @@
 ; compiler backing image. Switching banks never replays source or semantics.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetEmitBankedAggregateConstants:
-            LD   IY,StaticImageBase
-            LD   DE,(StaticImageLength)
+            LD   IY,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  IY,DE
-            LD   A,(SymbolCount)
+            LD   A,(SYCNT)
             OR   A
             LD   B,A
             JR   Z,TargetEmitBankedStringLiterals
             LD   C,0
-            LD   IX,SymbolTableBase
+            LD   IX,SYTABBAS
 TargetEmitBankedConstantSymbolLoop:
             LD   A,(IX+3)
             LD   D,A
-            AND  SymbolAggregateFlag+SymbolClassMask
-            CP   SymbolAggregateFlag+SymbolClassConstant
+            AND  SYAGGFLG+SCMSK
+            CP   SYAGGFLG+SCCONST
             JR   NZ,TargetEmitBankedConstantNext
             LD   A,D
             CALL TargetUnpackBank
@@ -33,7 +33,7 @@ TargetEmitBankedConstantSymbolLoop:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(IX+SymbolTypeId)
+            LD   A,(IX+SYTYPID)
             CALL AggregateGetExtent
             EX   DE,HL
 TargetEmitBankedConstantByteLoop:
@@ -53,7 +53,7 @@ TargetEmitBankedConstantByteLoop:
             DEC  DE
             JR   TargetEmitBankedConstantByteLoop
 TargetEmitBankedConstantNext:
-            LD   DE,SymbolEntrySize
+            LD   DE,SYENTSZ
             ADD  IX,DE
             INC  C
             DJNZ TargetEmitBankedConstantSymbolLoop
@@ -62,10 +62,10 @@ TargetEmitBankedConstantNext:
 ; staging image. Their compiler-only final byte retains the source bank;
 ; publish the preceding sealed bytes and restore the permanent zero.
 TargetEmitBankedStringLiterals:
-            LD   HL,StaticImageBase
-            LD   DE,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  HL,DE
-            LD   DE,(ReadOnlyImageLength)
+            LD   DE,(ROILEN)
             ADD  HL,DE
             PUSH HL
             POP  IX                      ; end of staged read-only bytes
@@ -108,7 +108,7 @@ TargetEmitBankedStringExtentReady:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 EncodeAggregateProgram:
 .if TargetStreamingOutput
-            LD   IX,(TargetDescriptorPointer)
+            LD   IX,(TDPTR)
             CALL BeginTargetFlatProgram
 .if CompilerDiagnosticBranches
             JP   C,AbortTargetProgram
@@ -134,17 +134,17 @@ EncodeAggregateProgramWithinLimit:
 .endif
             JR   AggregateTargetCopyReady
 AggregateTargetLoadedRoData:
-            LD   HL,StaticImageBase
-            LD   DE,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   DE,(IMGLEN)
             ADD  HL,DE
-            LD   BC,(ReadOnlyImageLength)
+            LD   BC,(ROILEN)
             JR   AggregateTargetCopySelected
 AggregateTargetCopyReady:
 .else
 .if AggregateCallSlices
             CALL BeginSegmentedProgram
             JP   C,AbortSegmentedProgram
-            LD   A,SegmentRoData
+            LD   A,SGRODAT
             CALL SelectOutputSegment
 .else
             CALL EncodeProgramHeader
@@ -152,15 +152,15 @@ AggregateTargetCopyReady:
 .endif
 .endif
 .if SegmentedOutput
-            LD   HL,(ReadOnlyImageLength)
-            LD   BC,(StaticImageLength)
+            LD   HL,(ROILEN)
+            LD   BC,(IMGLEN)
             ADD  HL,BC
             LD   B,H
             LD   C,L
-            LD   HL,StaticImageBase
+            LD   HL,IMGBAS
 .else
-            LD   HL,StaticImageBase
-            LD   BC,(StaticImageLength)
+            LD   HL,IMGBAS
+            LD   BC,(IMGLEN)
 .endif
 .if TargetStreamingOutput
 AggregateTargetCopySelected:
@@ -190,21 +190,21 @@ AggregateDispatch:
 .if TargetStreamingOutput
             CALL TargetCompareSingleBank
             JR   NZ,AggregateTargetBoundsReady
-            LD   HL,(EmitCursor)
-            LD   (TargetCodeBase),HL
+            LD   HL,(EMCUR)
+            LD   (TGCODBAS),HL
             CALL TargetLoadLayoutMode
             JR   NZ,AggregateTargetCodeReady
-            LD   HL,(TargetCodeCapacity)
-            LD   (EmitLimit),HL
+            LD   HL,(TGCODCAP)
+            LD   (EMLIM),HL
 AggregateTargetCodeReady:
-            LD   HL,(TargetContextRoDataBase)
-            LD   (TargetCurrentRoBase),HL
-            LD   HL,(TargetContextRoDataCapacity)
-            LD   (TargetCurrentRoCapacity),HL
+            LD   HL,(TCROBAS)
+            LD   (TGCRBAS),HL
+            LD   HL,(TCROCAP)
+            LD   (TGCROCAP),HL
 AggregateTargetBoundsReady:
 .else
 .if AggregateCallSlices
-            LD   A,SegmentCode
+            LD   A,SGCODE
             CALL SelectOutputSegment
             CALL EncodeSegmentedProgramHeader
             JP   C,AbortSegmentedProgram

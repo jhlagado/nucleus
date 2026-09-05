@@ -77,6 +77,16 @@ const actionFamilies: readonly Stage7ActionFamily[] = [
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sourcePath = path.join(here, "stage7-grammar.json");
+// Grammar analysis retains its logical vocabulary. Assembly emission selects
+// the explicit native state identifier at this grammar-to-Z80 boundary.
+const stateNames = JSON.parse(readFileSync(
+  path.join(here, "..", "asm", "atom-state-symbols.json"), "utf8",
+)) as Record<string, string>;
+const stateSymbol = (logical: string): string => {
+  const native = stateNames[logical];
+  if (native === undefined) throw new Error(`missing native state symbol ${logical}`);
+  return native;
+};
 const actionSourcePath = path.join(
   here,
   "..",
@@ -337,7 +347,7 @@ export function generateStage7Tables(): string {
     throw new Error("high production directory offset overflow");
 
   const symbol = (name: string): string => {
-    if (name.startsWith("Token")) return name;
+    if (name.startsWith("Token")) return stateSymbol(name);
     const nonterminal = nonterminals.indexOf(name);
     if (nonterminal >= 0)
       return `$${(0x40 + nonterminal).toString(16).padStart(2, "0")}`;
@@ -366,8 +376,8 @@ export function generateStage7Tables(): string {
       if (!diagnostic) throw new Error(`missing diagnostic for ${name}`);
       const offset = `HybridLL1Row${index}-HybridLL1Rows`;
       return rowOffsets[index]! < 256
-        ? `            .db ${offset},${diagnostic} ; ${name}`
-        : `            .db ${offset}-$100,${diagnostic} ; ${name}`;
+        ? `            .db ${offset},${stateSymbol(diagnostic)} ; ${name}`
+        : `            .db ${offset}-$100,${stateSymbol(diagnostic)} ; ${name}`;
     }),
     "HybridLL1RowDirectoryEnd:",
     "HybridLL1Rows:",
@@ -386,7 +396,7 @@ export function generateStage7Tables(): string {
       );
       predictions.forEach((token, index) =>
         lines.push(
-          `            .db ${token}${index === predictions.length - 1 ? "+$80" : ""}`,
+          `            .db ${stateSymbol(token)}${index === predictions.length - 1 ? "+$80" : ""}`,
         ),
       );
     });

@@ -842,7 +842,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFrameFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofTrapStateFailure
             LD   A,(RTTRPNO)
@@ -862,21 +862,21 @@ ProofStart:
             OR   A
             JP   NZ,ProofActivationFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8InfallibleFailPoint-Stage8InfallibleFailSource
             LD   HL,Stage8InfallibleFailSource
             LD   DE,Stage8InfallibleFailSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofInfallibleFailure
 
-            LD   A,DiagnosticIntegerRange
+            LD   A,DGINTRNG
             LD   BC,Stage8FailureRangePoint+5-Stage8FailureRangeSource
             LD   HL,Stage8FailureRangeSource
             LD   DE,Stage8FailureRangeSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofRangeFailure
 
-            LD   A,DiagnosticRoutineFlow
+            LD   A,DGRTNFLW
             LD   BC,Stage8FailureFlowPoint-1-Stage8FailureFlowSource
             LD   HL,Stage8FailureFlowSource
             LD   DE,Stage8FailureFlowSourceEnd
@@ -893,13 +893,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofPropagationSuccessRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofPropagationSuccessRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofPropagationSuccessRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'A'
             JP   NZ,ProofPropagationSuccessRunFailure
 
@@ -913,7 +913,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofPropagationFailureRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofPropagationFailureRunFailure
             LD   A,(RTTRPNO)
@@ -938,13 +938,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofBareReturnRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofBareReturnRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofBareReturnRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             OR   A
             JP   NZ,ProofBareReturnRunFailure
 
@@ -958,13 +958,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofSixteenRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofSixteenRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofSixteenRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   16
             JP   NZ,ProofSixteenRunFailure
 
@@ -978,13 +978,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofHandlerRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   7
             JP   NZ,ProofHandlerRunFailure
 
@@ -998,7 +998,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofProgramHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofProgramHandlerRunFailure
             LD   A,(RTDEPTH)
@@ -1007,10 +1007,10 @@ ProofStart:
             LD   A,(MMBSS)
             CP   7
             JP   NZ,ProofProgramHandlerRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofProgramHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   8
             JP   NZ,ProofProgramHandlerRunFailure
 
@@ -1023,30 +1023,30 @@ ProofStart:
             JP   C,ProofReadSuccessEncodeFailure
             CALL Reset
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,'Q'
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofReadSuccessRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofReadSuccessRunFailure
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             CP   1
             JP   NZ,ProofReadSuccessRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Q'
             JP   NZ,ProofReadSuccessRunFailure
             CALL Reset
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,'Q'
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             LD   A,1
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofReadSuccessRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofReadSuccessRunFailure
             LD   A,(RTTRPERR)
@@ -1070,13 +1070,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRedesignFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofRedesignFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   1
             JP   NZ,ProofRedesignFailure
             LD   A,(RTDEPTH)
@@ -1092,19 +1092,19 @@ ProofStart:
             JP   C,ProofReadHandlerEncodeFailure
             CALL Reset
             XOR  A
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             OR   A
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   1
             JP   NZ,ProofReadHandlerRunFailure
 
@@ -1112,37 +1112,37 @@ ProofStart:
             ; cursor or converting the recoverable error into a trap.
             CALL Reset
             LD   A,2
-            LD   (ServiceInputFailure),A
+            LD   (VINFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             OR   A
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   2
             JP   NZ,ProofReadHandlerRunFailure
 
             ; A distinct reset run must not inherit the configured failure.
             CALL Reset
-            LD   A,(ServiceInputFailure)
+            LD   A,(VINFAIL)
             OR   A
             JP   NZ,ProofReadHandlerRunFailure
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,'Q'
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             JP   C,ProofReadHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceInputCursor)
+            LD   A,(VINCUR)
             CP   1
             JP   NZ,ProofReadHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'Q'
             JP   NZ,ProofReadHandlerRunFailure
 
@@ -1156,10 +1156,10 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofConstantsRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofConstantsRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'C'
             JP   NZ,ProofConstantsRunFailure
 
@@ -1172,33 +1172,33 @@ ProofStart:
             JP   C,ProofStorageEncodeFailure
             CALL Reset
             XOR  A
-            LD   (ServiceStorageInputFailure),A
-            LD   (ServiceStorageOutputFailure),A
+            LD   (VSIFAIL),A
+            LD   (VSOFAIL),A
             INC  A
-            LD   (ServiceStorageInputLength),A
+            LD   (VSILEN),A
             LD   A,'A'
-            LD   (ServiceStorageInputBase),A
+            LD   (VSIBAS),A
             CALL ProofCallGenerated
             JP   C,ProofStorageRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceStorageInputCursor)
+            LD   A,(VSICUR)
             CP   1
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceStorageOutputLength)
+            LD   A,(VSOLEN)
             CP   2
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceStorageOutputCursor)
+            LD   A,(VSOCUR)
             CP   1
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceStorageOutputBase)
+            LD   A,(VSOBAS)
             CP   'Z'
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceStorageOutputBase+1)
+            LD   A,(VSOBAS+1)
             CP   'B'
             JP   NZ,ProofStorageRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'A'
             JP   NZ,ProofStorageRunFailure
 
@@ -1211,32 +1211,32 @@ ProofStart:
             JP   C,ProofWriteFailureEncode
             CALL Reset
             LD   A,1
-            LD   (ServiceStorageOutputFailure),A
-            LD   (ServiceStorageOutputCursor),A
+            LD   (VSOFAIL),A
+            LD   (VSOCUR),A
             INC  A
-            LD   (ServiceStorageOutputLength),A
+            LD   (VSOLEN),A
             LD   A,'X'
-            LD   (ServiceStorageOutputBase),A
+            LD   (VSOBAS),A
             LD   A,'Y'
-            LD   (ServiceStorageOutputBase+1),A
+            LD   (VSOBAS+1),A
             CALL ProofCallGenerated
             JP   C,ProofWriteFailureRun
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofWriteFailureRun
-            LD   A,(ServiceStorageOutputLength)
+            LD   A,(VSOLEN)
             CP   2
             JP   NZ,ProofWriteFailureRun
-            LD   A,(ServiceStorageOutputCursor)
+            LD   A,(VSOCUR)
             CP   1
             JP   NZ,ProofWriteFailureRun
-            LD   A,(ServiceStorageOutputBase)
+            LD   A,(VSOBAS)
             CP   'X'
             JP   NZ,ProofWriteFailureRun
-            LD   A,(ServiceStorageOutputBase+1)
+            LD   A,(VSOBAS+1)
             CP   'Y'
             JP   NZ,ProofWriteFailureRun
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   4
             JP   NZ,ProofWriteFailureRun
 
@@ -1249,20 +1249,20 @@ ProofStart:
             JP   C,ProofSeekFailureEncode
             CALL Reset
             XOR  A
-            LD   (ServiceStorageOutputFailure),A
+            LD   (VSOFAIL),A
             INC  A
-            LD   (ServiceStorageOutputCursor),A
+            LD   (VSOCUR),A
             INC  A
-            LD   (ServiceStorageOutputLength),A
+            LD   (VSOLEN),A
             CALL ProofCallGenerated
             JP   C,ProofSeekFailureRun
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofSeekFailureRun
-            LD   A,(ServiceStorageOutputCursor)
+            LD   A,(VSOCUR)
             CP   1
             JP   NZ,ProofSeekFailureRun
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   4
             JP   NZ,ProofSeekFailureRun
 
@@ -1275,18 +1275,18 @@ ProofStart:
             JP   C,ProofRewindFailureEncode
             CALL Reset
             LD   A,1
-            LD   (ServiceStorageInputFailure),A
+            LD   (VSIFAIL),A
             INC  A
-            LD   (ServiceStorageInputCursor),A
+            LD   (VSICUR),A
             CALL ProofCallGenerated
             JP   C,ProofRewindFailureRun
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRewindFailureRun
-            LD   A,(ServiceStorageInputCursor)
+            LD   A,(VSICUR)
             CP   2
             JP   NZ,ProofRewindFailureRun
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   4
             JP   NZ,ProofRewindFailureRun
 
@@ -1299,17 +1299,17 @@ ProofStart:
             JP   C,ProofReadStorageFailureEncode
             CALL Reset
             XOR  A
-            LD   (ServiceStorageInputFailure),A
-            LD   (ServiceStorageInputLength),A
+            LD   (VSIFAIL),A
+            LD   (VSILEN),A
             CALL ProofCallGenerated
             JP   C,ProofReadStorageFailureRun
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofReadStorageFailureRun
-            LD   A,(ServiceStorageInputCursor)
+            LD   A,(VSICUR)
             OR   A
             JP   NZ,ProofReadStorageFailureRun
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   1
             JP   NZ,ProofReadStorageFailureRun
 
@@ -1322,17 +1322,17 @@ ProofStart:
             JP   C,ProofWriteOutputFailureEncode
             CALL Reset
             LD   A,1
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofWriteOutputFailureRun
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofWriteOutputFailureRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofWriteOutputFailureRun
             XOR  A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
 
             LD   A,186
             LD   HL,Stage8MutualForwardSource
@@ -1344,125 +1344,125 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofMutualRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofMutualRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofMutualRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'M'
             JP   NZ,ProofMutualRunFailure
 
-            LD   A,DiagnosticForwardIncomplete
+            LD   A,DGFWDINC
             LD   BC,Stage8IncompleteForwardSourceEnd-Stage8IncompleteForwardSource
             LD   HL,Stage8IncompleteForwardSource
             LD   DE,Stage8IncompleteForwardSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofIncompleteForwardFailure
 
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,Stage8PredefinedVariablePoint-Stage8PredefinedVariableSource
             LD   HL,Stage8PredefinedVariableSource
             LD   DE,Stage8PredefinedVariableSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofPredefinedVariableFailure
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,1
             OR   A
             SBC  HL,DE
             JP   NZ,ProofPredefinedVariableFailure
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,5
             OR   A
             SBC  HL,DE
             JP   NZ,ProofPredefinedVariableFailure
 
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,Stage8PredefinedRoutinePoint-Stage8PredefinedRoutineSource
             LD   HL,Stage8PredefinedRoutineSource
             LD   DE,Stage8PredefinedRoutineSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofPredefinedRoutineFailure
 
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,Stage8PredefinedParameterPoint-Stage8PredefinedParameterSource
             LD   HL,Stage8PredefinedParameterSource
             LD   DE,Stage8PredefinedParameterSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofPredefinedParameterFailure
 
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage8WriteStorageTypePoint+4-Stage8WriteStorageTypeSource
             LD   HL,Stage8WriteStorageTypeSource
             LD   DE,Stage8WriteStorageTypeSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofWriteStorageTypeFailure
 
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage8SeekStorageTypePoint+4-Stage8SeekStorageTypeSource
             LD   HL,Stage8SeekStorageTypeSource
             LD   DE,Stage8SeekStorageTypeSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofSeekStorageTypeFailure
 
-            LD   A,DiagnosticDuplicateName
+            LD   A,DGDUPNAM
             LD   BC,Stage8SecondForwardPoint-Stage8SecondForwardSource
             LD   HL,Stage8SecondForwardSource
             LD   DE,Stage8SecondForwardSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofSecondForwardFailure
 
-            LD   A,DiagnosticUnknownName
+            LD   A,DGUNKNAM
             LD   BC,Stage8UnknownCompletionPoint-Stage8UnknownCompletionSource
             LD   HL,Stage8UnknownCompletionSource
             LD   DE,Stage8UnknownCompletionSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofUnknownCompletionFailure
 
-            LD   A,DiagnosticHandleLine
+            LD   A,DGHDLINE
             LD   BC,Stage8UnconsumedServicePoint-1-Stage8UnconsumedServiceSource
             LD   HL,Stage8UnconsumedServiceSource
             LD   DE,Stage8UnconsumedServiceSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofUnconsumedServiceFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8NestedServicePoint-Stage8NestedServiceSource
             LD   HL,Stage8NestedServiceSource
             LD   DE,Stage8NestedServiceSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofNestedServiceFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8ServiceArgumentPoint+15-Stage8ServiceArgumentSource
             LD   HL,Stage8ServiceArgumentSource
             LD   DE,Stage8ServiceArgumentSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofServiceArgumentFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8ComposedFailablePoint-Stage8ComposedFailableSource
             LD   HL,Stage8ComposedFailableSource
             LD   DE,Stage8ComposedFailableSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofComposedFailableFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8AggregateSuffixFailablePoint-Stage8AggregateSuffixFailableSource
             LD   HL,Stage8AggregateSuffixFailableSource
             LD   DE,Stage8AggregateSuffixFailableSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofAggregateSuffixFailableFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8IndexFailablePoint-Stage8IndexFailableSource
             LD   HL,Stage8IndexFailableSource
             LD   DE,Stage8IndexFailableSourceEnd
             CALL ProofExpectDiagnostic
             JP   C,ProofIndexFailableFailure
 
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8AggregateArgumentFailablePoint-Stage8AggregateArgumentFailableSource
             LD   HL,Stage8AggregateArgumentFailableSource
             LD   DE,Stage8AggregateArgumentFailableSourceEnd
@@ -1479,13 +1479,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofNestedFrameRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofNestedFrameRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofNestedFrameRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'N'
             JP   NZ,ProofNestedFrameRunFailure
             LD   A,(RTDEPTH)
@@ -1502,16 +1502,16 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofPredefinedStepRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofPredefinedStepRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   2
             JP   NZ,ProofPredefinedStepRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'S'
             JP   NZ,ProofPredefinedStepRunFailure
-            LD   A,(ServiceOutputBase+1)
+            LD   A,(VOUTBAS+1)
             CP   'S'
             JP   NZ,ProofPredefinedStepRunFailure
 
@@ -1522,7 +1522,7 @@ ProofStart:
             LD   DE,Stage8RetainedFieldSourceEnd
             CALL CompileAggregateCallSlice
             JP   C,ProofRetainedFieldCompileFailure
-            LD   HL,(Stage8CallModePointer)
+            LD   HL,(M8PTR)
             INC  HL
             INC  HL
             LD   A,(HL)
@@ -1530,7 +1530,7 @@ ProofStart:
             JP   NZ,ProofRetainedFieldValueFailure
             INC  HL
             LD   A,(HL)
-            CP   SemanticStoreIndirect8
+            CP   SMSTIND8
             JP   NZ,ProofRetainedFieldWidthFailure
 
             LD   A,194
@@ -1543,16 +1543,16 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofIndirectHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofIndirectHandlerRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   2
             JP   NZ,ProofIndirectHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   7
             JP   NZ,ProofIndirectHandlerRunFailure
-            LD   A,(ServiceOutputBase+1)
+            LD   A,(VOUTBAS+1)
             CP   9
             JP   NZ,ProofIndirectHandlerRunFailure
             LD   A,(RTDEPTH)
@@ -1569,19 +1569,19 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofAggregateCopyHandlerRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofAggregateCopyHandlerRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   3
             JP   NZ,ProofAggregateCopyHandlerRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   5
             JP   NZ,ProofAggregateCopyHandlerRunFailure
-            LD   A,(ServiceOutputBase+1)
+            LD   A,(VOUTBAS+1)
             CP   7
             JP   NZ,ProofAggregateCopyHandlerRunFailure
-            LD   A,(ServiceOutputBase+2)
+            LD   A,(VOUTBAS+2)
             CP   5
             JP   NZ,ProofAggregateCopyHandlerRunFailure
             LD   A,(RTDEPTH)
@@ -1597,16 +1597,16 @@ ProofStart:
             JP   C,ProofRetainedResetEncodeFailure
             CALL Reset
             LD   A,4
-            LD   (ServiceStorageInputFailure),A
+            LD   (VSIFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofRetainedResetRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRetainedResetRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofRetainedResetRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   4
             JP   NZ,ProofRetainedResetRunFailure
             LD   A,(RTDEPTH)
@@ -1622,19 +1622,19 @@ ProofStart:
             JP   C,ProofIndirectServiceEncodeFailure
             CALL Reset
             XOR  A
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             CALL ProofCallGenerated
             JP   C,ProofIndirectServiceRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofIndirectServiceRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   2
             JP   NZ,ProofIndirectServiceRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   1
             JP   NZ,ProofIndirectServiceRunFailure
-            LD   A,(ServiceOutputBase+1)
+            LD   A,(VOUTBAS+1)
             CP   9
             JP   NZ,ProofIndirectServiceRunFailure
             LD   A,(RTDEPTH)
@@ -1653,7 +1653,7 @@ ProofStart:
             LD   (RTACTLIM),A
             CALL ProofCallGenerated
             JP   C,ProofTrapBypassFrameFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofTrapBypassRunFailure
             LD   A,(RTTRPNO)
@@ -1667,7 +1667,7 @@ ProofStart:
             LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofTrapBypassRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofTrapBypassRunFailure
 
@@ -1681,13 +1681,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofResultFreeReturnRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofResultFreeReturnRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofResultFreeReturnRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'R'
             JP   NZ,ProofResultFreeReturnRunFailure
             LD   A,(RTDEPTH)
@@ -1706,13 +1706,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofForwardMainRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofForwardMainRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofForwardMainRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'M'
             JP   NZ,ProofForwardMainRunFailure
             LD   A,(RTDEPTH)
@@ -1729,20 +1729,20 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofRecursiveMainRunFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRecursiveMainRunFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofRecursiveMainRunFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'D'
             JP   NZ,ProofRecursiveMainRunFailure
             LD   A,(RTDEPTH)
             OR   A
             JP   NZ,ProofRecursiveMainRunFailure
 
-            LD   A,DiagnosticForwardIncomplete
+            LD   A,DGFWDINC
             LD   BC,Stage8IncompleteForwardMainSourceEnd-Stage8IncompleteForwardMainSource
             LD   HL,Stage8IncompleteForwardMainSource
             LD   DE,Stage8IncompleteForwardMainSourceEnd
@@ -1786,16 +1786,16 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofRedesignFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   2
             JP   NZ,ProofRedesignFailure
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   'H'
             JP   NZ,ProofRedesignFailure
-            LD   A,(ServiceOutputBase+1)
+            LD   A,(VOUTBAS+1)
             CP   7
             JP   NZ,ProofRedesignFailure
             LD   A,(RTDEPTH)
@@ -1813,10 +1813,10 @@ ProofStart:
             JP   C,ProofRedesignFailure
             CALL Reset
             LD   A,1
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofRedesignFailure
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofRedesignFailure
             LD   A,(RTTRPNO)
@@ -1836,7 +1836,7 @@ ProofStart:
 
             LD   A,117
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8BareLocalPoint-Stage8BareLocalSource
             LD   HL,Stage8BareLocalSource
             LD   DE,Stage8BareLocalSourceEnd
@@ -1844,7 +1844,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,118
             LD   (ProofCase),A
-            LD   A,DiagnosticHandleLine
+            LD   A,DGHDLINE
             LD   BC,Stage8BareAssignmentPoint-Stage8BareAssignmentSource
             LD   HL,Stage8BareAssignmentSource
             LD   DE,Stage8BareAssignmentSourceEnd
@@ -1852,7 +1852,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,119
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8LegacyOrFailPoint-Stage8LegacyOrFailSource
             LD   HL,Stage8LegacyOrFailSource
             LD   DE,Stage8LegacyOrFailSourceEnd
@@ -1860,7 +1860,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,120
             LD   (ProofCase),A
-            LD   A,DiagnosticHandleLine
+            LD   A,DGHDLINE
             LD   BC,Stage8LegacyOnErrorPoint-Stage8LegacyOnErrorSource
             LD   HL,Stage8LegacyOnErrorSource
             LD   DE,Stage8LegacyOnErrorSourceEnd
@@ -1868,7 +1868,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,121
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8InfalliblePropagationPoint-Stage8InfalliblePropagationSource
             LD   HL,Stage8InfalliblePropagationSource
             LD   DE,Stage8InfalliblePropagationSourceEnd
@@ -1876,7 +1876,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,122
             LD   (ProofCase),A
-            LD   A,DiagnosticHandleLine
+            LD   A,DGHDLINE
             LD   BC,Stage8InfallibleHandlePoint-Stage8InfallibleHandleSource
             LD   HL,Stage8InfallibleHandleSource
             LD   DE,Stage8InfallibleHandleSourceEnd
@@ -1884,7 +1884,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,123
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8DoubleConsumerPoint-Stage8DoubleConsumerSource
             LD   HL,Stage8DoubleConsumerSource
             LD   DE,Stage8DoubleConsumerSourceEnd
@@ -1892,7 +1892,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,124
             LD   (ProofCase),A
-            LD   A,DiagnosticExpectedLine
+            LD   A,DXLINE
             LD   BC,Stage8LocalHandlePoint-Stage8LocalHandleSource
             LD   HL,Stage8LocalHandleSource
             LD   DE,Stage8LocalHandleSourceEnd
@@ -1900,7 +1900,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,125
             LD   (ProofCase),A
-            LD   A,DiagnosticFailureContext
+            LD   A,DGFAICTX
             LD   BC,Stage8ResultReturnPropagationPoint-Stage8ResultReturnPropagationSource
             LD   HL,Stage8ResultReturnPropagationSource
             LD   DE,Stage8ResultReturnPropagationSourceEnd
@@ -1908,7 +1908,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,126
             LD   (ProofCase),A
-            LD   A,DiagnosticRoutineFlow
+            LD   A,DGRTNFLW
             LD   BC,Stage8FreeReturnPropagationPoint-Stage8FreeReturnPropagationSource
             LD   HL,Stage8FreeReturnPropagationSource
             LD   DE,Stage8FreeReturnPropagationSourceEnd
@@ -1917,7 +1917,7 @@ ProofStart:
 
             LD   A,127
             LD   (ProofCase),A
-            LD   A,DiagnosticExpectedName
+            LD   A,DXNAME
             LD   BC,Stage8MissingHandleNamePoint-Stage8MissingHandleNameSource
             LD   HL,Stage8MissingHandleNameSource
             LD   DE,Stage8MissingHandleNameSourceEnd
@@ -1925,7 +1925,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,128
             LD   (ProofCase),A
-            LD   A,DiagnosticUnknownName
+            LD   A,DGUNKNAM
             LD   BC,Stage8UnknownHandleNamePoint-Stage8UnknownHandleNameSource
             LD   HL,Stage8UnknownHandleNameSource
             LD   DE,Stage8UnknownHandleNameSourceEnd
@@ -1933,7 +1933,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,129
             LD   (ProofCase),A
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage8WideHandleNamePoint-Stage8WideHandleNameSource
             LD   HL,Stage8WideHandleNameSource
             LD   DE,Stage8WideHandleNameSourceEnd
@@ -1941,7 +1941,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,130
             LD   (ProofCase),A
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage8ConstantHandleNamePoint-Stage8ConstantHandleNameSource
             LD   HL,Stage8ConstantHandleNameSource
             LD   DE,Stage8ConstantHandleNameSourceEnd
@@ -1949,7 +1949,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,131
             LD   (ProofCase),A
-            LD   A,DiagnosticTypeMismatch
+            LD   A,DGTYPMIS
             LD   BC,Stage8AggregateHandleNamePoint-Stage8AggregateHandleNameSource
             LD   HL,Stage8AggregateHandleNameSource
             LD   DE,Stage8AggregateHandleNameSourceEnd
@@ -1957,7 +1957,7 @@ ProofStart:
             JP   C,ProofRedesignFailure
             LD   A,132
             LD   (ProofCase),A
-            LD   A,DiagnosticActiveCounter
+            LD   A,DGACTCTR
             LD   BC,Stage8CounterHandleNamePoint-Stage8CounterHandleNameSource
             LD   HL,Stage8CounterHandleNameSource
             LD   DE,Stage8CounterHandleNameSourceEnd
@@ -1979,10 +1979,10 @@ ProofExpectDiagnostic:
             CALL CompileAggregateCallSlice
             JR   NC,ProofExpectedDiagnosticFailure
             LD   A,(ProofExpectedDiagnostic)
-            LD   HL,DiagnosticCode
+            LD   HL,DGCODE
             CP   (HL)
             JR   NZ,ProofExpectedDiagnosticFailure
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,(ProofExpectedOffset)
             OR   A
             SBC  HL,DE
@@ -1994,10 +1994,10 @@ ProofExpectedDiagnosticFailure:
 ; Check publication before a later diagnostic overlays the emission cursor.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
 ProofValidatePublication:
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   DE,MMGEN
             ADD  HL,DE
-            LD   DE,(EmitCursor)
+            LD   DE,(EMCUR)
             OR   A
             SBC  HL,DE
             RET  Z
@@ -2017,17 +2017,17 @@ ProofExpectRuntimeTrap:
             RET  C
             CALL Reset
             LD   A,1
-            LD   (ServiceInputLength),A
+            LD   (VINLEN),A
             LD   A,(ProofExpectedTrap)
             CP   1
             LD   A,0
             JR   NZ,ProofTrapInputReady
             LD   A,2
 ProofTrapInputReady:
-            LD   (ServiceInputBase),A
+            LD   (VINBAS),A
             CALL ProofCallGenerated
             RET  C
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JR   NZ,ProofExpectedRuntimeTrapFailure
             LD   A,(ProofExpectedTrap)
@@ -2042,7 +2042,7 @@ ProofTrapInputReady:
             LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofExpectedRuntimeTrapFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             RET  Z
 ProofExpectedRuntimeTrapFailure:
@@ -2060,7 +2060,7 @@ ProofExpectRuntimeSuccess:
             CALL Reset
             CALL ProofCallGenerated
             RET  C
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JR   NZ,ProofExpectedRuntimeSuccessFailure
             LD   A,(RTTRPNO)
@@ -2069,7 +2069,7 @@ ProofExpectRuntimeSuccess:
             LD   A,(RTDEPTH)
             OR   A
             JR   NZ,ProofExpectedRuntimeSuccessFailure
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             RET  Z
 ProofExpectedRuntimeSuccessFailure:

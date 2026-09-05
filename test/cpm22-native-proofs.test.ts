@@ -101,6 +101,6 @@ describe("canonical native CP/M proof preservation", () => {
     expect(names).toContain("platform-services-abi.asmi");
     expect(assembled.symbols).toMatchObject(proofContext);
     const state = readFileSync(new URL("../asm/vertical-slice/aggregate-call-state.asmi", import.meta.url), "utf8");
-    expect(state).toMatch(/^SRCPARTS\s+\.equ\s+8$/m);
+    expect(state).toMatch(/^SRCPARTS\s+EQU\s+8$/m);
   });
 });

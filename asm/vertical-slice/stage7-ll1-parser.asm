@@ -7,22 +7,22 @@ HybridLL1RoutineBodySymbol     .equ $40+20
 HybridLL1StatementSymbolMask   .equ $FA
 .if AggregateCallSlices
 .if TargetStreamingOutput
-HybridLL1StackDepth    .equ TargetCompilerWorkspaceEnd
+HybridLL1StackDepth    .equ TGCWKEND
 .else
-HybridLL1StackDepth    .equ SourceMultipartWorkspaceEnd
+HybridLL1StackDepth    .equ SSMEND
 .endif
 .else
-HybridLL1StackDepth    .equ Stage7CompilerWorkspaceEnd
+HybridLL1StackDepth    .equ S7WKEND
 .endif
 HybridLL1StackBase     .equ HybridLL1StackDepth+1
 .if AggregateCallSlices
 .if TargetStreamingOutput
-HybridLL1WorkspaceEnd  .equ TargetWorkspaceEnd
+HybridLL1WorkspaceEnd  .equ TGWKEND
 .else
-HybridLL1WorkspaceEnd  .equ HybridLL1StackBase+HybridLL1StackCapacity
+HybridLL1WorkspaceEnd  .equ HybridLL1StackBase+HYLLCAP
 .endif
 .else
-HybridLL1WorkspaceEnd  .equ HybridLL1StackBase+HybridLL1StackCapacity
+HybridLL1WorkspaceEnd  .equ HybridLL1StackBase+HYLLCAP
 .endif
 DiagnosticParserCapacity .equ 87
 
@@ -70,20 +70,20 @@ HybridLL1ActionReturn:
 
 HybridLL1StraySelectClause:
 HybridLL1SelectClauseFailure:
-            CALL SetDiagInline
-            .db  DiagnosticSelectClause
+            CALL DGINLINE
+            .db  DGSELCLS
 
 HybridLL1Terminal:
             LD   L,A
-            CP   TokenEnd
+            CP   TOKENEND
             JR   NZ,HybridLL1TerminalReady
             CALL ParserPeek
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenElse
+            CP   TNELSE
             JR   Z,HybridLL1StraySelectClause
-            CP   TokenCase
+            CP   TNCASE
             JR   Z,HybridLL1StraySelectClause
 HybridLL1TerminalReady:
             LD   E,L
@@ -107,11 +107,11 @@ HybridLL1Nonterminal:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenHandle
+            CP   TNHDL
             JR   NZ,HybridLL1StatementTokenReady
 HybridLL1HandleContext:
-            CALL SetDiagInline
-            .db  DiagnosticHandleLine
+            CALL DGINLINE
+            .db  DGHDLINE
 HybridLL1StatementTokenReady:
             LD   A,L
             SUB  $40
@@ -199,7 +199,7 @@ HybridLL1ProductionBaseReady:
             LD   C,A
             ADD  A,B
             JR   C,HybridLL1CapacityFailure
-            CP   HybridLL1StackCapacity+1
+            CP   HYLLCAP+1
             JR   NC,HybridLL1CapacityFailure
             LD   (HybridLL1StackDepth),A
             PUSH HL
@@ -220,7 +220,7 @@ HybridLL1ProductionBaseReady:
 HybridLL1PushSymbol:
             LD   C,A
             LD   A,(HybridLL1StackDepth)
-            CP   HybridLL1StackCapacity
+            CP   HYLLCAP
             JR   NC,HybridLL1CapacityFailure
             LD   L,A
             LD   H,0
@@ -246,7 +246,7 @@ HybridLL1PopSymbol:
             RET
 
 HybridLL1CapacityFailure:
-            CALL SetDiagInline
+            CALL DGINLINE
             .db  DiagnosticParserCapacity
 
 HybridLL1EngineEnd:

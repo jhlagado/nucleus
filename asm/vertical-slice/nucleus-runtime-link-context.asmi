@@ -9,7 +9,7 @@ RTROBASE         .equ $6800
 RTROCAP     .equ $1000
 
 RTSTATE          .equ RTWRBASE
-RunState           .equ RTSTATE+$00
+RUNSTATE           .equ RTSTATE+$00
 RTTRPNO         .equ RTSTATE+$01
 RTTRPRTN        .equ RTSTATE+$02
 RTTRPOFF         .equ RTSTATE+$03
@@ -20,15 +20,15 @@ RTSCALAR         .equ RTSTATE+$08
 RTBANK        .equ RTSCALAR
 RTACTMEM    .equ RTSTATE+$09
 RTACTCAP .equ 8
-RootSP             .equ RTACTMEM+RTACTCAP
-RootIX             .equ RootSP+2
-RTFARMEM     .equ RootIX+2
+ROOTSP             .equ RTACTMEM+RTACTCAP
+ROOTIX             .equ ROOTSP+2
+RTFARMEM     .equ ROOTIX+2
 RTFARCAP  .equ RTACTCAP*2
 RTDBWORD .equ RTFARMEM+RTFARCAP
 RTDCWORD .equ RTDBWORD+2
-StateEnd           .equ RTDCWORD+2
+STATEEND           .equ RTDCWORD+2
 
-RunReady           .equ 1
+RUNREADY           .equ 1
 RTSUCC       .equ 2
 RTTRAP         .equ 3
 

@@ -15,13 +15,13 @@ HostVectorBase .equ MMHOSTVC
 CpmHostVectorStart:
             .db "NH",0,1,8,14,0,0
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-HostSourceNextChunk:           JP CpmLayoutSourceNext
+HVCHUNK:           JP CpmLayoutSourceNext
 .routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-HostRetainCurrentName:         JP CpmLayoutRetainName
+HVRETAIN:         JP CpmLayoutRetainName
 .routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-HostCompareCurrentName:        JP CpmLayoutCompareName
+HVCMPNAM:        JP CpmLayoutCompareName
 .routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-HostMaterializeName:           JP CpmLayoutMaterializeName
+HVMATNAM:           JP CpmLayoutMaterializeName
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkBegin:               JP CpmLayoutTargetBegin
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE

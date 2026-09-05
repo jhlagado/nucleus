@@ -7,23 +7,23 @@
 Reset:
             XOR  A
             LD   HL,RTTRPNO
-            LD   B,StateEnd-RTTRPNO
+            LD   B,STATEEND-RTTRPNO
             CALL RTZERO
             LD   A,RTACTCAP
             LD   (RTACTLIM),A
             XOR  A
-            LD   HL,ServiceFailureCall
-            LD   B,ServiceInputLength-ServiceFailureCall
+            LD   HL,SVFAIL
+            LD   B,VINLEN-SVFAIL
             CALL RTZERO
-            LD   (ServiceInputCursor),A
-            LD   (ServiceInputFailure),A
-            LD   (ServiceStorageInputCursor),A
-            LD   (ServiceStorageInputFailure),A
-            LD   HL,ServiceStorageOutputLength
-            LD   B,ServiceStateEnd-ServiceStorageOutputLength
+            LD   (VINCUR),A
+            LD   (VINFAIL),A
+            LD   (VSICUR),A
+            LD   (VSIFAIL),A
+            LD   HL,VSOLEN
+            LD   B,SVEND-VSOLEN
             CALL RTZERO
-            LD   A,RunReady
-            LD   (RunState),A
+            LD   A,RUNREADY
+            LD   (RUNSTATE),A
             OR   A
             RET
 
@@ -723,7 +723,7 @@ RTI8RHS:
 ; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 RTREADIN:
             LD   C,2
-            LD   HL,ServiceInputLength
+            LD   HL,VINLEN
             JR   RTREADSV
 
 ; Bulk input shares the same length/cursor/failure/buffer record shape. Its
@@ -731,7 +731,7 @@ RTREADIN:
 ; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 RTREADST:
             LD   C,4
-            LD   HL,ServiceStorageInputLength
+            LD   HL,VSILEN
             JR   RTREADSV
 ; Contract: in C,HL out A,carry,zero clobbers sign,parity,halfCarry,B,C,HL
 RTREADSV:
@@ -775,28 +775,28 @@ RTRDEND:
 ; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,E,HL
 RTWRITE:
             LD   E,A
-            LD   A,(ServiceCallCount)
+            LD   A,(SVCALLS)
             INC  A
-            LD   (ServiceCallCount),A
+            LD   (SVCALLS),A
             LD   C,A
-            LD   A,(ServiceFailureCall)
+            LD   A,(SVFAIL)
             OR   A
             JR   Z,RTWRSET
             CP   C
             JR   Z,RTWRERR
 RTWRSET:
-            LD   A,(ServiceOutputLength)
-            CP   ServiceOutputCapacity
+            LD   A,(VOUTLEN)
+            CP   VOUTCAP
             JR   NC,RTWRERR
             LD   C,A
             LD   B,0
-            LD   HL,ServiceOutputBase
+            LD   HL,VOUTBAS
             ADD  HL,BC
             LD   A,E
             LD   (HL),A
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             INC  A
-            LD   (ServiceOutputLength),A
+            LD   (VOUTLEN),A
             XOR  A
             RET
 RTWRERR:
@@ -806,10 +806,10 @@ RTWRERR:
 
 ; Contract: out A,carry,zero clobbers sign,parity,halfCarry
 RTREWIND:
-            LD   A,(ServiceStorageInputFailure)
+            LD   A,(VSIFAIL)
             OR   A
             JR   NZ,RTSTERR
-            LD   (ServiceStorageInputCursor),A
+            LD   (VSICUR),A
             RET
 
 ; Input A is written at the current bulk-output cursor. Every check precedes
@@ -817,28 +817,28 @@ RTREWIND:
 ; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,HL
 RTWRSTOR:
             LD   D,A
-            LD   A,(ServiceStorageOutputFailure)
+            LD   A,(VSOFAIL)
             OR   A
             JR   NZ,RTSTERR
-            LD   A,(ServiceStorageOutputCursor)
+            LD   A,(VSOCUR)
             LD   C,A
-            LD   A,(ServiceStorageOutputLength)
+            LD   A,(VSOLEN)
             CP   C
             JR   C,RTSTERR
             JR   NZ,RTWRADDR
             LD   A,C
-            CP   ServiceStorageOutputCapacity
+            CP   VSOCAP
             JR   NC,RTSTERR
             INC  A
-            LD   (ServiceStorageOutputLength),A
+            LD   (VSOLEN),A
 RTWRADDR:
             LD   B,0
-            LD   HL,ServiceStorageOutputBase
+            LD   HL,VSOBAS
             ADD  HL,BC
             LD   (HL),D
             INC  C
             LD   A,C
-            LD   (ServiceStorageOutputCursor),A
+            LD   (VSOCUR),A
             XOR  A
             RET
 
@@ -849,14 +849,14 @@ RTSEEK:
             LD   A,H
             OR   A
             JR   NZ,RTSTERR
-            LD   A,(ServiceStorageOutputFailure)
+            LD   A,(VSOFAIL)
             OR   A
             JR   NZ,RTSTERR
-            LD   A,(ServiceStorageOutputLength)
+            LD   A,(VSOLEN)
             CP   L
             JR   C,RTSTERR
             LD   A,L
-            LD   (ServiceStorageOutputCursor),A
+            LD   (VSOCUR),A
             OR   A
             RET
 
@@ -884,13 +884,13 @@ RTPKTERR:
             POP  BC                      ; terminal dispatcher
             LD   (RTTRPNO),A
             LD   (RTTRPOFF),DE
-            LD   SP,(RootSP)
-            LD   IX,(RootIX)
+            LD   SP,(ROOTSP)
+            LD   IX,(ROOTIX)
             XOR  A
             LD   (RTTRPRTN),A
             LD   (RTDEPTH),A
             LD   A,RTTRAP
-            LD   (RunState),A
+            LD   (RUNSTATE),A
             LD   H,B
             LD   L,C
             JP   (HL)

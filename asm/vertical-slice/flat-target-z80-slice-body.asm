@@ -365,19 +365,19 @@ ProofStart:
             CALL ProofCallTargetValidateRegion
             JP   C,ProofRegionFailure
             LD   HL,$FFFF
-            LD   (EmitCursor),HL
+            LD   (EMCUR),HL
             LD   HL,1
-            LD   (EmitLimit),HL
+            LD   (EMLIM),HL
             LD   DE,1
             LD   A,46
             LD   (ProofCase),A
             CALL TargetConsumeExtent
             JP   C,ProofRegionFailure
-            LD   HL,(EmitCursor)
+            LD   HL,(EMCUR)
             LD   A,H
             OR   L
             JP   NZ,ProofRegionFailure
-            LD   HL,(EmitLimit)
+            LD   HL,(EMLIM)
             LD   A,H
             OR   L
             JP   NZ,ProofRegionFailure
@@ -387,35 +387,35 @@ ProofStart:
             LD   (ProofCase),A
             CALL ProofCallTargetValidateRegion
             JP   NC,ProofRegionFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetCapacity
+            LD   A,(DGCODE)
+            CP   DGTGTCAP
             JP   NZ,ProofRegionFailure
             LD   HL,$8000
             LD   A,12
             LD   (ProofCase),A
-            LD   (TargetImageBase),HL
+            LD   (TGIMGBAS),HL
             LD   HL,$1000
-            LD   (TargetImageCapacity),HL
+            LD   (TGIMGCAP),HL
             LD   HL,$8F00
-            LD   (TargetWritableBase),HL
+            LD   (TGWRBAS),HL
             LD   HL,$0200
-            LD   (TargetWritableCapacity),HL
+            LD   (TGWRCAP),HL
             CALL ProofCallTargetClassifyFlatLayout
             JP   NC,ProofRegionFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofRegionFailure
             LD   HL,$2000
             LD   A,13
             LD   (ProofCase),A
-            LD   (TargetImageCapacity),HL
+            LD   (TGIMGCAP),HL
             LD   HL,$9000
-            LD   (TargetWritableBase),HL
+            LD   (TGWRBAS),HL
             LD   HL,$0100
-            LD   (TargetWritableCapacity),HL
+            LD   (TGWRCAP),HL
             CALL ProofCallTargetClassifyFlatLayout
             JP   C,ProofRegionFailure
-            LD   A,(TargetLayoutMode)
+            LD   A,(TGLAYMOD)
             OR   A
             JP   NZ,ProofRegionFailure
             LD   A,14
@@ -427,8 +427,8 @@ ProofStart:
             JP   NC,ProofLoadedFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofLoadedFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetCapacity
+            LD   A,(DGCODE)
+            CP   DGTGTCAP
             JP   NZ,ProofLoadedFailure
             LD   A,15
             LD   (ProofCase),A
@@ -444,8 +444,8 @@ ProofStart:
             LD   IX,FlatTargetLoadedDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofLoadedFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetOutput
+            LD   A,(DGCODE)
+            CP   DGTGTOUT
             JP   NZ,ProofLoadedFailure
             LD   A,(AdapterCommitted)
             OR   A
@@ -468,32 +468,32 @@ ProofStart:
             JP   C,ProofLoadedFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofLoadedFailure
-            LD   A,(TargetLayoutMode)
+            LD   A,(TGLAYMOD)
             OR   A
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetContextRoDataBase)
+            LD   HL,(TCROBAS)
             LD   DE,$82D4+(RIVECBYT-33)+(RIBYTES-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(EmitCursor)
-            LD   DE,(TargetImageBase)
+            LD   HL,(EMCUR)
+            LD   DE,(TGIMGBAS)
             OR   A
             SBC  HL,DE
             LD   DE,$1048+(RIVECBYT-33)+(RISTBYT-37)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetReadOnlyLength)
+            LD   HL,(TGROLEN)
             LD   A,H
             OR   L
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetCodeBase)
+            LD   HL,(TGCODBAS)
             LD   DE,$82D4+(RIVECBYT-33)+(RIBYTES-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetWritableBase)
+            LD   HL,(TGWRBAS)
             LD   DE,$9000
             OR   A
             SBC  HL,DE
@@ -503,12 +503,12 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetWritableBase)
+            LD   HL,(TGWRBAS)
             LD   DE,$9000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofLoadedFailure
-            LD   HL,(TargetContextRoDataCapacity)
+            LD   HL,(TCROCAP)
             LD   A,H
             OR   L
             JP   NZ,ProofLoadedFailure
@@ -531,7 +531,7 @@ ProofStart:
             JP   NC,ProofConfigurationFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (AdapterSavedDiagnostic),A
             LD   A,(AdapterAborted)
             OR   A
@@ -550,8 +550,8 @@ ProofStart:
             LD   IX,FlatTargetStackOverflowDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofRegionFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetCapacity
+            LD   A,(DGCODE)
+            CP   DGTGTCAP
             JP   NZ,ProofRegionFailure
             XOR  A
             LD   (AdapterCommitted),A
@@ -568,8 +568,8 @@ ProofStart:
             JP   NZ,ProofAtomicFailure
             LD   A,21
             LD   (ProofCase),A
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetOutput
+            LD   A,(DGCODE)
+            CP   DGTGTOUT
             JP   NZ,ProofAtomicFailure
             LD   A,22
             LD   (ProofCase),A
@@ -607,8 +607,8 @@ ProofStart:
             JP   NC,ProofAtomicFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofAtomicFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetOutput
+            LD   A,(DGCODE)
+            CP   DGTGTOUT
             JP   NZ,ProofAtomicFailure
             LD   A,(AdapterCommitted)
             OR   A
@@ -648,8 +648,8 @@ ProofStart:
             JP   NC,ProofAtomicFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofAtomicFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetOutput
+            LD   A,(DGCODE)
+            CP   DGTGTOUT
             JP   NZ,ProofAtomicFailure
             LD   A,(AdapterCommitted)
             OR   A
@@ -678,35 +678,35 @@ ProofStart:
             LD   A,(AdapterAborted)
             OR   A
             JP   NZ,ProofCommitFailure
-            LD   HL,(AdapterCapturedBegin+TargetDescriptorImageBase)
+            LD   HL,(AdapterCapturedBegin+TDIMGBAS)
             LD   DE,$8000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofBeginFailure
-            LD   A,(TargetLayoutMode)
-            CP   TargetLayoutRom
+            LD   A,(TGLAYMOD)
+            CP   TGLAYROM
             JP   NZ,ProofRegionFailure
-            LD   HL,(TargetContextRuntimeBase)
+            LD   HL,(TCRTBAS)
             LD   DE,$8003
             OR   A
             SBC  HL,DE
             JP   NZ,ProofContextFailure
-            LD   HL,(TargetContextStateBase)
+            LD   HL,(TCSTBAS)
             LD   DE,$4000+RIVECBYT
             OR   A
             SBC  HL,DE
             JP   NZ,ProofContextFailure
-            LD   HL,(TargetImageBase)
+            LD   HL,(TGIMGBAS)
             LD   DE,$8000
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(TargetReadOnlyBase)
+            LD   HL,(TGROBAS)
             LD   DE,$82EC+(RIVECBYT-33)+(RIBYTES-689)
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(TargetWritableBase)
+            LD   HL,(TGWRBAS)
             LD   DE,$4000
             OR   A
             SBC  HL,DE
@@ -716,12 +716,12 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(TargetBssBase)
+            LD   HL,(TGBSSBAS)
             LD   DE,$4000+RIVECBYT+RISTBYT+2
             OR   A
             SBC  HL,DE
             JP   NZ,ProofMapFailure
-            LD   HL,(TargetReadOnlyBase)
+            LD   HL,(TGROBAS)
             LD   DE,$82EC+(RIVECBYT-33)+(RIBYTES-689)
             OR   A
             SBC  HL,DE
@@ -784,7 +784,7 @@ ProofStart:
             LD   DE,AdapterUnhandledLogBase
             LDIR
 
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (AdapterSavedDiagnostic),A
 
             LD   A,40
@@ -794,8 +794,8 @@ ProofStart:
             LD   IX,BankedInvalidPartDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofConfigurationFailure
 
             LD   A,41
@@ -805,8 +805,8 @@ ProofStart:
             LD   IX,BankedWrongEntryDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofConfigurationFailure
 
             LD   A,42
@@ -816,8 +816,8 @@ ProofStart:
             LD   IX,BankedFailureDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofConfigurationFailure
 
             LD   A,43
@@ -833,8 +833,8 @@ ProofStart:
             LD   IX,BankedEntryOverflowDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetCapacity
+            LD   A,(DGCODE)
+            CP   DGTGTCAP
             JP   NZ,ProofConfigurationFailure
             LD   A,(AdapterAborted)
             DEC  A
@@ -856,8 +856,8 @@ ProofStart:
             LD   IX,BankedOtherOverflowDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetCapacity
+            LD   A,(DGCODE)
+            CP   DGTGTCAP
             JP   NZ,ProofFail
             LD   A,(AdapterAborted)
             DEC  A
@@ -880,8 +880,8 @@ ProofStart:
             JP   NC,ProofConfigurationFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofFail
             LD   A,(AdapterAborted)
             OR   A
@@ -899,8 +899,8 @@ ProofStart:
             LD   IX,BankedFailureDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofFail
 
             LD   A,47
@@ -915,8 +915,8 @@ ProofStart:
             LD   IX,BankedFailureDescriptor
             CALL CompileTargetAggregateCallParts
             JP   NC,ProofConfigurationFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticTargetConfiguration
+            LD   A,(DGCODE)
+            CP   DGTGTCFG
             JP   NZ,ProofFail
 
             XOR  A
@@ -987,7 +987,7 @@ ProofStart:
             SBC  HL,DE
             LD   (AdapterChapter21LogLength),HL
             LD   A,(AdapterSavedDiagnostic)
-            LD   (DiagnosticCode),A
+            LD   (DGCODE),A
             LD   A,$A5
             LD   (ProofStatus),A
             XOR  A
@@ -1029,7 +1029,7 @@ AdapterReserve:
             DEC  A
             LD   (AdapterFailureCountdown),A
             JR   NZ,AdapterReserveCapacity
-            LD   A,DiagnosticTargetOutput
+            LD   A,DGTGTOUT
             SCF
             RET
 AdapterReserveCapacity:
@@ -1044,7 +1044,7 @@ AdapterReserveCapacity:
             SBC  HL,DE
             JR   C,AdapterReserveReady
             JR   Z,AdapterReserveReady
-            LD   A,DiagnosticTargetOutput
+            LD   A,DGTGTOUT
             SCF
             RET
 AdapterReserveReady:
@@ -1056,7 +1056,7 @@ AdapterReserveReady:
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IY
 TargetSinkBegin:
             LD   HL,AdapterCapturedBegin
-            LD   B,TargetDescriptorSize
+            LD   B,TDSZ
 TargetSinkBeginCopy:
             LD   A,(IX+0)
             LD   (HL),A
@@ -1081,7 +1081,7 @@ TargetSinkImageByte:
             POP  BC
             POP  AF
 .if DebugHooks
-            OUT  (DebugTraceImageBytePort),A
+            OUT  (DTIMAGE),A
 .endif
             LD   (IY+0),1
             LD   (IY+1),C
@@ -1211,7 +1211,7 @@ TargetSinkMapFlat:
             LD   A,(AdapterMapFailure)
             OR   A
             JR   Z,TargetSinkMapReady
-            LD   A,DiagnosticTargetOutput
+            LD   A,DGTGTOUT
             SCF
             RET
 TargetSinkMapReady:
@@ -1220,10 +1220,10 @@ TargetSinkMapReady:
 
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkMapBanked:
-            LD   A,(IX+TargetMapRequestBankCount-TargetMapRequest)
+            LD   A,(IX+TQBNKCNT-TQBASE)
             LD   B,A
-            LD   L,(IX+TargetMapRequestBankState-TargetMapRequest)
-            LD   H,(IX+TargetMapRequestBankState-TargetMapRequest+1)
+            LD   L,(IX+TQBNKST-TQBASE)
+            LD   H,(IX+TQBNKST-TQBASE+1)
             PUSH HL
             POP  IY
             LD   HL,AdapterCapturedBankCursors
@@ -1249,7 +1249,7 @@ TargetSinkMapBankedCursorLoop:
             LD   (IX+0),A
             INC  IX
             PUSH DE
-            LD   DE,TargetBankStateSize
+            LD   DE,TBSZ
             ADD  IY,DE
             POP  DE
             DJNZ TargetSinkMapBankedCursorLoop
@@ -1261,7 +1261,7 @@ TargetSinkCommit:
             LD   A,(AdapterCommitFailure)
             OR   A
             JR   Z,TargetSinkCommitReady
-            LD   A,DiagnosticTargetOutput
+            LD   A,DGTGTOUT
             SCF
             RET
 TargetSinkCommitReady:
@@ -1283,12 +1283,12 @@ TargetSinkAbort:
 ; so both success and a nonlocal diagnostic return to the same proof site.
 .routine in DE,HL out A,carry,zero clobbers sign,parity,halfCarry,HL
 ProofCallTargetValidateRegion:
-            LD   (CompilerAbortSp),SP
+            LD   (CPABRTSP),SP
             JP   TargetValidateRegion
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 ProofCallTargetClassifyFlatLayout:
-            LD   (CompilerAbortSp),SP
+            LD   (CPABRTSP),SP
             JP   TargetClassifyFlatLayout
 
 ; Called only while ProofStart owns StackTop. The helper's return address is
@@ -1323,32 +1323,32 @@ ProofCheckProductionCapacityBoundaries:
             LD   HL,$0401
             CALL ProofCallProgramCapacity
             JR   NC,ProofProductionCapacityFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticProgramDataCapacity
+            LD   A,(DGCODE)
+            CP   DGPDCAP
             JR   NZ,ProofProductionCapacityFailure
             CALL ProofCapacityStackExact
             JR   NZ,ProofProductionCapacityFailure
             LD   HL,$0401
             CALL ProofCallReadOnlyCapacity
             JR   NC,ProofProductionCapacityFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticReadOnlyCapacity
+            LD   A,(DGCODE)
+            CP   DGROCAP
             JR   NZ,ProofProductionCapacityFailure
             CALL ProofCapacityStackExact
             JR   NZ,ProofProductionCapacityFailure
             LD   HL,$FFFF
             CALL ProofCallProgramCapacity
             JR   NC,ProofProductionCapacityFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticProgramDataCapacity
+            LD   A,(DGCODE)
+            CP   DGPDCAP
             JR   NZ,ProofProductionCapacityFailure
             CALL ProofCapacityStackExact
             JR   NZ,ProofProductionCapacityFailure
             LD   HL,$FFFF
             CALL ProofCallReadOnlyCapacity
             JR   NC,ProofProductionCapacityFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticReadOnlyCapacity
+            LD   A,(DGCODE)
+            CP   DGROCAP
             JR   NZ,ProofProductionCapacityFailure
             CALL ProofCapacityStackExact
             RET  NZ
@@ -1360,12 +1360,12 @@ ProofProductionCapacityFailure:
 
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
 ProofCallProgramCapacity:
-            LD   (CompilerAbortSp),SP
+            LD   (CPABRTSP),SP
             JP   AggregateCheckExtentCapacity
 
 .routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B
 ProofCallReadOnlyCapacity:
-            LD   (CompilerAbortSp),SP
+            LD   (CPABRTSP),SP
             JP   AggregateCheckReadOnlyCapacity
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry
@@ -1397,26 +1397,26 @@ AdapterFailureCountdown: .db 0
 AdapterMapFailure:       .db 0
 AdapterCommitFailure:    .db 0
 AdapterSavedDiagnostic:  .db 0
-AdapterCapturedBegin:   .ds TargetDescriptorSize
-AdapterCapturedBankCursors: .ds TargetBankCapacity*2
+AdapterCapturedBegin:   .ds TDSZ
+AdapterCapturedBankCursors: .ds TBKCAP*2
 AdapterCapturedBank0Cursor .equ AdapterCapturedBankCursors
 AdapterCapturedBank1Cursor .equ AdapterCapturedBankCursors+2
-AdapterCapturedBankRemaining: .ds TargetBankCapacity*2
+AdapterCapturedBankRemaining: .ds TBKCAP*2
 AdapterCapturedBank0Remaining .equ AdapterCapturedBankRemaining
 AdapterCapturedBank1Remaining .equ AdapterCapturedBankRemaining+2
-AdapterCapturedBankRoLengths: .ds TargetBankCapacity*2
+AdapterCapturedBankRoLengths: .ds TBKCAP*2
 AdapterCapturedBank0RoLength .equ AdapterCapturedBankRoLengths
 AdapterCapturedBank1RoLength .equ AdapterCapturedBankRoLengths+2
 AdapterCapturedBankedMapLength: .dw 0
 AdapterCapturedBankedMap: .ds 1
-AdapterCapturedRuntimeBase .equ TargetContextRuntimeBase
-AdapterCapturedStateBase   .equ TargetContextStateBase
+AdapterCapturedRuntimeBase .equ TCRTBAS
+AdapterCapturedStateBase   .equ TCSTBAS
 AdapterRuntimeBank:     .db 0
 AdapterRuntimeKind:     .db 0
 AdapterRuntimeLength:   .dw 0
 AdapterRuntimeIdentity: .dw 0
 AdapterRuntimeAddress:  .dw 0
-AdapterRuntimeContext:  .dw TargetRuntimeContext
+AdapterRuntimeContext:  .dw TGRTCTX
 AdapterRuntimeContextPointer .equ AdapterRuntimeContext
 ProofEnd:
 

@@ -242,67 +242,67 @@ ProofStart:
             LD   DE,AggregateAcceptedSourceEnd
             CALL CompileAggregateSlice
             JP   C,ProofFailAcceptedCompile
-            LD   A,(StaticImageLength)
+            LD   A,(IMGLEN)
             CP   AggregateExpectedImageEnd-AggregateExpectedImage
             JP   NZ,ProofFailStaticLength
-            LD   HL,StaticImageBase
+            LD   HL,IMGBAS
             LD   DE,AggregateExpectedImage
             LD   B,AggregateExpectedImageEnd-AggregateExpectedImage
             CALL ProofCompareBytes
             JP   C,ProofFailStaticBytes
             ; Pixel offsets 0,1,2 and Entry offsets 0,2,5,11.
-            LD   A,(AggregateFieldTableBase+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFOFF)
             OR   A
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ+AFOFF)
             CP   1
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize*2+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ*2+AFOFF)
             CP   2
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize*3+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ*3+AFOFF)
             OR   A
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize*4+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ*4+AFOFF)
             CP   2
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize*5+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ*5+AFOFF)
             CP   5
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldTableBase+AggregateFieldEntrySize*6+AggregateFieldOffset)
+            LD   A,(AFTABBAS+AFENTSZ*6+AFOFF)
             CP   11
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateTypeCount)
+            LD   A,(ATCNT)
             CP   5
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateRecordCount)
+            LD   A,(ARCNT)
             CP   2
             JP   NZ,ProofFailLayout
-            LD   A,(AggregateFieldCount)
+            LD   A,(AFCNT)
             CP   7
             JP   NZ,ProofFailLayout
-            LD   A,(SymbolTableBase+SymbolEntrySize*2+SymbolTypeId)
-            CP   AggregateFirstDynamicTypeId+3
+            LD   A,(SYTABBAS+SYENTSZ*2+SYTYPID)
+            CP   AGDYNTYP+3
             JP   NZ,ProofFailLayout
-            LD   A,(SymbolTableBase+SymbolEntrySize*3+SymbolTypeId)
-            CP   AggregateFirstDynamicTypeId+3
+            LD   A,(SYTABBAS+SYENTSZ*3+SYTYPID)
+            CP   AGDYNTYP+3
             JP   NZ,ProofFailLayout
-            LD   A,(SymbolTableBase+SymbolEntrySize*4+SymbolTypeId)
-            CP   AggregateFirstDynamicTypeId+4
+            LD   A,(SYTABBAS+SYENTSZ*4+SYTYPID)
+            CP   AGDYNTYP+4
             JP   NZ,ProofFailLayout
-            LD   A,(SymbolTableBase+SymbolEntrySize*2+3)
-            CP   SymbolInfoAggregateProgram
+            LD   A,(SYTABBAS+SYENTSZ*2+3)
+            CP   SIAGPROG
             JP   NZ,ProofFailLayout
-            LD   HL,(SymbolTableBase+SymbolEntrySize*2+4)
+            LD   HL,(SYTABBAS+SYENTSZ*2+4)
             LD   A,H
             OR   L
             JP   NZ,ProofFailLayout
-            LD   HL,(SymbolTableBase+SymbolEntrySize*3+4)
+            LD   HL,(SYTABBAS+SYENTSZ*3+4)
             LD   DE,14
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailLayout
-            LD   HL,(SymbolTableBase+SymbolEntrySize*4+4)
+            LD   HL,(SYTABBAS+SYENTSZ*4+4)
             LD   DE,28
             OR   A
             SBC  HL,DE
@@ -317,7 +317,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailRunState
 
@@ -325,20 +325,20 @@ ProofStart:
             ; publisher must restore the complete prior image and size. Change
             ; the first source byte so a missing rollback cannot pass by
             ; rewriting the same bytes that were already published.
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (AggregateSavedSize),HL
             LD   A,$5A
-            LD   (StaticImageBase),A
+            LD   (IMGBAS),A
             LD   HL,MMGEN+12
             CALL EncodeAggregateProgramWithinLimit
             JR   C,AggregateAtomicFailedAsExpected
             XOR  A
-            LD   (StaticImageBase),A
+            LD   (IMGBAS),A
             JP   ProofFailAtomicAccepted
 AggregateAtomicFailedAsExpected:
             XOR  A
-            LD   (StaticImageBase),A
-            LD   HL,(GeneratedSize)
+            LD   (IMGBAS),A
+            LD   HL,(GNSZ)
             LD   DE,(AggregateSavedSize)
             OR   A
             SBC  HL,DE
@@ -358,13 +358,13 @@ AggregateAtomicFailedAsExpected:
             LD   DE,AggregateBooleanSourceEnd
             CALL CompileAggregateSlice
             JP   C,ProofFailBoolean
-            LD   A,(StaticImageLength)
+            LD   A,(IMGLEN)
             CP   2
             JP   NZ,ProofFailBoolean
-            LD   A,(StaticImageBase)
+            LD   A,(IMGBAS)
             OR   A
             JP   NZ,ProofFailBoolean
-            LD   A,(StaticImageBase+1)
+            LD   A,(IMGBAS+1)
             CP   1
             JP   NZ,ProofFailBoolean
 
@@ -373,22 +373,22 @@ AggregateAtomicFailedAsExpected:
             LD   DE,AggregateIdentitySourceEnd
             CALL CompileAggregateSlice
             JP   C,ProofFailIdentity
-            LD   A,(SymbolTableBase+4)
-            CP   AggregateFirstDynamicTypeId
+            LD   A,(SYTABBAS+4)
+            CP   AGDYNTYP
             JP   NZ,ProofFailIdentity
-            LD   A,(SymbolTableBase+SymbolEntrySize+4)
-            CP   AggregateFirstDynamicTypeId+1
+            LD   A,(SYTABBAS+SYENTSZ+4)
+            CP   AGDYNTYP+1
             JP   NZ,ProofFailIdentity
-            LD   A,(SymbolTableBase+SymbolEntrySize*2+SymbolTypeId)
-            CP   AggregateFirstDynamicTypeId+2
+            LD   A,(SYTABBAS+SYENTSZ*2+SYTYPID)
+            CP   AGDYNTYP+2
             JP   NZ,ProofFailIdentity
-            LD   A,(SymbolTableBase+SymbolEntrySize*3+SymbolTypeId)
-            CP   AggregateFirstDynamicTypeId+2
+            LD   A,(SYTABBAS+SYENTSZ*3+SYTYPID)
+            CP   AGDYNTYP+2
             JP   NZ,ProofFailIdentity
-            LD   A,(AggregateTypeCount)
+            LD   A,(ATCNT)
             CP   3
             JP   NZ,ProofFailIdentity
-            LD   A,(AggregateRecordCount)
+            LD   A,(ARCNT)
             CP   2
             JP   NZ,ProofFailIdentity
 
@@ -400,17 +400,17 @@ AggregateAtomicFailedAsExpected:
             LD   DE,AggregateNestedArraySourceEnd
             CALL CompileAggregateSlice
             JP   C,ProofFailNestedArray
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,6
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailNestedArray
-            LD   HL,StaticImageBase
+            LD   HL,IMGBAS
             LD   DE,AggregateNestedArrayExpected
             LD   B,6
             CALL ProofCompareBytes
             JP   C,ProofFailNestedArray
-            LD   A,(AggregateTypeCount)
+            LD   A,(ATCNT)
             CP   2
             JP   NZ,ProofFailNestedArray
             LD   HL,MMGEN+3
@@ -422,58 +422,58 @@ AggregateAtomicFailedAsExpected:
             LD   A,131
             LD   HL,AggregateCountSource
             LD   DE,AggregateCountSourceEnd
-            LD   B,DiagnosticInitializerCount
+            LD   B,DGINICNT
             CALL ProofExpectDiagnostic
             JP   C,ProofFailCount
             LD   A,132
             LD   HL,AggregateShapeSource
             LD   DE,AggregateShapeSourceEnd
-            LD   B,DiagnosticInitializerShape
+            LD   B,DGINISHP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailShape
             LD   A,137
             LD   HL,AggregateTooManySource
             LD   DE,AggregateTooManySourceEnd
-            LD   B,DiagnosticInitializerCount
+            LD   B,DGINICNT
             CALL ProofExpectDiagnostic
             JP   C,ProofFailTooMany
             LD   A,138
             LD   HL,AggregateCloseShapeSource
             LD   DE,AggregateCloseShapeSourceEnd
-            LD   B,DiagnosticInitializerShape
+            LD   B,DGINISHP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailCloseShape
             LD   A,139
             LD   HL,AggregateTypeSource
             LD   DE,AggregateTypeSourceEnd
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailType
             LD   A,140
             LD   HL,AggregateRecordNameScalarSource
             LD   DE,AggregateRecordNameScalarSourceEnd
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailRecordScalar
             LD   A,141
             LD   HL,AggregateObjectScalarSource
             LD   DE,AggregateObjectScalarSourceEnd
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailObjectScalar
             LD   A,142
             LD   HL,AggregateObjectAssignmentSource
             LD   DE,AggregateObjectAssignmentSourceEnd
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailObjectAssignment
             LD   A,145
             LD   HL,AggregateRecordStepSource
             LD   DE,AggregateRecordStepSourceEnd
-            LD   B,DiagnosticTypeMismatch
+            LD   B,DGTYPMIS
             CALL ProofExpectDiagnostic
             JP   C,ProofFailRecordStep
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,AggregateRecordStepPoint-AggregateRecordStepSource
             OR   A
             SBC  HL,DE
@@ -481,10 +481,10 @@ AggregateAtomicFailedAsExpected:
             LD   A,143
             LD   HL,AggregateDuplicateFieldSource
             LD   DE,AggregateDuplicateFieldSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             CALL ProofExpectDiagnostic
             JP   C,ProofFailDuplicateField
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,AggregateDuplicateFieldPoint-AggregateDuplicateFieldSource
             OR   A
             SBC  HL,DE
@@ -492,22 +492,22 @@ AggregateAtomicFailedAsExpected:
             LD   A,133
             LD   HL,AggregateStringLengthSource
             LD   DE,AggregateStringLengthSourceEnd
-            LD   B,DiagnosticStringLength
+            LD   B,DGSTRLEN
             CALL ProofExpectDiagnostic
             JP   C,ProofFailStringLength
             LD   A,153
             LD   HL,AggregateMalformedEscapeSource
             LD   DE,AggregateMalformedEscapeSourceEnd
-            LD   B,DiagnosticLexical
+            LD   B,DGLEX
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMalformedEscape
             LD   A,154
             LD   HL,AggregateStringExtentCapacitySource
             LD   DE,AggregateStringExtentCapacitySourceEnd
-            LD   B,DiagnosticStringCapacity
+            LD   B,DGSTRCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailStringExtentCapacity
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,AggregateStringExtentCapacityPoint-AggregateStringExtentCapacitySource
             OR   A
             SBC  HL,DE
@@ -517,10 +517,10 @@ AggregateAtomicFailedAsExpected:
             LD   A,156
             LD   HL,AggregateStringExtentCapacitySource
             LD   DE,AggregateStringExtentCapacitySourceEnd
-            LD   B,DiagnosticStringCapacity
+            LD   B,DGSTRCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailStringExtentCapacity
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,AggregateStringExtentCapacityPoint-AggregateStringExtentCapacitySource
             OR   A
             SBC  HL,DE
@@ -530,12 +530,12 @@ AggregateAtomicFailedAsExpected:
             LD   DE,AggregateSealedStringBoundarySourceEnd
             CALL CompileAggregateSlice
             JP   C,ProofFailStringExtentCapacity
-            LD   HL,(StaticImageLength)
+            LD   HL,(IMGLEN)
             LD   DE,255
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailStringExtentCapacity
-            LD   HL,StaticImageBase
+            LD   HL,IMGBAS
             LD   BC,255
 AggregateSealedStringZeroLoop:
             LD   A,(HL)
@@ -549,31 +549,31 @@ AggregateSealedStringZeroLoop:
             LD   A,148
             LD   HL,AggregateEmptyRecordSource
             LD   DE,AggregateEmptyRecordSourceEnd
-            LD   B,DiagnosticRecordEmpty
+            LD   B,DGRECEMP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailEmptyRecord
             LD   A,149
             LD   HL,AggregateRecordCapacitySource
             LD   DE,AggregateRecordCapacitySourceEnd
-            LD   B,DiagnosticTypeMetadataCapacity
+            LD   B,DGTYPCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailRecordCapacity
             LD   A,150
             LD   HL,AggregateFieldCapacitySource
             LD   DE,AggregateFieldCapacitySourceEnd
-            LD   B,DiagnosticTypeMetadataCapacity
+            LD   B,DGTYPCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailFieldCapacity
             LD   A,134
             LD   HL,AggregateMetadataSource
             LD   DE,AggregateMetadataSourceEnd
-            LD   B,DiagnosticTypeMetadataCapacity
+            LD   B,DGTYPCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMetadata
             LD   A,135
             LD   HL,AggregateDepthSource
             LD   DE,AggregateDepthSourceEnd
-            LD   B,DiagnosticInitializerCapacity
+            LD   B,DGINICAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailDepth
             LD   A,146
@@ -589,10 +589,10 @@ AggregateSealedStringZeroLoop:
             LD   A,136
             LD   HL,AggregateDataCapacitySource
             LD   DE,AggregateDataCapacitySourceEnd
-            LD   B,DiagnosticProgramDataCapacity
+            LD   B,DGPDCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailDataCapacity
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,AggregateDataCapacityPoint-AggregateDataCapacitySource
             OR   A
             SBC  HL,DE
@@ -600,7 +600,7 @@ AggregateSealedStringZeroLoop:
             LD   A,144
             LD   HL,AggregateTypeExtentCapacitySource
             LD   DE,AggregateTypeExtentCapacitySourceEnd
-            LD   B,DiagnosticProgramDataCapacity
+            LD   B,DGPDCAP
             CALL ProofExpectDiagnostic
             JP   C,ProofFailTypeExtentCapacity
 
@@ -614,7 +614,7 @@ ProofExpectDiagnostic:
             CALL CompileAggregateSlice
             POP  BC
             RET  NC
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CP   B
             RET  Z
             SCF

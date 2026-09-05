@@ -36,17 +36,17 @@ CompilerDiagnosticBranches .equ 1
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
 .endif
 CompilerSetDiagnostic:
-            LD   (DiagnosticCode),A
-            LD   A,(SourcePartId)
-            LD   (DiagnosticPartId),A
+            LD   (DGCODE),A
+            LD   A,(SSPARTID)
+            LD   (DGPARTID),A
 .if CompilerNonlocalDiagnostics
-            LD   SP,(CompilerAbortSp)
+            LD   SP,(CPABRTSP)
 .endif
             SCF
             RET
 
 .routine noreturn
-SetDiagInline:
+DGINLINE:
             POP  HL
             LD   A,(HL)
             JR   CompilerSetDiagnostic
@@ -55,26 +55,26 @@ SetDiagInline:
 ; direction. These helpers alter no position representation or address width.
 .routine in DE out BC,DE,HL clobbers parity,halfCarry
 CompilerCopyTokenPosition:
-            LD   HL,TokenStartOffset
+            LD   HL,TNSTOFF
 
 ; Copy one complete offset/line/column record from HL to DE. LDIR preserves
 ; carry, allowing diagnostic callers to establish failure after the copy.
 .routine in DE,HL out BC,DE,HL clobbers parity,halfCarry
-CompilerCopyPosition:
+DGCOPYP:
             LD   BC,6
             LDIR
             RET
 
 .routine in HL out BC,DE,HL clobbers parity,halfCarry
 CompilerRestoreTokenPosition:
-            LD   DE,TokenStartOffset
-            JR   CompilerCopyPosition
+            LD   DE,TNSTOFF
+            JR   DGCOPYP
 
 ; E is the expected token ordinal. An ordinary mismatch reports the token
 ; ordinal with DiagnosticExpectedTokenBase set.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLine:
-            LD   E,TokenNewline
+            LD   E,TNNL
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpect:
             LD   L,E
@@ -85,7 +85,7 @@ ParserExpect:
             CP   L
             RET  Z
             LD   A,L
-            OR   DiagnosticExpectedTokenBase
+            OR   DXTOKBAS
             JR   CompilerSetDiagnostic
 
 ; The expression parser needs one token of lookahead. Token metadata remains
@@ -93,23 +93,23 @@ ParserExpect:
 ; is sufficient for names, positions, numbers, and characters.
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserPeek:
-            LD   BC,(ParserLookaheadValue)
-            LD   A,(ParserLookaheadKind)
+            LD   BC,(PSLOOKV)
+            LD   A,(PSLOOK)
             OR   A
             RET  NZ
 ParserPeekEmpty:
             PUSH HL
 .if TargetStreamingOutput
-            CALL TokenizerNextLoop
+            CALL TKNEXTLP
 .else
-            CALL TokenizerNext
+            CALL TKNEXT
 .endif
             POP  HL
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   (ParserLookaheadKind),A
-            LD   (ParserLookaheadValue),BC
+            LD   (PSLOOK),A
+            LD   (PSLOOKV),BC
             RET
 
 ; Expression reductions keep the left value in HL across lookahead consumption.
@@ -121,7 +121,7 @@ ParserTake:
 .endif
             LD   D,A
             XOR  A
-            LD   (ParserLookaheadKind),A
+            LD   (PSLOOK),A
             XOR  D
             RET
 
@@ -129,20 +129,20 @@ ParserTake:
 ; trade one shared seven-byte body for each repeated eight-byte inline check.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLeft:
-            LD   E,TokenLeftParen
+            LD   E,TNLPAR
             JR   ParserExpect
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectRight:
-            LD   E,TokenRightParen
+            LD   E,TNRPAR
             JR   ParserExpect
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectAs:
-            LD   E,TokenAs
+            LD   E,TOKENAS
             JR   ParserExpect
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectU8:
-            LD   E,TokenU8
+            LD   E,TOKENU8
             JP   ParserExpect
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -156,20 +156,20 @@ ParserExpectAsU8:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectEqual:
-            LD   E,TokenEquals
+            LD   E,TNEQ
             JR   ParserExpect
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectSub:
-            LD   E,TokenSub
+            LD   E,TOKENSUB
             JP   ParserExpect
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLeftBracket:
-            LD   E,TokenLeftBracket
+            LD   E,TNLBRK
             JP   ParserExpect
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectRightBracket:
-            LD   E,TokenRightBracket
+            LD   E,TNRBRK
             JP   ParserExpect
 .endif
 .if HybridLL1Full
@@ -179,7 +179,7 @@ ParserExpectNamed:
             PUSH BC
             PUSH DE
             PUSH HL
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
             POP  HL
             POP  DE
@@ -187,7 +187,7 @@ ParserExpectNamed:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   NC,ParserExpectNamedNo
             OR   A
             RET
@@ -198,22 +198,22 @@ ParserExpectNamedNo:
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectIndex:
-            LD   D,DiagnosticExpectedIndex
-            LD   HL,NameIndex
+            LD   D,DXIDX
+            LD   HL,KWINDEX
             LD   B,5
             JP   ParserExpectNamed
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectBytes:
-            LD   D,DiagnosticExpectedBytes
-            LD   HL,NameBytes
+            LD   D,DXBYTS
+            LD   HL,KWBYTES
             LD   B,5
             JP   ParserExpectNamed
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectResult:
-            LD   D,DiagnosticExpectedResult
-            LD   HL,NameResult
+            LD   D,DXRES
+            LD   HL,KWRESULT
             LD   B,6
             JP   ParserExpectNamed
 .endif
@@ -223,13 +223,13 @@ ParserExpectResult:
 ParserCurrentNameIsForward:
             PUSH DE
 .if NativeStreamingSource
-            LD   HL,ForwardNamePointer
-            CALL TokenNameRecordEquals
+            LD   HL,FWNAMPTR
+            CALL TKRECEQ
 .else
-            LD   HL,(ForwardNamePointer)
-            LD   A,(ForwardNameLength)
+            LD   HL,(FWNAMPTR)
+            LD   A,(FWNAMLEN)
             LD   B,A
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
 .endif
             POP  DE
             JR   NC,ParserCurrentNameNotForward
@@ -240,7 +240,7 @@ ParserCurrentNameNotForward .equ ParserExpectNamedNo
 .routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectForwardName:
             PUSH DE
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
             POP  DE
 .if CompilerDiagnosticReturns
@@ -253,14 +253,14 @@ ParserExpectForwardName:
 ParserRetainForwardName:
 .if NativeStreamingSource
             PUSH BC
-            LD   HL,ForwardNamePointer
-            CALL TokenRetainNameAtHL
+            LD   HL,FWNAMPTR
+            CALL TKRETAIN
             POP  BC
 .else
-            LD   HL,(TokenLexemePointer)
-            LD   (ForwardNamePointer),HL
-            LD   A,(TokenLength)
-            LD   (ForwardNameLength),A
+            LD   HL,(TNLEXPTR)
+            LD   (FWNAMPTR),HL
+            LD   A,(TNLEN)
+            LD   (FWNAMLEN),A
 .endif
             OR   A
             RET
@@ -269,14 +269,14 @@ ParserRetainForwardName:
 ParserRetainForwardParameter:
 .if NativeStreamingSource
             PUSH BC
-            LD   HL,ForwardParameterPointer
-            CALL TokenRetainNameAtHL
+            LD   HL,FWPARPTR
+            CALL TKRETAIN
             POP  BC
 .else
-            LD   HL,(TokenLexemePointer)
-            LD   (ForwardParameterPointer),HL
-            LD   A,(TokenLength)
-            LD   (ForwardParameterLength),A
+            LD   HL,(TNLEXPTR)
+            LD   (FWPARPTR),HL
+            LD   A,(TNLEN)
+            LD   (FWPARLEN),A
 .endif
             OR   A
             RET
@@ -286,17 +286,17 @@ ParserRetainForwardParameter:
 .routine in D out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectForwardParameter:
             PUSH DE
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
             POP  DE
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,(ForwardParameterPointer)
-            LD   A,(ForwardParameterLength)
+            LD   HL,(FWPARPTR)
+            LD   A,(FWPARLEN)
             LD   B,A
             PUSH DE
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             POP  DE
             JR   NC,ParserForwardParameterNo
             OR   A
@@ -309,24 +309,24 @@ ParserForwardParameterNo:
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectWrite:
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,NameWriteOutputByte
+            LD   HL,KWWRTOUT
             LD   B,15
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   C,ParserExpectWriteYes
-            LD   HL,NameIndex
+            LD   HL,KWINDEX
             LD   B,5
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   C,ParserActiveCounter
-            CALL SetDiagInline
-            .db  DiagnosticExpectedWrite
+            CALL DGINLINE
+            .db  DXWR
 ParserActiveCounter:
-            CALL SetDiagInline
-            .db  DiagnosticActiveCounter
+            CALL DGINLINE
+            .db  DGACTCTR
 ParserExpectWriteYes:
             OR   A
             RET
@@ -335,7 +335,7 @@ ParserExpectWriteYes:
 .if LegacyCompilerSlices
 .routine out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpectNumber:
-            LD   E,TokenNumber
+            LD   E,TNNUM
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -362,31 +362,31 @@ ParserEmitOperationC:
 ; independent of either backend's register choices.
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserEmitSymbolLoad:
-            CP   SymbolInfoProgramU8
+            CP   SIPU8
             JR   Z,ParserEmitProgramLoad
-            CP   SymbolInfoLocalU8
+            CP   SILU8
             JR   NZ,ParserExpectedScalar
-            LD   A,SemanticLoadLocalU8
+            LD   A,SMLDLU8
             JP   ParserEmitOperationC
 ParserEmitProgramLoad:
-            LD   A,SemanticLoadProgramU8
+            LD   A,SMLDPU8
             JP   ParserEmitOperationC
 
 .routine in A,C out A,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserEmitSymbolStore:
-            CP   SymbolInfoProgramU8
+            CP   SIPU8
             JR   Z,ParserEmitProgramStore
-            CP   SymbolInfoLocalU8
+            CP   SILU8
             JR   NZ,ParserExpectedScalar
-            LD   A,SemanticStoreLocalU8
+            LD   A,SMSTLU8
             JP   ParserEmitOperationC
 ParserEmitProgramStore:
-            LD   A,SemanticStoreProgramU8
+            LD   A,SMSTPU8
             JP   ParserEmitOperationC
 .endif
 
 ParserExpectedScalar:
-            LD   A,DiagnosticExpectedScalar
+            LD   A,DXSCA
             ; The legacy proof layouts put this target outside JR range.
 .if AggregateCallSlices
             JR   CompilerSetDiagnostic
@@ -401,9 +401,9 @@ ParserParseScalarPrimary:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenNumber
+            CP   TNNUM
             JR   Z,ParserParseScalarLiteral
-            CP   TokenName
+            CP   TNNAME
             JR   NZ,ParserExpectedScalar
             CALL SymbolLookupCurrent
 .if CompilerDiagnosticReturns
@@ -411,7 +411,7 @@ ParserParseScalarPrimary:
 .endif
             JP   ParserEmitSymbolLoad
 ParserParseScalarLiteral:
-            LD   A,SemanticLiteralU8
+            LD   A,SMLITU8
             JP   ParserEmitOperationC
 
 ; Precedence climbing uses one loop for both admitted operators. B is the
@@ -432,16 +432,16 @@ ParserParseScalarExpressionLoop:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenPlus
+            CP   TNPLUS
             JR   Z,ParserScalarPlus
-            CP   TokenStar
+            CP   TNSTAR
             JR   NZ,ParserScalarExpressionDone
             LD   C,2
-            LD   D,SemanticMultiplyU8
+            LD   D,SMMULU8
             JR   ParserScalarOperator
 ParserScalarPlus:
             LD   C,1
-            LD   D,SemanticAddU8
+            LD   D,SMADDU8
 ParserScalarOperator:
             LD   A,C
             CP   B
@@ -486,8 +486,8 @@ ParserParseScalarExpression:
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectRoutineHeader:
-            LD   D,DiagnosticExpectedMain
-            LD   HL,NameMain
+            LD   D,DXMAIN
+            LD   HL,NAMEMAIN
             LD   B,4
             CALL ParserExpectNamed
 .if CompilerDiagnosticReturns
@@ -501,7 +501,7 @@ ParserExpectRoutineHeader:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenFails
+            LD   E,TNFAILS
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -512,7 +512,7 @@ ParserExpectRoutineHeader:
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectIndexDeclaration:
-            LD   E,TokenVar
+            LD   E,TOKENVAR
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -550,12 +550,12 @@ ParserExpectElseFailLine:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectElseFail:
-            LD   E,TokenElse
+            LD   E,TNELSE
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenFail
+            LD   E,TNFAIL
             ; The legacy proof layouts put this target outside JR range.
 .if AggregateCallSlices
             JR   ParserExpect
@@ -571,12 +571,12 @@ ParserExpectPropagateLine:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticPropagate
+            LD   A,SMPROP
             JP   SemanticSinkOperation
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectEndLine:
-            LD   E,TokenEnd
+            LD   E,TOKENEND
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -594,7 +594,7 @@ ParserParseLoopProgramAfterSub:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticDeclareU8
+            LD   A,SMDECLU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -612,7 +612,7 @@ ParserParseLoopProgramAfterSub:
             RET  C
 .endif
 
-            LD   E,TokenFor
+            LD   E,TOKENFOR
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -625,7 +625,7 @@ ParserParseLoopProgramAfterSub:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticForUntilU8
+            LD   A,SMFORU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -638,7 +638,7 @@ ParserParseLoopProgramAfterSub:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenUntil
+            LD   E,TNUNT
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -664,12 +664,12 @@ ParserParseLoopProgramAfterSub:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticWriteOutputByte
+            LD   A,SMWROBYT
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenCharacter
+            LD   E,TNCHAR
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -692,7 +692,7 @@ ParserParseLoopProgramAfterSub:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticEndLoop
+            LD   A,SMENDLP
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -706,9 +706,9 @@ ParserParseLoopProgramAfterSub:
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarProgramDeclaration:
-            LD   A,(NextProgramSlot)
+            LD   A,(NXPROG)
             LD   E,A
-            LD   D,SymbolInfoProgramU8
+            LD   D,SIPU8
             CALL SymbolPrepareCurrent
 .if CompilerDiagnosticReturns
             RET  C
@@ -733,12 +733,12 @@ ParserParseScalarProgramDeclarationAfterU8:
 .endif
             LD   B,0
             PUSH BC
-            LD   A,SemanticDefineProgramU8
+            LD   A,SMDEFPU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticBranches
             JR   C,ParserScalarProgramOperandFailure
 .endif
-            LD   A,(NextProgramSlot)
+            LD   A,(NXPROG)
             CALL SemanticSinkPut
 .if CompilerDiagnosticBranches
             JR   C,ParserScalarProgramOperandFailure
@@ -754,7 +754,7 @@ ParserParseScalarProgramDeclarationAfterU8:
             RET  C
 .endif
             CALL SymbolCommit
-            LD   HL,NextProgramSlot
+            LD   HL,NXPROG
             INC  (HL)
             XOR  A
             RET
@@ -766,14 +766,14 @@ ParserScalarProgramOperandFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarLocalDeclaration:
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(NextLocalSlot)
+            LD   A,(NXLOCAL)
             LD   E,A
-            LD   D,SymbolInfoLocalU8
+            LD   D,SILU8
             CALL SymbolPrepareCurrent
 .if CompilerDiagnosticReturns
             RET  C
@@ -786,9 +786,9 @@ ParserParseScalarLocalDeclaration:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(NextLocalSlot)
+            LD   A,(NXLOCAL)
             LD   C,A
-            LD   A,SemanticDeclareLocalU8
+            LD   A,SMDLCLU8
             CALL ParserEmitOperationC
 .if CompilerDiagnosticReturns
             RET  C
@@ -797,9 +797,9 @@ ParserParseScalarLocalDeclaration:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(NextLocalSlot)
+            LD   A,(NXLOCAL)
             LD   C,A
-            LD   A,SemanticStoreLocalU8
+            LD   A,SMSTLU8
             CALL ParserEmitOperationC
 .if CompilerDiagnosticReturns
             RET  C
@@ -809,7 +809,7 @@ ParserParseScalarLocalDeclaration:
             RET  C
 .endif
             CALL SymbolCommit
-            LD   HL,NextLocalSlot
+            LD   HL,NXLOCAL
             INC  (HL)
             XOR  A
             RET
@@ -845,7 +845,7 @@ ParserScalarAssignmentFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarWrite:
-            LD   HL,(TokenStartOffset)
+            LD   HL,(TNSTOFF)
             PUSH HL
             CALL ParserExpectLeft
 .if CompilerDiagnosticBranches
@@ -859,7 +859,7 @@ ParserParseScalarWrite:
 .if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
 .endif
-            LD   A,SemanticWriteValueU8
+            LD   A,SMWRVU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticBranches
             JR   C,ParserScalarWriteFailure
@@ -894,17 +894,17 @@ ParserParseScalarStatements:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenEnd
+            CP   TOKENEND
             JR   Z,ParserParseScalarEnd
-            CP   TokenName
+            CP   TNNAME
             JP   NZ,ParserExpectedScalar
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   HL,NameWriteOutputByte
+            LD   HL,KWWRTOUT
             LD   B,15
-            CALL TokenNameEquals
+            CALL TKNAMEEQ
             JR   NC,ParserParseScalarAssignmentStatement
             CALL ParserParseScalarWrite
 .if CompilerDiagnosticReturns
@@ -926,12 +926,12 @@ ParserParseScalarEnd:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticEndMain
+            LD   A,SMENMAIN
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenEof
+            LD   E,TOKENEOF
             JP   ParserExpect
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -940,13 +940,13 @@ ParserParseScalarTopLevel:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenVar
+            CP   TOKENVAR
             JR   NZ,ParserParseScalarMain
             CALL ParserTake
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -957,7 +957,7 @@ ParserParseScalarTopLevel:
 .endif
             JR   ParserParseScalarTopLevel
 ParserParseScalarMain:
-            CP   TokenSub
+            CP   TOKENSUB
             JR   NZ,ParserScalarExpectedTopLevel
             CALL ParserTake
 .if CompilerDiagnosticReturns
@@ -967,7 +967,7 @@ ParserParseScalarMain:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticBeginMain
+            LD   A,SMBGMAIN
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -977,7 +977,7 @@ ParserParseScalarLocals:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenVar
+            CP   TOKENVAR
             JR   NZ,ParserParseScalarStatements
             CALL ParserTake
 .if CompilerDiagnosticReturns
@@ -989,15 +989,15 @@ ParserParseScalarLocals:
 .endif
             JR   ParserParseScalarLocals
 ParserScalarExpectedTopLevel:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedTopLevel
+            CALL DGINLINE
+            .db  DXTOPLVL
 .endif
 
 .if HybridLL1Full
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ParserParseProgramAfterVar:
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1014,7 +1014,7 @@ ParserParseArrayProgramAfterU8:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticStaticU8Array
+            LD   A,SMARRU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1025,8 +1025,8 @@ ParserParseArrayProgramAfterU8:
 .endif
             CP   4
             JR   Z,ParserArrayLengthYes
-            CALL SetDiagInline
-            .db  DiagnosticExpectedArrayLength
+            CALL DGINLINE
+            .db  DXARRLEN
 ParserArrayLengthYes:
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
@@ -1059,7 +1059,7 @@ ParserArrayInitializer:
             DEC  C
             JR   Z,ParserArrayInitializerDone
             PUSH BC
-            LD   E,TokenComma
+            LD   E,TNCOMMA
             CALL ParserExpect
             POP  BC
 .if CompilerDiagnosticReturns
@@ -1076,7 +1076,7 @@ ParserArrayInitializerDone:
             RET  C
 .endif
 
-            LD   E,TokenSub
+            LD   E,TOKENSUB
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1090,8 +1090,8 @@ ParserArrayInitializerDone:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticExpectedRead
-            LD   HL,NameReadInputByte
+            LD   D,DXRD
+            LD   HL,KWREADIN
             LD   B,13
             CALL ParserExpectNamed
 .if CompilerDiagnosticReturns
@@ -1105,7 +1105,7 @@ ParserArrayInitializerDone:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticReadInputByte
+            LD   A,SMRDIBYT
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1114,7 +1114,7 @@ ParserArrayInitializerDone:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticStoreResultU8
+            LD   A,SMSTRSU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1148,12 +1148,12 @@ ParserArrayInitializerDone:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticLoadArrayU8
+            LD   A,SMLDAU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticWriteOutputU8
+            LD   A,SMWROU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1168,12 +1168,12 @@ ParserFinishRoutine:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticReturn
+            LD   A,SMRET
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenEof
+            LD   E,TOKENEOF
             JP   ParserExpect
 .endif
 
@@ -1187,7 +1187,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1197,7 +1197,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenName
+            LD   E,TNNAME
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1220,7 +1220,7 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   A,1
-            LD   (ForwardOrdinal),A
+            LD   (FWORD),A
             CALL ParserExpectSub
 .if CompilerDiagnosticReturns
             RET  C
@@ -1229,7 +1229,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenVar
+            LD   E,TOKENVAR
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
@@ -1246,7 +1246,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticForwardMismatch
+            LD   D,DGFWDMIS
             CALL ParserExpectForwardName
 .if CompilerDiagnosticReturns
             RET  C
@@ -1255,12 +1255,12 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticCallLiteralU8
+            LD   A,SMCLITU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(ForwardOrdinal)
+            LD   A,(FWORD)
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
@@ -1298,7 +1298,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticWriteLocalU8
+            LD   A,SMWRLU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1311,7 +1311,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticEndRoutine
+            LD   A,SMENDRTN
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1321,7 +1321,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticForwardMismatch
+            LD   D,DGFWDMIS
             CALL ParserExpectForwardName
 .if CompilerDiagnosticReturns
             RET  C
@@ -1331,24 +1331,24 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   A,1
-            LD   (ForwardCompleted),A
-            LD   A,SemanticBeginForwardU8
+            LD   (FWDONE),A
+            LD   A,SMFWDU8
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(ForwardOrdinal)
+            LD   A,(FWORD)
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 
-            LD   E,TokenIf
+            LD   E,TOKENIF
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticExpectedValue
+            LD   D,DXVAL
             CALL ParserExpectForwardParameter
 .if CompilerDiagnosticReturns
             RET  C
@@ -1357,7 +1357,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticIfParameterZero
+            LD   A,SMIFPARZ
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1377,12 +1377,12 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
 
-            LD   E,TokenReturn
+            LD   E,TNRET
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticExpectedValue
+            LD   D,DXVAL
             CALL ParserExpectForwardParameter
 .if CompilerDiagnosticReturns
             RET  C
@@ -1391,7 +1391,7 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticReturnParameter
+            LD   A,SMRETPAR
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
@@ -1400,18 +1400,18 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticEndIf
+            LD   A,SMENDIF
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
 
-            LD   E,TokenReturn
+            LD   E,TNRET
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticForwardMismatch
+            LD   D,DGFWDMIS
             CALL ParserExpectForwardName
 .if CompilerDiagnosticReturns
             RET  C
@@ -1420,22 +1420,22 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   D,DiagnosticExpectedValue
+            LD   D,DXVAL
             CALL ParserExpectForwardParameter
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   E,TokenMinus
+            LD   E,TNMIN
             CALL ParserExpect
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticReturnSelfMinus
+            LD   A,SMRTSELF
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(ForwardOrdinal)
+            LD   A,(FWORD)
             CALL SemanticSinkPut
 .if CompilerDiagnosticReturns
             RET  C
@@ -1460,22 +1460,22 @@ ParserParseCallProgramAfterForward:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,SemanticEndRoutine
+            LD   A,SMENDRTN
             CALL SemanticSinkOperation
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   A,(ForwardCompleted)
+            LD   A,(FWDONE)
             OR   A
             JR   Z,ParserForwardIncomplete
-            LD   E,TokenEof
+            LD   E,TOKENEOF
             JP   ParserExpect
 ParserExpectedZero:
-            CALL SetDiagInline
-            .db  DiagnosticExpectedNumber
+            CALL DGINLINE
+            .db  DXNUM
 ParserForwardIncomplete:
-            CALL SetDiagInline
-            .db  DiagnosticForwardIncomplete
+            CALL DGINLINE
+            .db  DGFWDINC
 .endif
 
 .if HybridLL1Full
@@ -1486,18 +1486,18 @@ ParserParseProgram:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenSub
+            CP   TOKENSUB
             JP   Z,TypedParseMainAfterTake
-            CP   TokenVar
+            CP   TOKENVAR
             JP   Z,ParserParseProgramAfterVar
-            CP   TokenForward
+            CP   TNFWD
             JP   Z,TypedParseForwardAfterTake
-            CP   TokenConst
+            CP   TNCONST
             JP   Z,TypedParseTopLevelConstAfterTake
-            CP   TokenRecord
+            CP   TNREC
             JP   Z,AggregateParseRecordAfterTake
-            CALL SetDiagInline
-            .db  DiagnosticExpectedTopLevel
+            CALL DGINLINE
+            .db  DXTOPLVL
 .endif
 
 ; A is the stable source-part identity; HL..DE is the half-open byte range.
@@ -1509,7 +1509,7 @@ CompileLoopSlice:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenSub
+            CP   TOKENSUB
             JP   NZ,ParserScalarExpectedTopLevel
             CALL ParserParseLoopProgramAfterSub
 .if CompilerDiagnosticReturns
@@ -1523,7 +1523,7 @@ CompileCallSlice:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CP   TokenForward
+            CP   TNFWD
             JP   NZ,ParserScalarExpectedTopLevel
             CALL ParserParseCallProgramAfterForward
 .if CompilerDiagnosticReturns
@@ -1538,7 +1538,7 @@ CompileSlice:
             CALL CompileSliceInitialize
 .if HybridLL1Full
             XOR  A
-            LD   (Stage7CurrentRoutine),A
+            LD   (C7RTN),A
             CALL HybridLL1Parse
 .else
             CALL ParserParseProgram
@@ -1555,10 +1555,10 @@ CompileSliceInitialize:
 .if AggregateCallSlices
             PUSH AF
             XOR  A
-            LD   (SourcePartsRemaining),A
+            LD   (SSPREM),A
             POP  AF
 .endif
-            CALL SourceInitialize
+            CALL SAINIT
 .endif
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CompileSliceResetState:
@@ -1568,54 +1568,54 @@ CompileSliceResetState:
             ; and static-image buffers plus the later target descriptor and
             ; diagnostic-abort words.
             XOR  A
-            LD   HL,CompilerStateBase
+            LD   HL,CPSTBASE
             LD   (HL),A
-            LD   DE,CompilerStateBase+1
-            LD   BC,AggregateInitializerBase-CompilerStateBase-1
+            LD   DE,CPSTBASE+1
+            LD   BC,AIBAS-CPSTBASE-1
             LDIR
-            LD   HL,SemanticPayloadBase
-            LD   (SinkCursor),HL
+            LD   HL,SMPAYBAS
+            LD   (SKCUR),HL
             RET
 .else
             XOR  A
-            LD   (DiagnosticCode),A
-            LD   (DiagnosticPartId),A
+            LD   (DGCODE),A
+            LD   (DGPARTID),A
 .if AggregateCallSlices
-            LD   HL,SemanticPayloadBase
-            LD   (SinkCursor),HL
-            LD   (SinkOperationCount),A
-            LD   (SemanticBufferBase),A
+            LD   HL,SMPAYBAS
+            LD   (SKCUR),HL
+            LD   (SKOPCNT),A
+            LD   (SMBUFBAS),A
 .else
             CALL SemanticSinkReset
 .endif
             XOR  A
-            LD   (ParserLookaheadKind),A
+            LD   (PSLOOK),A
 .if AggregateCallSlices
-            LD   (SymbolCount),A
-            LD   (NextLocalSlot),A
-            LD   (NextProgramSlot),A
+            LD   (SYCNT),A
+            LD   (NXLOCAL),A
+            LD   (NXPROG),A
 .else
             CALL SymbolReset
 .endif
             XOR  A
-            LD   HL,AggregateMode
-            LD   B,AggregateHasInitializer-AggregateMode+1
+            LD   HL,AGMODE
+            LD   B,AGHASINI-AGMODE+1
 CompileSliceResetAggregateLoop:
             LD   (HL),A
             INC  HL
             DJNZ CompileSliceResetAggregateLoop
-            LD   (StaticImageLength),A
-            LD   (StaticImageLength+1),A
+            LD   (IMGLEN),A
+            LD   (IMGLEN+1),A
 .if SegmentedOutput
-            LD   (ReadOnlyImageLength),A
-            LD   (ReadOnlyImageLength+1),A
+            LD   (ROILEN),A
+            LD   (ROILEN+1),A
 .endif
 .if AggregateCallSlices
-            LD   (ProgramBssLength),A
-            LD   (ProgramBssLength+1),A
+            LD   (PGBSSLEN),A
+            LD   (PGBSSLEN+1),A
 .endif
-            LD   (ForwardCompleted),A
-            LD   (ForwardOrdinal),A
+            LD   (FWDONE),A
+            LD   (FWORD),A
             RET
 .endif
 

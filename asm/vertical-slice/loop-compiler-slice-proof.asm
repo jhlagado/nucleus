@@ -72,7 +72,7 @@ ProofStart:
             LD   DE,AcceptedLoopSourceEnd
             CALL CompileLoopSlice
             JP   C,ProofFailAccepted
-            LD   HL,SemanticBufferBase
+            LD   HL,SMBUFBAS
             LD   DE,ExpectedLoopOperations
             LD   B,11
             CALL ProofCompareBytes
@@ -83,7 +83,7 @@ ProofStart:
             LD   DE,ZeroLoopSourceEnd
             CALL CompileLoopSlice
             JP   C,ProofFailZero
-            LD   A,(SemanticBufferBase+5)
+            LD   A,(SMBUFBAS+5)
             OR   A
             JP   NZ,ProofFailZeroBound
 
@@ -92,10 +92,10 @@ ProofStart:
             LD   DE,CounterWriteSourceEnd
             CALL CompileLoopSlice
             JP   NC,ProofFailCounterAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticActiveCounter
+            LD   A,(DGCODE)
+            CP   DGACTCTR
             JP   NZ,ProofFailCounterCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,CounterWriteStart-CounterWriteSource+8
             OR   A
             SBC  HL,DE
@@ -106,23 +106,23 @@ ProofStart:
             LD   DE,MissingEndSourceEnd
             CALL CompileLoopSlice
             JP   NC,ProofFailMissingAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticExpectedEnd
+            LD   A,(DGCODE)
+            CP   DXEND
             JP   NZ,ProofFailMissingCode
-            LD   A,(DiagnosticPartId)
+            LD   A,(DGPARTID)
             CP   13
             JP   NZ,ProofFailMissingPart
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,MissingEndSourceEnd-MissingEndSource
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailMissingPosition
-            LD   HL,(DiagnosticLine)
+            LD   HL,(DGLINE)
             LD   DE,6
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailMissingPosition
-            LD   HL,(DiagnosticColumn)
+            LD   HL,(DGCOL)
             LD   DE,1
             OR   A
             SBC  HL,DE
@@ -174,9 +174,9 @@ ProofFailed:
             HALT
 
 ExpectedLoopOperations:
-            .db 6,SemanticDeclareU8,0,SemanticForUntilU8,0,3
-            .db SemanticWriteOutputByte,"A",SemanticPropagate
-            .db SemanticEndLoop,SemanticReturn
+            .db 6,SMDECLU8,0,SMFORU8,0,3
+            .db SMWROBYT,"A",SMPROP
+            .db SMENDLP,SMRET
 ProofStatus:             .db 0
 ProofCase:               .db 0
 ProofEnd:

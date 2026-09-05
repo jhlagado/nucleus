@@ -30,9 +30,9 @@ KeywordFail:
             .db  "fail"
 KeywordEnd:
             .db  "end"
-NameMain:
+NAMEMAIN:
             .db  "main"
-NameWriteOutputByte:
+KWWRTOUT:
             .db  "writeOutputByte"
 ProgramTemplate:
             .db  $3E,$00
@@ -40,7 +40,7 @@ ProgramTemplate:
             .dw  RTWRITE
             .db  $38,$06
             .db  $3E,RTSUCC,$32
-            .dw  RunState
+            .dw  RUNSTATE
             .db  $C9
             .db  $32
             .dw  RTTRPERR
@@ -53,7 +53,7 @@ ProgramTemplate:
             .db  $3E,$06,$32
             .dw  RTTRPNO
             .db  $3E,RTTRAP,$32
-            .dw  RunState
+            .dw  RUNSTATE
             .db  $C9
 CompilerImmutableEnd:
 CompilerCoreEnd:
@@ -86,8 +86,8 @@ ProofStart:
             JP   C,ProofFailCompile
             CALL EncodeSemanticProgram
             JP   C,ProofFailEncode
-            LD   HL,(GeneratedSize)
-            LD   DE,ProgramSize
+            LD   HL,(GNSZ)
+            LD   DE,PGSZ
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
@@ -96,10 +96,10 @@ ProofStart:
             XOR  A
             LD   (ServiceForceFailure),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailRunSuccess
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailOutputLength
             LD   A,(ServiceOutputByte)
@@ -111,10 +111,10 @@ ProofStart:
             LD   A,1
             LD   (ServiceForceFailure),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailTrapState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailAtomicOutput
             LD   A,(RTTRPNO)

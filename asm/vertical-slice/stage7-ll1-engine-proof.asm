@@ -20,8 +20,8 @@ ParserPeek:
             LD   A,(MockPeekFailure)
             OR   A
             JR   Z,ParserPeekReady
-            CALL SetDiagInline
-            .db  DiagnosticExpectedTokenBase
+            CALL DGINLINE
+            .db  DXTOKBAS
 ParserPeekReady:
             PUSH HL
             LD   HL,(MockTokenCursor)
@@ -52,15 +52,15 @@ ParserExpect:
             CP   E
             RET  Z
             LD   A,E
-            OR   DiagnosticExpectedTokenBase
+            OR   DXTOKBAS
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
 CompilerSetDiagnostic:
-            LD   (DiagnosticCode),A
+            LD   (DGCODE),A
             SCF
             RET
 
 .routine noreturn
-SetDiagInline:
+DGINLINE:
             POP  HL
             LD   A,(HL)
             JR   CompilerSetDiagnostic
@@ -71,8 +71,8 @@ HybridLL1MeasuredEnd:
 
             .org MMSOURCE
 MockTokenStream:
-            .db TokenSub,TokenName,TokenLeftParen,TokenRightParen
-            .db TokenFails,TokenNewline,TokenEnd,TokenNewline,TokenEof
+            .db TOKENSUB,TNNAME,TNLPAR,TNRPAR
+            .db TNFAILS,TNNL,TOKENEND,TNNL,TOKENEOF
 MockTokenStreamEnd:
 
             .org MMPROOF
@@ -81,7 +81,7 @@ ProofStart:
             LD   HL,MockTokenStream
             LD   (MockTokenCursor),HL
             XOR  A
-            LD   (DiagnosticCode),A
+            LD   (DGCODE),A
             CALL HybridLL1Parse
             JP   C,ProofFailure
             LD   HL,(MockTokenCursor)
@@ -99,10 +99,10 @@ ProofStart:
             LD   (ProofExpectedSP),SP
             CALL HybridLL1Parse
             JP   NC,ProofFailure
-            CP   DiagnosticExpectedTokenBase
+            CP   DXTOKBAS
             JP   NZ,ProofFailure
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticExpectedTokenBase
+            LD   A,(DGCODE)
+            CP   DXTOKBAS
             JP   NZ,ProofFailure
             LD   HL,0
             ADD  HL,SP
@@ -116,16 +116,16 @@ ProofStart:
             ; A four-symbol production exactly fills slots 60..63 without
             ; touching the action workspace immediately above the stack.
             LD   A,$5A
-            LD   (HybridLL1StackBase+HybridLL1StackCapacity),A
+            LD   (HybridLL1StackBase+HYLLCAP),A
             LD   A,60
             LD   (HybridLL1StackDepth),A
             LD   A,31
             CALL HybridLL1PushProduction
             JR   C,ProofFailure
             LD   A,(HybridLL1StackDepth)
-            CP   HybridLL1StackCapacity
+            CP   HYLLCAP
             JR   NZ,ProofFailure
-            LD   A,(HybridLL1StackBase+HybridLL1StackCapacity)
+            LD   A,(HybridLL1StackBase+HYLLCAP)
             CP   $5A
             JR   NZ,ProofFailure
 
@@ -134,24 +134,24 @@ ProofStart:
             XOR  A
             CALL HybridLL1PushSymbol
             JR   NC,ProofFailure
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CP   DiagnosticParserCapacity
             JR   NZ,ProofFailure
             LD   A,(HybridLL1StackDepth)
-            CP   HybridLL1StackCapacity
+            CP   HYLLCAP
             JR   NZ,ProofFailure
             LD   A,63
             LD   (HybridLL1StackDepth),A
             LD   A,31
             CALL HybridLL1PushProduction
             JR   NC,ProofFailure
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CP   DiagnosticParserCapacity
             JR   NZ,ProofFailure
             LD   A,(HybridLL1StackDepth)
             CP   63
             JR   NZ,ProofFailure
-            LD   A,(HybridLL1StackBase+HybridLL1StackCapacity)
+            LD   A,(HybridLL1StackBase+HYLLCAP)
             CP   $5A
             JR   NZ,ProofFailure
             LD   A,$A5

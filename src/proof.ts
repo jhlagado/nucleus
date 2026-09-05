@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
 
 import {
   materializeNobj,
@@ -191,7 +190,10 @@ export async function runProofManifest(
     .relative(fileURLToPath(new URL("../asm/", import.meta.url)), sourcePath)
     .split(path.sep)
     .join("/");
-  const assembled = await assembleAtomSource(entry).catch((cause: unknown) => {
+  const assembly = entry === "vertical-slice/tokenizer-trace-proof.asm"
+    ? (await import("../scripts/assemble-native-tokenizer.mjs")).assembleNativeTokenizerTrace()
+    : (await import("../scripts/atom-source.mjs")).assembleAtomSource(entry);
+  const assembled = await assembly.catch((cause: unknown) => {
     throw new ProofFailure(
       `${manifest.name}: ATOM assembly failed\n${cause instanceof Error ? cause.message : String(cause)}`,
     );

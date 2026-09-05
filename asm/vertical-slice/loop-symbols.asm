@@ -5,9 +5,9 @@
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 SymbolReset:
             XOR  A
-            LD   (SymbolCount),A
-            LD   (NextLocalSlot),A
-            LD   (NextProgramSlot),A
+            LD   (SYCNT),A
+            LD   (NXLOCAL),A
+            LD   (NXPROG),A
             RET
 .endif
 
@@ -16,20 +16,20 @@ SymbolReset:
 ; returns a matching entry in HL. The provisional entry is invisible.
 .routine out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
 SymbolFindCurrent:
-            LD   A,(SymbolCount)
+            LD   A,(SYCNT)
             OR   A
             RET  Z
             LD   C,A
             LD   B,A
-            LD   HL,SymbolTableBase-SymbolEntrySize
-            LD   DE,SymbolEntrySize
+            LD   HL,SYTABBAS-SYENTSZ
+            LD   DE,SYENTSZ
 SymbolFindCurrentAdvance:
             ADD  HL,DE
             DJNZ SymbolFindCurrentAdvance
 SymbolFindCurrentLoop:
-            CALL TokenNameRecordEquals
+            CALL TKRECEQ
             RET  C
-            LD   DE,-SymbolEntrySize
+            LD   DE,-SYENTSZ
             ADD  HL,DE
             DEC  C
             JR   NZ,SymbolFindCurrentLoop
@@ -68,15 +68,15 @@ SymbolPrepareRoutineWord:
             BIT  3,(HL)
             JP   NZ,TypedDuplicateNameFailure
 SymbolPrepareRoutineReady:
-            LD   A,(DeclarationInfo)
+            LD   A,(DCINFO)
             LD   D,A
-            LD   BC,(DeclarationPayload)
+            LD   BC,(DCPAY)
             JP   SymbolAppendCurrentWord
 .endif
 .routine in D,BC out A,carry,zero,HL clobbers sign,parity,halfCarry,B,C,D,DE
 SymbolAppendCurrentWord:
-            LD   A,(SymbolCount)
-            CP   SymbolCapacity
+            LD   A,(SYCNT)
+            CP   SYCAP
             JR   NC,SymbolPrepareFull
             PUSH BC
             LD   C,A
@@ -88,9 +88,9 @@ SymbolAppendCurrentWord:
             ADD  HL,BC
             ADD  HL,BC
             ADD  HL,BC
-            LD   BC,SymbolTableBase
+            LD   BC,SYTABBAS
             ADD  HL,BC
-            CALL TokenRetainNameAtHL
+            CALL TKRETAIN
             INC  HL
             LD   (HL),D
             INC  HL
@@ -101,7 +101,7 @@ SymbolAppendCurrentWord:
             OR   A
             RET
 SymbolPrepareFull:
-            LD   A,DiagnosticSymbolCapacity
+            LD   A,DGSYMCAP
             JR   CompilerSetDiagnostic
 
 ; Retain A as the exact type ordinal in the prepared symbol entry. HL points
@@ -112,7 +112,7 @@ SymbolCommitTyped:
             LD   (HL),A
 .routine out A,carry,zero clobbers sign,parity,halfCarry,HL
 SymbolCommit:
-            LD   HL,SymbolCount
+            LD   HL,SYCNT
             INC  (HL)
             XOR  A
             RET
@@ -133,4 +133,4 @@ SymbolLookupCurrent:
             OR   A
             RET
 SymbolLookupMissing:
-            LD   A,DiagnosticUnknownName
+            LD   A,DGUNKNAM

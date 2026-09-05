@@ -1,66 +1,66 @@
 ; Writable state for the direct-Z80 counted-loop proof target.
 
-RTSTATE         .equ MMEXEC
-RunState          .equ RTSTATE+$00
-RTTRPNO        .equ RTSTATE+$01
-RTTRPRTN       .equ RTSTATE+$02
-RTTRPOFF        .equ RTSTATE+$03
-RTTRPERR         .equ RTSTATE+$05
-RTDEPTH   .equ RTSTATE+$06
-RTACTLIM   .equ RTSTATE+$07
-RTSCALAR        .equ RTSTATE+$08
-RTACTMEM   .equ RTSTATE+$09
-RTACTCAP .equ 8
-RootSP            .equ RTACTMEM+RTACTCAP
-RootIX            .equ RootSP+2
-StateEnd          .equ RootIX+2
+RTSTATE   EQU MMEXEC
+RUNSTATE  EQU RTSTATE+$00
+RTTRPNO   EQU RTSTATE+$01
+RTTRPRTN  EQU RTSTATE+$02
+RTTRPOFF  EQU RTSTATE+$03
+RTTRPERR  EQU RTSTATE+$05
+RTDEPTH   EQU RTSTATE+$06
+RTACTLIM  EQU RTSTATE+$07
+RTSCALAR  EQU RTSTATE+$08
+RTACTMEM  EQU RTSTATE+$09
+RTACTCAP  EQU 8
+ROOTSP    EQU RTACTMEM+RTACTCAP
+ROOTIX    EQU ROOTSP+2
+STATEEND  EQU ROOTIX+2
 
-RunReady          .equ 1
-RTSUCC      .equ 2
-RTTRAP        .equ 3
+RUNREADY  EQU 1
+RTSUCC    EQU 2
+RTTRAP    EQU 3
 
-ServiceFailureCall      .equ MMSERV+$00
-ServiceCallCount        .equ MMSERV+$01
-ServiceOutputLength     .equ MMSERV+$02
-ServiceOutputBase       .equ MMSERV+$03
-ServiceOutputCapacity   .equ 4
-ServiceInputLength      .equ MMSERV+$07
-ServiceInputCursor      .equ MMSERV+$08
-ServiceInputFailure     .equ MMSERV+$09
-ServiceInputBase        .equ MMSERV+$0A
-ServiceInputCapacity    .equ 4
-ServiceStorageInputLength  .equ MMSERV+$0E
-ServiceStorageInputCursor  .equ MMSERV+$0F
-ServiceStorageInputFailure .equ MMSERV+$10
-ServiceStorageInputBase    .equ MMSERV+$11
-ServiceStorageInputCapacity .equ 4
-ServiceStorageOutputLength  .equ MMSERV+$15
-ServiceStorageOutputCursor  .equ MMSERV+$16
-ServiceStorageOutputFailure .equ MMSERV+$17
-ServiceStorageOutputBase    .equ MMSERV+$18
-ServiceStorageOutputCapacity .equ 4
-ServiceStateEnd         .equ ServiceStorageOutputBase+ServiceStorageOutputCapacity
+SVFAIL    EQU MMSERV+$00
+SVCALLS   EQU MMSERV+$01
+VOUTLEN   EQU MMSERV+$02
+VOUTBAS   EQU MMSERV+$03
+VOUTCAP   EQU 4
+VINLEN    EQU MMSERV+$07
+VINCUR    EQU MMSERV+$08
+VINFAIL   EQU MMSERV+$09
+VINBAS    EQU MMSERV+$0A
+VINCAP    EQU 4
+VSILEN    EQU MMSERV+$0E
+VSICUR    EQU MMSERV+$0F
+VSIFAIL   EQU MMSERV+$10
+VSIBAS    EQU MMSERV+$11
+VSICAP    EQU 4
+VSOLEN    EQU MMSERV+$15
+VSOCUR    EQU MMSERV+$16
+VSOFAIL   EQU MMSERV+$17
+VSOBAS    EQU MMSERV+$18
+VSOCAP    EQU 4
+SVEND     EQU VSOBAS+VSOCAP
 
-ProgramSize       .equ 54
-LoopFailureOffset .equ 30
-            .if TargetStreamingOutput
-            .else
-GeneratedEnd      .equ MMGEN+ProgramSize
-            .endif
+PGSZ      EQU 54
+LPFAIL    EQU 30
+%IF TargetStreamingOutput
+%ELSE
+GNEND     EQU MMGEN+PGSZ
+%ENDIF
 
-ArrayProgramSize  .equ 74
-ArrayInputFailureOffset .equ 0
-ArrayBoundsOffset .equ 10
-ArrayOutputFailureOffset .equ 22
-            .if TargetStreamingOutput
-            .else
-GeneratedArrayEnd       .equ MMGEN+ArrayProgramSize
-            .endif
+ARYPGSZ   EQU 74
+ARYIFAIL  EQU 0
+ARYBOFF   EQU 10
+ARYOFAIL  EQU 22
+%IF TargetStreamingOutput
+%ELSE
+GNARREND  EQU MMGEN+ARYPGSZ
+%ENDIF
 
-CallProgramSize   .equ 99
-CallFailureOffset .equ 95
-CallCapacityOffset .equ 203
-            .if TargetStreamingOutput
-            .else
-GeneratedCallEnd        .equ MMGEN+CallProgramSize
-            .endif
+CLPROGSZ  EQU 99
+CLFAIL    EQU 95
+CLCAPOFF  EQU 203
+%IF TargetStreamingOutput
+%ELSE
+GNCALEND  EQU MMGEN+CLPROGSZ
+%ENDIF

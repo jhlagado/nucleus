@@ -219,7 +219,7 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
 
             LD   A,110
             LD   HL,StructuredAcceptedSource
@@ -231,13 +231,13 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailAcceptedFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailAcceptedState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailAcceptedOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             LD   (AcceptedObservedOutput),A
             ; The harness independently checks the observed byte while this
             ; proof continues to discriminate storage and final counters.
@@ -247,7 +247,7 @@ ProofStart:
             LD   (AcceptedObservedCounter),A
             LD   HL,(MMGEN+5)
             LD   (AcceptedObservedDescending),HL
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   (StructuredGeneratedSize),HL
 
             ; A failed Z80-emission transaction must leave the published
@@ -267,7 +267,7 @@ ProofStart:
             LD   A,(AtomicObservedByte)
             CP   B
             JP   NZ,ProofFailAtomicByte
-            LD   HL,(GeneratedSize)
+            LD   HL,(GNSZ)
             LD   DE,(StructuredGeneratedSize)
             OR   A
             SBC  HL,DE
@@ -280,7 +280,7 @@ ProofStart:
             LD   (RTACTLIM),A
             CALL ProofCallGenerated
             JP   C,ProofFailCapacityFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailCapacityState
             LD   A,(RTTRPNO)
@@ -305,7 +305,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailRangeFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailRangeState
             LD   A,(RTDEPTH)
@@ -323,34 +323,34 @@ ProofStart:
             LD   A,112
             LD   HL,StructuredActiveCounterSource
             LD   DE,StructuredActiveCounterSourceEnd
-            LD   B,DiagnosticActiveCounter
+            LD   B,DGACTCTR
             LD   IX,StructuredActiveCounterName-StructuredActiveCounterSource
             CALL ProofExpectDiagnostic
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (ActiveObservedDiagnostic),A
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   (ActiveObservedOffset),HL
 
             LD   A,113
             LD   HL,StructuredExitOutsideSource
             LD   DE,StructuredExitOutsideSourceEnd
-            LD   B,DiagnosticExpectedLoop
+            LD   B,DXLOOP
             LD   IX,StructuredExitOutsidePoint-StructuredExitOutsideSource
             CALL ProofExpectDiagnostic
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (ExitObservedDiagnostic),A
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   (ExitObservedOffset),HL
 
             LD   A,114
             LD   HL,StructuredZeroStepSource
             LD   DE,StructuredZeroStepSourceEnd
-            LD   B,DiagnosticLoopStep
+            LD   B,DGLOPSTP
             LD   IX,StructuredZeroStepPoint-StructuredZeroStepSource
             CALL ProofExpectDiagnostic
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             LD   (StepObservedDiagnostic),A
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   (StepObservedOffset),HL
 
             LD   A,115
@@ -363,7 +363,7 @@ ProofStart:
             CALL Reset
             CALL ProofCallGenerated
             JP   C,ProofFailBooleanFlowFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailBooleanFlowState
             LD   A,(MMGEN+3)
@@ -373,14 +373,14 @@ ProofStart:
             LD   A,116
             LD   HL,StructuredStrayElseSource
             LD   DE,StructuredStrayElseSourceEnd
-            LD   B,DiagnosticExpectedEnd
+            LD   B,DXEND
             LD   IX,StructuredStrayElsePoint-StructuredStrayElseSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailStrayElse
             LD   A,117
             LD   HL,StructuredStrayElseIfSource
             LD   DE,StructuredStrayElseIfSourceEnd
-            LD   B,DiagnosticExpectedEnd
+            LD   B,DXEND
             LD   IX,StructuredStrayElseIfPoint-StructuredStrayElseIfSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailStrayElseIf
@@ -388,63 +388,63 @@ ProofStart:
             LD   A,118
             LD   HL,StructuredSecondForwardSource
             LD   DE,StructuredSecondForwardSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredSecondForwardPoint-StructuredSecondForwardSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailSecondForward
             LD   A,119
             LD   HL,StructuredProgramForwardSource
             LD   DE,StructuredProgramForwardSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredProgramForwardPoint-StructuredProgramForwardSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailProgramForward
             LD   A,120
             LD   HL,StructuredLocalForwardSource
             LD   DE,StructuredLocalForwardSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredLocalForwardPoint-StructuredLocalForwardSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailLocalForward
             LD   A,121
             LD   HL,StructuredMainForwardSource
             LD   DE,StructuredMainForwardSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredMainForwardPoint-StructuredMainForwardSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailMainForward
             LD   A,122
             LD   HL,StructuredParameterForwardSource
             LD   DE,StructuredParameterForwardSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredParameterForwardPoint-StructuredParameterForwardSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailParameterForward
             LD   A,124
             LD   HL,StructuredProgramMainSource
             LD   DE,StructuredProgramMainSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredProgramMainPoint-StructuredProgramMainSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailProgramMain
             LD   A,125
             LD   HL,StructuredLocalMainSource
             LD   DE,StructuredLocalMainSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredLocalMainPoint-StructuredLocalMainSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailLocalMain
             LD   A,126
             LD   HL,StructuredParameterMainSource
             LD   DE,StructuredParameterMainSourceEnd
-            LD   B,DiagnosticDuplicateName
+            LD   B,DGDUPNAM
             LD   IX,StructuredParameterMainPoint-StructuredParameterMainSource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailParameterMain
             LD   A,123
             LD   HL,StructuredLabelCapacitySource
             LD   DE,StructuredLabelCapacitySourceEnd
-            LD   B,DiagnosticControlLabelCapacity
+            LD   B,DGCLBCAP
             LD   IX,StructuredLabelCapacityPoint-StructuredLabelCapacitySource
             CALL ProofExpectDiagnostic
             JP   C,ProofFailLabelCapacity
@@ -462,10 +462,10 @@ ProofExpectDiagnostic:
             POP  IX
             POP  BC
             RET  NC
-            LD   A,(DiagnosticCode)
+            LD   A,(DGCODE)
             CP   B
             JR   NZ,ProofExpectedDiagnosticNo
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             PUSH IX
             POP  DE
             OR   A

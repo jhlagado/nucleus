@@ -59,7 +59,7 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
 
             LD   A,30
             LD   HL,LoopProofSource
@@ -68,26 +68,26 @@ ProofStart:
             JP   C,ProofFailCompile
             CALL EncodeLoopProgram
             JP   C,ProofFailEncode
-            LD   HL,(GeneratedSize)
-            LD   DE,ProgramSize
+            LD   HL,(GNSZ)
+            LD   DE,PGSZ
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailSize
 
             CALL Reset
             XOR  A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL MMGEN
             LD   A,D
             CP   2
             JP   NZ,ProofFailFinalCounter
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailRunSuccess
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   3
             JP   NZ,ProofFailOutputLength
-            LD   HL,ServiceOutputBase
+            LD   HL,VOUTBAS
             LD   B,3
 ProofCheckSuccessOutput:
             LD   A,(HL)
@@ -98,22 +98,22 @@ ProofCheckSuccessOutput:
 
             CALL Reset
             LD   A,2
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailTrapState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailFailureOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   "A"
             JP   NZ,ProofFailFailureOutput
             LD   A,(RTTRPNO)
             CP   6
             JP   NZ,ProofFailTrapNumber
             LD   HL,(RTTRPOFF)
-            LD   DE,LoopFailureOffset
+            LD   DE,LPFAIL
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailTrapOffset
@@ -130,12 +130,12 @@ ProofCheckSuccessOutput:
             JP   C,ProofFailZeroEncode
             CALL Reset
             XOR  A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL MMGEN
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailZeroRun
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailZeroOutput
 

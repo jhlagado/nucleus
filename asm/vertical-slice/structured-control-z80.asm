@@ -2,12 +2,12 @@
 ; operands are compiler-private absolute words and are resolved before the
 ; generated program is published.
 
-EmitControlCounter      .equ EmitCodeStart
-EmitControlMode         .equ EmitCodeStart+1
-EmitControlStep         .equ EmitLoopHead
-EmitControlTrapOffset   .equ EmitExitFixup
-EmitControlTestLabel    .equ EmitFailureFixup
-EmitControlExitLabel    .equ EmitFailureFixup+1
+EmitControlCounter      .equ EMCODST
+EmitControlMode         .equ EMCODST+1
+EmitControlStep         .equ EMLOOP
+EmitControlTrapOffset   .equ EMEXIT
+EmitControlTestLabel    .equ EMFAIL
+EmitControlExitLabel    .equ EMFAIL+1
 
 ; C is a label ordinal and DE is the address of a generated word operand.
 .if TargetStreamingOutput
@@ -18,17 +18,17 @@ EmitControlExitLabel    .equ EmitFailureFixup+1
 StructuredRecordFixup:
             LD   A,C
             AND  $7F
-            CP   EmitControlLabelCapacity
+            CP   ECLCAP
             JP   NC,ControlLabelFailure
-            LD   A,(EmitControlFixupCount)
-            CP   EmitControlFixupCapacity
+            LD   A,(ECFCNT)
+            CP   ECFCAP
             JR   NC,StructuredFixupFailure
             PUSH BC
             LD   L,A
             LD   H,0
             ADD  HL,HL
             ADD  HL,HL
-            LD   BC,EmitControlFixupBase
+            LD   BC,ECFBAS
             ADD  HL,BC
             POP  BC
             LD   A,C
@@ -36,7 +36,7 @@ StructuredRecordFixup:
             LD   (HL),A
             INC  HL
 .if TargetStreamingOutput
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             BIT  7,C
             JR   Z,StructuredRecordFlagsReady
             SET  7,A
@@ -49,15 +49,15 @@ StructuredRecordFlagsReady:
             LD   (HL),E
             INC  HL
             LD   (HL),D
-            LD   HL,EmitControlFixupCount
+            LD   HL,ECFCNT
             INC  (HL)
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TypedEndRoutine:
             XOR  A
             RET
 StructuredFixupFailure:
-            CALL SetDiagInline
-            .db  DiagnosticControlFixupCapacity
+            CALL DGINLINE
+            .db  DGCFXCAP
 
 ; Emit opcode A with a zero word operand and retain that operand for label C.
 .if TargetStreamingOutput
@@ -74,7 +74,7 @@ StructuredEmitFixup:
             RET  C
             PUSH BC
 .endif
-            LD   DE,(EmitCursor)
+            LD   DE,(EMCUR)
             PUSH DE
             LD   HL,0
             CALL EmitWord
@@ -92,7 +92,7 @@ StructuredControlLabelEntry:
             ADD  A,C
             LD   L,A
             LD   H,0
-            LD   BC,EmitControlLabelBase
+            LD   BC,ECLBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
@@ -104,20 +104,20 @@ StructuredLabel:
 .routine in C out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 StructuredDefineLabel:
             LD   A,C
-            CP   EmitControlLabelCapacity
+            CP   ECLCAP
             JP   NC,ControlLabelFailure
 .if TargetStreamingOutput
             CALL StructuredControlLabelEntry
 .else
             LD   B,0
-            LD   HL,EmitControlLabelValidBase
+            LD   HL,ECLVBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
 .endif
             JP   NZ,TypedInternalOperation
 .if TargetStreamingOutput
-            LD   A,(TargetOutputBank)
+            LD   A,(TGOUTBNK)
             INC  A
             LD   (HL),A
 .else
@@ -129,10 +129,10 @@ StructuredDefineLabel:
             LD   L,C
             LD   H,0
             ADD  HL,HL
-            LD   BC,EmitControlLabelAddressBase
+            LD   BC,ECLABAS
             ADD  HL,BC
 .endif
-            LD   DE,(EmitCursor)
+            LD   DE,(EMCUR)
             LD   (HL),E
             INC  HL
             LD   (HL),D
@@ -203,11 +203,11 @@ StructuredResolveFixups:
             RET  C
 .endif
 .endif
-            LD   A,(EmitControlFixupCount)
+            LD   A,(ECFCNT)
             OR   A
             RET  Z
             LD   B,A
-            LD   IX,EmitControlFixupBase
+            LD   IX,ECFBAS
 StructuredResolveNext:
             LD   C,(IX+0)
             LD   E,(IX+2)
@@ -219,12 +219,12 @@ StructuredResolveNext:
             LD   A,D
             AND  $03
             LD   E,A
-            LD   (TargetOutputBank),A
+            LD   (TGOUTBNK),A
 .endif
             LD   A,C
 .if TargetStreamingOutput
 .else
-            CP   EmitControlLabelCapacity
+            CP   ECLCAP
             JR   NC,StructuredResolveFailure
             PUSH BC
             PUSH DE
@@ -233,7 +233,7 @@ StructuredResolveNext:
             CALL StructuredControlLabelEntry
 .else
             LD   B,0
-            LD   HL,EmitControlLabelValidBase
+            LD   HL,ECLVBAS
             ADD  HL,BC
             LD   A,(HL)
             OR   A
@@ -253,7 +253,7 @@ StructuredResolveBankReady:
             LD   H,0
             LD   L,C
             ADD  HL,HL
-            LD   BC,EmitControlLabelAddressBase
+            LD   BC,ECLABAS
             ADD  HL,BC
 .endif
             LD   C,(HL)
@@ -272,8 +272,8 @@ StructuredResolveBankReady:
             INC  IX
             DJNZ StructuredResolveNext
 .if TargetStreamingOutput
-            LD   A,TargetOutputClosed
-            LD   (TargetOutputBank),A
+            LD   A,TGOUTCLS
+            LD   (TGOUTBNK),A
 .endif
             XOR  A
             RET
@@ -562,8 +562,8 @@ StructuredForNextFit:
             RET  C
 .endif
 StructuredForNextTrap:
-            LD   HL,(EmitCursor)
-            LD   (EmitUpdateExitFixup),HL
+            LD   HL,(EMCUR)
+            LD   (EMUPEXIT),HL
             LD   HL,0
             CALL EmitWord
 .if CompilerDiagnosticReturns
@@ -575,8 +575,8 @@ StructuredForNextTrap:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            LD   DE,(EmitUpdateExitFixup)
-            LD   HL,(EmitCursor)
+            LD   DE,(EMUPEXIT)
+            LD   HL,(EMCUR)
             CALL PatchWord
             JR   StructuredForNextStore
 StructuredSignedStep:

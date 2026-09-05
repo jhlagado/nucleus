@@ -114,7 +114,7 @@ ProofStart:
             XOR  A
             LD   (ProofCase),A
             LD   (ProofStatus),A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
 
             LD   A,70
             LD   HL,ExpressionProofSource
@@ -126,16 +126,16 @@ ProofStart:
 
             CALL Reset
             XOR  A
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTSUCC
             JP   NZ,ProofFailSuccessState
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             CP   1
             JP   NZ,ProofFailSuccessOutput
-            LD   A,(ServiceOutputBase)
+            LD   A,(VOUTBAS)
             CP   14
             JP   NZ,ProofFailSuccessByte
             LD   A,(MMGEN+3)
@@ -144,10 +144,10 @@ ProofStart:
 
             CALL Reset
             LD   A,1
-            LD   (ServiceFailureCall),A
+            LD   (SVFAIL),A
             CALL ProofCallGenerated
             JP   C,ProofFailFrame
-            LD   A,(RunState)
+            LD   A,(RUNSTATE)
             CP   RTTRAP
             JP   NZ,ProofFailOutputState
             LD   A,(RTTRPNO)
@@ -161,7 +161,7 @@ ProofStart:
             OR   A
             SBC  HL,DE
             JP   NZ,ProofFailOutputOffset
-            LD   A,(ServiceOutputLength)
+            LD   A,(VOUTLEN)
             OR   A
             JP   NZ,ProofFailOutputAtomic
 
@@ -170,10 +170,10 @@ ProofStart:
             LD   DE,DuplicateScalarSourceEnd
             CALL CompileSlice
             JP   NC,ProofFailDuplicateAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticDuplicateName
+            LD   A,(DGCODE)
+            CP   DGDUPNAM
             JP   NZ,ProofFailDuplicateCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,DuplicateScalarName-DuplicateScalarSource
             OR   A
             SBC  HL,DE
@@ -184,10 +184,10 @@ ProofStart:
             LD   DE,UnknownScalarSourceEnd
             CALL CompileSlice
             JP   NC,ProofFailUnknownAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticUnknownName
+            LD   A,(DGCODE)
+            CP   DGUNKNAM
             JP   NZ,ProofFailUnknownCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,UnknownScalarName-UnknownScalarSource
             OR   A
             SBC  HL,DE
@@ -198,10 +198,10 @@ ProofStart:
             LD   DE,MalformedExpressionSourceEnd
             CALL CompileSlice
             JP   NC,ProofFailMalformedAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticExpectedScalar
+            LD   A,(DGCODE)
+            CP   DXSCA
             JP   NZ,ProofFailMalformedCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,MalformedExpressionPoint-MalformedExpressionSource
             OR   A
             SBC  HL,DE
@@ -212,10 +212,10 @@ ProofStart:
             LD   DE,FullScalarSourceEnd
             CALL CompileSlice
             JP   NC,ProofFailFullAccepted
-            LD   A,(DiagnosticCode)
-            CP   DiagnosticSymbolCapacity
+            LD   A,(DGCODE)
+            CP   DGSYMCAP
             JP   NZ,ProofFailFullCode
-            LD   HL,(DiagnosticOffset)
+            LD   HL,(DGOFF)
             LD   DE,FullScalarName-FullScalarSource
             OR   A
             SBC  HL,DE
@@ -330,19 +330,19 @@ ProofFailed:
 
 ExpectedExpressionOperations:
             .db 17
-            .db SemanticDefineProgramU8,0,0
-            .db SemanticBeginMain
-            .db SemanticDeclareLocalU8,0,SemanticLiteralU8,2
-            .db SemanticStoreLocalU8,0
-            .db SemanticDeclareLocalU8,1,SemanticLiteralU8,3
-            .db SemanticStoreLocalU8,1
-            .db SemanticLoadLocalU8,0,SemanticLoadLocalU8,1
-            .db SemanticLiteralU8,4,SemanticMultiplyU8,SemanticAddU8
-            .db SemanticStoreProgramU8,0
-            .db SemanticLoadProgramU8,0
-            .db SemanticWriteValueU8
+            .db SMDEFPU8,0,0
+            .db SMBGMAIN
+            .db SMDLCLU8,0,SMLITU8,2
+            .db SMSTLU8,0
+            .db SMDLCLU8,1,SMLITU8,3
+            .db SMSTLU8,1
+            .db SMLDLU8,0,SMLDLU8,1
+            .db SMLITU8,4,SMMULU8,SMADDU8
+            .db SMSTPU8,0
+            .db SMLDPU8,0
+            .db SMWRVU8
             .dw ExpressionOutputCall-ExpressionProofSource
-            .db SemanticEndMain
+            .db SMENMAIN
 ProofStatus:                 .db 0
 ProofCase:                   .db 0
 ProofExpectedSP:             .dw 0

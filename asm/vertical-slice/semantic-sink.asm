@@ -3,18 +3,18 @@
 
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 SemanticSinkReset:
-            LD   HL,SemanticBufferBase+1
-            LD   (SinkCursor),HL
+            LD   HL,SMBUFBAS+1
+            LD   (SKCUR),HL
             XOR  A
-            LD   (SinkOperationCount),A
-            LD   (SemanticBufferBase),A
+            LD   (SKOPCNT),A
+            LD   (SMBUFBAS),A
             RET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkPut:
             LD   B,A
-            LD   HL,(SinkCursor)
-            LD   DE,SemanticBufferLimit
+            LD   HL,(SKCUR)
+            LD   DE,SMBUFLIM
             LD   A,H
             CP   D
             JR   NZ,SemanticSinkPutRoom
@@ -25,33 +25,33 @@ SemanticSinkPutRoom:
             LD   A,B
             LD   (HL),A
             INC  HL
-            LD   (SinkCursor),HL
+            LD   (SKCUR),HL
             OR   A
             RET
 SemanticSinkPutFull:
-            LD   A,DiagnosticSinkCapacity
+            LD   A,DGSNKCAP
             JP   CompilerSetDiagnostic
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 SemanticSinkEmitProgram:
             LD   C,A
-            LD   A,SemanticLoadU8
+            LD   A,SMLDU8
             CALL SemanticSinkPut
             RET  C
             LD   A,C
             CALL SemanticSinkPut
             RET  C
-            LD   A,SemanticWriteOutputByte
+            LD   A,SMWROBYT
             CALL SemanticSinkPut
             RET  C
-            LD   A,SemanticPropagate
+            LD   A,SMPROP
             CALL SemanticSinkPut
             RET  C
-            LD   A,SemanticReturn
+            LD   A,SMRET
             CALL SemanticSinkPut
             RET  C
             LD   A,4
-            LD   (SinkOperationCount),A
-            LD   (SemanticBufferBase),A
+            LD   (SKOPCNT),A
+            LD   (SMBUFBAS),A
             OR   A
             RET

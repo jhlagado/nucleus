@@ -4,11 +4,11 @@
 EncodeSemanticProgram:
             LD   HL,ProgramTemplate
             LD   DE,MMGEN
-            LD   BC,ProgramSize
+            LD   BC,PGSZ
             LDIR
-            LD   A,(SemanticBufferBase+2)
+            LD   A,(SMBUFBAS+2)
             LD   (MMGEN+1),A
-            LD   HL,ProgramSize
-            LD   (GeneratedSize),HL
+            LD   HL,PGSZ
+            LD   (GNSZ),HL
             OR   A
             RET

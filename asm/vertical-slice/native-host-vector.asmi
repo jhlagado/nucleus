@@ -33,13 +33,13 @@ NativeHostLaunchEndPort         .equ $CF
             ; Start an explicit code section after the eight-byte header.
             .org HostVectorBase+8
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-HostSourceNextChunk:           JP NativeHostSourceNextChunk
+HVCHUNK:           JP NativeHostSourceNextChunk
 .routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
-HostRetainCurrentName:         JP NativeHostRetainCurrentName
+HVRETAIN:         JP NativeHostRetainCurrentName
 .routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-HostCompareCurrentName:        JP NativeHostCompareCurrentName
+HVCMPNAM:        JP NativeHostCompareCurrentName
 .routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
-HostMaterializeName:           JP NativeHostMaterializeName
+HVMATNAM:           JP NativeHostMaterializeName
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetSinkBegin:               JP NativeHostTargetBegin
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
@@ -92,7 +92,7 @@ NativeHostTargetBegin:         LD   C,NativeHostMon3ServiceBase+4
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 NativeHostTargetImageByte:
 .if DebugHooks
-                               OUT  (DebugTraceImageBytePort),A
+                               OUT  (DTIMAGE),A
 .endif
                                LD   (NativeHostMon3InputBC),BC
                                PUSH BC
@@ -119,7 +119,7 @@ NativeHostTargetBegin:         OUT (NativeHostTargetBeginPort),A
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 NativeHostTargetImageByte:
 .if DebugHooks
-                               OUT  (DebugTraceImageBytePort),A
+                               OUT  (DTIMAGE),A
 .endif
                                OUT (NativeHostTargetImageBytePort),A
                                RET

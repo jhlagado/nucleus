@@ -4,11 +4,11 @@
 .else
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 SemanticSinkReset:
-            LD   HL,SemanticPayloadBase
-            LD   (SinkCursor),HL
+            LD   HL,SMPAYBAS
+            LD   (SKCUR),HL
             XOR  A
-            LD   (SinkOperationCount),A
-            LD   (SemanticBufferBase),A
+            LD   (SKOPCNT),A
+            LD   (SMBUFBAS),A
             RET
 .endif
 
@@ -29,15 +29,15 @@ TypedEmitWord:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitByte:
             LD   D,A
-            LD   A,(ExpressionEmitEnabled)
+            LD   A,(EXEMITON)
             OR   A
             LD   A,D
             RET  Z
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkPut:
             LD   B,A
-            LD   HL,(SinkCursor)
-            LD   DE,SemanticBufferLimit
+            LD   HL,(SKCUR)
+            LD   DE,SMBUFLIM
             OR   A
             SBC  HL,DE
             ADD  HL,DE
@@ -46,12 +46,12 @@ SemanticSinkPutRoom:
             LD   A,B
             LD   (HL),A
             INC  HL
-            LD   (SinkCursor),HL
+            LD   (SKCUR),HL
             OR   A
             RET
 SemanticSinkPutFull:
-            CALL SetDiagInline
-            .db  DiagnosticSinkCapacity
+            CALL DGINLINE
+            .db  DGSNKCAP
 
 .if TargetStreamingOutput
 .routine in A,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,B,DE
@@ -65,20 +65,20 @@ SemanticSinkPutPreserveHL:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedEmitOperation:
             LD   D,A
-            LD   A,(ExpressionEmitEnabled)
+            LD   A,(EXEMITON)
             OR   A
             LD   A,D
             RET  Z
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
 SemanticSinkOperation:
 .if TargetStreamingOutput
-            LD   HL,SemanticBufferBase
+            LD   HL,SMBUFBAS
             INC  (HL)
             JR   Z,SemanticSinkPutFull
             JR   SemanticSinkPut
 .else
             LD   B,A
-            LD   A,(SinkOperationCount)
+            LD   A,(SKOPCNT)
             CP   255
             JR   Z,SemanticSinkPutFull
             LD   A,B
@@ -91,7 +91,7 @@ SemanticSinkOperation:
 .else
             RET  C
 .endif
-            LD   HL,SinkOperationCount
+            LD   HL,SKOPCNT
             INC  (HL)
             XOR  A
             RET
@@ -100,10 +100,10 @@ SemanticSinkOperation:
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 SemanticSinkFinish:
 .if TargetStreamingOutput
-            LD   A,(SemanticBufferBase)
+            LD   A,(SMBUFBAS)
 .else
-            LD   A,(SinkOperationCount)
-            LD   (SemanticBufferBase),A
+            LD   A,(SKOPCNT)
+            LD   (SMBUFBAS),A
 .endif
             OR   A
             RET
