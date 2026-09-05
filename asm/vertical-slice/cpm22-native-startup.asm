@@ -16,14 +16,14 @@ CpmCompilerRestoreSp:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 CpmCompilerRun:
-            CALL CpmCommandPrepare
+            CALL CCPREP
             JR   C,CpmCompilerPrintHostError
-            LD   A,(CpmCommandHelpRequested)
+            LD   A,(CCHELP)
             OR   A
             JR   NZ,CpmCompilerPrintHelp
             CALL CSBEGIN
             JR   C,CpmCompilerPrintHostError
-            CALL CpmPublishPrepare
+            CALL PBPREP
             JR   C,CpmCompilerPrintHostError
             LD   A,(CSPARTN)
             LD   HL,0
@@ -40,7 +40,7 @@ CpmCompilerPrintHelp:
             RET
 
 CpmCompilerCompileFailure:
-            CALL CpmDirectAbort
+            CALL DOABORT
             LD   A,(SourceHostStatus)
             OR   A
             JR   NZ,CpmCompilerPrintHostError
@@ -119,12 +119,12 @@ CpmCompilerStartupCodeEnd:
             .include "cpm22-embedded-assets.asmi"
 
 CpmCompilerImmutableStart:
-CpmCompilerPartBanks .equ CpmEmbeddedPrefixEnd-SRCPARTS
+CpmCompilerPartBanks .equ EMBPFXEN-SRCPARTS
 CpmCompilerTargetDescriptor:
             .dw  RIABI
-            .dw  CpmTargetImageBase
-            .dw  CpmTargetImageCapacity
-            .dw  CpmTargetWritableBase
+            .dw  DOIMG
+            .dw  DOIMGCAP
+            .dw  DOWRBASE
             .dw  CpmTargetWritableCapacity
             .db  0,1,0
             .dw  CpmCompilerPartBanks

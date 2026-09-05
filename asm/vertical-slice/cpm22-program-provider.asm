@@ -2,92 +2,92 @@
 ; CP/M starts at $0100. The prefix calls the separately compiled Nucleus image
 ; at $0800, and terminal vector entries return through that call to the CCP.
 
-CpmProgramTargetEntry .equ $0800
-CpmProgramBdos        .equ $0005
-CpmProgramConsoleInputFunction .equ 1
-CpmProgramConsoleOutputFunction .equ 2
-CpmProgramDmaFunction .equ 26
-CpmProgramOpenFunction .equ 15
-CpmProgramCloseFunction .equ 16
-CpmProgramMakeFunction .equ 22
-CpmProgramRandomReadFunction .equ 33
-CpmProgramRandomWriteFunction .equ 34
-CpmProgramInputReadyFlag  .equ 1
-CpmProgramOutputReadyFlag .equ 2
-CpmProgramRecordCache     .equ $0080
-CpmProgramRecordCacheEnd  .equ $0100
+PGTARGET   EQU $0800
+PGBDOS     EQU $0005
+PGFNIN     EQU 1
+PGFNOUT    EQU 2
+PGFNDMA    EQU 26
+PGFNOPEN   EQU 15
+PGFNCLOS   EQU 16
+PGFNMAKE   EQU 22
+PGFNRD     EQU 33
+PGFNWR     EQU 34
+PGINRDY    EQU 1
+PGOUTRDY   EQU 2
+PGCACHE    EQU $0080
+PGCACHEN   EQU $0100
 
-            .org $0100
-CpmProgramPrefixStart:
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramEntry:
-            CALL CpmProgramInitialize
-            CALL CpmProgramTargetEntry
-CpmProgramReturn:
+            ORG $0100
+PGPREFIX:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGENTRY:
+            CALL PGINIT
+            CALL PGTARGET
+PGRETURN:
             RET
 
             ; Fixed addresses let the offline runtime catalogue bind ordinary
             ; vectors and the packet gateway without runtime linking.
-            .org $0107
-CpmProgramServiceVector:
-            JP   CpmProgramReadInput
-            JP   CpmProgramWriteOutput
-            JP   CpmProgramReadStorage
-            JP   CpmProgramRewindStorage
-            JP   CpmProgramWriteStorage
-            JP   CpmProgramSeekStorage
-            JP   CpmProgramSuccess
-            JP   CpmProgramFailure
-            JP   CpmProgramTrap
-            JP   CpmProgramFarCall
-            JP   CpmProgramFarJump
-CpmProgramPacketVector:
-            JP   CpmProgramPacket
-CpmProgramServiceVectorEnd:
+            ORG $0107
+PGVECTOR:
+            JP   PGREADIN
+            JP   PGWROUT
+            JP   PGRDSTOR
+            JP   PGREWIND
+            JP   PGWRSTOR
+            JP   PGSEEK
+            JP   PGSUCC
+            JP   PGFAIL
+            JP   PGTRAP
+            JP   PGFARCL
+            JP   PGFARJP
+PGPACKV:
+            JP   PGPACKET
+PGVECEND:
 
-CpmProgramProviderCodeStart:
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramInitialize:
+PGCODE:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGINIT:
             XOR  A
-            LD   HL,CpmProgramInputCursor
-            LD   DE,CpmProgramInputCursor+1
-            LD   BC,CpmProgramStorageState-CpmProgramInputCursor
+            LD   HL,PGINCUR
+            LD   DE,PGINCUR+1
+            LD   BC,PGCLRLEN
             LD   (HL),A
             LDIR
             LD   HL,$005C
-            LD   DE,CpmProgramInputFcb
-            CALL CpmProgramCopyFcb
+            LD   DE,PGINFCB
+            CALL PGCPYFCB
             LD   HL,$006C
-            LD   DE,CpmProgramOutputFcb
-            CALL CpmProgramCopyFcb
-            CALL CpmProgramOpenInput
-            CALL CpmProgramOpenOutput
+            LD   DE,PGOUTFCB
+            CALL PGCPYFCB
+            CALL PGOPENIN
+            CALL PGOPENOT
             XOR  A
             RET
 
 ; Standard CP/M console input blocks, echoes, and performs the operating
 ; system's ordinary control processing. The portable profile is seven-bit.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramReadInput:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+PGREADIN:
             PUSH BC
             PUSH DE
             PUSH HL
-            LD   C,CpmProgramConsoleInputFunction
-            CALL CpmProgramCallBdos
+            LD   C,PGFNIN
+            CALL PGCALLBD
             POP  HL
             POP  DE
             POP  BC
             AND  $7F
             RET
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramWriteOutput:
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry
+PGWROUT:
             PUSH BC
             PUSH DE
             PUSH HL
             LD   E,A
-            LD   C,CpmProgramConsoleOutputFunction
-            CALL CpmProgramCallBdos
+            LD   C,PGFNOUT
+            CALL PGCALLBD
             POP  HL
             POP  DE
             POP  BC
@@ -96,11 +96,11 @@ CpmProgramWriteOutput:
 
 ; CP/M standardizes only the 8080 register set. Preserve every Z80 register
 ; promised by the generated-program service vector around public BDOS calls.
-.routine in C,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramCallBdos:
+; Contract: in C,DE out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGCALLBD:
             PUSH IX
             PUSH IY
-            CALL CpmProgramBdos
+            CALL PGBDOS
             POP  IY
             POP  IX
             RET
@@ -109,163 +109,163 @@ CpmProgramCallBdos:
 ; Nucleus storage file therefore begins with a private little-endian u16 payload
 ; length. Logical offset zero follows that header. One random-record cache is
 ; shared because service calls are synchronous.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramReadStorage:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+PGRDSTOR:
             PUSH BC
             PUSH DE
             PUSH HL
             PUSH IX
-            CALL CpmProgramReadStorageBody
+            CALL PGRDBODY
             POP  IX
             POP  HL
             POP  DE
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-CpmProgramReadStorageBody:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramInputReadyFlag
-            JR   Z,CpmProgramReadStorageFailure
-            LD   HL,(CpmProgramInputCursor)
-            LD   DE,(CpmProgramInputLength)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+PGRDBODY:
+            LD   A,(PGSTATE)
+            AND  PGINRDY
+            JR   Z,PGRDFAIL
+            LD   HL,(PGINCUR)
+            LD   DE,(PGINLEN)
             OR   A
             SBC  HL,DE
-            JR   Z,CpmProgramReadStorageEof
-            JR   NC,CpmProgramReadStorageFailure
-            LD   HL,(CpmProgramInputCursor)
-            LD   IX,CpmProgramInputFcb
-            CALL CpmProgramReadLogicalRecordRaw
+            JR   Z,PGRDEOF
+            JR   NC,PGRDFAIL
+            LD   HL,(PGINCUR)
+            LD   IX,PGINFCB
+            CALL PGRDLOG
             OR   A
-            JP   NZ,CpmProgramStorageFailure
+            JP   NZ,PGIOFAIL
             LD   A,(HL)
-            LD   HL,(CpmProgramInputCursor)
+            LD   HL,(PGINCUR)
             INC  HL
-            LD   (CpmProgramInputCursor),HL
+            LD   (PGINCUR),HL
             OR   A
             RET
-CpmProgramReadStorageEof:
+PGRDEOF:
             LD   A,1
             SCF
             RET
-CpmProgramReadStorageFailure:
-            JP   CpmProgramStorageFailure
+PGRDFAIL:
+            JP   PGIOFAIL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramRewindStorage:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramInputReadyFlag
-            JR   Z,CpmProgramRewindStorageFailure
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+PGREWIND:
+            LD   A,(PGSTATE)
+            AND  PGINRDY
+            JR   Z,PGREWERR
             XOR  A
-            LD   (CpmProgramInputCursor),A
-            LD   (CpmProgramInputCursor+1),A
+            LD   (PGINCUR),A
+            LD   (PGINCUR+1),A
             RET
-CpmProgramRewindStorageFailure:
-            JP   CpmProgramStorageFailure
+PGREWERR:
+            JP   PGIOFAIL
 
-.routine in A out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramWriteStorage:
-            LD   (CpmProgramWriteValue),A
+; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry
+PGWRSTOR:
+            LD   (PGWRVAL),A
             PUSH BC
             PUSH DE
             PUSH HL
             PUSH IX
-            CALL CpmProgramWriteStorageBody
+            CALL PGWRBODY
             POP  IX
             POP  HL
             POP  DE
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
-CpmProgramWriteStorageBody:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramOutputReadyFlag
-            JR   Z,CpmProgramWriteStorageFailure
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX
+PGWRBODY:
+            LD   A,(PGSTATE)
+            AND  PGOUTRDY
+            JR   Z,PGWRFAIL
             XOR  A
-            LD   (CpmProgramAppendFlag),A
-            LD   HL,(CpmProgramOutputCursor)
-            LD   DE,(CpmProgramOutputLength)
+            LD   (PGAPPEND),A
+            LD   HL,(PGOUTCUR)
+            LD   DE,(PGOUTLEN)
             OR   A
             SBC  HL,DE
-            JR   C,CpmProgramWriteStorageRecord
-            JR   NZ,CpmProgramWriteStorageFailure
+            JR   C,PGWRREC
+            JR   NZ,PGWRFAIL
             LD   A,D
             AND  E
             INC  A
-            JR   Z,CpmProgramWriteStorageFailure
+            JR   Z,PGWRFAIL
             LD   A,1
-            LD   (CpmProgramAppendFlag),A
-CpmProgramWriteStorageRecord:
-            LD   HL,(CpmProgramOutputCursor)
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramReadLogicalRecordRaw
+            LD   (PGAPPEND),A
+PGWRREC:
+            LD   HL,(PGOUTCUR)
+            LD   IX,PGOUTFCB
+            CALL PGRDLOG
             OR   A
-            JR   Z,CpmProgramWriteStorageHaveRecord
+            JR   Z,PGWRHAVE
             LD   B,A
-            LD   A,(CpmProgramAppendFlag)
+            LD   A,(PGAPPEND)
             OR   A
-            JR   Z,CpmProgramWriteStorageFailure
+            JR   Z,PGWRFAIL
             LD   A,B
             CP   1
-            JR   Z,CpmProgramWriteStorageNewRecord
+            JR   Z,PGWRNEW
             CP   4
-            JR   NZ,CpmProgramWriteStorageFailure
-CpmProgramWriteStorageNewRecord:
-            CALL CpmProgramClearCache
-            LD   HL,(CpmProgramOutputCursor)
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramPrepareLogicalRecord
-CpmProgramWriteStorageHaveRecord:
-            LD   A,(CpmProgramWriteValue)
+            JR   NZ,PGWRFAIL
+PGWRNEW:
+            CALL PGCLRCCH
+            LD   HL,(PGOUTCUR)
+            LD   IX,PGOUTFCB
+            CALL PGPRELOG
+PGWRHAVE:
+            LD   A,(PGWRVAL)
             LD   (HL),A
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramWriteCurrentRecord
-            JR   C,CpmProgramWriteStorageFailure
-            LD   A,(CpmProgramAppendFlag)
+            LD   IX,PGOUTFCB
+            CALL PGWRCUR
+            JR   C,PGWRFAIL
+            LD   A,(PGAPPEND)
             OR   A
-            JR   Z,CpmProgramWriteStorageAdvance
-            LD   HL,(CpmProgramOutputLength)
+            JR   Z,PGWRADV
+            LD   HL,(PGOUTLEN)
             INC  HL
-            CALL CpmProgramStoreOutputHeader
-            JR   C,CpmProgramWriteStorageFailure
-            LD   (CpmProgramOutputLength),HL
-CpmProgramWriteStorageAdvance:
-            LD   HL,(CpmProgramOutputCursor)
+            CALL PGSTOREH
+            JR   C,PGWRFAIL
+            LD   (PGOUTLEN),HL
+PGWRADV:
+            LD   HL,(PGOUTCUR)
             INC  HL
-            LD   (CpmProgramOutputCursor),HL
+            LD   (PGOUTCUR),HL
             XOR  A
             RET
-CpmProgramWriteStorageFailure:
-            JR   CpmProgramStorageFailure
+PGWRFAIL:
+            JR   PGIOFAIL
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramSeekStorage:
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry
+PGSEEK:
             PUSH BC
             PUSH DE
             PUSH HL
-            CALL CpmProgramSeekStorageBody
+            CALL PGSEEKB
             POP  HL
             POP  DE
             POP  BC
             RET
 
-.routine in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramSeekStorageBody:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramOutputReadyFlag
-            JR   Z,CpmProgramSeekStorageFailure
+; Contract: in HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGSEEKB:
+            LD   A,(PGSTATE)
+            AND  PGOUTRDY
+            JR   Z,PGSEEKER
             EX   DE,HL
-            LD   HL,(CpmProgramOutputLength)
+            LD   HL,(PGOUTLEN)
             OR   A
             SBC  HL,DE
-            JR   C,CpmProgramSeekStorageFailure
-            LD   (CpmProgramOutputCursor),DE
+            JR   C,PGSEEKER
+            LD   (PGOUTCUR),DE
             XOR  A
             RET
-CpmProgramSeekStorageFailure:
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramStorageFailure:
+PGSEEKER:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+PGIOFAIL:
             LD   A,4
             SCF
             RET
@@ -273,107 +273,107 @@ CpmProgramStorageFailure:
 ; Copy a twelve-byte default FCB name and clear its mutable twenty-four-byte
 ; tail. The CCP's two default names overlap in page zero, so both copies happen
 ; before either private FCB is opened.
-.routine in DE,HL out A clobbers sign,parity,halfCarry,BC,DE,HL,carry,zero
-CpmProgramCopyFcb:
+; Contract: in DE,HL out A clobbers sign,parity,halfCarry,BC,DE,HL,carry,zero
+PGCPYFCB:
             LD   BC,12
             LDIR
             XOR  A
             LD   B,24
-.routine in A,B,DE out B,DE
-CpmProgramClearFcbTail:
+; Contract: in A,B,DE out B,DE
+PGCLRFCB:
             LD   (DE),A
             INC  DE
-            DJNZ CpmProgramClearFcbTail
+            DJNZ PGCLRFCB
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramOpenInput:
-            LD   A,(CpmProgramInputFcb+1)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGOPENIN:
+            LD   A,(PGINFCB+1)
             CP   ' '
             RET  Z
-            LD   DE,CpmProgramInputFcb
-            LD   C,CpmProgramOpenFunction
-            CALL CpmProgramCallBdos
+            LD   DE,PGINFCB
+            LD   C,PGFNOPEN
+            CALL PGCALLBD
             INC  A
             RET  Z
-            LD   IX,CpmProgramInputFcb
-            CALL CpmProgramLoadHeader
+            LD   IX,PGINFCB
+            CALL PGLOADHD
             RET  C
-            LD   (CpmProgramInputLength),HL
-            LD   A,(CpmProgramStorageState)
-            OR   CpmProgramInputReadyFlag
-            LD   (CpmProgramStorageState),A
+            LD   (PGINLEN),HL
+            LD   A,(PGSTATE)
+            OR   PGINRDY
+            LD   (PGSTATE),A
             XOR  A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramOpenOutput:
-            LD   A,(CpmProgramOutputFcb+1)
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGOPENOT:
+            LD   A,(PGOUTFCB+1)
             CP   ' '
             RET  Z
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramInputReadyFlag
-            JR   Z,CpmProgramOpenOutputFile
-            LD   HL,CpmProgramInputFcb
-            LD   DE,CpmProgramOutputFcb
+            LD   A,(PGSTATE)
+            AND  PGINRDY
+            JR   Z,PGOPENFL
+            LD   HL,PGINFCB
+            LD   DE,PGOUTFCB
             LD   B,12
-CpmProgramCompareStorageName:
+PGCMPNAM:
             LD   A,(DE)
             CP   (HL)
-            JR   NZ,CpmProgramOpenOutputFile
+            JR   NZ,PGOPENFL
             INC  DE
             INC  HL
-            DJNZ CpmProgramCompareStorageName
+            DJNZ PGCMPNAM
             RET
-CpmProgramOpenOutputFile:
-            LD   DE,CpmProgramOutputFcb
-            LD   C,CpmProgramOpenFunction
-            CALL CpmProgramCallBdos
+PGOPENFL:
+            LD   DE,PGOUTFCB
+            LD   C,PGFNOPEN
+            CALL PGCALLBD
             INC  A
-            JR   Z,CpmProgramCreateOutput
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramLoadHeader
+            JR   Z,PGCREATE
+            LD   IX,PGOUTFCB
+            CALL PGLOADHD
             RET  C
-            JR   CpmProgramOutputReady
-CpmProgramCreateOutput:
+            JR   PGREADY
+PGCREATE:
             XOR  A
             LD   B,24
-            LD   DE,CpmProgramOutputFcb+12
-            CALL CpmProgramClearFcbTail
-            LD   DE,CpmProgramOutputFcb
-            LD   C,CpmProgramMakeFunction
-            CALL CpmProgramCallBdos
+            LD   DE,PGOUTFCB+12
+            CALL PGCLRFCB
+            LD   DE,PGOUTFCB
+            LD   C,PGFNMAKE
+            CALL PGCALLBD
             INC  A
             RET  Z
-            CALL CpmProgramClearCache
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramSetRecordZero
-            CALL CpmProgramWriteCurrentRecord
+            CALL PGCLRCCH
+            LD   IX,PGOUTFCB
+            CALL PGRECZER
+            CALL PGWRCUR
             RET  C
             LD   HL,0
-CpmProgramOutputReady:
-            LD   (CpmProgramOutputLength),HL
-            LD   (CpmProgramOutputCursor),HL
-            LD   A,(CpmProgramStorageState)
-            OR   CpmProgramOutputReadyFlag
-            LD   (CpmProgramStorageState),A
+PGREADY:
+            LD   (PGOUTLEN),HL
+            LD   (PGOUTCUR),HL
+            LD   A,(PGSTATE)
+            OR   PGOUTRDY
+            LD   (PGSTATE),A
             XOR  A
             RET
 
-.routine in IX out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
-CpmProgramLoadHeader:
-            CALL CpmProgramSetRecordZero
-            CALL CpmProgramReadCurrentRecord
+; Contract: in IX out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+PGLOADHD:
+            CALL PGRECZER
+            CALL PGRDCUR
             RET  C
-            LD   HL,(CpmProgramRecordCache)
+            LD   HL,(PGCACHE)
             XOR  A
             RET
 
-.routine in IX,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
-CpmProgramReadLogicalRecordRaw:
-            CALL CpmProgramPrepareLogicalRecord
+; Contract: in IX,HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE
+PGRDLOG:
+            CALL PGPRELOG
             PUSH HL
-            CALL CpmProgramReadCurrentRecordRaw
+            CALL PGRDRAW
             POP  HL
             OR   A
             RET
@@ -381,8 +381,8 @@ CpmProgramReadLogicalRecordRaw:
 ; Map one logical payload offset through the two-byte length header. The random
 ; record field is 24-bit, so logical $FFFE correctly maps to physical $10000,
 ; record 512, byte zero instead of wrapping in a 16-bit calculation.
-.routine in IX,HL out HL clobbers A,BC,DE,carry,zero,sign,parity,halfCarry
-CpmProgramPrepareLogicalRecord:
+; Contract: in IX,HL out HL clobbers A,BC,DE,carry,zero,sign,parity,halfCarry
+PGPRELOG:
             LD   DE,2
             ADD  HL,DE
             LD   A,0
@@ -402,156 +402,159 @@ CpmProgramPrepareLogicalRecord:
             ADD  A,A
             OR   E
             LD   (IX+33),A
-            LD   HL,CpmProgramRecordCache
+            LD   HL,PGCACHE
             LD   C,B
             LD   B,0
             ADD  HL,BC
             RET
 
-.routine in IX out A clobbers carry,zero,sign,parity,halfCarry
-CpmProgramSetRecordZero:
+; Contract: in IX out A clobbers carry,zero,sign,parity,halfCarry
+PGRECZER:
             XOR  A
             LD   (IX+33),A
             LD   (IX+34),A
             LD   (IX+35),A
             RET
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramReadCurrentRecord:
-            CALL CpmProgramReadCurrentRecordRaw
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGRDCUR:
+            CALL PGRDRAW
             OR   A
             RET  Z
-            JP   CpmProgramStorageFailure
+            JP   PGIOFAIL
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramReadCurrentRecordRaw:
-            CALL CpmProgramSetDma
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGRDRAW:
+            CALL PGSETDMA
             PUSH IX
             POP  DE
-            LD   C,CpmProgramRandomReadFunction
-            CALL CpmProgramCallBdos
+            LD   C,PGFNRD
+            CALL PGCALLBD
             OR   A
             RET
 
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramWriteCurrentRecord:
-            CALL CpmProgramSetDma
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGWRCUR:
+            CALL PGSETDMA
             PUSH IX
             POP  DE
-            LD   C,CpmProgramRandomWriteFunction
-            CALL CpmProgramCallBdos
+            LD   C,PGFNWR
+            CALL PGCALLBD
             OR   A
             RET  Z
-            JP   CpmProgramStorageFailure
+            JP   PGIOFAIL
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramSetDma:
-            LD   DE,CpmProgramRecordCache
-            LD   C,CpmProgramDmaFunction
-            JP   CpmProgramCallBdos
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGSETDMA:
+            LD   DE,PGCACHE
+            LD   C,PGFNDMA
+            JP   PGCALLBD
 
-.routine in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE,IX
-CpmProgramStoreOutputHeader:
+; Contract: in HL out A,HL,carry,zero clobbers sign,parity,halfCarry,BC,DE,IX
+PGSTOREH:
             PUSH HL
-            LD   IX,CpmProgramOutputFcb
-            CALL CpmProgramSetRecordZero
-            CALL CpmProgramReadCurrentRecord
+            LD   IX,PGOUTFCB
+            CALL PGRECZER
+            CALL PGRDCUR
             POP  HL
             RET  C
-            LD   (CpmProgramRecordCache),HL
+            LD   (PGCACHE),HL
             PUSH HL
-            CALL CpmProgramWriteCurrentRecord
+            CALL PGWRCUR
             POP  HL
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-CpmProgramClearCache:
-            LD   HL,CpmProgramRecordCache
-            LD   DE,CpmProgramRecordCache+1
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+PGCLRCCH:
+            LD   HL,PGCACHE
+            LD   DE,PGCACHE+1
             LD   BC,127
             LD   (HL),0
             LDIR
             XOR  A
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramCloseStorage:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramInputReadyFlag
-            JR   Z,CpmProgramCloseOutput
-            LD   DE,CpmProgramInputFcb
-            LD   C,CpmProgramCloseFunction
-            CALL CpmProgramCallBdos
-CpmProgramCloseOutput:
-            LD   A,(CpmProgramStorageState)
-            AND  CpmProgramOutputReadyFlag
-            JR   Z,CpmProgramStorageClosed
-            LD   DE,CpmProgramOutputFcb
-            LD   C,CpmProgramCloseFunction
-            CALL CpmProgramCallBdos
-CpmProgramStorageClosed:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGCLOSE:
+            LD   A,(PGSTATE)
+            AND  PGINRDY
+            JR   Z,PGCLOSOT
+            LD   DE,PGINFCB
+            LD   C,PGFNCLOS
+            CALL PGCALLBD
+PGCLOSOT:
+            LD   A,(PGSTATE)
+            AND  PGOUTRDY
+            JR   Z,PGCLOSED
+            LD   DE,PGOUTFCB
+            LD   C,PGFNCLOS
+            CALL PGCALLBD
+PGCLOSED:
             XOR  A
-            LD   (CpmProgramStorageState),A
+            LD   (PGSTATE),A
             RET
 
 ; Terminal entries are reached by JP after the runtime has restored its root
 ; stack. RET therefore resumes CpmProgramEntry and then the CCP.
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramSuccess:
-            CALL CpmProgramCloseStorage
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGSUCC:
+            CALL PGCLOSE
             XOR  A
             RET
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramFailure:
-            LD   DE,CpmProgramFailureText
-            JR   CpmProgramTerminalMessage
-.routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CpmProgramTrap:
-            LD   DE,CpmProgramTrapText
-CpmProgramTerminalMessage:
-            CALL CpmProgramCloseStorage
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGFAIL:
+            LD   DE,PGFAILTX
+            JR   PGTERMSG
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+PGTRAP:
+            LD   DE,PGTRAPTX
+PGTERMSG:
+            CALL PGCLOSE
             LD   C,9
-            CALL CpmProgramCallBdos
+            CALL PGCALLBD
             XOR  A
             RET
 
 ; Flat CP/M images never require bank control. Reaching either entry is a
 ; provider fault; return the packet-service trap code so execution cannot
 ; silently continue with an invented transfer.
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmProgramFarCall:
-CpmProgramFarJump:
-CpmProgramPacket:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+PGFARCL:
+PGFARJP:
+PGPACKET:
             LD   A,7
             SCF
             RET
-CpmProgramProviderCodeEnd:
+PGCODEND:
 
-CpmProgramProviderImmutableStart:
-CpmProgramFailureText:
-            .db 13,10,"Unhandled Nucleus failure",13,10,"$"
-CpmProgramTrapText:
-            .db 13,10,"Nucleus trap",13,10,"$"
-CpmProgramProviderImmutableEnd:
+PGCONST:
+PGFAILTX:
+            DB 13,10,"Unhandled Nucleus failure",13,10,"$"
+PGTRAPTX:
+            DB 13,10,"Nucleus trap",13,10,"$"
+PGCONEND:
 
-CpmProgramProviderWorkspaceStart:
-CpmProgramInputFcb:
-            .ds  36
-CpmProgramOutputFcb:
-            .ds  36
-CpmProgramInputCursor:
-            .dw  0
-CpmProgramInputLength:
-            .dw  0
-CpmProgramOutputCursor:
-            .dw  0
-CpmProgramOutputLength:
-            .dw  0
-CpmProgramStorageState:
-            .db  0
-CpmProgramWriteValue:
-            .db  0
-CpmProgramAppendFlag:
-            .db  0
-CpmProgramProviderWorkspaceEnd:
-CpmProgramPrefixEnd:
+PGWORK:
+PGINFCB:
+            DS  36
+PGOUTFCB:
+            DS  36
+PGINCUR:
+            DW  0
+PGINLEN:
+            DW  0
+PGOUTCUR:
+            DW  0
+PGOUTLEN:
+            DW  0
+PGSTATE:
+            DB  0
+PGWRVAL:
+            DB  0
+PGAPPEND:
+            DB  0
+PGWRKEND:
+PGPREND:
+
+; Derived after both labels so the earlier load is a single-symbol fixup.
+PGCLRLEN   EQU PGSTATE-PGINCUR

@@ -80,10 +80,10 @@ NucleusRuntimeCatalogInitial          .equ 1
 
 NSTATINV           .equ 1
 NucleusStatusUnavailable       .equ 2
-NucleusStatusNotFound          .equ 3
+NSTATNF          .equ 3
 NSTATCAP          .equ 4
 NucleusStatusAccess            .equ 5
 NSTATIO           .equ 6
-NucleusStatusConflict          .equ 7
+NSTATCF          .equ 7
 NucleusStatusCancelled         .equ 8
 NucleusStatusUnsupported       .equ 9

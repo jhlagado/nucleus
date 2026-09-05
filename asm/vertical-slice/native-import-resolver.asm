@@ -604,7 +604,7 @@ NativeImportResolveRaw:
             RET  C
             CALL NativeImportProbeCandidate
             JR   NC,NativeImportCandidateResolved
-            CP   NucleusStatusNotFound
+            CP   NSTATNF
             RET  NZ
             CALL NativeImportBuildStandardPath
             RET  C

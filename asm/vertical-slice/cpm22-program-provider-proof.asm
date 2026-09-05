@@ -1,6 +1,5 @@
-            .include "cpm22-program-provider.asm"
+%INCLUDE "cpm22-program-provider.asm"
 
-            .org CpmProgramTargetEntry
-CpmProgramProofTarget:
-            JP   CpmProgramSuccess
-            .end
+            ORG PGTARGET
+PGPROOF:
+            JP   PGSUCC

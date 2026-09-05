@@ -1,6 +1,6 @@
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
 
 let proofImage: Uint8Array;
 let symbols: Record<string, number>;
@@ -96,8 +96,8 @@ class CommandBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await assembleAtomSource(
-    "vertical-slice/cpm22-command-proof.asm",
+  const assembled = await assembleNativeCpmProof(
+    "cpm22-command-proof.asm",
   );
   proofImage = parseIntelHex(assembled.hex).memory;
   symbols = assembled.symbols;
@@ -135,6 +135,7 @@ const createProof = (files = new Map<string, Uint8Array>()) => {
       instructions += 1;
     }
     expect(runtime.isHalted(), "CpmCommandPrepare did not return").toBe(true);
+    expect(runtime.cpu.pc).toBe(sentinel + 1);
     expect(runtime.cpu.sp).toBe(stack + 2);
     return {
       a: runtime.cpu.a,

@@ -1,4 +1,4 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -103,8 +103,8 @@ class PublisherBdos {
 }
 
 beforeAll(async () => {
-  const assembled = await assembleAtomSource(
-    "vertical-slice/cpm22-publisher-proof.asm",
+  const assembled = await assembleNativeCpmProof(
+    "cpm22-publisher-proof.asm",
   );
   proofImage = parseIntelHex(assembled.hex).memory;
   symbols = assembled.symbols;
@@ -140,6 +140,7 @@ const createProof = (files?: Map<string, Uint8Array>) => {
       instructions += 1;
     }
     expect(runtime.isHalted(), `${name} did not return`).toBe(true);
+    expect(runtime.cpu.pc).toBe(sentinel + 1);
     expect(runtime.cpu.sp).toBe(stack + 2);
     return {
       a: runtime.cpu.a,

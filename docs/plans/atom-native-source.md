@@ -51,6 +51,28 @@ the next two converted leaves and their direct proof. The separately reviewed
 parameter repair is integrated in this development branch; its released
 artifact and Triptych pin have not yet been replaced.
 
+The [CP/M adapter report](../reports/atom-native-cpm-adapters.md) records the
+next parallel conversion: program/runtime providers and command/output/
+publication code, with independently developed proof entries and adversarial
+review. The production program-prefix generator now uses native ATOM source.
+Shared naming and build integration have one writer; independent source,
+test and review work proceeds concurrently.
+
+The next bounded production-path candidate is the standalone import resolver:
+`native-object-client.asm`, `native-source-plan-provider.asm` and
+`native-import-resolver.asm`, with their ABI constants and entry composition.
+Its generated image and resolver tests provide an independent qualification
+boundary. Shared memory/state inventory can proceed alongside that conversion.
+The source adapter, tokenizer and keyword table are the next small compiler
+family, but require coordinated state names and real streaming-host proofs.
+
+Current inventory also identifies three constraints for the later full
+compiler composition. The host-only address-space limit is 65,536 and must
+remain distinct from a wrapped Z80 value. Derived conditional flags need
+explicit entry-profile definitions. Grammar generators must emit native source
+while preserving their logical token vocabulary and analysis API. Oversized
+parser files require measured source-part splits after renaming.
+
 ## Source inventory
 
 The baseline contains 119 assembly files and 44,764 lines under `asm/`, including

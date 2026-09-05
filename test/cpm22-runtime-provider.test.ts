@@ -1,4 +1,4 @@
-import { assembleAtomSource } from "../scripts/atom-source.mjs";
+import { assembleNativeCpmProof } from "../scripts/assemble-native-cpm.mjs";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 
@@ -6,8 +6,8 @@ import { bundledRuntimeProvider } from "../src/runtime-catalog.js";
 
 describe("native Nucleus CP/M runtime provider", () => {
   it("copies only the exact linked runtime and patches its initialized bounds", async () => {
-    const { hex, symbols } = await assembleAtomSource(
-    "vertical-slice/cpm22-runtime-provider-proof.asm",
+    const { hex, symbols } = await assembleNativeCpmProof(
+      "cpm22-runtime-provider-proof.asm",
     );
     const memory = parseIntelHex(hex).memory;
     const runtime = createZ80Runtime(
@@ -33,6 +33,7 @@ describe("native Nucleus CP/M runtime provider", () => {
         instructions += 1;
       }
       expect(runtime.isHalted(), `${entry} did not return`).toBe(true);
+      expect(runtime.cpu.pc).toBe(sentinel + 1);
       expect(runtime.cpu.sp).toBe(stack + 2);
       return { a: runtime.cpu.a, carry: runtime.cpu.flags.C };
     };

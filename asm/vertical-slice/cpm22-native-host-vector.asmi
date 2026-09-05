@@ -11,21 +11,21 @@ HostCompareCurrentName:        JP CSCMPNAM
 .routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
 HostMaterializeName:           JP CSMATNAM
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkBegin:               JP CpmDirectBegin
+TargetSinkBegin:               JP DOBEGIN
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkImageByte:           JP CpmDirectImageByte
+TargetSinkImageByte:           JP DOIMGBYT
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeImage:        JP CpmDirectRuntimeImage
+TargetSinkRuntimeImage:        JP DORTIMG
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeInitialImage: JP CpmDirectRuntimeInitial
+TargetSinkRuntimeInitialImage: JP DORTINIT
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkPatchByte:           JP CpmDirectPatchByte
+TargetSinkPatchByte:           JP DOPATBYT
 .routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkPatchWord:           JP CpmCompilerPatchWord
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapFlat:             JP CpmDirectMap
+TargetSinkMapFlat:             JP DOMAP
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapBanked:           JP CpmDirectMap
+TargetSinkMapBanked:           JP DOMAP
 .routine out A,carry,zero clobbers sign,parity,halfCarry
 TargetSinkCommit:              JP CpmCompilerCommit
 .routine out A,carry,zero clobbers sign,parity,halfCarry
@@ -40,7 +40,7 @@ CpmCompilerPatchWord:
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL CpmDirectPatchWord
+            CALL DOPATWRD
             POP  IY
             POP  IX
             POP  HL
@@ -55,7 +55,7 @@ CpmCompilerCommit:
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL CpmDirectCommit
+            CALL DOCOMMIT
             POP  IY
             POP  IX
             POP  HL
@@ -70,7 +70,7 @@ CpmCompilerAbort:
             PUSH HL
             PUSH IX
             PUSH IY
-            CALL CpmDirectAbort
+            CALL DOABORT
             POP  IY
             POP  IX
             POP  HL

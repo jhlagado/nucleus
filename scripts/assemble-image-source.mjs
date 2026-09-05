@@ -1,7 +1,7 @@
 // Private image-generator boundary. ATOM is the only production assembler.
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { assembleAtomSource } from "./atom-source.mjs";
+import { assembleNativeCpmProof } from "./assemble-native-cpm.mjs";
 
 const asmRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../asm");
 
@@ -10,6 +10,8 @@ export async function assembleImageSource(source) {
   if (entry === ".." || entry.startsWith("../") || path.isAbsolute(entry)) {
     throw new Error(`Unsupported assembly entry outside the source tree: ${source}`);
   }
-  const result = await assembleAtomSource(entry);
+  const result = entry === "vertical-slice/cpm22-program-provider-proof.asm"
+    ? await assembleNativeCpmProof("cpm22-program-provider-proof.asm")
+    : await (await import("./atom-source.mjs")).assembleAtomSource(entry);
   return { hex: result.hex, symbols: result.symbols };
 }
