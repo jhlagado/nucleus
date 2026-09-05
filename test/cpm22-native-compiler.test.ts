@@ -361,6 +361,84 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     expect(bdos.files.has(canonicalName("OUTPUT.COM"))).toBe(true);
   });
 
+  it.each([
+    [
+      "scalar routine parameter",
+      [
+        "sub emit(n as u8) fails",
+        "writeOutputByte(n) else fail",
+        "end",
+        "sub main() fails",
+        "emit(65) else fail",
+        "end",
+        "",
+      ].join("\n"),
+    ],
+    [
+      "open-array parameter used as a counted-loop bound",
+      [
+        "sub emit(n as u8[]) fails",
+        "var i as u16",
+        "for i = 0 until n.length",
+        "writeOutputByte(65) else fail",
+        "end",
+        "end",
+        "var x as u8[1] = [65]",
+        "sub main() fails",
+        "emit(x) else fail",
+        "end",
+        "",
+      ].join("\n"),
+    ],
+  ])("compiles and runs a %s through the full CP/M transient", (_name, source) => {
+    const { bdos, compileOnce } = createCompiler(source);
+    compileOnce();
+    expect(bdos.text()).not.toContain("Nucleus error");
+    expect(bdos.text()).not.toContain("Nucleus host error");
+    const output = bdos.files.get(canonicalName("OUTPUT.COM"));
+    expect(output, bdos.text()).toBeDefined();
+    expect(runCom(output!).output).toEqual([0x41]);
+    expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
+    expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
+  });
+
+  it("returns from an invalid counted-loop bound without replacing output and accepts the next command", () => {
+    const source = [
+      "sub emit(n as u8[]) fails",
+      "var i as u16",
+      "for i = 0 until missing",
+      "writeOutputByte(65) else fail",
+      "end",
+      "end",
+      "var x as u8[1] = [65]",
+      "sub main() fails",
+      "emit(x) else fail",
+      "end",
+      "",
+    ].join("\n");
+    const old = new Uint8Array(128).fill(0xa5);
+    const { bdos, compileOnce } = createCompiler(source, old);
+    // compileOnce asserts the real return sentinel, exact SP, and high-memory
+    // canary. A diagnostic followed by runaway execution is not a valid error.
+    compileOnce();
+    expect(bdos.text()).toContain(
+      "Nucleus error 39 P=01 O=0037 L=0003 C=0011",
+    );
+    expect(bdos.files.get(canonicalName("OUTPUT.COM"))).toEqual(old);
+    expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
+    expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
+
+    bdos.console.length = 0;
+    compileOnce(validSource);
+    expect(bdos.text()).not.toContain("Nucleus error");
+    expect(bdos.text()).not.toContain("Nucleus host error");
+    expect(runCom(bdos.files.get(canonicalName("OUTPUT.COM"))!).output).toEqual(
+      [0x4f, 0x4b],
+    );
+    expect(bdos.files.has(canonicalName("OUTPUT.$$$"))).toBe(false);
+    expect(bdos.files.has(canonicalName("OUTPUT.BAK"))).toBe(false);
+  });
+
   it("supports the compact one-name command and BIN/HEX selection", () => {
     const files = new Map<string, Uint8Array>([
       ["HELLO.NU", cpmTextFile(validSource)],
