@@ -10,8 +10,8 @@ NativeStreamingSource .equ 1
             .org MMCORE
             .include "flat-target-compiler-image.asmi"
 
-HostVectorBase .equ MMHOSTVC
-            .org HostVectorBase
+NHVECTOR .equ MMHOSTVC
+            .org NHVECTOR
 CpmHostVectorStart:
             .db "NH",0,1,8,14,0,0
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
@@ -23,25 +23,25 @@ HVCMPNAM:        JP CpmLayoutCompareName
 .routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
 HVMATNAM:           JP CpmLayoutMaterializeName
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkBegin:               JP CpmLayoutTargetBegin
+TSBEGIN:               JP CpmLayoutTargetBegin
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkImageByte:           JP CpmLayoutImageByte
+TSBYTE:           JP CpmLayoutImageByte
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeImage:        JP CpmLayoutRuntimeImage
+TSRTIMG:        JP CpmLayoutRuntimeImage
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeInitialImage: JP CpmLayoutRuntimeImage
+TSRTINIT: JP CpmLayoutRuntimeImage
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkPatchByte:           JP CpmLayoutPatchByte
+TSPATBYT:           JP CpmLayoutPatchByte
 .routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkPatchWord:           JP CpmLayoutPatchWord
+TSPATWRD:           JP CpmLayoutPatchWord
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapFlat:             JP CpmLayoutMap
+TSMAP:             JP CpmLayoutMap
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapBanked:           JP CpmLayoutMap
+TSBANK:           JP CpmLayoutMap
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkCommit:              JP CpmLayoutCommit
+TSCOMMIT:              JP CpmLayoutCommit
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkAbort:               JP CpmLayoutAbort
+TSABORT:               JP CpmLayoutAbort
 CpmHostVectorTableEnd:
 
             .include "native-source-host.asm"

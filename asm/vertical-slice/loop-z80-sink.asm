@@ -16,7 +16,7 @@ EmitByte:
             LD   C,A
             LD   A,B
             PUSH HL
-            CALL TargetSinkImageByte
+            CALL TSBYTE
             POP  HL
             POP  BC
             JP   C,TargetOutputFailure
@@ -225,7 +225,7 @@ PatchStore:
             LD   A,(TGOUTBNK)
             LD   C,A
             LD   A,B
-            CALL TargetSinkPatchByte
+            CALL TSPATBYT
             JP   C,TargetOutputFailure
             OR   A
             RET
@@ -805,7 +805,7 @@ PatchWord:
             PUSH BC
             LD   A,(TGOUTBNK)
             LD   C,A
-            CALL TargetSinkPatchWord
+            CALL TSPATWRD
             POP  BC
             JP   C,TargetOutputFailure
             OR   A

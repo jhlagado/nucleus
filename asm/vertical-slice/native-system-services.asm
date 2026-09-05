@@ -43,7 +43,7 @@ NativeSystemDispatcher:
             JP   Z,NativeSystemLaunchEnd
 NativeSystemExternal:
             LD   A,(NativeSystemSavedA)
-            OUT  (NativeHostMon3NodePort),A
+            OUT  (HPMON3),A
             RET
 
 NativeSystemSourceNext:
@@ -52,7 +52,7 @@ NativeSystemSourceNext:
 
 NativeSystemRetainName:
             LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
+            LD   BC,(NHM3BC)
             JP   SPRETAIN
 
 NativeSystemCompareName:
@@ -68,7 +68,7 @@ NativeSystemTargetBegin:
 
 NativeSystemTargetImage:
             LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH HL
             PUSH IX
@@ -81,13 +81,13 @@ NativeSystemTargetImage:
             RET
 
 NativeSystemRuntime:
-            LD   A,(NativeHostRuntimeOperation)
-            LD   BC,(NativeHostMon3InputBC)
+            LD   A,(NHRTOP)
+            LD   BC,(NHM3BC)
             CALL NativeNobjRuntime
             JR   C,NativeSystemRuntimeFailed
             XOR  A
 NativeSystemRuntimeStatus:
-            LD   (NativeHostRuntimeStatus),A
+            LD   (NHRTSTAT),A
             RET
 NativeSystemRuntimeFailed:
             SCF
@@ -95,7 +95,7 @@ NativeSystemRuntimeFailed:
 
 NativeSystemPatchByte:
             LD   A,(NativeSystemSavedA)
-            LD   BC,(NativeHostMon3InputBC)
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH HL
             PUSH IX
@@ -108,7 +108,7 @@ NativeSystemPatchByte:
             RET
 
 NativeSystemPatchWord:
-            LD   BC,(NativeHostMon3InputBC)
+            LD   BC,(NHM3BC)
             PUSH BC
             PUSH DE
             PUSH HL
@@ -158,7 +158,7 @@ NativeSystemLaunchBegin:
             CALL SPBEGIN
             RET  C
             LD   C,NSCOMPF+14
-            OUT  (NativeHostMon3NodePort),A
+            OUT  (HPMON3),A
             RET  NC
             LD   (NativeSystemSavedStatus),A
             CALL SPEND
@@ -173,7 +173,7 @@ NativeSystemLaunchEnd:
             RET  C
             LD   A,(NativeSystemSavedStatus)
             LD   C,NSCOMPF+15
-            OUT  (NativeHostMon3NodePort),A
+            OUT  (HPMON3),A
             RET
 
 NativeSystemServicesEnd:

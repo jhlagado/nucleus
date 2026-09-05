@@ -219,7 +219,7 @@ NativeNobjRuntime:
             INC  HL
             INC  HL
             LD   (NativeNobjRecordBuffer+1),HL
-            LD   A,(NativeHostRuntimeBank)
+            LD   A,(NHRTBNK)
             LD   (NativeNobjRecordBuffer+3),A
             POP  AF
             LD   (NativeNobjRuntimeRequest+NCFOPER),A
@@ -234,7 +234,7 @@ NativeNobjRuntime:
             INC  A
 NativeNobjRuntimeFlagsReady:
             LD   (NativeNobjRuntimeRequest+NCFFLAG),A
-            LD   A,(NativeHostRuntimeBank)
+            LD   A,(NHRTBNK)
             LD   (NativeNobjRuntimeRequest+NCFBANK),A
             XOR  A
             LD   (NativeNobjRuntimeRequest+5),A

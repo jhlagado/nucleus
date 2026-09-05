@@ -6,6 +6,7 @@ import { assembleResolvedAtomProject, materializeAtomGeneration, writeAtomD8 } f
 import { flattenTranslatedEntry, scanAssembly, symbolMapFromLedger } from "./atom-source-translation.mjs";
 import { restoreMemoryMapLimit } from "./restore-memory-map-limit.mjs";
 import { omitTokenizerDisplacements } from "./omit-tokenizer-displacements.mjs";
+import { omitGrammarDisplacements } from "./omit-grammar-displacements.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Transitional output compatibility only: native source names are never
@@ -18,6 +19,9 @@ const resolverExports = JSON.parse(readFileSync(path.join(root, "asm/atom-resolv
 const memoryExports = JSON.parse(readFileSync(path.join(root, "asm/atom-memory-symbols.json"), "utf8"));
 const stateExports = JSON.parse(readFileSync(path.join(root, "asm/atom-state-symbols.json"), "utf8"));
 const tokenizerExports = JSON.parse(readFileSync(path.join(root, "asm/atom-tokenizer-symbols.json"), "utf8"));
+const grammarExports = JSON.parse(readFileSync(path.join(root, "asm/atom-grammar-symbols.json"), "utf8"));
+const hostExports = JSON.parse(readFileSync(path.join(root, "asm/atom-host-symbols.json"), "utf8"));
+const diagnosticExports = JSON.parse(readFileSync(path.join(root, "asm/atom-diagnostic-symbols.json"), "utf8"));
 let census;
 export const assemblyCensus = () => census ??= scanAssembly({ asmRoot: path.join(root, "asm"), proofRoot: path.join(root, "proofs") });
 
@@ -189,6 +193,9 @@ export function prepareAtomSource(entry, { report = assemblyCensus(), overrides 
   for (const [publicName, nativeName] of Object.entries(memoryExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(stateExports)) reverse.set(nativeName, publicName);
   for (const [publicName, nativeName] of Object.entries(tokenizerExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(grammarExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(hostExports)) reverse.set(nativeName, publicName);
+  for (const [publicName, nativeName] of Object.entries(diagnosticExports)) reverse.set(nativeName, publicName);
   flattenTranslatedEntry(report, entry, {
     overrides, onLine: line => {
       input.push(line);
@@ -247,5 +254,5 @@ export async function assembleAtomSource(entry, options = {}) {
     if (labels.has(alias)) addresses[original] = labels.get(alias);
   }
   Object.assign(symbols, source.limits);
-  return omitTokenizerDisplacements(restoreMemoryMapLimit({ hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions }));
+  return omitGrammarDisplacements(omitTokenizerDisplacements(restoreMemoryMapLimit({ hex: sparseIntelHex(result.generation), symbols, addresses, generation: result.generation, source, instructions: result.execution.instructions })));
 }

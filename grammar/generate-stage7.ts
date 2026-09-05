@@ -87,6 +87,15 @@ const stateSymbol = (logical: string): string => {
   if (native === undefined) throw new Error(`missing native state symbol ${logical}`);
   return native;
 };
+const grammarNames = JSON.parse(readFileSync(
+  path.join(here, "..", "asm", "atom-grammar-symbols.json"), "utf8",
+)) as Record<string, string>;
+const grammarSymbol = (suffix: string): string => {
+  const logical = `HybridLL1${suffix}`;
+  const native = grammarNames[logical];
+  if (native === undefined) throw new Error(`missing native grammar symbol ${logical}`);
+  return native;
+};
 const actionSourcePath = path.join(
   here,
   "..",
@@ -173,7 +182,7 @@ export function validateStage7PhysicalHandlers(
   families: readonly Stage7ActionFamily[] = actionFamilies,
 ): void {
   for (const { handler } of families) {
-    if (!source.includes(`HybridLL1${handler}:`))
+    if (!source.includes(`${grammarNames[`HybridLL1${handler}`]}:`))
       throw new Error(`missing physical action handler HybridLL1${handler}`);
   }
 }
@@ -358,32 +367,29 @@ export function generateStage7Tables(): string {
 
   const lines = [
     "; Generated from stage7-grammar.json.",
-    `HybridLL1NonterminalCount .equ ${nonterminals.length}`,
-    `HybridLL1HighRowStart    .equ ${rowOffsets.findIndex((offset) => offset >= 256) < 0 ? nonterminals.length : rowOffsets.findIndex((offset) => offset >= 256)}`,
-    `HybridLL1ProductionCount  .equ ${physicalProductions.length}`,
-    `HybridLL1ProductionSplit  .equ ${productionSplit}`,
-    `HybridLL1ActionCount      .equ ${actions.length}`,
-    `HybridLL1StartSymbol      .equ ${symbol(grammar.start)}`,
+    `${grammarSymbol("NonterminalCount")} EQU ${nonterminals.length}`,
+    `${grammarSymbol("HighRowStart")} EQU ${rowOffsets.findIndex((offset) => offset >= 256) < 0 ? nonterminals.length : rowOffsets.findIndex((offset) => offset >= 256)}`,
+    `${grammarSymbol("ProductionCount")} EQU ${physicalProductions.length}`,
+    `${grammarSymbol("ProductionSplit")} EQU ${productionSplit}`,
+    `${grammarSymbol("ActionCount")} EQU ${actions.length}`,
+    `${grammarSymbol("StartSymbol")} EQU ${symbol(grammar.start)}`,
     ...actionLayout.flatMap(({ logical, parameter }, ordinal) =>
       parameter === undefined
         ? []
-        : [`HybridLL1ActionOrdinal${logical.slice(2)} .equ ${ordinal}`],
+        : [`${grammarSymbol(`ActionOrdinal${logical.slice(2)}`)} EQU ${ordinal}`],
     ),
     "",
-    "HybridLL1RowDirectory:",
+    `${grammarSymbol("RowDirectory")}:`,
     ...nonterminals.map((name, index) => {
       const diagnostic = grammar.diagnostics[name];
       if (!diagnostic) throw new Error(`missing diagnostic for ${name}`);
-      const offset = `HybridLL1Row${index}-HybridLL1Rows`;
-      return rowOffsets[index]! < 256
-        ? `            .db ${offset},${stateSymbol(diagnostic)} ; ${name}`
-        : `            .db ${offset}-$100,${stateSymbol(diagnostic)} ; ${name}`;
+      return `            DB LLOFR${index},${stateSymbol(diagnostic)} ; ${name}`;
     }),
-    "HybridLL1RowDirectoryEnd:",
-    "HybridLL1Rows:",
+    `${grammarSymbol("RowDirectoryEnd")}:`,
+    `${grammarSymbol("Rows")}:`,
   ];
   for (const [nonterminalIndex, name] of nonterminals.entries()) {
-    lines.push(`HybridLL1Row${nonterminalIndex}: ; ${name}`);
+    lines.push(`${grammarSymbol(`Row${nonterminalIndex}`)}: ; ${name}`);
     const rowProductions = grammar.productions
       .map((production, productionIndex) => ({ production, productionIndex }))
       .filter(({ production }) => production.lhs === name);
@@ -392,54 +398,62 @@ export function generateStage7Tables(): string {
       if (predictions.length === 0)
         throw new Error(`production ${productionIndex} has no prediction`);
       lines.push(
-        `            .db ${logicalToPhysicalProduction[productionIndex]}${rowIndex === rowProductions.length - 1 ? "+$80" : ""}`,
+        `            DB ${logicalToPhysicalProduction[productionIndex]}${rowIndex === rowProductions.length - 1 ? "+$80" : ""}`,
       );
       predictions.forEach((token, index) =>
         lines.push(
-          `            .db ${stateSymbol(token)}${index === predictions.length - 1 ? "+$80" : ""}`,
+          `            DB ${stateSymbol(token)}${index === predictions.length - 1 ? "+$80" : ""}`,
         ),
       );
     });
   }
-  lines.push("HybridLL1RowsEnd:", "", "HybridLL1ProductionDirectory:");
+  lines.push(`${grammarSymbol("RowsEnd")}:`, "", `${grammarSymbol("ProductionDirectory")}:`);
   physicalProductions
     .slice(0, productionSplit)
     .forEach((production, index) =>
       lines.push(
-        `            .db HybridLL1Production${index}-HybridLL1Productions ; ${production.lhs}`,
+        `            DB LLOFP${index} ; ${production.lhs}`,
       ),
     );
   lines.push(
-    "            .db HybridLL1ProductionsHigh-HybridLL1Productions",
-    "HybridLL1ProductionDirectoryHigh:",
+    "            DB LLOFPHI",
+    `${grammarSymbol("ProductionDirectoryHigh")}:`,
   );
   physicalProductions.slice(productionSplit).forEach((production, relative) => {
     const index = productionSplit + relative;
     lines.push(
-      `            .db HybridLL1Production${index}-HybridLL1ProductionsHigh ; ${production.lhs}`,
+      `            DB LLOFP${index} ; ${production.lhs}`,
     );
   });
   lines.push(
-    "            .db HybridLL1ProductionsEnd-HybridLL1ProductionsHigh",
-    "HybridLL1ProductionDirectoryEnd:",
-    "HybridLL1Productions:",
+    "            DB LLOFPEND",
+    `${grammarSymbol("ProductionDirectoryEnd")}:`,
+    `${grammarSymbol("Productions")}:`,
   );
   physicalProductions.forEach((production, index) => {
-    if (index === productionSplit) lines.push("HybridLL1ProductionsHigh:");
+    if (index === productionSplit) lines.push(`${grammarSymbol("ProductionsHigh")}:`);
     const reversed = [...production.rhs].reverse();
-    lines.push(`HybridLL1Production${index}: ; ${production.lhs}`);
+    lines.push(`${grammarSymbol(`Production${index}`)}: ; ${production.lhs}`);
     if (reversed.length)
-      lines.push(`            .db ${reversed.map(symbol).join(",")}`);
+      lines.push(`            DB ${reversed.map(symbol).join(",")}`);
   });
-  lines.push("HybridLL1ProductionsEnd:", "", "HybridLL1ActionDirectory:");
+  lines.push(`${grammarSymbol("ProductionsEnd")}:`, "", `${grammarSymbol("ActionDirectory")}:`);
   for (const { logical, handler, parameter } of actionLayout) {
     const suffix = parameter === undefined ? "" : `, parameter ${parameter}`;
-    lines.push(`            .dw HybridLL1${handler} ; ${logical}${suffix}`);
+    lines.push(`            DW ${grammarSymbol(handler)} ; ${logical}${suffix}`);
   }
   lines.push(
-    "HybridLL1ActionDirectoryEnd:",
+    `${grammarSymbol("ActionDirectoryEnd")}:`,
     "",
-    "HybridLL1GeneratedTableEnd:",
+    `${grammarSymbol("GeneratedTableEnd")}:`,
+    "",
+    "; Private directory displacements: both labels are now defined.",
+    ...nonterminals.map((_, index) =>
+      `LLOFR${index} EQU ${grammarSymbol(`Row${index}`)}-${grammarSymbol("Rows")}${rowOffsets[index]! < 256 ? "" : "-$100"}`),
+    ...physicalProductions.map((_, index) =>
+      `LLOFP${index} EQU ${grammarSymbol(`Production${index}`)}-${grammarSymbol(index < productionSplit ? "Productions" : "ProductionsHigh")}`),
+    `LLOFPHI EQU ${grammarSymbol("ProductionsHigh")}-${grammarSymbol("Productions")}`,
+    `LLOFPEND EQU ${grammarSymbol("ProductionsEnd")}-${grammarSymbol("ProductionsHigh")}`,
     "",
   );
   return lines.join("\n");
@@ -452,7 +466,7 @@ export function generateStage7ProofActions(): string {
   ].filter((handler) => handler !== "StraySelectClause");
   return [
     "; Generated proof-only action aliases from stage7-grammar.json.",
-    ...handlers.map((handler) => `HybridLL1${handler}:`),
+    ...handlers.map((handler) => `${grammarSymbol(handler)}:`),
     "            RET",
     "",
   ].join("\n");

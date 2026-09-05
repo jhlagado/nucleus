@@ -1,747 +1,880 @@
 ; Generated from stage7-grammar.json.
-HybridLL1NonterminalCount .equ 47
-HybridLL1HighRowStart    .equ 42
-HybridLL1ProductionCount  .equ 82
-HybridLL1ProductionSplit  .equ 41
-HybridLL1ActionCount      .equ 91
-HybridLL1StartSymbol      .equ $40
-HybridLL1ActionOrdinalEmitExit .equ 46
-HybridLL1ActionOrdinalEmitContinue .equ 47
-HybridLL1ActionOrdinalForTo .equ 61
-HybridLL1ActionOrdinalForUntil .equ 62
-HybridLL1ActionOrdinalTypeU8 .equ 74
-HybridLL1ActionOrdinalTypeU16 .equ 75
-HybridLL1ActionOrdinalTypeBoolean .equ 76
-HybridLL1ActionOrdinalTypeI8 .equ 77
-HybridLL1ActionOrdinalTypeI16 .equ 78
+LLNTCNT EQU 47
+LLHIROW EQU 42
+LLPRCNT EQU 82
+LLPRSPLT EQU 41
+LLACCNT EQU 91
+LLSTART EQU $40
+LAEXIT EQU 46
+LACONT EQU 47
+LAFORTO EQU 61
+LAFORUNT EQU 62
+LATYU8 EQU 74
+LATYU16 EQU 75
+LATYBOOL EQU 76
+LATYI8 EQU 77
+LATYI16 EQU 78
 
-HybridLL1RowDirectory:
-            .db HybridLL1Row0-HybridLL1Rows,DXTOPLVL ; compilation-unit
-            .db HybridLL1Row1-HybridLL1Rows,DXTOPLVL ; top-level-list
-            .db HybridLL1Row2-HybridLL1Rows,DXTOPLVL ; top-level-declaration
-            .db HybridLL1Row3-HybridLL1Rows,DXTOPLVL ; const-declaration
-            .db HybridLL1Row4-HybridLL1Rows,DXEQ ; const-declaration-tail
-            .db HybridLL1Row5-HybridLL1Rows,DXTOPLVL ; assert-declaration
-            .db HybridLL1Row6-HybridLL1Rows,DXTOPLVL ; program-var-declaration
-            .db HybridLL1Row7-HybridLL1Rows,DXEQ ; program-initializer-opt
-            .db HybridLL1Row8-HybridLL1Rows,DXTOPLVL ; record-declaration
-            .db HybridLL1Row9-HybridLL1Rows,DGRECEMP ; record-fields
-            .db HybridLL1Row10-HybridLL1Rows,DXSCA ; record-field-tail
-            .db HybridLL1Row11-HybridLL1Rows,DXSCA ; record-field
-            .db HybridLL1Row12-HybridLL1Rows,DXFWD ; forward-declaration
-            .db HybridLL1Row13-HybridLL1Rows,DXSUB ; sub-definition
-            .db HybridLL1Row14-HybridLL1Rows,DXLPAR ; sub-definition-tail
-            .db HybridLL1Row15-HybridLL1Rows,DXRPAR ; parameter-list
-            .db HybridLL1Row16-HybridLL1Rows,DXRPAR ; parameter-tail
-            .db HybridLL1Row17-HybridLL1Rows,DXSCA ; parameter
-            .db HybridLL1Row18-HybridLL1Rows,DXLINE ; result-opt
-            .db HybridLL1Row19-HybridLL1Rows,DXLINE ; fails-opt
-            .db HybridLL1Row20-HybridLL1Rows,DXSCA ; routine-body
-            .db HybridLL1Row21-HybridLL1Rows,DXSCA ; local-list
-            .db HybridLL1Row22-HybridLL1Rows,DXVAR ; local-declaration
-            .db HybridLL1Row23-HybridLL1Rows,DXLINE ; local-initializer-opt
-            .db HybridLL1Row24-HybridLL1Rows,DXSCA ; statement-sequence
-            .db HybridLL1Row25-HybridLL1Rows,DXSCA ; statement
-            .db HybridLL1Row26-HybridLL1Rows,DXRET ; return-statement
-            .db HybridLL1Row27-HybridLL1Rows,DXLINE ; return-value-opt
-            .db HybridLL1Row28-HybridLL1Rows,DXFAIL ; fail-statement
-            .db HybridLL1Row29-HybridLL1Rows,DGFAICTX ; name-statement-tail
-            .db HybridLL1Row30-HybridLL1Rows,DXLOOP ; transfer-statement
-            .db HybridLL1Row31-HybridLL1Rows,DXIF ; if-statement
-            .db HybridLL1Row32-HybridLL1Rows,DXSCA ; if-tail
-            .db HybridLL1Row33-HybridLL1Rows,DXSCA ; while-statement
-            .db HybridLL1Row34-HybridLL1Rows,DXFOR ; for-statement
-            .db HybridLL1Row35-HybridLL1Rows,DXSCA ; for-bound
-            .db HybridLL1Row36-HybridLL1Rows,DXLINE ; for-step-opt
-            .db HybridLL1Row37-HybridLL1Rows,DXTYP ; type
-            .db HybridLL1Row38-HybridLL1Rows,DXTYP ; type-atom
-            .db HybridLL1Row39-HybridLL1Rows,DXSCA ; string-capacity
-            .db HybridLL1Row40-HybridLL1Rows,DXSCA ; type-array-opt
-            .db HybridLL1Row41-HybridLL1Rows,DXSCA ; type-array-bound
-            .db HybridLL1Row42-HybridLL1Rows-$100,DXTYP ; scalar-type
-            .db HybridLL1Row43-HybridLL1Rows-$100,DXCASE ; select-statement
-            .db HybridLL1Row44-HybridLL1Rows-$100,DXEND ; select-case-tail
-            .db HybridLL1Row45-HybridLL1Rows-$100,DXCASE ; select-case
-            .db HybridLL1Row46-HybridLL1Rows-$100,DXLINE ; select-value-tail
-HybridLL1RowDirectoryEnd:
-HybridLL1Rows:
-HybridLL1Row0: ; compilation-unit
-            .db 0+$80
-            .db TNASRT
-            .db TNCONST
-            .db TOKENEOF
-            .db TNFWD
-            .db TNREC
-            .db TOKENSUB
-            .db TOKENVAR+$80
-HybridLL1Row1: ; top-level-list
-            .db 1
-            .db TNASRT
-            .db TNCONST
-            .db TNFWD
-            .db TNREC
-            .db TOKENSUB
-            .db TOKENVAR+$80
-            .db 2+$80
-            .db TOKENEOF+$80
-HybridLL1Row2: ; top-level-declaration
-            .db 3
-            .db TNCONST+$80
-            .db 4
-            .db TNASRT+$80
-            .db 5
-            .db TOKENVAR+$80
-            .db 6
-            .db TNREC+$80
-            .db 7
-            .db TNFWD+$80
-            .db 8+$80
-            .db TOKENSUB+$80
-HybridLL1Row3: ; const-declaration
-            .db 9+$80
-            .db TNCONST+$80
-HybridLL1Row4: ; const-declaration-tail
-            .db 10
-            .db TNEQ+$80
-            .db 11+$80
-            .db TOKENAS+$80
-HybridLL1Row5: ; assert-declaration
-            .db 12+$80
-            .db TNASRT+$80
-HybridLL1Row6: ; program-var-declaration
-            .db 13+$80
-            .db TOKENVAR+$80
-HybridLL1Row7: ; program-initializer-opt
-            .db 14
-            .db TNEQ+$80
-            .db 2+$80
-            .db TNNL+$80
-HybridLL1Row8: ; record-declaration
-            .db 15+$80
-            .db TNREC+$80
-HybridLL1Row9: ; record-fields
-            .db 16+$80
-            .db TNNAME+$80
-HybridLL1Row10: ; record-field-tail
-            .db 16
-            .db TNNAME+$80
-            .db 2+$80
-            .db TOKENEND+$80
-HybridLL1Row11: ; record-field
-            .db 17+$80
-            .db TNNAME+$80
-HybridLL1Row12: ; forward-declaration
-            .db 18+$80
-            .db TNFWD+$80
-HybridLL1Row13: ; sub-definition
-            .db 19+$80
-            .db TOKENSUB+$80
-HybridLL1Row14: ; sub-definition-tail
-            .db 20
-            .db TNLPAR+$80
-            .db 21+$80
-            .db TNNL+$80
-HybridLL1Row15: ; parameter-list
-            .db 22
-            .db TNNAME+$80
-            .db 2+$80
-            .db TNRPAR+$80
-HybridLL1Row16: ; parameter-tail
-            .db 23
-            .db TNCOMMA+$80
-            .db 2+$80
-            .db TNRPAR+$80
-HybridLL1Row17: ; parameter
-            .db 24+$80
-            .db TNNAME+$80
-HybridLL1Row18: ; result-opt
-            .db 25
-            .db TOKENAS+$80
-            .db 2+$80
-            .db TNFAILS
-            .db TNNL+$80
-HybridLL1Row19: ; fails-opt
-            .db 26
-            .db TNFAILS+$80
-            .db 2+$80
-            .db TNNL+$80
-HybridLL1Row20: ; routine-body
-            .db 27
-            .db TNCASE
-            .db TNCONT
-            .db TOKENEND
-            .db TNEXIT
-            .db TNFAIL
-            .db TOKENFOR
-            .db TOKENIF
-            .db TNNAME
-            .db TNRET
-            .db TNSEL
-            .db TOKENVAR
-            .db TNWHILE+$80
-            .db 28+$80
-            .db TNELSE
-            .db TNELSEIF+$80
-HybridLL1Row21: ; local-list
-            .db 29
-            .db TOKENVAR+$80
-            .db 2
-            .db TNCONT
-            .db TOKENEND
-            .db TNEXIT
-            .db TNFAIL
-            .db TOKENFOR
-            .db TOKENIF
-            .db TNNAME
-            .db TNRET
-            .db TNSEL
-            .db TNWHILE+$80
-            .db 81+$80
-            .db TNCASE+$80
-HybridLL1Row22: ; local-declaration
-            .db 30+$80
-            .db TOKENVAR+$80
-HybridLL1Row23: ; local-initializer-opt
-            .db 31
-            .db TNEQ+$80
-            .db 32+$80
-            .db TNNL+$80
-HybridLL1Row24: ; statement-sequence
-            .db 33
-            .db TNCONT
-            .db TNEXIT
-            .db TNFAIL
-            .db TOKENFOR
-            .db TOKENIF
-            .db TNNAME
-            .db TNRET
-            .db TNSEL
-            .db TNWHILE+$80
-            .db 2+$80
-            .db TNCASE
-            .db TNELSE
-            .db TNELSEIF
-            .db TOKENEND
-            .db TOKENEOF+$80
-HybridLL1Row25: ; statement
-            .db 34
-            .db TNNAME+$80
-            .db 35
-            .db TNRET+$80
-            .db 36
-            .db TNFAIL+$80
-            .db 37
-            .db TNCONT
-            .db TNEXIT+$80
-            .db 38
-            .db TOKENIF+$80
-            .db 39
-            .db TNWHILE+$80
-            .db 40
-            .db TOKENFOR+$80
-            .db 41+$80
-            .db TNSEL+$80
-HybridLL1Row26: ; return-statement
-            .db 42+$80
-            .db TNRET+$80
-HybridLL1Row27: ; return-value-opt
-            .db 43
-            .db TNCHAR
-            .db TNFALSE
-            .db TOKENI16
-            .db TOKENI8
-            .db TNLPAR
-            .db TNMIN
-            .db TNNAME
-            .db TOKENNOT
-            .db TNNUM
-            .db TNPLUS
-            .db TNTRUE
-            .db TOKENU16
-            .db TOKENU8+$80
-            .db 44+$80
-            .db TNNL+$80
-HybridLL1Row28: ; fail-statement
-            .db 45+$80
-            .db TNFAIL+$80
-HybridLL1Row29: ; name-statement-tail
-            .db 46
-            .db TNNL+$80
-            .db 47+$80
-            .db TNHDL+$80
-HybridLL1Row30: ; transfer-statement
-            .db 48
-            .db TNEXIT+$80
-            .db 49+$80
-            .db TNCONT+$80
-HybridLL1Row31: ; if-statement
-            .db 50+$80
-            .db TOKENIF+$80
-HybridLL1Row32: ; if-tail
-            .db 51
-            .db TNELSEIF+$80
-            .db 52
-            .db TNELSE+$80
-            .db 53+$80
-            .db TOKENEND+$80
-HybridLL1Row33: ; while-statement
-            .db 54+$80
-            .db TNWHILE+$80
-HybridLL1Row34: ; for-statement
-            .db 55+$80
-            .db TOKENFOR+$80
-HybridLL1Row35: ; for-bound
-            .db 56
-            .db TOKENTO+$80
-            .db 57+$80
-            .db TNUNT+$80
-HybridLL1Row36: ; for-step-opt
-            .db 58
-            .db TNSTEP+$80
-            .db 59+$80
-            .db TNNL+$80
-HybridLL1Row37: ; type
-            .db 60+$80
-            .db TNBOOL
-            .db TOKENI16
-            .db TOKENI8
-            .db TNNAME
-            .db TNSTR
-            .db TOKENU16
-            .db TOKENU8+$80
-HybridLL1Row38: ; type-atom
-            .db 61
-            .db TNBOOL
-            .db TOKENI16
-            .db TOKENI8
-            .db TOKENU16
-            .db TOKENU8+$80
-            .db 62
-            .db TNNAME+$80
-            .db 63+$80
-            .db TNSTR+$80
-HybridLL1Row39: ; string-capacity
-            .db 64
-            .db TNCHAR
-            .db TNFALSE
-            .db TOKENI16
-            .db TOKENI8
-            .db TNLPAR
-            .db TNMIN
-            .db TNNAME
-            .db TOKENNOT
-            .db TNNUM
-            .db TNPLUS
-            .db TNTRUE
-            .db TOKENU16
-            .db TOKENU8+$80
-            .db 65+$80
-            .db TNRBRK+$80
-HybridLL1Row40: ; type-array-opt
-            .db 66
-            .db TNLBRK+$80
-            .db 2+$80
-            .db TNCOMMA
-            .db TNEQ
-            .db TNFAILS
-            .db TNNL
-            .db TNRPAR+$80
-HybridLL1Row41: ; type-array-bound
-            .db 67
-            .db TNCHAR
-            .db TNFALSE
-            .db TOKENI16
-            .db TOKENI8
-            .db TNLPAR
-            .db TNMIN
-            .db TNNAME
-            .db TOKENNOT
-            .db TNNUM
-            .db TNPLUS
-            .db TNTRUE
-            .db TOKENU16
-            .db TOKENU8+$80
-            .db 68+$80
-            .db TNRBRK+$80
-HybridLL1Row42: ; scalar-type
-            .db 69
-            .db TOKENU8+$80
-            .db 70
-            .db TOKENU16+$80
-            .db 71
-            .db TNBOOL+$80
-            .db 72
-            .db TOKENI8+$80
-            .db 73+$80
-            .db TOKENI16+$80
-HybridLL1Row43: ; select-statement
-            .db 74+$80
-            .db TNSEL+$80
-HybridLL1Row44: ; select-case-tail
-            .db 75
-            .db TNCASE+$80
-            .db 78
-            .db TNELSE+$80
-            .db 79
-            .db TOKENEND+$80
-            .db 80+$80
-            .db TOKENEOF+$80
-HybridLL1Row45: ; select-case
-            .db 76+$80
-            .db TNCASE+$80
-HybridLL1Row46: ; select-value-tail
-            .db 77
-            .db TNCOMMA+$80
-            .db 2+$80
-            .db TNNL+$80
-HybridLL1RowsEnd:
+LLROWDIR:
+            DB LLOFR0,DXTOPLVL ; compilation-unit
+            DB LLOFR1,DXTOPLVL ; top-level-list
+            DB LLOFR2,DXTOPLVL ; top-level-declaration
+            DB LLOFR3,DXTOPLVL ; const-declaration
+            DB LLOFR4,DXEQ ; const-declaration-tail
+            DB LLOFR5,DXTOPLVL ; assert-declaration
+            DB LLOFR6,DXTOPLVL ; program-var-declaration
+            DB LLOFR7,DXEQ ; program-initializer-opt
+            DB LLOFR8,DXTOPLVL ; record-declaration
+            DB LLOFR9,DGRECEMP ; record-fields
+            DB LLOFR10,DXSCA ; record-field-tail
+            DB LLOFR11,DXSCA ; record-field
+            DB LLOFR12,DXFWD ; forward-declaration
+            DB LLOFR13,DXSUB ; sub-definition
+            DB LLOFR14,DXLPAR ; sub-definition-tail
+            DB LLOFR15,DXRPAR ; parameter-list
+            DB LLOFR16,DXRPAR ; parameter-tail
+            DB LLOFR17,DXSCA ; parameter
+            DB LLOFR18,DXLINE ; result-opt
+            DB LLOFR19,DXLINE ; fails-opt
+            DB LLOFR20,DXSCA ; routine-body
+            DB LLOFR21,DXSCA ; local-list
+            DB LLOFR22,DXVAR ; local-declaration
+            DB LLOFR23,DXLINE ; local-initializer-opt
+            DB LLOFR24,DXSCA ; statement-sequence
+            DB LLOFR25,DXSCA ; statement
+            DB LLOFR26,DXRET ; return-statement
+            DB LLOFR27,DXLINE ; return-value-opt
+            DB LLOFR28,DXFAIL ; fail-statement
+            DB LLOFR29,DGFAICTX ; name-statement-tail
+            DB LLOFR30,DXLOOP ; transfer-statement
+            DB LLOFR31,DXIF ; if-statement
+            DB LLOFR32,DXSCA ; if-tail
+            DB LLOFR33,DXSCA ; while-statement
+            DB LLOFR34,DXFOR ; for-statement
+            DB LLOFR35,DXSCA ; for-bound
+            DB LLOFR36,DXLINE ; for-step-opt
+            DB LLOFR37,DXTYP ; type
+            DB LLOFR38,DXTYP ; type-atom
+            DB LLOFR39,DXSCA ; string-capacity
+            DB LLOFR40,DXSCA ; type-array-opt
+            DB LLOFR41,DXSCA ; type-array-bound
+            DB LLOFR42,DXTYP ; scalar-type
+            DB LLOFR43,DXCASE ; select-statement
+            DB LLOFR44,DXEND ; select-case-tail
+            DB LLOFR45,DXCASE ; select-case
+            DB LLOFR46,DXLINE ; select-value-tail
+LLRDEND:
+LLROWS:
+LLROW0: ; compilation-unit
+            DB 0+$80
+            DB TNASRT
+            DB TNCONST
+            DB TOKENEOF
+            DB TNFWD
+            DB TNREC
+            DB TOKENSUB
+            DB TOKENVAR+$80
+LLROW1: ; top-level-list
+            DB 1
+            DB TNASRT
+            DB TNCONST
+            DB TNFWD
+            DB TNREC
+            DB TOKENSUB
+            DB TOKENVAR+$80
+            DB 2+$80
+            DB TOKENEOF+$80
+LLROW2: ; top-level-declaration
+            DB 3
+            DB TNCONST+$80
+            DB 4
+            DB TNASRT+$80
+            DB 5
+            DB TOKENVAR+$80
+            DB 6
+            DB TNREC+$80
+            DB 7
+            DB TNFWD+$80
+            DB 8+$80
+            DB TOKENSUB+$80
+LLROW3: ; const-declaration
+            DB 9+$80
+            DB TNCONST+$80
+LLROW4: ; const-declaration-tail
+            DB 10
+            DB TNEQ+$80
+            DB 11+$80
+            DB TOKENAS+$80
+LLROW5: ; assert-declaration
+            DB 12+$80
+            DB TNASRT+$80
+LLROW6: ; program-var-declaration
+            DB 13+$80
+            DB TOKENVAR+$80
+LLROW7: ; program-initializer-opt
+            DB 14
+            DB TNEQ+$80
+            DB 2+$80
+            DB TNNL+$80
+LLROW8: ; record-declaration
+            DB 15+$80
+            DB TNREC+$80
+LLROW9: ; record-fields
+            DB 16+$80
+            DB TNNAME+$80
+LLROW10: ; record-field-tail
+            DB 16
+            DB TNNAME+$80
+            DB 2+$80
+            DB TOKENEND+$80
+LLROW11: ; record-field
+            DB 17+$80
+            DB TNNAME+$80
+LLROW12: ; forward-declaration
+            DB 18+$80
+            DB TNFWD+$80
+LLROW13: ; sub-definition
+            DB 19+$80
+            DB TOKENSUB+$80
+LLROW14: ; sub-definition-tail
+            DB 20
+            DB TNLPAR+$80
+            DB 21+$80
+            DB TNNL+$80
+LLROW15: ; parameter-list
+            DB 22
+            DB TNNAME+$80
+            DB 2+$80
+            DB TNRPAR+$80
+LLROW16: ; parameter-tail
+            DB 23
+            DB TNCOMMA+$80
+            DB 2+$80
+            DB TNRPAR+$80
+LLROW17: ; parameter
+            DB 24+$80
+            DB TNNAME+$80
+LLROW18: ; result-opt
+            DB 25
+            DB TOKENAS+$80
+            DB 2+$80
+            DB TNFAILS
+            DB TNNL+$80
+LLROW19: ; fails-opt
+            DB 26
+            DB TNFAILS+$80
+            DB 2+$80
+            DB TNNL+$80
+LLROW20: ; routine-body
+            DB 27
+            DB TNCASE
+            DB TNCONT
+            DB TOKENEND
+            DB TNEXIT
+            DB TNFAIL
+            DB TOKENFOR
+            DB TOKENIF
+            DB TNNAME
+            DB TNRET
+            DB TNSEL
+            DB TOKENVAR
+            DB TNWHILE+$80
+            DB 28+$80
+            DB TNELSE
+            DB TNELSEIF+$80
+LLROW21: ; local-list
+            DB 29
+            DB TOKENVAR+$80
+            DB 2
+            DB TNCONT
+            DB TOKENEND
+            DB TNEXIT
+            DB TNFAIL
+            DB TOKENFOR
+            DB TOKENIF
+            DB TNNAME
+            DB TNRET
+            DB TNSEL
+            DB TNWHILE+$80
+            DB 81+$80
+            DB TNCASE+$80
+LLROW22: ; local-declaration
+            DB 30+$80
+            DB TOKENVAR+$80
+LLROW23: ; local-initializer-opt
+            DB 31
+            DB TNEQ+$80
+            DB 32+$80
+            DB TNNL+$80
+LLROW24: ; statement-sequence
+            DB 33
+            DB TNCONT
+            DB TNEXIT
+            DB TNFAIL
+            DB TOKENFOR
+            DB TOKENIF
+            DB TNNAME
+            DB TNRET
+            DB TNSEL
+            DB TNWHILE+$80
+            DB 2+$80
+            DB TNCASE
+            DB TNELSE
+            DB TNELSEIF
+            DB TOKENEND
+            DB TOKENEOF+$80
+LLROW25: ; statement
+            DB 34
+            DB TNNAME+$80
+            DB 35
+            DB TNRET+$80
+            DB 36
+            DB TNFAIL+$80
+            DB 37
+            DB TNCONT
+            DB TNEXIT+$80
+            DB 38
+            DB TOKENIF+$80
+            DB 39
+            DB TNWHILE+$80
+            DB 40
+            DB TOKENFOR+$80
+            DB 41+$80
+            DB TNSEL+$80
+LLROW26: ; return-statement
+            DB 42+$80
+            DB TNRET+$80
+LLROW27: ; return-value-opt
+            DB 43
+            DB TNCHAR
+            DB TNFALSE
+            DB TOKENI16
+            DB TOKENI8
+            DB TNLPAR
+            DB TNMIN
+            DB TNNAME
+            DB TOKENNOT
+            DB TNNUM
+            DB TNPLUS
+            DB TNTRUE
+            DB TOKENU16
+            DB TOKENU8+$80
+            DB 44+$80
+            DB TNNL+$80
+LLROW28: ; fail-statement
+            DB 45+$80
+            DB TNFAIL+$80
+LLROW29: ; name-statement-tail
+            DB 46
+            DB TNNL+$80
+            DB 47+$80
+            DB TNHDL+$80
+LLROW30: ; transfer-statement
+            DB 48
+            DB TNEXIT+$80
+            DB 49+$80
+            DB TNCONT+$80
+LLROW31: ; if-statement
+            DB 50+$80
+            DB TOKENIF+$80
+LLROW32: ; if-tail
+            DB 51
+            DB TNELSEIF+$80
+            DB 52
+            DB TNELSE+$80
+            DB 53+$80
+            DB TOKENEND+$80
+LLROW33: ; while-statement
+            DB 54+$80
+            DB TNWHILE+$80
+LLROW34: ; for-statement
+            DB 55+$80
+            DB TOKENFOR+$80
+LLROW35: ; for-bound
+            DB 56
+            DB TOKENTO+$80
+            DB 57+$80
+            DB TNUNT+$80
+LLROW36: ; for-step-opt
+            DB 58
+            DB TNSTEP+$80
+            DB 59+$80
+            DB TNNL+$80
+LLROW37: ; type
+            DB 60+$80
+            DB TNBOOL
+            DB TOKENI16
+            DB TOKENI8
+            DB TNNAME
+            DB TNSTR
+            DB TOKENU16
+            DB TOKENU8+$80
+LLROW38: ; type-atom
+            DB 61
+            DB TNBOOL
+            DB TOKENI16
+            DB TOKENI8
+            DB TOKENU16
+            DB TOKENU8+$80
+            DB 62
+            DB TNNAME+$80
+            DB 63+$80
+            DB TNSTR+$80
+LLROW39: ; string-capacity
+            DB 64
+            DB TNCHAR
+            DB TNFALSE
+            DB TOKENI16
+            DB TOKENI8
+            DB TNLPAR
+            DB TNMIN
+            DB TNNAME
+            DB TOKENNOT
+            DB TNNUM
+            DB TNPLUS
+            DB TNTRUE
+            DB TOKENU16
+            DB TOKENU8+$80
+            DB 65+$80
+            DB TNRBRK+$80
+LLROW40: ; type-array-opt
+            DB 66
+            DB TNLBRK+$80
+            DB 2+$80
+            DB TNCOMMA
+            DB TNEQ
+            DB TNFAILS
+            DB TNNL
+            DB TNRPAR+$80
+LLROW41: ; type-array-bound
+            DB 67
+            DB TNCHAR
+            DB TNFALSE
+            DB TOKENI16
+            DB TOKENI8
+            DB TNLPAR
+            DB TNMIN
+            DB TNNAME
+            DB TOKENNOT
+            DB TNNUM
+            DB TNPLUS
+            DB TNTRUE
+            DB TOKENU16
+            DB TOKENU8+$80
+            DB 68+$80
+            DB TNRBRK+$80
+LLROW42: ; scalar-type
+            DB 69
+            DB TOKENU8+$80
+            DB 70
+            DB TOKENU16+$80
+            DB 71
+            DB TNBOOL+$80
+            DB 72
+            DB TOKENI8+$80
+            DB 73+$80
+            DB TOKENI16+$80
+LLROW43: ; select-statement
+            DB 74+$80
+            DB TNSEL+$80
+LLROW44: ; select-case-tail
+            DB 75
+            DB TNCASE+$80
+            DB 78
+            DB TNELSE+$80
+            DB 79
+            DB TOKENEND+$80
+            DB 80+$80
+            DB TOKENEOF+$80
+LLROW45: ; select-case
+            DB 76+$80
+            DB TNCASE+$80
+LLROW46: ; select-value-tail
+            DB 77
+            DB TNCOMMA+$80
+            DB 2+$80
+            DB TNNL+$80
+LLROWEND:
 
-HybridLL1ProductionDirectory:
-            .db HybridLL1Production0-HybridLL1Productions ; compilation-unit
-            .db HybridLL1Production1-HybridLL1Productions ; top-level-list
-            .db HybridLL1Production2-HybridLL1Productions ; top-level-list
-            .db HybridLL1Production3-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production4-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production5-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production6-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production7-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production8-HybridLL1Productions ; top-level-declaration
-            .db HybridLL1Production9-HybridLL1Productions ; const-declaration
-            .db HybridLL1Production10-HybridLL1Productions ; const-declaration-tail
-            .db HybridLL1Production11-HybridLL1Productions ; const-declaration-tail
-            .db HybridLL1Production12-HybridLL1Productions ; assert-declaration
-            .db HybridLL1Production13-HybridLL1Productions ; program-var-declaration
-            .db HybridLL1Production14-HybridLL1Productions ; program-initializer-opt
-            .db HybridLL1Production15-HybridLL1Productions ; record-declaration
-            .db HybridLL1Production16-HybridLL1Productions ; record-fields
-            .db HybridLL1Production17-HybridLL1Productions ; record-field
-            .db HybridLL1Production18-HybridLL1Productions ; forward-declaration
-            .db HybridLL1Production19-HybridLL1Productions ; sub-definition
-            .db HybridLL1Production20-HybridLL1Productions ; sub-definition-tail
-            .db HybridLL1Production21-HybridLL1Productions ; sub-definition-tail
-            .db HybridLL1Production22-HybridLL1Productions ; parameter-list
-            .db HybridLL1Production23-HybridLL1Productions ; parameter-tail
-            .db HybridLL1Production24-HybridLL1Productions ; parameter
-            .db HybridLL1Production25-HybridLL1Productions ; result-opt
-            .db HybridLL1Production26-HybridLL1Productions ; fails-opt
-            .db HybridLL1Production27-HybridLL1Productions ; routine-body
-            .db HybridLL1Production28-HybridLL1Productions ; routine-body
-            .db HybridLL1Production29-HybridLL1Productions ; local-list
-            .db HybridLL1Production30-HybridLL1Productions ; local-declaration
-            .db HybridLL1Production31-HybridLL1Productions ; local-initializer-opt
-            .db HybridLL1Production32-HybridLL1Productions ; local-initializer-opt
-            .db HybridLL1Production33-HybridLL1Productions ; statement-sequence
-            .db HybridLL1Production34-HybridLL1Productions ; statement
-            .db HybridLL1Production35-HybridLL1Productions ; statement
-            .db HybridLL1Production36-HybridLL1Productions ; statement
-            .db HybridLL1Production37-HybridLL1Productions ; statement
-            .db HybridLL1Production38-HybridLL1Productions ; statement
-            .db HybridLL1Production39-HybridLL1Productions ; statement
-            .db HybridLL1Production40-HybridLL1Productions ; statement
-            .db HybridLL1ProductionsHigh-HybridLL1Productions
-HybridLL1ProductionDirectoryHigh:
-            .db HybridLL1Production41-HybridLL1ProductionsHigh ; statement
-            .db HybridLL1Production42-HybridLL1ProductionsHigh ; return-statement
-            .db HybridLL1Production43-HybridLL1ProductionsHigh ; return-value-opt
-            .db HybridLL1Production44-HybridLL1ProductionsHigh ; return-value-opt
-            .db HybridLL1Production45-HybridLL1ProductionsHigh ; fail-statement
-            .db HybridLL1Production46-HybridLL1ProductionsHigh ; name-statement-tail
-            .db HybridLL1Production47-HybridLL1ProductionsHigh ; name-statement-tail
-            .db HybridLL1Production48-HybridLL1ProductionsHigh ; transfer-statement
-            .db HybridLL1Production49-HybridLL1ProductionsHigh ; transfer-statement
-            .db HybridLL1Production50-HybridLL1ProductionsHigh ; if-statement
-            .db HybridLL1Production51-HybridLL1ProductionsHigh ; if-tail
-            .db HybridLL1Production52-HybridLL1ProductionsHigh ; if-tail
-            .db HybridLL1Production53-HybridLL1ProductionsHigh ; if-tail
-            .db HybridLL1Production54-HybridLL1ProductionsHigh ; while-statement
-            .db HybridLL1Production55-HybridLL1ProductionsHigh ; for-statement
-            .db HybridLL1Production56-HybridLL1ProductionsHigh ; for-bound
-            .db HybridLL1Production57-HybridLL1ProductionsHigh ; for-bound
-            .db HybridLL1Production58-HybridLL1ProductionsHigh ; for-step-opt
-            .db HybridLL1Production59-HybridLL1ProductionsHigh ; for-step-opt
-            .db HybridLL1Production60-HybridLL1ProductionsHigh ; type
-            .db HybridLL1Production61-HybridLL1ProductionsHigh ; type-atom
-            .db HybridLL1Production62-HybridLL1ProductionsHigh ; type-atom
-            .db HybridLL1Production63-HybridLL1ProductionsHigh ; type-atom
-            .db HybridLL1Production64-HybridLL1ProductionsHigh ; string-capacity
-            .db HybridLL1Production65-HybridLL1ProductionsHigh ; string-capacity
-            .db HybridLL1Production66-HybridLL1ProductionsHigh ; type-array-opt
-            .db HybridLL1Production67-HybridLL1ProductionsHigh ; type-array-bound
-            .db HybridLL1Production68-HybridLL1ProductionsHigh ; type-array-bound
-            .db HybridLL1Production69-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production70-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production71-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production72-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production73-HybridLL1ProductionsHigh ; scalar-type
-            .db HybridLL1Production74-HybridLL1ProductionsHigh ; select-statement
-            .db HybridLL1Production75-HybridLL1ProductionsHigh ; select-case-tail
-            .db HybridLL1Production76-HybridLL1ProductionsHigh ; select-case
-            .db HybridLL1Production77-HybridLL1ProductionsHigh ; select-value-tail
-            .db HybridLL1Production78-HybridLL1ProductionsHigh ; select-case-tail
-            .db HybridLL1Production79-HybridLL1ProductionsHigh ; select-case-tail
-            .db HybridLL1Production80-HybridLL1ProductionsHigh ; select-case-tail
-            .db HybridLL1Production81-HybridLL1ProductionsHigh ; local-list
-            .db HybridLL1ProductionsEnd-HybridLL1ProductionsHigh
-HybridLL1ProductionDirectoryEnd:
-HybridLL1Productions:
-HybridLL1Production0: ; compilation-unit
-            .db TOKENEOF,$80,$41
-HybridLL1Production1: ; top-level-list
-            .db $41,$42
-HybridLL1Production2: ; top-level-list
-HybridLL1Production3: ; top-level-declaration
-            .db $43
-HybridLL1Production4: ; top-level-declaration
-            .db $45
-HybridLL1Production5: ; top-level-declaration
-            .db $46
-HybridLL1Production6: ; top-level-declaration
-            .db $48
-HybridLL1Production7: ; top-level-declaration
-            .db $4c
-HybridLL1Production8: ; top-level-declaration
-            .db $4d
-HybridLL1Production9: ; const-declaration
-            .db $44,$82,TNNAME,TNCONST,$81
-HybridLL1Production10: ; const-declaration-tail
-            .db $85,TNNL,$84,$83,TNEQ
-HybridLL1Production11: ; const-declaration-tail
-            .db $89,TNNL,$88,$87,TNEQ,$86,$65,TOKENAS
-HybridLL1Production12: ; assert-declaration
-            .db $8b,TNNL,$83,TNASRT,$8a,$81
-HybridLL1Production13: ; program-var-declaration
-            .db $8d,TNNL,$47,$8c,$65,TOKENAS,$82,TNNAME,TOKENVAR,$81
-HybridLL1Production14: ; program-initializer-opt
-            .db $88,$87,TNEQ
-HybridLL1Production15: ; record-declaration
-            .db $8f,TNNL,TOKENEND,$49,TNNL,$8e,TNNAME,TNREC,$81
-HybridLL1Production16: ; record-fields
-            .db $4a,$4b
-HybridLL1Production17: ; record-field
-            .db $91,TNNL,$65,TOKENAS,$90,TNNAME
-HybridLL1Production18: ; forward-declaration
-            .db $94,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$93,$92,TNNAME,TOKENSUB,TNFWD
-HybridLL1Production19: ; sub-definition
-            .db $4e,$92,TNNAME,TOKENSUB
-HybridLL1Production20: ; sub-definition-tail
-            .db $97,$54,$96,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$95
-HybridLL1Production21: ; sub-definition-tail
-            .db $97,$54,TNNL,$98
-HybridLL1Production22: ; parameter-list
-            .db $50,$51
-HybridLL1Production23: ; parameter-tail
-            .db $50,$51,TNCOMMA
-HybridLL1Production24: ; parameter
-            .db $9a,$65,TOKENAS,$99,TNNAME
-HybridLL1Production25: ; result-opt
-            .db $9c,$65,$9b,TOKENAS
-HybridLL1Production26: ; fails-opt
-            .db $9d,TNFAILS
-HybridLL1Production27: ; routine-body
-            .db TNNL,TOKENEND,$58,$55
-HybridLL1Production28: ; routine-body
-            .db $9e
-HybridLL1Production29: ; local-list
-            .db $55,$56
-HybridLL1Production30: ; local-declaration
-            .db $a0,TNNL,$57,$9f,$6a,TOKENAS,$82,TNNAME,TOKENVAR
-HybridLL1Production31: ; local-initializer-opt
-            .db $a3,$a2,$a1,TNEQ
-HybridLL1Production32: ; local-initializer-opt
-            .db $a4
-HybridLL1Production33: ; statement-sequence
-            .db $58,$59
-HybridLL1Production34: ; statement
-            .db $5d,$a5
-HybridLL1Production35: ; statement
-            .db TNNL,$5a
-HybridLL1Production36: ; statement
-            .db TNNL,$5c
-HybridLL1Production37: ; statement
-            .db TNNL,$5e
-HybridLL1Production38: ; statement
-            .db $5f
-HybridLL1Production39: ; statement
-            .db $61
-HybridLL1Production40: ; statement
-            .db $62
-HybridLL1ProductionsHigh:
-HybridLL1Production41: ; statement
-            .db $6b
-HybridLL1Production42: ; return-statement
-            .db $5b,$a6,TNRET
-HybridLL1Production43: ; return-value-opt
-            .db $a8,$a7
-HybridLL1Production44: ; return-value-opt
-            .db $a9
-HybridLL1Production45: ; fail-statement
-            .db $ab,$a2,$aa,TNFAIL
-HybridLL1Production46: ; name-statement-tail
-            .db TNNL
-HybridLL1Production47: ; name-statement-tail
-            .db $ad,TNNL,TOKENEND,$58,TNNL,$ac,TNNAME,TNHDL
-HybridLL1Production48: ; transfer-statement
-            .db $ae,TNEXIT
-HybridLL1Production49: ; transfer-statement
-            .db $af,TNCONT
-HybridLL1Production50: ; if-statement
-            .db $b2,TNNL,TOKENEND,$60,$58,$b1,TNNL,$a2,$b0,TOKENIF
-HybridLL1Production51: ; if-tail
-            .db $60,$58,$b1,TNNL,$a2,$b3,TNELSEIF
-HybridLL1Production52: ; if-tail
-            .db $b5,$58,TNNL,$b4,TNELSE
-HybridLL1Production53: ; if-tail
-            .db $b6
-HybridLL1Production54: ; while-statement
-            .db $b9,TNNL,TOKENEND,$58,$b8,TNNL,$a2,$b7,TNWHILE
-HybridLL1Production55: ; for-statement
-            .db $bc,TNNL,TOKENEND,$58,$bb,TNNL,$64,$a2,$63,$a2,TNEQ,$ba,TNNAME,TOKENFOR
-HybridLL1Production56: ; for-bound
-            .db $bd,TOKENTO
-HybridLL1Production57: ; for-bound
-            .db $be,TNUNT
-HybridLL1Production58: ; for-step-opt
-            .db $c0,$bf,TNSTEP
-HybridLL1Production59: ; for-step-opt
-            .db $c1
-HybridLL1Production60: ; type
-            .db $c3,$68,$c2,$66
-HybridLL1Production61: ; type-atom
-            .db $6a
-HybridLL1Production62: ; type-atom
-            .db $c4,TNNAME
-HybridLL1Production63: ; type-atom
-            .db TNRBRK,$67,TNLBRK,TNSTR
-HybridLL1Production64: ; string-capacity
-            .db $c6,$83,$c5
-HybridLL1Production65: ; string-capacity
-            .db $c7
-HybridLL1Production66: ; type-array-opt
-            .db $68,$69,TNLBRK
-HybridLL1Production67: ; type-array-bound
-            .db $c8,TNRBRK,$83,$c5
-HybridLL1Production68: ; type-array-bound
-            .db $c9,TNRBRK
-HybridLL1Production69: ; scalar-type
-            .db $ca,TOKENU8
-HybridLL1Production70: ; scalar-type
-            .db $cb,TOKENU16
-HybridLL1Production71: ; scalar-type
-            .db $cc,TNBOOL
-HybridLL1Production72: ; scalar-type
-            .db $cd,TOKENI8
-HybridLL1Production73: ; scalar-type
-            .db $ce,TOKENI16
-HybridLL1Production74: ; select-statement
-            .db $6c,$6d,TNNL,$d0,$a2,$cf,TNSEL
-HybridLL1Production75: ; select-case-tail
-            .db $6c,$6d
-HybridLL1Production76: ; select-case
-            .db $d5,$58,$d4,TNNL,$6e,$d3,$d2,$d1,TNCASE
-HybridLL1Production77: ; select-value-tail
-            .db $6e,$d3,$d2,TNCOMMA
-HybridLL1Production78: ; select-case-tail
-            .db $d7,TNNL,TOKENEND,$58,TNNL,$d6,TNELSE
-HybridLL1Production79: ; select-case-tail
-            .db TNNL,$d8,TOKENEND
-HybridLL1Production80: ; select-case-tail
-            .db $d9
-HybridLL1Production81: ; local-list
-            .db $da
-HybridLL1ProductionsEnd:
+LLPRDIR:
+            DB LLOFP0 ; compilation-unit
+            DB LLOFP1 ; top-level-list
+            DB LLOFP2 ; top-level-list
+            DB LLOFP3 ; top-level-declaration
+            DB LLOFP4 ; top-level-declaration
+            DB LLOFP5 ; top-level-declaration
+            DB LLOFP6 ; top-level-declaration
+            DB LLOFP7 ; top-level-declaration
+            DB LLOFP8 ; top-level-declaration
+            DB LLOFP9 ; const-declaration
+            DB LLOFP10 ; const-declaration-tail
+            DB LLOFP11 ; const-declaration-tail
+            DB LLOFP12 ; assert-declaration
+            DB LLOFP13 ; program-var-declaration
+            DB LLOFP14 ; program-initializer-opt
+            DB LLOFP15 ; record-declaration
+            DB LLOFP16 ; record-fields
+            DB LLOFP17 ; record-field
+            DB LLOFP18 ; forward-declaration
+            DB LLOFP19 ; sub-definition
+            DB LLOFP20 ; sub-definition-tail
+            DB LLOFP21 ; sub-definition-tail
+            DB LLOFP22 ; parameter-list
+            DB LLOFP23 ; parameter-tail
+            DB LLOFP24 ; parameter
+            DB LLOFP25 ; result-opt
+            DB LLOFP26 ; fails-opt
+            DB LLOFP27 ; routine-body
+            DB LLOFP28 ; routine-body
+            DB LLOFP29 ; local-list
+            DB LLOFP30 ; local-declaration
+            DB LLOFP31 ; local-initializer-opt
+            DB LLOFP32 ; local-initializer-opt
+            DB LLOFP33 ; statement-sequence
+            DB LLOFP34 ; statement
+            DB LLOFP35 ; statement
+            DB LLOFP36 ; statement
+            DB LLOFP37 ; statement
+            DB LLOFP38 ; statement
+            DB LLOFP39 ; statement
+            DB LLOFP40 ; statement
+            DB LLOFPHI
+LLPDHIGH:
+            DB LLOFP41 ; statement
+            DB LLOFP42 ; return-statement
+            DB LLOFP43 ; return-value-opt
+            DB LLOFP44 ; return-value-opt
+            DB LLOFP45 ; fail-statement
+            DB LLOFP46 ; name-statement-tail
+            DB LLOFP47 ; name-statement-tail
+            DB LLOFP48 ; transfer-statement
+            DB LLOFP49 ; transfer-statement
+            DB LLOFP50 ; if-statement
+            DB LLOFP51 ; if-tail
+            DB LLOFP52 ; if-tail
+            DB LLOFP53 ; if-tail
+            DB LLOFP54 ; while-statement
+            DB LLOFP55 ; for-statement
+            DB LLOFP56 ; for-bound
+            DB LLOFP57 ; for-bound
+            DB LLOFP58 ; for-step-opt
+            DB LLOFP59 ; for-step-opt
+            DB LLOFP60 ; type
+            DB LLOFP61 ; type-atom
+            DB LLOFP62 ; type-atom
+            DB LLOFP63 ; type-atom
+            DB LLOFP64 ; string-capacity
+            DB LLOFP65 ; string-capacity
+            DB LLOFP66 ; type-array-opt
+            DB LLOFP67 ; type-array-bound
+            DB LLOFP68 ; type-array-bound
+            DB LLOFP69 ; scalar-type
+            DB LLOFP70 ; scalar-type
+            DB LLOFP71 ; scalar-type
+            DB LLOFP72 ; scalar-type
+            DB LLOFP73 ; scalar-type
+            DB LLOFP74 ; select-statement
+            DB LLOFP75 ; select-case-tail
+            DB LLOFP76 ; select-case
+            DB LLOFP77 ; select-value-tail
+            DB LLOFP78 ; select-case-tail
+            DB LLOFP79 ; select-case-tail
+            DB LLOFP80 ; select-case-tail
+            DB LLOFP81 ; local-list
+            DB LLOFPEND
+LLPDEND:
+LLPRODS:
+LLPROD0: ; compilation-unit
+            DB TOKENEOF,$80,$41
+LLPROD1: ; top-level-list
+            DB $41,$42
+LLPROD2: ; top-level-list
+LLPROD3: ; top-level-declaration
+            DB $43
+LLPROD4: ; top-level-declaration
+            DB $45
+LLPROD5: ; top-level-declaration
+            DB $46
+LLPROD6: ; top-level-declaration
+            DB $48
+LLPROD7: ; top-level-declaration
+            DB $4c
+LLPROD8: ; top-level-declaration
+            DB $4d
+LLPROD9: ; const-declaration
+            DB $44,$82,TNNAME,TNCONST,$81
+LLPROD10: ; const-declaration-tail
+            DB $85,TNNL,$84,$83,TNEQ
+LLPROD11: ; const-declaration-tail
+            DB $89,TNNL,$88,$87,TNEQ,$86,$65,TOKENAS
+LLPROD12: ; assert-declaration
+            DB $8b,TNNL,$83,TNASRT,$8a,$81
+LLPROD13: ; program-var-declaration
+            DB $8d,TNNL,$47,$8c,$65,TOKENAS,$82,TNNAME,TOKENVAR,$81
+LLPROD14: ; program-initializer-opt
+            DB $88,$87,TNEQ
+LLPROD15: ; record-declaration
+            DB $8f,TNNL,TOKENEND,$49,TNNL,$8e,TNNAME,TNREC,$81
+LLPROD16: ; record-fields
+            DB $4a,$4b
+LLPROD17: ; record-field
+            DB $91,TNNL,$65,TOKENAS,$90,TNNAME
+LLPROD18: ; forward-declaration
+            DB $94,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$93,$92,TNNAME,TOKENSUB,TNFWD
+LLPROD19: ; sub-definition
+            DB $4e,$92,TNNAME,TOKENSUB
+LLPROD20: ; sub-definition-tail
+            DB $97,$54,$96,TNNL,$53,$52,TNRPAR,$4f,TNLPAR,$95
+LLPROD21: ; sub-definition-tail
+            DB $97,$54,TNNL,$98
+LLPROD22: ; parameter-list
+            DB $50,$51
+LLPROD23: ; parameter-tail
+            DB $50,$51,TNCOMMA
+LLPROD24: ; parameter
+            DB $9a,$65,TOKENAS,$99,TNNAME
+LLPROD25: ; result-opt
+            DB $9c,$65,$9b,TOKENAS
+LLPROD26: ; fails-opt
+            DB $9d,TNFAILS
+LLPROD27: ; routine-body
+            DB TNNL,TOKENEND,$58,$55
+LLPROD28: ; routine-body
+            DB $9e
+LLPROD29: ; local-list
+            DB $55,$56
+LLPROD30: ; local-declaration
+            DB $a0,TNNL,$57,$9f,$6a,TOKENAS,$82,TNNAME,TOKENVAR
+LLPROD31: ; local-initializer-opt
+            DB $a3,$a2,$a1,TNEQ
+LLPROD32: ; local-initializer-opt
+            DB $a4
+LLPROD33: ; statement-sequence
+            DB $58,$59
+LLPROD34: ; statement
+            DB $5d,$a5
+LLPROD35: ; statement
+            DB TNNL,$5a
+LLPROD36: ; statement
+            DB TNNL,$5c
+LLPROD37: ; statement
+            DB TNNL,$5e
+LLPROD38: ; statement
+            DB $5f
+LLPROD39: ; statement
+            DB $61
+LLPROD40: ; statement
+            DB $62
+LLPRHIGH:
+LLPROD41: ; statement
+            DB $6b
+LLPROD42: ; return-statement
+            DB $5b,$a6,TNRET
+LLPROD43: ; return-value-opt
+            DB $a8,$a7
+LLPROD44: ; return-value-opt
+            DB $a9
+LLPROD45: ; fail-statement
+            DB $ab,$a2,$aa,TNFAIL
+LLPROD46: ; name-statement-tail
+            DB TNNL
+LLPROD47: ; name-statement-tail
+            DB $ad,TNNL,TOKENEND,$58,TNNL,$ac,TNNAME,TNHDL
+LLPROD48: ; transfer-statement
+            DB $ae,TNEXIT
+LLPROD49: ; transfer-statement
+            DB $af,TNCONT
+LLPROD50: ; if-statement
+            DB $b2,TNNL,TOKENEND,$60,$58,$b1,TNNL,$a2,$b0,TOKENIF
+LLPROD51: ; if-tail
+            DB $60,$58,$b1,TNNL,$a2,$b3,TNELSEIF
+LLPROD52: ; if-tail
+            DB $b5,$58,TNNL,$b4,TNELSE
+LLPROD53: ; if-tail
+            DB $b6
+LLPROD54: ; while-statement
+            DB $b9,TNNL,TOKENEND,$58,$b8,TNNL,$a2,$b7,TNWHILE
+LLPROD55: ; for-statement
+            DB $bc,TNNL,TOKENEND,$58,$bb,TNNL,$64,$a2,$63,$a2,TNEQ,$ba,TNNAME,TOKENFOR
+LLPROD56: ; for-bound
+            DB $bd,TOKENTO
+LLPROD57: ; for-bound
+            DB $be,TNUNT
+LLPROD58: ; for-step-opt
+            DB $c0,$bf,TNSTEP
+LLPROD59: ; for-step-opt
+            DB $c1
+LLPROD60: ; type
+            DB $c3,$68,$c2,$66
+LLPROD61: ; type-atom
+            DB $6a
+LLPROD62: ; type-atom
+            DB $c4,TNNAME
+LLPROD63: ; type-atom
+            DB TNRBRK,$67,TNLBRK,TNSTR
+LLPROD64: ; string-capacity
+            DB $c6,$83,$c5
+LLPROD65: ; string-capacity
+            DB $c7
+LLPROD66: ; type-array-opt
+            DB $68,$69,TNLBRK
+LLPROD67: ; type-array-bound
+            DB $c8,TNRBRK,$83,$c5
+LLPROD68: ; type-array-bound
+            DB $c9,TNRBRK
+LLPROD69: ; scalar-type
+            DB $ca,TOKENU8
+LLPROD70: ; scalar-type
+            DB $cb,TOKENU16
+LLPROD71: ; scalar-type
+            DB $cc,TNBOOL
+LLPROD72: ; scalar-type
+            DB $cd,TOKENI8
+LLPROD73: ; scalar-type
+            DB $ce,TOKENI16
+LLPROD74: ; select-statement
+            DB $6c,$6d,TNNL,$d0,$a2,$cf,TNSEL
+LLPROD75: ; select-case-tail
+            DB $6c,$6d
+LLPROD76: ; select-case
+            DB $d5,$58,$d4,TNNL,$6e,$d3,$d2,$d1,TNCASE
+LLPROD77: ; select-value-tail
+            DB $6e,$d3,$d2,TNCOMMA
+LLPROD78: ; select-case-tail
+            DB $d7,TNNL,TOKENEND,$58,TNNL,$d6,TNELSE
+LLPROD79: ; select-case-tail
+            DB TNNL,$d8,TOKENEND
+LLPROD80: ; select-case-tail
+            DB $d9
+LLPROD81: ; local-list
+            DB $da
+LLPREND:
 
-HybridLL1ActionDirectory:
-            .dw HybridLL1RequireMain ; a:RequireMain
-            .dw HybridLL1RequireBeforeMain ; a:RequireBeforeMain
-            .dw HybridLL1RetainDeclarationName ; a:RetainDeclarationName
-            .dw HybridLL1ConstantExpression ; x:ConstantExpression
-            .dw HybridLL1FinishConstantExpression ; a:FinishConstantExpression
-            .dw HybridLL1CommitConstant ; a:CommitConstant
-            .dw HybridLL1SaveAggregateConstantType ; a:SaveAggregateConstantType
-            .dw HybridLL1StaticInitializer ; x:StaticInitializer
-            .dw HybridLL1FinishProgramInitializer ; a:FinishProgramInitializer
-            .dw HybridLL1CommitAggregateConstant ; a:CommitAggregateConstant
-            .dw HybridLL1BeginAssert ; a:BeginAssert
-            .dw HybridLL1CommitAssert ; a:CommitAssert
-            .dw HybridLL1SaveProgramType ; a:SaveProgramType
-            .dw HybridLL1CommitProgramVariable ; a:CommitProgramVariable
-            .dw HybridLL1BeginRecord ; a:BeginRecord
-            .dw HybridLL1CommitRecord ; a:CommitRecord
-            .dw HybridLL1BeginRecordField ; a:BeginRecordField
-            .dw HybridLL1CommitRecordField ; a:CommitRecordField
-            .dw HybridLL1RetainSubName ; a:RetainSubName
-            .dw HybridLL1BeginForward ; a:BeginForward
-            .dw HybridLL1CommitForward ; a:CommitForward
-            .dw HybridLL1BeginSub ; a:BeginSub
-            .dw HybridLL1BeginSubBody ; a:BeginSubBody
-            .dw HybridLL1EndSub ; a:EndSub
-            .dw HybridLL1BeginForwardBody ; a:BeginForwardBody
-            .dw HybridLL1RetainParameter ; a:RetainParameter
-            .dw HybridLL1CommitParameter ; a:CommitParameter
-            .dw HybridLL1AllowSubResult ; a:AllowSubResult
-            .dw HybridLL1SaveSubResult ; a:SaveSubResult
-            .dw HybridLL1MarkSubFails ; a:MarkSubFails
-            .dw HybridLL1StrayClause ; x:StrayClause
-            .dw HybridLL1SaveLocalType ; a:SaveLocalType
-            .dw HybridLL1CommitLocal ; a:CommitLocal
-            .dw HybridLL1BeginLocalInitializer ; a:BeginLocalInitializer
-            .dw HybridLL1RuntimeExpression ; x:RuntimeExpression
-            .dw HybridLL1FinishLocalInitializer ; a:FinishLocalInitializer
-            .dw HybridLL1DefaultLocalInitializer ; a:DefaultLocalInitializer
-            .dw HybridLL1NameStatement ; x:NameStatement
-            .dw HybridLL1BeginReturnValue ; a:BeginReturnValue
-            .dw HybridLL1ReturnValue ; x:ReturnValue
-            .dw HybridLL1CommitReturn ; a:CommitReturn
-            .dw HybridLL1CommitBareReturn ; a:CommitBareReturn
-            .dw HybridLL1BeginFail ; a:BeginFail
-            .dw HybridLL1CommitFail ; a:CommitFail
-            .dw HybridLL1BeginHandle ; a:BeginHandle
-            .dw HybridLL1EndHandle ; a:EndHandle
-            .dw HybridLL1EmitTransferAction ; a:EmitExit, parameter 45
-            .dw HybridLL1EmitTransferAction ; a:EmitContinue, parameter 46
-            .dw HybridLL1BeginIf ; a:BeginIf
-            .dw HybridLL1BeginIfBody ; a:BeginIfBody
-            .dw HybridLL1EndIf ; a:EndIf
-            .dw HybridLL1BeginElseIf ; a:BeginElseIf
-            .dw HybridLL1BeginElse ; a:BeginElse
-            .dw HybridLL1FinishElse ; a:FinishElse
-            .dw HybridLL1FinishIfClauses ; a:FinishIfClauses
-            .dw HybridLL1BeginWhile ; a:BeginWhile
-            .dw HybridLL1BeginWhileBody ; a:BeginWhileBody
-            .dw HybridLL1EndWhile ; a:EndWhile
-            .dw HybridLL1BeginFor ; a:BeginFor
-            .dw HybridLL1BeginForBody ; a:BeginForBody
-            .dw HybridLL1EndFor ; a:EndFor
-            .dw HybridLL1SelectForBoundAction ; a:ForTo, parameter 1
-            .dw HybridLL1SelectForBoundAction ; a:ForUntil, parameter 0
-            .dw HybridLL1StepConstant ; x:StepConstant
-            .dw HybridLL1SaveForStep ; a:SaveForStep
-            .dw HybridLL1DefaultForStep ; a:DefaultForStep
-            .dw HybridLL1BeginArrayType ; a:BeginArrayType
-            .dw HybridLL1FinishArrayType ; a:FinishArrayType
-            .dw HybridLL1ResolveRecordType ; a:ResolveRecordType
-            .dw HybridLL1BeginTypeBound ; a:BeginTypeBound
-            .dw HybridLL1MakeStringType ; a:MakeStringType
-            .dw HybridLL1MakeOpenStringType ; a:MakeOpenStringType
-            .dw HybridLL1SaveArrayDimension ; a:SaveArrayDimension
-            .dw HybridLL1SaveOpenArrayDimension ; a:SaveOpenArrayDimension
-            .dw HybridLL1SetScalarTypeAction ; a:TypeU8, parameter 1
-            .dw HybridLL1SetScalarTypeAction ; a:TypeU16, parameter 2
-            .dw HybridLL1SetScalarTypeAction ; a:TypeBoolean, parameter 3
-            .dw HybridLL1SetScalarTypeAction ; a:TypeI8, parameter 4
-            .dw HybridLL1SetScalarTypeAction ; a:TypeI16, parameter 5
-            .dw HybridLL1BeginSelect ; a:BeginSelect
-            .dw HybridLL1FinishSelectExpression ; a:FinishSelectExpression
-            .dw HybridLL1BeginSelectCase ; a:BeginSelectCase
-            .dw HybridLL1SelectConstantExpression ; x:SelectConstantExpression
-            .dw HybridLL1FinishSelectCaseValue ; a:FinishSelectCaseValue
-            .dw HybridLL1BeginSelectCaseBody ; a:BeginSelectCaseBody
-            .dw HybridLL1EndSelectCase ; a:EndSelectCase
-            .dw HybridLL1BeginSelectElse ; a:BeginSelectElse
-            .dw HybridLL1EndSelectWithElse ; a:EndSelectWithElse
-            .dw HybridLL1EndSelectWithoutElse ; a:EndSelectWithoutElse
-            .dw HybridLL1MissingSelectEnd ; x:MissingSelectEnd
-            .dw HybridLL1StraySelectClause ; x:StraySelectClause
-HybridLL1ActionDirectoryEnd:
+LLACTDIR:
+            DW LAREQMN ; a:RequireMain
+            DW LABEFMN ; a:RequireBeforeMain
+            DW LARETNAM ; a:RetainDeclarationName
+            DW LACONEXP ; x:ConstantExpression
+            DW LACONEND ; a:FinishConstantExpression
+            DW LACONSET ; a:CommitConstant
+            DW LAAGCTYP ; a:SaveAggregateConstantType
+            DW LASTATIC ; x:StaticInitializer
+            DW LAPINIEN ; a:FinishProgramInitializer
+            DW LAAGCSET ; a:CommitAggregateConstant
+            DW LAASSERT ; a:BeginAssert
+            DW LAASRTEN ; a:CommitAssert
+            DW LAPROGTY ; a:SaveProgramType
+            DW LAPRGVAR ; a:CommitProgramVariable
+            DW LARECORD ; a:BeginRecord
+            DW LARECEND ; a:CommitRecord
+            DW LAFIELD ; a:BeginRecordField
+            DW LAFLDEND ; a:CommitRecordField
+            DW LASUBNAM ; a:RetainSubName
+            DW LAFORWRD ; a:BeginForward
+            DW LAFWDEND ; a:CommitForward
+            DW LASUB ; a:BeginSub
+            DW LASUBODY ; a:BeginSubBody
+            DW LASUBEND ; a:EndSub
+            DW LAFWDBDY ; a:BeginForwardBody
+            DW LAPARNAM ; a:RetainParameter
+            DW LAPARSET ; a:CommitParameter
+            DW LARESOK ; a:AllowSubResult
+            DW LARESTYP ; a:SaveSubResult
+            DW LASUBFL ; a:MarkSubFails
+            DW LACLAUSE ; x:StrayClause
+            DW LALOCTYP ; a:SaveLocalType
+            DW LALOCSET ; a:CommitLocal
+            DW LALOCINI ; a:BeginLocalInitializer
+            DW LARTEXP ; x:RuntimeExpression
+            DW LALOCEND ; a:FinishLocalInitializer
+            DW LALOCDEF ; a:DefaultLocalInitializer
+            DW LANAMSTM ; x:NameStatement
+            DW LARETVBG ; a:BeginReturnValue
+            DW LARETVAL ; x:ReturnValue
+            DW LARETSET ; a:CommitReturn
+            DW LARETNON ; a:CommitBareReturn
+            DW LAFAIL ; a:BeginFail
+            DW LAFAILEN ; a:CommitFail
+            DW LAHANDLE ; a:BeginHandle
+            DW LAHDLEND ; a:EndHandle
+            DW LAXFER ; a:EmitExit, parameter 45
+            DW LAXFER ; a:EmitContinue, parameter 46
+            DW LAIF ; a:BeginIf
+            DW LAIFBODY ; a:BeginIfBody
+            DW LAIFEND ; a:EndIf
+            DW LAELSEIF ; a:BeginElseIf
+            DW LAELSE ; a:BeginElse
+            DW LAELSEEN ; a:FinishElse
+            DW LAIFDONE ; a:FinishIfClauses
+            DW LAWHILE ; a:BeginWhile
+            DW LAWHBODY ; a:BeginWhileBody
+            DW LAWHEND ; a:EndWhile
+            DW LAFOR ; a:BeginFor
+            DW LAFORBDY ; a:BeginForBody
+            DW LAFOREND ; a:EndFor
+            DW LAFORBND ; a:ForTo, parameter 1
+            DW LAFORBND ; a:ForUntil, parameter 0
+            DW LASTEPC ; x:StepConstant
+            DW LASTEPSV ; a:SaveForStep
+            DW LASTEPDF ; a:DefaultForStep
+            DW LAARRTYP ; a:BeginArrayType
+            DW LAARRFIN ; a:FinishArrayType
+            DW LARECTYP ; a:ResolveRecordType
+            DW LATYBND ; a:BeginTypeBound
+            DW LASTRTYP ; a:MakeStringType
+            DW LAOSTRTY ; a:MakeOpenStringType
+            DW LAARRDIM ; a:SaveArrayDimension
+            DW LAOARDIM ; a:SaveOpenArrayDimension
+            DW LASCALAR ; a:TypeU8, parameter 1
+            DW LASCALAR ; a:TypeU16, parameter 2
+            DW LASCALAR ; a:TypeBoolean, parameter 3
+            DW LASCALAR ; a:TypeI8, parameter 4
+            DW LASCALAR ; a:TypeI16, parameter 5
+            DW LASELECT ; a:BeginSelect
+            DW LASELEXP ; a:FinishSelectExpression
+            DW LASELCAS ; a:BeginSelectCase
+            DW LASELCON ; x:SelectConstantExpression
+            DW LACASVAL ; a:FinishSelectCaseValue
+            DW LACASBDY ; a:BeginSelectCaseBody
+            DW LACASEND ; a:EndSelectCase
+            DW LASELELS ; a:BeginSelectElse
+            DW LASELEND ; a:EndSelectWithElse
+            DW LASELNON ; a:EndSelectWithoutElse
+            DW LASELERR ; x:MissingSelectEnd
+            DW LLSTRSEL ; x:StraySelectClause
+LLADEND:
 
-HybridLL1GeneratedTableEnd:
+LLDATEND:
+
+; Private directory displacements: both labels are now defined.
+LLOFR0 EQU LLROW0-LLROWS
+LLOFR1 EQU LLROW1-LLROWS
+LLOFR2 EQU LLROW2-LLROWS
+LLOFR3 EQU LLROW3-LLROWS
+LLOFR4 EQU LLROW4-LLROWS
+LLOFR5 EQU LLROW5-LLROWS
+LLOFR6 EQU LLROW6-LLROWS
+LLOFR7 EQU LLROW7-LLROWS
+LLOFR8 EQU LLROW8-LLROWS
+LLOFR9 EQU LLROW9-LLROWS
+LLOFR10 EQU LLROW10-LLROWS
+LLOFR11 EQU LLROW11-LLROWS
+LLOFR12 EQU LLROW12-LLROWS
+LLOFR13 EQU LLROW13-LLROWS
+LLOFR14 EQU LLROW14-LLROWS
+LLOFR15 EQU LLROW15-LLROWS
+LLOFR16 EQU LLROW16-LLROWS
+LLOFR17 EQU LLROW17-LLROWS
+LLOFR18 EQU LLROW18-LLROWS
+LLOFR19 EQU LLROW19-LLROWS
+LLOFR20 EQU LLROW20-LLROWS
+LLOFR21 EQU LLROW21-LLROWS
+LLOFR22 EQU LLROW22-LLROWS
+LLOFR23 EQU LLROW23-LLROWS
+LLOFR24 EQU LLROW24-LLROWS
+LLOFR25 EQU LLROW25-LLROWS
+LLOFR26 EQU LLROW26-LLROWS
+LLOFR27 EQU LLROW27-LLROWS
+LLOFR28 EQU LLROW28-LLROWS
+LLOFR29 EQU LLROW29-LLROWS
+LLOFR30 EQU LLROW30-LLROWS
+LLOFR31 EQU LLROW31-LLROWS
+LLOFR32 EQU LLROW32-LLROWS
+LLOFR33 EQU LLROW33-LLROWS
+LLOFR34 EQU LLROW34-LLROWS
+LLOFR35 EQU LLROW35-LLROWS
+LLOFR36 EQU LLROW36-LLROWS
+LLOFR37 EQU LLROW37-LLROWS
+LLOFR38 EQU LLROW38-LLROWS
+LLOFR39 EQU LLROW39-LLROWS
+LLOFR40 EQU LLROW40-LLROWS
+LLOFR41 EQU LLROW41-LLROWS
+LLOFR42 EQU LLROW42-LLROWS-$100
+LLOFR43 EQU LLROW43-LLROWS-$100
+LLOFR44 EQU LLROW44-LLROWS-$100
+LLOFR45 EQU LLROW45-LLROWS-$100
+LLOFR46 EQU LLROW46-LLROWS-$100
+LLOFP0 EQU LLPROD0-LLPRODS
+LLOFP1 EQU LLPROD1-LLPRODS
+LLOFP2 EQU LLPROD2-LLPRODS
+LLOFP3 EQU LLPROD3-LLPRODS
+LLOFP4 EQU LLPROD4-LLPRODS
+LLOFP5 EQU LLPROD5-LLPRODS
+LLOFP6 EQU LLPROD6-LLPRODS
+LLOFP7 EQU LLPROD7-LLPRODS
+LLOFP8 EQU LLPROD8-LLPRODS
+LLOFP9 EQU LLPROD9-LLPRODS
+LLOFP10 EQU LLPROD10-LLPRODS
+LLOFP11 EQU LLPROD11-LLPRODS
+LLOFP12 EQU LLPROD12-LLPRODS
+LLOFP13 EQU LLPROD13-LLPRODS
+LLOFP14 EQU LLPROD14-LLPRODS
+LLOFP15 EQU LLPROD15-LLPRODS
+LLOFP16 EQU LLPROD16-LLPRODS
+LLOFP17 EQU LLPROD17-LLPRODS
+LLOFP18 EQU LLPROD18-LLPRODS
+LLOFP19 EQU LLPROD19-LLPRODS
+LLOFP20 EQU LLPROD20-LLPRODS
+LLOFP21 EQU LLPROD21-LLPRODS
+LLOFP22 EQU LLPROD22-LLPRODS
+LLOFP23 EQU LLPROD23-LLPRODS
+LLOFP24 EQU LLPROD24-LLPRODS
+LLOFP25 EQU LLPROD25-LLPRODS
+LLOFP26 EQU LLPROD26-LLPRODS
+LLOFP27 EQU LLPROD27-LLPRODS
+LLOFP28 EQU LLPROD28-LLPRODS
+LLOFP29 EQU LLPROD29-LLPRODS
+LLOFP30 EQU LLPROD30-LLPRODS
+LLOFP31 EQU LLPROD31-LLPRODS
+LLOFP32 EQU LLPROD32-LLPRODS
+LLOFP33 EQU LLPROD33-LLPRODS
+LLOFP34 EQU LLPROD34-LLPRODS
+LLOFP35 EQU LLPROD35-LLPRODS
+LLOFP36 EQU LLPROD36-LLPRODS
+LLOFP37 EQU LLPROD37-LLPRODS
+LLOFP38 EQU LLPROD38-LLPRODS
+LLOFP39 EQU LLPROD39-LLPRODS
+LLOFP40 EQU LLPROD40-LLPRODS
+LLOFP41 EQU LLPROD41-LLPRHIGH
+LLOFP42 EQU LLPROD42-LLPRHIGH
+LLOFP43 EQU LLPROD43-LLPRHIGH
+LLOFP44 EQU LLPROD44-LLPRHIGH
+LLOFP45 EQU LLPROD45-LLPRHIGH
+LLOFP46 EQU LLPROD46-LLPRHIGH
+LLOFP47 EQU LLPROD47-LLPRHIGH
+LLOFP48 EQU LLPROD48-LLPRHIGH
+LLOFP49 EQU LLPROD49-LLPRHIGH
+LLOFP50 EQU LLPROD50-LLPRHIGH
+LLOFP51 EQU LLPROD51-LLPRHIGH
+LLOFP52 EQU LLPROD52-LLPRHIGH
+LLOFP53 EQU LLPROD53-LLPRHIGH
+LLOFP54 EQU LLPROD54-LLPRHIGH
+LLOFP55 EQU LLPROD55-LLPRHIGH
+LLOFP56 EQU LLPROD56-LLPRHIGH
+LLOFP57 EQU LLPROD57-LLPRHIGH
+LLOFP58 EQU LLPROD58-LLPRHIGH
+LLOFP59 EQU LLPROD59-LLPRHIGH
+LLOFP60 EQU LLPROD60-LLPRHIGH
+LLOFP61 EQU LLPROD61-LLPRHIGH
+LLOFP62 EQU LLPROD62-LLPRHIGH
+LLOFP63 EQU LLPROD63-LLPRHIGH
+LLOFP64 EQU LLPROD64-LLPRHIGH
+LLOFP65 EQU LLPROD65-LLPRHIGH
+LLOFP66 EQU LLPROD66-LLPRHIGH
+LLOFP67 EQU LLPROD67-LLPRHIGH
+LLOFP68 EQU LLPROD68-LLPRHIGH
+LLOFP69 EQU LLPROD69-LLPRHIGH
+LLOFP70 EQU LLPROD70-LLPRHIGH
+LLOFP71 EQU LLPROD71-LLPRHIGH
+LLOFP72 EQU LLPROD72-LLPRHIGH
+LLOFP73 EQU LLPROD73-LLPRHIGH
+LLOFP74 EQU LLPROD74-LLPRHIGH
+LLOFP75 EQU LLPROD75-LLPRHIGH
+LLOFP76 EQU LLPROD76-LLPRHIGH
+LLOFP77 EQU LLPROD77-LLPRHIGH
+LLOFP78 EQU LLPROD78-LLPRHIGH
+LLOFP79 EQU LLPROD79-LLPRHIGH
+LLOFP80 EQU LLPROD80-LLPRHIGH
+LLOFP81 EQU LLPROD81-LLPRHIGH
+LLOFPHI EQU LLPRHIGH-LLPRODS
+LLOFPEND EQU LLPREND-LLPRHIGH

@@ -17,7 +17,7 @@ const proof = (name: string): string =>
   path.resolve(import.meta.dirname, "..", "proofs", `${name}.json`);
 
 const nativeNames: Record<string, string> = Object.assign({}, ...[
-  "atom-state-symbols.json", "atom-tokenizer-symbols.json",
+  "atom-state-symbols.json", "atom-tokenizer-symbols.json", "atom-grammar-symbols.json",
 ].map(name => JSON.parse(readFileSync(path.resolve(import.meta.dirname, "..", "asm", name), "utf8"))));
 const logicalNames = Object.fromEntries(Object.entries(nativeNames).map(([logical, native]) => [native, logical]));
 
@@ -28,7 +28,7 @@ describe("Stage 7 packed LL(1)", () => {
       "utf8",
     );
     expect(generated).toMatch(
-      /HybridLL1Row20: ; routine-body[\s\S]*HybridLL1Row21: ; local-list[\s\S]*HybridLL1Row24: ; statement-sequence[\s\S]*HybridLL1Row25: ; statement/,
+      new RegExp(`${nativeNames.HybridLL1Row20}: ; routine-body[\\s\\S]*${nativeNames.HybridLL1Row21}: ; local-list[\\s\\S]*${nativeNames.HybridLL1Row24}: ; statement-sequence[\\s\\S]*${nativeNames.HybridLL1Row25}: ; statement`),
     );
   });
 
@@ -191,7 +191,7 @@ describe("Stage 7 packed LL(1)", () => {
     );
     expect(grammar.productions).toHaveLength(93);
     expect(generateStage7Tables()).toContain(
-      "HybridLL1ProductionCount  .equ 82",
+      `${nativeNames.HybridLL1ProductionCount} EQU 82`,
     );
     expect(generateStage7ProofActions()).toBe(
       readFileSync(

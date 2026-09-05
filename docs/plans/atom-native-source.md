@@ -72,9 +72,16 @@ the ordinary proof harness. Fresh streaming proofs import those same leaves.
 Grammar analysis retains its logical vocabulary while table generation uses
 the new physical token and diagnostic names.
 
-The next bounded wave is generated grammar and packed-parser composition,
-alongside remaining native host interfaces. The current scanner still lists
-3,686 long names requiring migration, across 5,595 declared names; this is
+The [grammar, host and diagnostic report](../reports/atom-native-grammar-host.md)
+records native generated tables, the packed engine, both reference host
+transports, the CP/M vector and the shared diagnostic leaf. The ordinary engine
+proof now bypasses the source translator. Derived native build flags have one
+explicit profile helper; the historical derivation remains isolated for legacy
+entry compositions until those callers are converted.
+
+The next bounded wave is the larger parser/backend families and remaining
+native host services. The current scanner still lists
+3,300 long names requiring migration, across 5,731 declared names; this is
 source-adapter debt, not compiler size or a percentage of work remaining.
 
 Current inventory also identifies three constraints for the later full
@@ -96,8 +103,8 @@ code-size measurements.
 The current adapter converts directives and characters, suppresses `.routine`
 and `.end`, expands textual includes, selects mutable conditional definitions,
 shortens names, handles special proof endpoints, schedules EQUs and inserts
-temporary equates for unresolved expressions. The generator and several tests
-also emit legacy assembly strings. All these inputs belong in the inventory;
+temporary equates for unresolved expressions. Several tests still emit legacy
+assembly strings. All these inputs belong in the inventory;
 converting only checked-in compiler instructions would leave the migration open.
 
 ## Selected structure

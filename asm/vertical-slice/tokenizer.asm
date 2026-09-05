@@ -28,7 +28,7 @@ TKEND:
 .routine out carry,zero clobbers sign,parity,halfCarry,A,HL
 TKLEXERR:
             LD   A,DGLEX
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 
 ; Carry is set when A can begin a Nucleus identifier.
 .routine in A out A,carry clobbers zero,sign,parity,halfCarry

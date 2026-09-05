@@ -192,7 +192,9 @@ export async function runProofManifest(
     .join("/");
   const assembly = entry === "vertical-slice/tokenizer-trace-proof.asm"
     ? (await import("../scripts/assemble-native-tokenizer.mjs")).assembleNativeTokenizerTrace()
-    : (await import("../scripts/atom-source.mjs")).assembleAtomSource(entry);
+    : entry === "vertical-slice/stage7-ll1-engine-proof.asm"
+      ? (await import("../scripts/assemble-native-grammar.mjs")).assembleNativeGrammarProof()
+      : (await import("../scripts/atom-source.mjs")).assembleAtomSource(entry);
   const assembled = await assembly.catch((cause: unknown) => {
     throw new ProofFailure(
       `${manifest.name}: ATOM assembly failed\n${cause instanceof Error ? cause.message : String(cause)}`,

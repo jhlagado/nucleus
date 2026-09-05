@@ -207,14 +207,14 @@ ProofStart:
             XOR  A
             LD   (PSLOOK),A
             LD   BC,$FFFF
-            CALL ParserPeek
+            CALL PSPEEK
             JP   C,ProofFailEofLookahead
             JP   NZ,ProofFailEofLookahead
             LD   A,B
             OR   C
             JP   NZ,ProofFailEofLookahead
             LD   BC,$FFFF
-            CALL ParserPeek
+            CALL PSPEEK
             JP   C,ProofFailEofLookahead
             JP   NZ,ProofFailEofLookahead
             LD   A,B

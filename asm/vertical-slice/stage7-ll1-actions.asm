@@ -10,7 +10,7 @@ HybridLL1FlowStackBase .equ HybridLL1ForStep+2
 HybridLL1ActionStateEnd .equ HybridLL1FlowStackBase+CFCAP
 
 .routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
-HybridLL1StepConstant:
+LASTEPC:
             CALL StructuredParseStep
 .if CompilerDiagnosticReturns
             RET  C
@@ -25,7 +25,7 @@ HybridLL1StepConstant:
 ; The declared type has already selected the initializer shape. This external
 ; island retains the recursive, type-directed aggregate initializer machinery.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1StaticInitializer:
+LASTATIC:
             LD   A,(DCINFO)
             LD   B,A
             PUSH BC
@@ -39,17 +39,17 @@ HybridLL1StaticInitializer:
             OR   A
             RET
 
-HybridLL1StrayClause:
+LACLAUSE:
             CALL DGINLINE
             .db  DXEND
 
-HybridLL1MissingSelectEnd .equ HybridLL1StrayClause
+LASELERR .equ LACLAUSE
 
 ; --------------------------------------------------------------- type actions
 
 ; A is the logical action ordinal for the contiguous u8/u16/Boolean family.
-HybridLL1SetScalarTypeAction:
-            SUB  HybridLL1ActionOrdinalTypeU8-1
+LASCALAR:
+            SUB  LATYU8-1
             CP   3
             JR   C,HybridLL1SetCurrentType
             ADD  A,13
@@ -59,7 +59,7 @@ HybridLL1SetCurrentType:
             RET
 
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL,IX,IY
-HybridLL1ResolveRecordType:
+LARECTYP:
             CALL SymbolLookupCurrent
 .if CompilerDiagnosticReturns
             RET  C
@@ -73,7 +73,7 @@ HybridLL1ResolveRecordType:
             LD   A,C
             JR   HybridLL1SetCurrentType
 
-HybridLL1BeginTypeBound:
+LATYBND:
 HybridLL1ExpectU16:
             LD   A,TYU16
             JR   HybridLL1SaveExpectedType
@@ -98,7 +98,7 @@ HybridLL1CheckedBound:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1MakeStringType:
+LASTRTYP:
             CALL HybridLL1CheckedBound
 .if CompilerDiagnosticReturns
             RET  C
@@ -125,27 +125,27 @@ HybridLL1InternCurrentType:
             JR   HybridLL1SetCurrentType
 
 ; `string[]` is a parameter-only view rather than an interned object type.
-HybridLL1MakeOpenStringType:
+LAOSTRTY:
             LD   A,AGOSTR
             JR   HybridLL1SetCurrentType
 
-HybridLL1BeginArrayType .equ AggregateBeginArrayType
+LAARRTYP .equ AggregateBeginArrayType
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1SaveArrayDimension:
+LAARRDIM:
             CALL HybridLL1CheckedBound
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             JP   AggregateSaveArrayDimension
 
-HybridLL1SaveOpenArrayDimension .equ AggregateSaveOpenArrayDimension
+LAOARDIM .equ AggregateSaveOpenArrayDimension
 
-HybridLL1FinishArrayType .equ AggregateFinishArrayType
+LAARRFIN .equ AggregateFinishArrayType
 
 ; --------------------------------------------------------- scalar constants
 
-HybridLL1RetainDeclarationName .equ TypedRetainDeclarationName
+LARETNAM .equ TypedRetainDeclarationName
 
 HybridLL1SaveExpectedType:
             LD   (EXEXPTYP),A
@@ -153,7 +153,7 @@ HybridLL1SaveExpectedType:
             RET
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
-HybridLL1FinishConstantExpression:
+LACONEND:
             LD   HL,(EXRVAL)
             LD   A,(EXRMETA)
             LD   D,A
@@ -169,7 +169,7 @@ HybridLL1ConstantTypeReady:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-HybridLL1CommitConstant:
+LACONSET:
             LD   A,(DCINFO)
             OR   SCCONST
             LD   D,A
@@ -181,7 +181,7 @@ HybridLL1CommitConstant:
             JP   SymbolCommit
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1CommitAggregateConstant:
+LAAGCSET:
 .if TargetStreamingOutput
             CALL Stage7AllocateBankReadOnly
             LD   (DCINFO),A
@@ -214,10 +214,10 @@ HybridLL1CommitAggregateConstant:
 .endif
             JP   SymbolCommit
 
-HybridLL1BeginAssert .equ TypedRetainDeclarationNameReady
+LAASSERT .equ TypedRetainDeclarationNameReady
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-HybridLL1CommitAssert:
+LAASRTEN:
             CALL HybridLL1RestoreSubName
             LD   A,(EXRMETA)
             AND  MTCONST+MTTYPMSK
@@ -235,7 +235,7 @@ HybridLL1AssertTypeFailure:
 ; ------------------------------------------------------ program declarations
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1SaveProgramType:
+LAPROGTY:
 HybridLL1SaveObjectType:
             CALL AggregateRejectOpenViewPlacement
 .if CompilerDiagnosticReturns
@@ -257,13 +257,13 @@ HybridLL1SaveObjectType:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1SaveAggregateConstantType:
+LAAGCTYP:
             LD   A,(ACTYPID)
             CP   AGDYNTYP
             JP   C,TypedTypeFailure
             JR   HybridLL1SaveObjectType
 
-HybridLL1FinishProgramInitializer:
+LAPINIEN:
             LD   A,1
             LD   (AGHASINI),A
             LD   HL,(ACOBJOFF)
@@ -275,7 +275,7 @@ HybridLL1FinishProgramInitializer:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1CommitProgramVariable:
+LAPRGVAR:
             LD   A,(AGHASINI)
             OR   A
             JR   NZ,HybridLL1AllocateDataObject
@@ -400,7 +400,7 @@ HybridLL1CheckProgramSegmentEnd:
 ; ---------------------------------------------------------- record metadata
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1BeginRecord:
+LARECORD:
             CALL TypedRetainDeclarationName
 .if CompilerDiagnosticReturns
             RET  C
@@ -421,7 +421,7 @@ HybridLL1BeginRecord:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1BeginRecordField:
+LAFIELD:
             CALL AggregateCheckFieldDuplicate
 .if CompilerDiagnosticReturns
             RET  C
@@ -437,7 +437,7 @@ HybridLL1BeginRecordField:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1CommitRecordField:
+LAFLDEND:
             CALL AggregateRejectOpenViewCurrent
 .if CompilerDiagnosticReturns
             RET  C
@@ -473,7 +473,7 @@ HybridLL1CommitRecordField:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-HybridLL1CommitRecord:
+LARECEND:
             LD   A,(ACFLDCNT)
             OR   A
             JP   Z,AggregateRecordEmptyFailure
@@ -510,7 +510,7 @@ HybridLL1CommitRecord:
 ; ----------------------------------------------------- Stage 7 routines/main
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,DE,HL
-HybridLL1RequireBeforeMain:
+LABEFMN:
             LD   A,DXEOF
 
 ; A selects the exact diagnostic if the current signature is main. Ordinary
@@ -522,10 +522,10 @@ HybridLL1RequireNonMain:
             INC  A
             RET  NZ
             LD   A,D
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,DE,HL,IX,IY
-HybridLL1RequireMain:
+LAREQMN:
             LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1RequireOrdinaryForwards
@@ -561,13 +561,13 @@ HybridLL1IncompleteForward:
 
 ; The grammar deliberately treats the lexeme `main` as the same NAME token as
 ; ordinary routine names. This action is the one semantic discriminator.
-HybridLL1RetainSubName .equ TypedRetainDeclarationNameReady
+LASUBNAM .equ TypedRetainDeclarationNameReady
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
 HybridLL1RestoreSubName:
             CALL TypedRestoreDeclarationToken
             LD   HL,DCNAMPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
             OR   A
             RET
 
@@ -583,15 +583,15 @@ HybridLL1ResetParametersAndResult:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 HybridLL1ClassifySubName:
             CALL HybridLL1RestoreSubName
-            CALL HybridLL1RequireBeforeMain
+            CALL LABEFMN
             JP   TypedNameEqualsMain
 .endif
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1BeginSub:
+LASUB:
 .if CompilerDiagnosticReturns
             CALL HybridLL1RestoreSubName
-            CALL HybridLL1RequireBeforeMain
+            CALL LABEFMN
             RET  C
             CALL TypedNameEqualsMain
 .else
@@ -649,8 +649,8 @@ HybridLL1RoutineCapacityFailure:
 ; A forward uses the ordinary signature builder, then publishes that sole
 ; signature without opening a body or emitting code.
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1BeginForward:
-            CALL HybridLL1BeginSub
+LAFORWRD:
+            CALL LASUB
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -658,7 +658,7 @@ HybridLL1BeginForward:
             JR   HybridLL1SetRoutineFlag
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1CommitForward:
+LAFWDEND:
             LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1CommitForwardMain
@@ -674,7 +674,7 @@ HybridLL1CommitForwardMain:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
-HybridLL1RetainParameter:
+LAPARNAM:
             LD   A,DXRPAR
             CALL HybridLL1RequireNonMain
 .if CompilerDiagnosticReturns
@@ -695,16 +695,16 @@ HybridLL1RetainParameter:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
-HybridLL1CommitParameter:
+LAPARSET:
             CALL TypedRestoreDeclarationToken
             LD   A,(ACTYPID)
             JP   Stage7AppendParameter
 
-HybridLL1AllowSubResult:
+LARESOK:
             LD   A,DXLINE
             JP   HybridLL1RequireNonMain
 
-HybridLL1SaveSubResult:
+LARESTYP:
             CALL AggregateRejectOpenViewPlacement
 .if CompilerDiagnosticReturns
             RET  C
@@ -713,7 +713,7 @@ HybridLL1SaveSubResult:
             OR   A
             RET
 
-HybridLL1MarkSubFails:
+LASUBFL:
             LD   B,R7FAILS
 HybridLL1SetRoutineFlag:
             LD   A,(C7FLGS)
@@ -725,10 +725,10 @@ HybridLL1SetRoutineFlag:
 ; Open the abbreviated body of one exact incomplete forward and recover its
 ; sole stored signature, including the original parameter spellings.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginForwardBody:
+LAFWDBDY:
 .if CompilerDiagnosticReturns
             CALL HybridLL1RestoreSubName
-            CALL HybridLL1RequireBeforeMain
+            CALL LABEFMN
             RET  C
             CALL TypedNameEqualsMain
 .else
@@ -797,7 +797,7 @@ HybridLL1ForwardMissing:
             .db  DGUNKNAM
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginSubBody:
+LASUBODY:
             LD   A,(C7RTN)
             INC  A
 .if CompilerNonlocalDiagnostics
@@ -944,7 +944,7 @@ HybridLL1SetFallsThrough:
             JR   HybridLL1StoreFallthrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndSub:
+LASUBEND:
             LD   A,(C7RTN)
             INC  A
             JR   Z,HybridLL1EndMainBody
@@ -1005,7 +1005,7 @@ HybridLL1EndMainBody:
 ; ------------------------------------------------------ recoverable failure
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-HybridLL1BeginFail:
+LAFAIL:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1019,7 +1019,7 @@ HybridLL1BeginFail:
             JP   HybridLL1SaveExpectedType
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1CommitFail:
+LAFAILEN:
             LD   E,TYU8
             CALL HybridLL1CheckFailureResult
 .if CompilerDiagnosticReturns
@@ -1076,7 +1076,7 @@ HybridLL1FailureContext:
 ; Both callers have already observed a nonzero Stage8DirectFailable. The
 ; generic entry checks the token; the selected entry reuses its caller's peek.
 Stage8ConsumePropagation:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1090,11 +1090,11 @@ Stage8ConsumePropagationSelected:
             RET  C
 .endif
             LD   E,TNFAIL
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1122,14 +1122,14 @@ Stage8SelectFailureConsumer:
             OR   A
             JR   NZ,Stage8SelectPendingFailure
             LD   (S8CARR),A
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             CP   TNELSE
             JR   Z,HybridLL1FailureContext
             CP   TNHDL
-            JP   Z,HybridLL1HandleContext
+            JP   Z,LLHANDLE
             OR   A
             RET
 
@@ -1143,12 +1143,12 @@ HybridLL1TopFrameFieldToC:
             RET
 
 Stage8SelectPendingFailure:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             DEC  A                       ; newline becomes zero
-            JP   Z,HybridLL1HandleContext
+            JP   Z,LLHANDLE
             CP   TNELSE-1
             JR   Z,Stage8ConsumePropagationSelected
             CP   TNHDL-1
@@ -1192,7 +1192,7 @@ HybridLL1LookupDeclaration:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginHandle:
+LAHANDLE:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1253,7 +1253,7 @@ HybridLL1BeginHandlePayloadReady:
             JP   HybridLL1SetFallsThrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndHandle:
+LAHDLEND:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTPOP),A
@@ -1279,7 +1279,7 @@ Stage8RequireNoPendingFailure:
 ; ------------------------------------------------------------- local scalars
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-HybridLL1SaveLocalType:
+LALOCTYP:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1309,12 +1309,12 @@ HybridLL1SetLocalExpectedType:
             CALL TypedDeclarationScalarType
             JP   HybridLL1SaveExpectedType
 
-HybridLL1BeginLocalInitializer:
+LALOCINI:
             CALL TypedDeclarationScalarType
             JP   HybridLL1SaveExpectedType
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
-HybridLL1DefaultLocalInitializer:
+LALOCDEF:
             LD   A,1
             LD   (EXEMITON),A
             LD   A,SMLIT16
@@ -1342,7 +1342,7 @@ HybridLL1DefaultLocalInitializer:
             RET
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C,IX,IY
-HybridLL1FinishLocalInitializer:
+LALOCEND:
             CALL HybridLL1ValidateDeclarationExpression
 .if CompilerDiagnosticReturns
             RET  C
@@ -1350,7 +1350,7 @@ HybridLL1FinishLocalInitializer:
             LD   A,(S8DIRFBL)
             OR   A
             JP   NZ,Stage8ConsumePropagation
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1371,7 +1371,7 @@ HybridLL1CheckExpressionAssignable:
             JP   TypedCheckAssignable
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1CommitLocal:
+LALOCSET:
             LD   A,(DCINFO)
             LD   D,A
             LD   A,(DCPAY)
@@ -1390,7 +1390,7 @@ HybridLL1CommitLocal:
 ; ------------------------------------------------------------ simple statements
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1NameStatement:
+LANAMSTM:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1471,7 +1471,7 @@ HybridLL1StatementCounterChecked:
             LD   A,(DCINFO)
             LD   D,A
             JP   TypedEmitStoreByInfo
-HybridLL1BeginReturnValue:
+LARETVBG:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1495,7 +1495,7 @@ HybridLL1RequireReturnType:
 .endif
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1ReturnValue:
+LARETVAL:
 .if TargetStreamingOutput
             CALL HybridLL1RequireReturnType
 .else
@@ -1516,7 +1516,7 @@ HybridLL1ReturnAggregateValue:
             OR   A
             RET
 
-HybridLL1CommitReturn:
+LARETSET:
 .if TargetStreamingOutput
             CALL HybridLL1RequireReturnType
 .else
@@ -1563,7 +1563,7 @@ HybridLL1ReturnCommitted:
             JP   HybridLL1NoFallthrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1CommitBareReturn:
+LARETNON:
             LD   A,(C7RESTYP)
             OR   A
             JP   NZ,TypedRoutineFlowFailure
@@ -1579,7 +1579,7 @@ HybridLL1CommitBareReturn:
             JR   HybridLL1ReturnCommitted
 
 ; A is the logical action ordinal. The two ordinals and tokens are contiguous.
-HybridLL1EmitTransferAction:
+LAXFER:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1657,7 +1657,7 @@ HybridLL1CheckTypedResult:
             JP   HybridLL1CheckExpressionAssignable
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginIf:
+LAIF:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1685,7 +1685,7 @@ HybridLL1ExpectBoolean:
             JP   HybridLL1SaveExpectedType
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginIfBody:
+LAIFBODY:
             CALL HybridLL1CheckBooleanResult
 .if CompilerDiagnosticReturns
             RET  C
@@ -1722,7 +1722,7 @@ HybridLL1BeginBranchClause:
             JR   HybridLL1EmitFrameLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginElseIf:
+LAELSEIF:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1739,7 +1739,7 @@ HybridLL1BeginElseIf:
             JR   HybridLL1ExpectBoolean
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginElse:
+LAELSE:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1749,7 +1749,7 @@ HybridLL1BeginElse:
             JR   HybridLL1CheckedSetFallsThrough
 
 .routine out A,DE,HL,carry,zero clobbers sign,parity,halfCarry,B,C
-HybridLL1FinishElse:
+LAELSEEN:
             CALL StructuredRecordIfClause
 .if CompilerDiagnosticReturns
             RET  C
@@ -1761,7 +1761,7 @@ HybridLL1FinishElse:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1FinishIfClauses:
+LAIFDONE:
             CALL StructuredRecordIfClause
 .if CompilerDiagnosticReturns
             RET  C
@@ -1776,7 +1776,7 @@ HybridLL1EmitFrameLabel:
             JP   ControlEmitLabel
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndIf:
+LAIFEND:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTPOP),A
@@ -1802,7 +1802,7 @@ HybridLL1EndIf:
 ; --------------------------------------------------------------- select/case
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginSelect:
+LASELECT:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1827,7 +1827,7 @@ HybridLL1BeginSelect:
 ; exact values use the language's ordinary u16/i16 inference; typed selectors
 ; retain their declared width and signedness.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1FinishSelectExpression:
+LASELEXP:
             CALL Stage8RequireNoPendingFailure
 .if CompilerDiagnosticReturns
             RET  C
@@ -1851,7 +1851,7 @@ HybridLL1SelectTypeReady:
             RET
 
 .routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
-HybridLL1BeginSelectCase:
+LASELCAS:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -1867,7 +1867,7 @@ HybridLL1BeginSelectCase:
 ; Case expressions are folded under the selector's exact type and never emit
 ; a runtime value of their own.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1SelectConstantExpression:
+LASELCON:
             LD   B,CFMODE
             CALL ControlTopFrameField
             LD   A,(HL)
@@ -1875,7 +1875,7 @@ HybridLL1SelectConstantExpression:
             JP   HybridLL1SaveExpressionResult
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1FinishSelectCaseValue:
+LACASVAL:
             LD   A,(EXEXPTYP)
             LD   E,A
             LD   A,(EXRMETA)
@@ -1903,7 +1903,7 @@ HybridLL1FinishSelectCaseValue:
             JP   SemanticSinkPut
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginSelectCaseBody:
+LACASBDY:
             LD   B,CFCONT
             CALL HybridLL1TopFrameFieldToC
             CALL ControlEmitJump
@@ -1916,7 +1916,7 @@ HybridLL1BeginSelectCaseBody:
             RET  C
 .endif
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginSelectElse:
+LASELELS:
             CALL HybridLL1DiscardSelectCarrier
 .if CompilerDiagnosticReturns
             RET  C
@@ -1924,7 +1924,7 @@ HybridLL1BeginSelectElse:
             JP   HybridLL1SetFallsThrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndSelectCase:
+LACASEND:
             CALL StructuredRecordIfClause
             LD   B,CFEXIT
             CALL HybridLL1TopFrameFieldToC
@@ -1945,7 +1945,7 @@ HybridLL1DiscardSelectCarrier:
             JP   SemanticSinkOperation
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndSelectWithElse:
+LASELEND:
             CALL StructuredRecordIfClause
 .if CompilerDiagnosticReturns
             RET  C
@@ -1958,7 +1958,7 @@ HybridLL1EndSelectWithElse:
             JR   HybridLL1EndSelect
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndSelectWithoutElse:
+LASELNON:
             CALL HybridLL1DiscardSelectCarrier
 .if CompilerDiagnosticReturns
             RET  C
@@ -1993,7 +1993,7 @@ HybridLL1EndSelect:
             JP   HybridLL1CombineFlow
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginWhile:
+LAWHILE:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -2019,7 +2019,7 @@ HybridLL1BeginWhile:
             JP   HybridLL1ExpectBoolean
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginWhileBody:
+LAWHBODY:
             CALL HybridLL1CheckBooleanResult
 .if CompilerDiagnosticReturns
             RET  C
@@ -2040,7 +2040,7 @@ HybridLL1BeginWhileBody:
             JP   HybridLL1BeginConditionBody
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndWhile:
+LAWHEND:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTPOP),A
@@ -2072,7 +2072,7 @@ HybridLL1PopAndRestoreFlow:
 ; -------------------------------------------------------------- counted loop
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginFor:
+LAFOR:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTSOURCE),A
@@ -2122,11 +2122,11 @@ HybridLL1CheckForInitial:
             JP   Stage8RequireNoPendingFailure
 
 ; A is the logical action ordinal for the contiguous to/until family.
-HybridLL1SelectForBoundAction:
+LAFORBND:
             AND  1
 HybridLL1ForBoundSelected:
             LD   (HybridLL1ForMode),A
-            CALL HybridLL1FinishLocalInitializer
+            CALL LALOCEND
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2139,9 +2139,9 @@ HybridLL1CheckForBound:
             LD   E,A
             JP   HybridLL1CheckTypedResult
 
-HybridLL1SaveForStep .equ HybridLL1CheckForBound
+LASTEPSV .equ HybridLL1CheckForBound
 
-HybridLL1DefaultForStep:
+LASTEPDF:
             CALL HybridLL1CheckForBound
 .if CompilerDiagnosticReturns
             RET  C
@@ -2152,7 +2152,7 @@ HybridLL1DefaultForStep:
             RET
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1BeginForBody:
+LAFORBDY:
             LD   B,CKFOR
             CALL HybridLL1PushFlowFrameAndLabelA
 .if CompilerDiagnosticReturns
@@ -2209,7 +2209,7 @@ HybridLL1BeginForBody:
             JP   HybridLL1CheckedSetFallsThrough
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1EndFor:
+LAFOREND:
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTPOP),A

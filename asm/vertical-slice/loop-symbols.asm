@@ -102,7 +102,7 @@ SymbolAppendCurrentWord:
             RET
 SymbolPrepareFull:
             LD   A,DGSYMCAP
-            JR   CompilerSetDiagnostic
+            JR   DGSET
 
 ; Retain A as the exact type ordinal in the prepared symbol entry. HL points
 ; at the high byte of its payload until the symbol is committed.

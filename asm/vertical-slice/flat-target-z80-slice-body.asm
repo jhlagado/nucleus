@@ -423,7 +423,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetEarlyWritableDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofLoadedFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofLoadedFailure
@@ -442,7 +442,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetLoadedDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofLoadedFailure
             LD   A,(DGCODE)
             CP   DGTGTOUT
@@ -464,7 +464,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetLoadedDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofLoadedFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofLoadedFailure
@@ -527,7 +527,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetBadFlagsDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofConfigurationFailure
@@ -541,14 +541,14 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetStackExactDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofRegionFailure
             LD   A,19
             LD   (ProofCase),A
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetStackOverflowDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofRegionFailure
             LD   A,(DGCODE)
             CP   DGTGTCAP
@@ -562,7 +562,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofAtomicFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofAtomicFailure
@@ -603,7 +603,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetTrapParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofAtomicFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofAtomicFailure
@@ -644,7 +644,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetTrapParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofAtomicFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofAtomicFailure
@@ -670,7 +670,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofCompileFailure
             LD   A,(AdapterCommitted)
             CP   1
@@ -749,7 +749,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetTrapParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterLogBase
@@ -771,7 +771,7 @@ ProofStart:
             LD   A,1
             LD   HL,FlatTargetUnhandledParts
             LD   IX,FlatTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterLogBase
@@ -792,7 +792,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedTargetParts
             LD   IX,BankedInvalidPartDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCFG
@@ -803,7 +803,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedTargetParts
             LD   IX,BankedWrongEntryDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCFG
@@ -814,7 +814,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedConstantFailureParts
             LD   IX,BankedFailureDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCFG
@@ -831,7 +831,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedTargetParts
             LD   IX,BankedEntryOverflowDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCAP
@@ -854,7 +854,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedLargeParts
             LD   IX,BankedOtherOverflowDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCAP
@@ -876,7 +876,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedParameterFailureParts
             LD   IX,BankedFailureDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             CALL ProofCompilerStackExact
             JP   NZ,ProofConfigurationFailure
@@ -897,7 +897,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedResultFailureParts
             LD   IX,BankedFailureDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCFG
@@ -913,7 +913,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedForwardFailureParts
             LD   IX,BankedFailureDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   NC,ProofConfigurationFailure
             LD   A,(DGCODE)
             CP   DGTGTCFG
@@ -928,7 +928,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedTrapParts
             LD   IX,BankedTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JP   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterBankedTrapLogBase
@@ -945,7 +945,7 @@ ProofStart:
             LD   A,1
             LD   HL,BankedTargetEntry1Parts
             LD   IX,BankedTargetEntry1Descriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JR   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterEntry1LogBase
@@ -962,7 +962,7 @@ ProofStart:
             LD   A,2
             LD   HL,BankedTargetParts
             LD   IX,BankedTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JR   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterLogBase
@@ -979,7 +979,7 @@ ProofStart:
             LD   A,2
             LD   HL,Chapter21TargetParts
             LD   IX,Chapter21TargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JR   C,ProofCompileFailure
             LD   HL,(AdapterCursor)
             LD   DE,AdapterChapter21LogBase
@@ -1054,7 +1054,7 @@ AdapterReserveReady:
             RET
 
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IY
-TargetSinkBegin:
+TSBEGIN:
             LD   HL,AdapterCapturedBegin
             LD   B,TDSZ
 TargetSinkBeginCopy:
@@ -1069,7 +1069,7 @@ TargetSinkBeginCopy:
             RET
 
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkImageByte:
+TSBYTE:
             PUSH IY
             PUSH AF
             PUSH BC
@@ -1107,14 +1107,14 @@ TargetSinkImageByteReserveFailure:
             RET
 
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeImage:
+TSRTIMG:
             PUSH AF
             LD   A,3
             LD   (AdapterRuntimeKind),A
             POP  AF
             JR   TargetSinkRuntimeSelected
 .routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeInitialImage:
+TSRTINIT:
             PUSH AF
             LD   A,4
             LD   (AdapterRuntimeKind),A
@@ -1145,7 +1145,7 @@ TargetSinkRuntimeSelected:
             RET
 
 .routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkPatchByte:
+TSPATBYT:
             PUSH IY
             PUSH AF
             PUSH BC
@@ -1180,7 +1180,7 @@ TargetSinkPatchByteReserveFailure:
             RET
 
 .routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkPatchWord:
+TSPATWRD:
             PUSH IY
             PUSH BC
             PUSH DE
@@ -1207,7 +1207,7 @@ TargetSinkPatchWordFailure:
             RET
 
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkMapFlat:
+TSMAP:
             LD   A,(AdapterMapFailure)
             OR   A
             JR   Z,TargetSinkMapReady
@@ -1219,7 +1219,7 @@ TargetSinkMapReady:
             RET
 
 .routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapBanked:
+TSBANK:
             LD   A,(IX+TQBNKCNT-TQBASE)
             LD   B,A
             LD   L,(IX+TQBNKST-TQBASE)
@@ -1257,7 +1257,7 @@ TargetSinkMapBankedCursorLoop:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkCommit:
+TSCOMMIT:
             LD   A,(AdapterCommitFailure)
             OR   A
             JR   Z,TargetSinkCommitReady
@@ -1271,7 +1271,7 @@ TargetSinkCommitReady:
             RET
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkAbort:
+TSABORT:
             LD   A,(AdapterAborted)
             INC  A
             LD   (AdapterAborted),A

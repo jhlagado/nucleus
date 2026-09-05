@@ -287,7 +287,7 @@ StructuredParseIfCondition:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -344,7 +344,7 @@ StructuredParseElse:
             LD   B,CFMODE
             CALL ControlTopFrameField
             LD   (HL),1
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -450,7 +450,7 @@ StructuredParseWhile:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -508,7 +508,7 @@ StructuredLoopTransferSelected:
 ; returns the nonzero magnitude.
 .routine out A,B,DE,carry,zero clobbers sign,parity,halfCarry,C,HL
 StructuredParseStep:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -552,7 +552,7 @@ StructuredStepExpression:
             RET
 StructuredStepFailure:
             LD   HL,EXVALPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
             CALL DGINLINE
             .db  DGLOPSTP
 
@@ -562,7 +562,7 @@ StructuredStepFailure:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 StructuredParseFor:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -638,7 +638,7 @@ StructuredForBound:
             LD   DE,1
             PUSH BC
             PUSH DE
-            CALL ParserPeek
+            CALL PSPEEK
             POP  DE
             POP  BC
 .if CompilerDiagnosticReturns
@@ -759,7 +759,7 @@ StructuredForModeReady:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif

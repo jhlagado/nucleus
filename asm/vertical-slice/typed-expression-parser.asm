@@ -30,7 +30,7 @@ TypedRetainDeclarationNameReady:
             LD   HL,DCNAMPTR
             CALL TKRETAIN
             LD   DE,DCNAMPOS
-            CALL CompilerCopyTokenPosition
+            CALL DGCOPYTK
             OR   A
             RET
 
@@ -80,7 +80,7 @@ TypedPrepareCurrentWord:
             PUSH BC
             PUSH DE
             LD   HL,DCNAMPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
 .if AggregateCallSlices
 .if TargetStreamingOutput
 .if DebugHooks
@@ -104,7 +104,7 @@ TypedPrepareCurrentRoutineClear:
 TypedPrepareRoutineWord:
             CALL TypedRestoreDeclarationToken
             LD   HL,DCNAMPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
 .if TargetStreamingOutput
 .if DebugHooks
             OUT  (DTDECL),A
@@ -236,7 +236,7 @@ TypedValueRangeFailure:
 TypedLeftRangeFailure:
             LD   HL,(EXLPOSPT)
 TypedRangeFailureAtPosition:
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
 TypedRangeFailure:
             CALL DGINLINE
             .db  DGINTRNG
@@ -255,7 +255,7 @@ TypedCheckedFault:
             OR   A
             JR   NZ,TypedSuppressedFault
             LD   A,C
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 TypedSuppressedFault:
             LD   A,B
             LD   HL,0
@@ -694,7 +694,7 @@ TypedParsePrimary:
             PUSH AF
             PUSH BC
             LD   DE,EXVALPOS
-            CALL CompilerCopyTokenPosition
+            CALL DGCOPYTK
             POP  BC
             POP  AF
             CP   TNNUM
@@ -1221,7 +1221,7 @@ TypedRequireIntegerMeta:
 ; Unary +, -, and not bind above multiplicative operators.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseUnary:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1333,7 +1333,7 @@ TypedParseMultiplicative:
 TypedMultiplicativeLoop:
             PUSH AF
             PUSH HL
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JR   C,TypedMultiplicativePeekFailure
 .endif
@@ -1389,7 +1389,7 @@ TypedParseAdditive:
 .endif
 TypedAdditiveLoop:
             PUSH AF
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JR   C,TypedAdditivePeekFailure
 .endif
@@ -1461,7 +1461,7 @@ TypedParseComparison:
 .endif
             PUSH AF
             PUSH HL
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
 .endif
@@ -1492,7 +1492,7 @@ TypedParseComparison:
 .endif
             PUSH AF
             PUSH HL
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JR   C,TypedComparisonStackFailure
 .endif
@@ -1707,7 +1707,7 @@ TypedParseAnd:
 .endif
 TypedAndLoop:
             PUSH AF
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JP   C,TypedBooleanPeekFailure
 .endif
@@ -1768,7 +1768,7 @@ TypedParseOr:
 .endif
 TypedOrLoop:
             PUSH AF
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JR   C,TypedBooleanPeekFailure
 .endif
@@ -2181,7 +2181,7 @@ TypedParseProgramAfterVar:
             ; Preserve the legacy initialized-array proof behind u8[...].
             CP   TYU8
             JR   NZ,TypedProgramScalar
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2198,7 +2198,7 @@ TypedParseProgramAfterVar:
             JP   ParserParseArrayProgramAfterU8
 .endif
 TypedProgramScalar:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2256,7 +2256,7 @@ TypedProgramHaveExpression:
             JP   TypedParseTopLevel
 
 TypedParseTopLevel:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2278,7 +2278,7 @@ TypedTopLevelVar:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2289,7 +2289,7 @@ TypedTopLevelConst:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2313,7 +2313,7 @@ TypedTopLevelRecord:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseTopLevelConstAfterTake:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2329,12 +2329,12 @@ TypedParseTopLevelConstAfterTake:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseForwardAfterTake:
             LD   E,TOKENSUB
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2351,7 +2351,7 @@ TypedParseForwardAfterTake:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2437,7 +2437,7 @@ TypedParseMainStatements:
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseLocalDeclaration:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2473,7 +2473,7 @@ TypedParseLocalDeclaration:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2543,7 +2543,7 @@ TypedLocalHaveExpression:
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseLocalRun:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2611,7 +2611,7 @@ TypedParseStatements:
             LD   A,1
             LD   (CTFALLS),A
 TypedParseStatementsContinue:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2864,7 +2864,7 @@ TypedAssignmentCounterChecked:
 
 TypedParseEndMain:
             LD   E,TOKENEND
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2881,11 +2881,11 @@ TypedParseEndMain:
             OR   A
             JR   NZ,TypedParseForwardCompletion
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
 TypedParseForwardCompletion:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2966,7 +2966,7 @@ TypedParseRoutineStatements:
             OR   A
             JP   NZ,TypedRoutineFlowFailure
             LD   E,TOKENEND
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2982,7 +2982,7 @@ TypedParseRoutineStatements:
             LD   A,1
             LD   (FWDONE),A
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 .endif
 TypedForwardIncomplete:
             CALL DGINLINE

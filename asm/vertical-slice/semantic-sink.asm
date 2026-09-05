@@ -30,7 +30,7 @@ SemanticSinkPutRoom:
             RET
 SemanticSinkPutFull:
             LD   A,DGSNKCAP
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 
 .routine in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 SemanticSinkEmitProgram:

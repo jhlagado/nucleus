@@ -197,7 +197,7 @@ TargetCodeCapacityReady:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
 TargetBeginOutput:
             LD   IX,(TDPTR)
-            CALL TargetSinkBegin
+            CALL TSBEGIN
             JP   C,TargetOutputFailure
             RET
 
@@ -333,10 +333,10 @@ TargetEmitRuntimeProvider:
             LD   DE,RIABI
             LD   IX,TGRTCTX
             JR   C,TargetEmitRuntimeProviderCode
-            CALL TargetSinkRuntimeInitialImage
+            CALL TSRTINIT
             JR   TargetEmitRuntimeProviderReady
 TargetEmitRuntimeProviderCode:
-            CALL TargetSinkRuntimeImage
+            CALL TSRTIMG
 TargetEmitRuntimeProviderReady:
             POP  DE
             JP   C,TargetOutputFailure
@@ -811,13 +811,13 @@ TargetLoadedDataReady:
             JR   C,TargetFinishOutputFailureNear
             CALL TargetPrepareMapRequest
             JR   NZ,TargetFinishMapBanked
-            CALL TargetSinkMapFlat
+            CALL TSMAP
             JR   TargetFinishMapReady
 TargetFinishMapBanked:
-            CALL TargetSinkMapBanked
+            CALL TSBANK
 TargetFinishMapReady:
             JR   C,TargetFinishOutputFailureNear
-            CALL TargetSinkCommit
+            CALL TSCOMMIT
             JR   C,TargetFinishOutputFailureNear
             XOR  A
             RET
@@ -839,14 +839,14 @@ TargetConfigurationFailure:
 TargetFinishOutputFailureNear:
 TargetFinishOutputFailure:
             PUSH AF
-            CALL TargetSinkAbort
+            CALL TSABORT
             POP  AF
 TargetOutputFailure:
             OR   A
             JR   NZ,TargetDiagnosticReady
             LD   A,DGTGTOUT
 TargetDiagnosticReady:
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 
 ; Assemble the stable, versioned native-host MAP request after all lengths,
 ; cursors, and bank states are final. IX remains valid through the sink call;
@@ -884,7 +884,7 @@ AbortTargetProgram:
             PUSH AF
             LD   A,(TGOUTBNK)
             INC  A
-            CALL NZ,TargetSinkAbort
+            CALL NZ,TSABORT
             POP  AF
             SCF
             RET

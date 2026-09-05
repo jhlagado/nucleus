@@ -1,0 +1,3 @@
+; Test-only code extent. All diagnostic state comes from canonical imports.
+         ORG MMCORE
+PDSTART:

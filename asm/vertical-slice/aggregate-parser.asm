@@ -189,7 +189,7 @@ AggregateSaveOpenArrayDimension:
             RET  C
 .endif
             LD   DE,ATOAPOS
-            CALL CompilerCopyTokenPosition
+            CALL DGCOPYTK
             LD   A,1
             LD   (ATOAFLAG),A
             OR   A
@@ -205,7 +205,7 @@ AggregateRejectOpenViewPlacement:
             OR   A
             JP   P,AggregateRejectOpenViewCurrent
             LD   HL,ATOAPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
             JR   AggregateRejectOpenViewCurrent
 
 ; Wrap AggregateCurrentTypeId in one concrete array dimension. HL is the
@@ -339,7 +339,7 @@ AggregateSegmentedCapacityReady:
             RET
 AggregateSegmentedCapacityFailure:
             LD   A,B
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 .else
 ; Returning-diagnostic historical layouts retain independently balanced
 ; routines so their public preservation contracts remain unchanged.
@@ -421,7 +421,7 @@ AggregateParseBound:
             JR   Z,AggregateTypeShapeFailure
             PUSH HL
             LD   E,TNRBRK
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  HL
             RET
 
@@ -481,7 +481,7 @@ AggregateTypeBoolean:
             JR   AggregateTypeBaseReady
 AggregateParseStringType:
             LD   E,TNLBRK
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -512,7 +512,7 @@ AggregateParseStringType:
 AggregateTypeBaseReady:
             LD   (ACTYPID),A
 AggregateParseArraySuffixLoop:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -524,7 +524,7 @@ AggregateParseArraySuffix:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -591,7 +591,7 @@ AggregateRecordEmptyFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 AggregateParseRecordAfterTake:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -617,7 +617,7 @@ AggregateParseRecordAfterTake:
             LD   L,A
             LD   (ACRECEXT),HL
 AggregateRecordFieldLoop:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -856,7 +856,7 @@ AggregateInitializerCountFailure:
 .routine out A,BC,carry,zero clobbers sign,parity,halfCarry,D,DE,HL
 AggregatePeekPreserveBC:
             PUSH BC
-            CALL ParserPeek
+            CALL PSPEEK
             POP  BC
             RET
 
@@ -941,7 +941,7 @@ AggregateParseStringInitializer:
             LD   B,(HL)
             PUSH BC
             LD   E,TNSTRLIT
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -1209,7 +1209,7 @@ AggregateParseProgramAfterVar:
             XOR  A
             LD   (AIDEP),A
             LD   (AGHASINI),A
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1296,7 +1296,7 @@ CompileAggregateSlice:
 .if HybridLL1Full
             XOR  A
             LD   (C7RTN),A
-            CALL HybridLL1Parse
+            CALL LLPARSE
 .else
             CALL ParserParseProgram
 .endif

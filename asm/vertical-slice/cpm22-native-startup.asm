@@ -28,7 +28,7 @@ CpmCompilerRun:
             LD   A,(CSPARTN)
             LD   HL,0
             LD   IX,CpmCompilerTargetDescriptor
-            CALL CompileTargetAggregateCallParts
+            CALL CTACPART
             JR   C,CpmCompilerCompileFailure
             XOR  A
             RET

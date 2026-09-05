@@ -102,7 +102,7 @@ Stage8MatchPredefinedSkip:
 ; IX points at the stable compact target descriptor; A/HL retain the existing
 ; bounded source-part descriptor ABI.
 .routine in A,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-CompileTargetAggregateCallParts:
+CTACPART:
             LD   (CPABRTSP),SP
             LD   (TDPTR),IX
             PUSH AF
@@ -268,7 +268,7 @@ CompileAggregateCallReady:
             LDIR
             LD   (CTNXLBL),A
 .if Stage7LL1
-            CALL HybridLL1Parse
+            CALL LLPARSE
 .else
             CALL Stage7ParseTopLevel
 .endif
@@ -294,7 +294,7 @@ Stage7RejectCurrentDeclarationName:
 .else
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 Stage7ParseTopLevel:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -320,7 +320,7 @@ Stage7TopLevelVar:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -341,7 +341,7 @@ Stage7TopLevelRoutine:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -424,7 +424,7 @@ Stage7ParseSignature:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -432,7 +432,7 @@ Stage7ParseSignature:
             JR   Z,Stage7SignatureClose
 Stage7SignatureParameter:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -466,7 +466,7 @@ Stage7SignatureParameter:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -484,7 +484,7 @@ Stage7SignatureClose:
 .endif
             XOR  A
             LD   (C7RESTYP),A
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -726,7 +726,7 @@ Stage7RoutineStatements:
             JP   NZ,TypedRoutineFlowFailure
 Stage7RoutineEndToken:
             LD   E,TOKENEND
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -769,7 +769,7 @@ Stage7ParseMainAfterName:
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -809,7 +809,7 @@ Stage7MainStatements:
             RET  C
 .endif
             LD   E,TOKENEND
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -823,7 +823,7 @@ Stage7MainStatements:
             RET  C
 .endif
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 .endif
 
 ; Return the positive IX displacement of the current source argument. Every
@@ -988,13 +988,13 @@ Stage7PathCompareOpenString:
 ; These retained expression actions live here so the path and call parsers can
 ; reuse their result-saving tail under strict one-pass register contracts.
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1ConstantExpression:
+LACONEXP:
             XOR  A                       ; ScalarTypeExact
             CALL TypedExpressionBeginConstant
             JR   HybridLL1SaveExpressionResult
 
 .routine out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry,IX,IY
-HybridLL1RuntimeExpression:
+LARTEXP:
             LD   A,(EXEXPTYP)
             CALL TypedExpressionBeginRuntime
 .routine in A,BC,DE,HL out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
@@ -1012,7 +1012,7 @@ Stage7ParsePathSuffix:
             LD   D,0
 Stage7PathSuffixLoop:
             PUSH AF
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
 .endif
@@ -1039,7 +1039,7 @@ Stage7PathField:
             JP   C,Stage7PathSuffixFailure
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathSuffixFailure
 .endif
@@ -1247,7 +1247,7 @@ Stage7PathIndex:
             RET  C
 .endif
             LD   E,TNRBRK
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticBranches
             JP   C,Stage7PathIndexFailure
 .endif
@@ -1551,7 +1551,7 @@ Stage7CallArgumentLoop:
             LD   A,(HL)
             CP   AGOSTR
             JR   NZ,Stage7CallClassifyStoredArgument
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
 .endif
@@ -1709,7 +1709,7 @@ Stage7CallAggregateTypeReady:
             OR   A
             JR   NZ,Stage7CallAggregateBankReady
             LD   A,DGTGTCFG
-            CALL CompilerSetDiagnostic
+            CALL DGSET
 .if CompilerDiagnosticBranches
             JP   Stage7CallFailure
 .endif
@@ -1751,7 +1751,7 @@ Stage7CallArgumentReady:
             DEC  (HL)
             JP   Z,Stage7CallArgumentsDone
             LD   E,TNCOMMA
-            CALL ParserExpect
+            CALL PSEXPECT
 .if TargetStreamingOutput
 .if CompilerDiagnosticBranches
             JP   C,Stage7CallFailure
@@ -2063,7 +2063,7 @@ Stage7CallFailure:
 .endif
 Stage7ParseAggregateValue:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2285,7 +2285,7 @@ Stage8ParsePacketService:
 .endif
             PUSH HL
             LD   HL,EXVALPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
             POP  HL
             LD   E,TYU8
             CALL TypedCheckAssignable
@@ -2297,11 +2297,11 @@ Stage8ParsePacketService:
             LD   A,L
             LD   (V8ID),A
             LD   E,TNCOMMA
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -2313,13 +2313,13 @@ Stage8ParsePacketService:
             JP   Z,TypedTypeFailure
 Stage8PacketRootReady:
             LD   DE,EXVALPOS
-            CALL CompilerCopyTokenPosition
+            CALL DGCOPYTK
             CALL Stage7ParseAggregateValue
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   HL,EXVALPOS
-            CALL CompilerRestoreTokenPosition
+            CALL DGRESTTK
             LD   (S7PATHT),A
             CP   AGOAMSK
             JR   NC,Stage8PacketOpenArray
@@ -2417,7 +2417,7 @@ Stage8ParsePortCall:
             CP   2
             JR   C,Stage8PortArgumentsDone
             LD   E,TNCOMMA
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif

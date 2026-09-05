@@ -1,40 +1,40 @@
 ; Fixed compiler-host vector bindings for the native CP/M transient.
 
-CpmCompilerHostVectorStart:
-            .db "NH",0,1,8,14,0,0
-.routine out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
+CHVECTOR:
+            DB "NH",0,1,8,14,0,0
+; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 HVCHUNK:           JP CSNEXT
-.routine in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
+; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 HVRETAIN:         JP CSRETAIN
-.routine in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+; Contract: in HL,IX,B out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 HVCMPNAM:        JP CSCMPNAM
-.routine in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
+; Contract: in HL out A,B,HL,carry,zero clobbers sign,parity,halfCarry
 HVMATNAM:           JP CSMATNAM
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkBegin:               JP DOBEGIN
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkImageByte:           JP DOIMGBYT
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeImage:        JP DORTIMG
-.routine in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkRuntimeInitialImage: JP DORTINIT
-.routine in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
-TargetSinkPatchByte:           JP DOPATBYT
-.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkPatchWord:           JP CpmCompilerPatchWord
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapFlat:             JP DOMAP
-.routine in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
-TargetSinkMapBanked:           JP DOMAP
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkCommit:              JP CpmCompilerCommit
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-TargetSinkAbort:               JP CpmCompilerAbort
-CpmCompilerHostVectorEnd:
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSBEGIN:               JP DOBEGIN
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TSBYTE:           JP DOIMGBYT
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSRTIMG:        JP DORTIMG
+; Contract: in A,BC,DE,HL,IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSRTINIT: JP DORTINIT
+; Contract: in A,C,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
+TSPATBYT:           JP DOPATBYT
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+TSPATWRD:           JP CHPATCH
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSMAP:             JP DOMAP
+; Contract: in IX out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL,IX,IY
+TSBANK:           JP DOMAP
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+TSCOMMIT:              JP CHCOMMIT
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+TSABORT:               JP CHABORT
+CHVEND:
 
-CpmCompilerHostAdaptersStart:
-.routine in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
-CpmCompilerPatchWord:
+CHADAPT:
+; Contract: in C,DE,HL out A,carry,zero clobbers sign,parity,halfCarry
+CHPATCH:
             PUSH BC
             PUSH DE
             PUSH HL
@@ -48,8 +48,8 @@ CpmCompilerPatchWord:
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCompilerCommit:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CHCOMMIT:
             PUSH BC
             PUSH DE
             PUSH HL
@@ -63,8 +63,8 @@ CpmCompilerCommit:
             POP  BC
             RET
 
-.routine out A,carry,zero clobbers sign,parity,halfCarry
-CpmCompilerAbort:
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry
+CHABORT:
             PUSH BC
             PUSH DE
             PUSH HL
@@ -77,4 +77,4 @@ CpmCompilerAbort:
             POP  DE
             POP  BC
             RET
-CpmCompilerHostAdaptersEnd:
+CHAEND:

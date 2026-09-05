@@ -1,74 +1,8 @@
 ; Predictive parser for the counted-loop and checked-array proof programs.
 
-; Only the Stage 7 packed parser selects the complete grammar overlay. Nesting the
-; Stage7LL1 reference keeps every older proof source independent of that flag.
-.if AggregateCallSlices
-.if Stage7LL1
-HybridLL1Full .equ 1
-.else
-HybridLL1Full .equ 0
-.endif
-.else
-HybridLL1Full .equ 0
-.endif
-
-.if AggregateCallSlices
-.if TargetStreamingOutput
-CompilerNonlocalDiagnostics .equ 1
-.else
-CompilerNonlocalDiagnostics .equ 0
-.endif
-.else
-CompilerNonlocalDiagnostics .equ 0
-.endif
-
-.if CompilerNonlocalDiagnostics
-CompilerDiagnosticReturns .equ 0
-CompilerDiagnosticBranches .equ 0
-.else
-CompilerDiagnosticReturns .equ 1
-CompilerDiagnosticBranches .equ 1
-.endif
-
-.if CompilerNonlocalDiagnostics
-.routine noreturn
-.else
-.routine in A out A,carry clobbers zero,sign,parity,halfCarry,DE,HL
-.endif
-CompilerSetDiagnostic:
-            LD   (DGCODE),A
-            LD   A,(SSPARTID)
-            LD   (DGPARTID),A
-.if CompilerNonlocalDiagnostics
-            LD   SP,(CPABRTSP)
-.endif
-            SCF
-            RET
-
-.routine noreturn
-DGINLINE:
-            POP  HL
-            LD   A,(HL)
-            JR   CompilerSetDiagnostic
-
-; Shared full-width source and destination setup for the three callers of each
-; direction. These helpers alter no position representation or address width.
-.routine in DE out BC,DE,HL clobbers parity,halfCarry
-CompilerCopyTokenPosition:
-            LD   HL,TNSTOFF
-
-; Copy one complete offset/line/column record from HL to DE. LDIR preserves
-; carry, allowing diagnostic callers to establish failure after the copy.
-.routine in DE,HL out BC,DE,HL clobbers parity,halfCarry
-DGCOPYP:
-            LD   BC,6
-            LDIR
-            RET
-
-.routine in HL out BC,DE,HL clobbers parity,halfCarry
-CompilerRestoreTokenPosition:
-            LD   DE,TNSTOFF
-            JR   DGCOPYP
+; Transitional callers still derive their flags at this historical position.
+.include "compiler-profile-legacy.asmi"
+.include "compiler-diagnostics.asm"
 
 ; E is the expected token ordinal. An ordinary mismatch reports the token
 ; ordinal with DiagnosticExpectedTokenBase set.
@@ -76,7 +10,7 @@ CompilerRestoreTokenPosition:
 ParserExpectLine:
             LD   E,TNNL
 .routine in E out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
-ParserExpect:
+PSEXPECT:
             LD   L,E
             CALL ParserTake
 .if CompilerDiagnosticReturns
@@ -86,13 +20,13 @@ ParserExpect:
             RET  Z
             LD   A,L
             OR   DXTOKBAS
-            JR   CompilerSetDiagnostic
+            JR   DGSET
 
 ; The expression parser needs one token of lookahead. Token metadata remains
 ; current until another tokenizer request, so buffering kind and word payload
 ; is sufficient for names, positions, numbers, and characters.
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
-ParserPeek:
+PSPEEK:
             LD   BC,(PSLOOKV)
             LD   A,(PSLOOK)
             OR   A
@@ -115,7 +49,7 @@ ParserPeekEmpty:
 ; Expression reductions keep the left value in HL across lookahead consumption.
 .routine out A,BC,HL,carry,zero clobbers sign,parity,halfCarry,D,DE
 ParserTake:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -130,20 +64,20 @@ ParserTake:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLeft:
             LD   E,TNLPAR
-            JR   ParserExpect
+            JR   PSEXPECT
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectRight:
             LD   E,TNRPAR
-            JR   ParserExpect
+            JR   PSEXPECT
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectAs:
             LD   E,TOKENAS
-            JR   ParserExpect
+            JR   PSEXPECT
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectU8:
             LD   E,TOKENU8
-            JP   ParserExpect
+            JP   PSEXPECT
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectAsU8:
@@ -157,20 +91,20 @@ ParserExpectAsU8:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectEqual:
             LD   E,TNEQ
-            JR   ParserExpect
+            JR   PSEXPECT
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectSub:
             LD   E,TOKENSUB
-            JP   ParserExpect
+            JP   PSEXPECT
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectLeftBracket:
             LD   E,TNLBRK
-            JP   ParserExpect
+            JP   PSEXPECT
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectRightBracket:
             LD   E,TNRBRK
-            JP   ParserExpect
+            JP   PSEXPECT
 .endif
 .if HybridLL1Full
 .else
@@ -180,7 +114,7 @@ ParserExpectNamed:
             PUSH DE
             PUSH HL
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  HL
             POP  DE
             POP  BC
@@ -193,7 +127,7 @@ ParserExpectNamed:
             RET
 ParserExpectNamedNo:
             LD   A,D
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
@@ -241,7 +175,7 @@ ParserCurrentNameNotForward .equ ParserExpectNamedNo
 ParserExpectForwardName:
             PUSH DE
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  DE
 .if CompilerDiagnosticReturns
             RET  C
@@ -287,7 +221,7 @@ ParserRetainForwardParameter:
 ParserExpectForwardParameter:
             PUSH DE
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  DE
 .if CompilerDiagnosticReturns
             RET  C
@@ -303,14 +237,14 @@ ParserExpectForwardParameter:
             RET
 ParserForwardParameterNo:
             LD   A,D
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 .endif
 
 .if LegacyCompilerSlices
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectWrite:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -336,7 +270,7 @@ ParserExpectWriteYes:
 .routine out A,C,carry,zero clobbers sign,parity,halfCarry,B,D,DE,HL
 ParserExpectNumber:
             LD   E,TNNUM
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -389,9 +323,9 @@ ParserExpectedScalar:
             LD   A,DXSCA
             ; The legacy proof layouts put this target outside JR range.
 .if AggregateCallSlices
-            JR   CompilerSetDiagnostic
+            JR   DGSET
 .else
-            JP   CompilerSetDiagnostic
+            JP   DGSET
 .endif
 
 .if LegacyCompilerSlices
@@ -427,7 +361,7 @@ ParserParseScalarExpressionMin:
 .endif
 ParserParseScalarExpressionLoop:
             PUSH BC
-            CALL ParserPeek
+            CALL PSPEEK
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -502,7 +436,7 @@ ParserExpectRoutineHeader:
             RET  C
 .endif
             LD   E,TNFAILS
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -513,7 +447,7 @@ ParserExpectRoutineHeader:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectIndexDeclaration:
             LD   E,TOKENVAR
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -551,16 +485,16 @@ ParserExpectElseFailLine:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectElseFail:
             LD   E,TNELSE
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
             LD   E,TNFAIL
             ; The legacy proof layouts put this target outside JR range.
 .if AggregateCallSlices
-            JR   ParserExpect
+            JR   PSEXPECT
 .else
-            JP   ParserExpect
+            JP   PSEXPECT
 .endif
 .endif
 
@@ -577,7 +511,7 @@ ParserExpectPropagateLine:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserExpectEndLine:
             LD   E,TOKENEND
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -613,7 +547,7 @@ ParserParseLoopProgramAfterSub:
 .endif
 
             LD   E,TOKENFOR
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -639,7 +573,7 @@ ParserParseLoopProgramAfterSub:
             RET  C
 .endif
             LD   E,TNUNT
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -670,7 +604,7 @@ ParserParseLoopProgramAfterSub:
             RET  C
 .endif
             LD   E,TNCHAR
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -767,7 +701,7 @@ ParserScalarProgramOperandFailure:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarLocalDeclaration:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -890,7 +824,7 @@ ParserScalarWriteFailure:
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarStatements:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -932,11 +866,11 @@ ParserParseScalarEnd:
             RET  C
 .endif
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL
 ParserParseScalarTopLevel:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -947,7 +881,7 @@ ParserParseScalarTopLevel:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -973,7 +907,7 @@ ParserParseScalarMain:
             RET  C
 .endif
 ParserParseScalarLocals:
-            CALL ParserPeek
+            CALL PSPEEK
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -998,7 +932,7 @@ ParserScalarExpectedTopLevel:
 .routine out A,carry,zero clobbers sign,parity,halfCarry,B,C,D,DE,HL,IX,IY
 ParserParseProgramAfterVar:
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1060,7 +994,7 @@ ParserArrayInitializer:
             JR   Z,ParserArrayInitializerDone
             PUSH BC
             LD   E,TNCOMMA
-            CALL ParserExpect
+            CALL PSEXPECT
             POP  BC
 .if CompilerDiagnosticReturns
             RET  C
@@ -1077,7 +1011,7 @@ ParserArrayInitializerDone:
 .endif
 
             LD   E,TOKENSUB
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1174,7 +1108,7 @@ ParserFinishRoutine:
             RET  C
 .endif
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 .endif
 
 ; Parse the first general routine-call slice. It deliberately admits one
@@ -1188,7 +1122,7 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1198,7 +1132,7 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   E,TNNAME
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1230,7 +1164,7 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   E,TOKENVAR
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1344,7 +1278,7 @@ ParserParseCallProgramAfterForward:
 .endif
 
             LD   E,TOKENIF
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1378,7 +1312,7 @@ ParserParseCallProgramAfterForward:
 .endif
 
             LD   E,TNRET
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1407,7 +1341,7 @@ ParserParseCallProgramAfterForward:
 .endif
 
             LD   E,TNRET
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1426,7 +1360,7 @@ ParserParseCallProgramAfterForward:
             RET  C
 .endif
             LD   E,TNMIN
-            CALL ParserExpect
+            CALL PSEXPECT
 .if CompilerDiagnosticReturns
             RET  C
 .endif
@@ -1469,7 +1403,7 @@ ParserParseCallProgramAfterForward:
             OR   A
             JR   Z,ParserForwardIncomplete
             LD   E,TOKENEOF
-            JP   ParserExpect
+            JP   PSEXPECT
 ParserExpectedZero:
             CALL DGINLINE
             .db  DXNUM
@@ -1539,7 +1473,7 @@ CompileSlice:
 .if HybridLL1Full
             XOR  A
             LD   (C7RTN),A
-            CALL HybridLL1Parse
+            CALL LLPARSE
 .else
             CALL ParserParseProgram
 .endif
