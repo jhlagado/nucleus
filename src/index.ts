@@ -14,6 +14,7 @@ export * from "./runtime-catalog.js";
 export * from "./runtime-catalog-services.js";
 export * from "./runner.js";
 export * from "./source-identity.js";
+export * from "./source-bundle.js";
 export * from "./source-imports.js";
 export * from "./source-manifest.js";
 export * from "./source-plan.js";

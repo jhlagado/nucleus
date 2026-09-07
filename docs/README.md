@@ -44,6 +44,11 @@ Implementation records, deferred proposals, and active plans live in
 grammar sources and generated LL(1) tables live in [`../grammar/`](../grammar/)
 rather than under documentation.
 
+The approved [single-source loader
+plan](plans/2026-09-07-single-source-loader.md) removes compiler multipart
+input, moves file attribution and boundary handling into a 1-through-255-file
+loader, and preserves bank placement through source-range metadata.
+
 The [native Z80 host and standard-library
 plan](plans/2026-08-20-native-z80-host-and-standard-library.md) records the
 streaming host, import resolver, console library, and MON3 gateway increments,

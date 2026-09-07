@@ -28,7 +28,8 @@
     "./publication": "./dist/publication.js",
     "./runtime-catalog": "./dist/runtime-catalog.js",
     "./runtime-catalog-services": "./dist/runtime-catalog-services.js",
-    "./runner": "./dist/runner.js"
+    "./runner": "./dist/runner.js",
+    "./source-bundle": "./dist/source-bundle.js"
   },
   "files": [
     "asm/",
