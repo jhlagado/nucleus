@@ -322,7 +322,7 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
 
     const executed = runCom(output!);
     expect(Buffer.from(executed.output).toString()).toBe("OK");
-    expect(compiled).toEqual({ a: 0, instructions: 35_482, tStates: 966_040 });
+    expect(compiled).toEqual({ a: 0, instructions: 35_432, tStates: 965_653 });
     expect(executed).toEqual({
       instructions: 270,
       output: [0x4f, 0x4b],
@@ -468,9 +468,9 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
   });
 
   it("fits every independently accounted code and workspace region", () => {
-    expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_314);
-    expect(symbols.CompilerCoreEnd).toBe(0x40bd);
-    expect(symbols.CpmHostVectorBase - symbols.CompilerCoreEnd).toBe(67);
+    expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_255);
+    expect(symbols.CompilerCoreEnd).toBe(0x4082);
+    expect(symbols.CpmHostVectorBase - symbols.CompilerCoreEnd).toBe(126);
     expect(
       symbols.CpmCompilerHostVectorEnd - symbols.CpmCompilerHostVectorStart,
     ).toBe(50);
@@ -489,14 +489,14 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
     );
     expect(
       symbols.CpmSourceProviderCodeEnd - symbols.CpmSourceProviderCodeStart,
-    ).toBe(712);
+    ).toBe(807);
     expect(symbols.CpmCommandCodeEnd - symbols.CpmCommandCodeStart).toBe(427);
     expect(
       symbols.CpmCommandImmutableEnd - symbols.CpmCommandImmutableStart,
     ).toBe(33);
     expect(
       symbols.CpmCompilerSourceHostEnd - symbols.CpmCompilerSourceHostStart,
-    ).toBe(399);
+    ).toBe(345);
     expect(
       symbols.CpmCompilerStartupCodeEnd - symbols.CpmCompilerStartupCodeStart,
     ).toBe(187);
@@ -513,13 +513,13 @@ describe("complete native Nucleus-on-CP/M compiler transient", () => {
         .slice(symbols.CpmCompilerPartBanks!, symbols.CpmCompilerPartBanks! + 8)
         .every((byte) => byte === 0),
     ).toBe(true);
-    expect(symbols.CpmCompilerResidentEnd).toBe(0x5417);
+    expect(symbols.CpmCompilerResidentEnd).toBe(0x5440);
     expect(symbols.CpmHostResidentLimit - symbols.CpmCompilerResidentEnd).toBe(
-      1_001,
+      960,
     );
-    expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e35);
+    expect(symbols.CpmCommandWorkspaceEnd).toBe(0x5e38);
     expect(symbols.CpmHostWorkspaceLimit - symbols.CpmCommandWorkspaceEnd).toBe(
-      459,
+      456,
     );
     expect(symbols.CpmOutputBufferLimit - symbols.CpmOutputBufferBase).toBe(
       23_808,

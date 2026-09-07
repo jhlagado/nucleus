@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { assembleProviderProof, fixedBaseline, frozenCommandSymbols, fullSymbolBaseline, repositoryRoot } from "./fixtures/cpm-source-native/assemble.js";
+import { assembleProviderProof, repositoryRoot } from "./fixtures/cpm-source-native/assemble.js";
 import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -186,35 +186,35 @@ const createProof = (parts: readonly { name: string; bytes: Uint8Array }[]) => {
       stackBytes: stack - minimumSp,
     };
   };
-  return { bdos, call, memory: activeMemory };
+  const begin = () => {
+    expect(call("CpmSourceProviderBegin")).toMatchObject({ a: 0, carry: 0 });
+    const first = call("CpmSourceProviderNext");
+    expect(first).toMatchObject({ a: 0, c: 0, carry: 0 });
+    return first;
+  };
+  return { bdos, begin, call, memory: activeMemory };
 };
 
 describe("native Nucleus CP/M source and retained-name provider", () => {
-  it("assembles unchanged native leaves to the exact corrected baseline bytes and names", () => {
-    // Captured once with ATOM at the identity-repair commit, not the older
-    // released compiler. No translation adapter runs in this proof.
-    expect(fixedBaseline.revision).toBe("8f8dd7b304249fde16ad6013826675bc9aceae1e");
-    const bytes = proofImage.slice(fixedBaseline.origin, fixedBaseline.end);
+  it("assembles the exact current provider bytes and complete symbol surfaces", () => {
+    const parsed = parseIntelHex(assembled.hex);
+    const ranges = parsed.writeRanges ?? [];
+    const bytes = Buffer.concat(ranges.map(({ start, end }) =>
+      Buffer.from(parsed.memory.slice(start, end))));
     const hash = (value: Uint8Array) => createHash("sha256").update(value).digest("hex");
-    expect(Buffer.from(bytes).toString("hex")).toBe(fixedBaseline.hex);
-    expect(hash(bytes)).toBe(fixedBaseline.sha256);
-    expect(hash(bytes.slice(0, 25))).toBe(fixedBaseline.bdosSha256);
-    expect(hash(bytes.slice(25))).toBe(fixedBaseline.providerSha256);
-    expect(Object.keys(fixedBaseline.symbols)).toHaveLength(88);
-    expect(fullSymbolBaseline.revision).toBe("abbb2bea1b20d6ccfe11bdf936f48b525b0d88a6");
-    expect(fullSymbolBaseline.symbols).toMatchObject(fixedBaseline.symbols);
-    const restoredMapAndAbi = Object.fromEntries(Object.entries(fullSymbolBaseline.symbols)
-      .filter(([name]) => !Object.hasOwn(fixedBaseline.symbols, name)));
-    expect(Object.keys(restoredMapAndAbi)).toHaveLength(129);
-    expect(symbols).toEqual({ ...fixedBaseline.symbols, ...restoredMapAndAbi });
-    expect(assembled.addresses).toEqual(fullSymbolBaseline.addresses);
-    // The HEX reader reports record-sized ranges; prove their exact union
-    // without requiring it to coalesce adjacent records.
-    expect((parseIntelHex(assembled.hex).writeRanges ?? []).flatMap(({ start, end }) =>
-      Array.from({ length: end - start }, (_, index) => start + index),
-    )).toEqual(Array.from({ length: 737 }, (_, index) => 0x4100 + index));
-    expect(assembled.generation.highWater).toBe(0x43e1);
-    expect(assembled.generation.finalCursor).toBe(0x43e1);
+    expect(ranges[0]?.start).toBe(0x4100);
+    expect(ranges.at(-1)?.end).toBe(0x4440);
+    expect(ranges.every((range, index) => index === 0 || ranges[index - 1]!.end === range.start)).toBe(true);
+    expect(bytes).toHaveLength(832);
+    expect(hash(bytes)).toBe("60979b2f8175a8d05b1cc2a3eac6251e04b6916b635eff5496c6f6640e8ea6c0");
+    expect(hash(bytes.subarray(0, 25))).toBe("e31ad64fb487c6476c87cbea9c80d14dd309b205adab0c012bcfd38beb073757");
+    expect(hash(bytes.subarray(25))).toBe("42f617f46f0b38a05ca43f325df02ce3de181f27c3bc68e2246e9f660f390bf2");
+    expect(Object.keys(symbols)).toHaveLength(224);
+    expect(hash(Buffer.from(JSON.stringify(symbols)))).toBe("e2592651cdf520a98e30dbf9239d2aa51214ba55cef5a6d8e90e8766b8c072c4");
+    expect(Object.keys(assembled.addresses)).toHaveLength(45);
+    expect(hash(Buffer.from(JSON.stringify(assembled.addresses)))).toBe("2573055048892eedca856a701611be358703367704550c329010fcbfd4c82a5d");
+    expect(assembled.generation.highWater).toBe(0x4440);
+    expect(assembled.generation.finalCursor).toBe(0x4440);
     expect(assembled.project.parts.map(part => part.logicalIdentity.split("/").at(-1))).toEqual([
       "cpm22-target-memory-map.asmi", "cpm22-proof-context.asmi",
       "platform-services-abi.asmi", "cpm22-bdos-call.asm",
@@ -231,22 +231,14 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     expect(assembled.addresses.CpmSourceWorkspaceBase).toBeUndefined();
   });
 
-  it("restores the actual map and ABI exports while retaining the configured part capacity", () => {
-    // The old command proof is this exact source proof followed by command
-    // declarations. Enumerate those omissions; never infer them from live code.
-    expect(fullSymbolBaseline.commandOnlySymbols).toHaveLength(59);
-    for (const name of fullSymbolBaseline.commandOnlySymbols) {
-      expect(name).toMatch(/^(CpmCommand|CpmCompilerOutput|CpmOutputFormat)/);
-      expect(Object.hasOwn(frozenCommandSymbols, name)).toBe(true);
-    }
-    const sourceOnly = Object.fromEntries(Object.entries(frozenCommandSymbols)
-      .filter(([name]) => !fullSymbolBaseline.commandOnlySymbols.includes(name)));
-    expect(sourceOnly).toEqual(fullSymbolBaseline.symbols);
-    expect(symbols).toEqual(sourceOnly);
+  it("retains the actual map, service ABI, and configured part capacity", () => {
     expect(symbols.AddressSpaceLimit).toBe(0x10000);
+    expect(symbols.NucleusServiceObject).toBe(0x91);
+    expect(symbols.CpmSourceWorkspaceBase).toBe(0x5858);
+    expect(symbols.CpmHostWorkspaceLimit).toBe(0x6000);
 
-    // This is the sole remaining proof configuration: the compiler-state file
-    // still owns source-part capacity, while map and ABI are direct imports.
+    // This transitional provider still reads the preflight descriptor array;
+    // the compiler itself no longer sees source-part events or positions.
     const state = readFileSync(join(repositoryRoot, "asm/vertical-slice/aggregate-call-state.asmi"), "utf8");
     expect(state.split("\n").some(line => {
       const fields = line.split(";")[0]!.trim().split(/\s+/);
@@ -256,7 +248,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     expect(symbols.SourcePartCapacity).toBe(8);
   });
 
-  it("streams exact one-based multipart events and resets for another command", () => {
+  it("streams exact concatenated bytes, inserted newlines, and one EOF", () => {
     const first = Uint8Array.from({ length: 130 }, (_, index) => index);
     const second = Uint8Array.of(0xa1, 0xb2, 0xc3);
     const { call, memory } = createProof([
@@ -265,42 +257,98 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     ]);
     const run = () => {
       expect(call("CpmSourceProviderBegin")).toMatchObject({ a: 0, carry: 0 });
-      const events = Array.from({ length: 9 }, () =>
-        call("CpmSourceProviderNext"),
-      );
+      const chunks: Uint8Array[] = [];
+      const events = Array.from({ length: 7 }, () => {
+        const event = call("CpmSourceProviderNext");
+        if (event.a === 0) chunks.push(memory.slice(event.hl, event.hl + event.de));
+        return event;
+      });
       expect(events.map(({ a, c, de }) => [a, c, de])).toEqual([
-        [1, 1, 0],
-        [0, 1, 128],
-        [0, 1, 2],
-        [2, 1, 0],
-        [1, 2, 0],
-        [0, 2, 3],
-        [2, 2, 0],
-        [3, 0, 0],
+        [0, 0, 128],
+        [0, 0, 2],
+        [0, 0, 1],
+        [0, 0, 3],
+        [0, 0, 1],
+        [1, 0, 0],
         [1, 0, 0],
       ]);
-      expect(events[8]).toMatchObject({ a: 1, carry: 1 });
+      expect(Buffer.concat(chunks)).toEqual(Buffer.concat([
+        first, Uint8Array.of(10), second, Uint8Array.of(10),
+      ]));
+      expect(events[6]).toMatchObject({ a: 1, carry: 1 });
       expect(memory.slice(0x7500, 0x7503)).toEqual(second);
     };
     run();
     run();
   });
 
+  it("does not duplicate final LF and gives an empty middle file one separator", () => {
+    const expected = Buffer.from("A\n\nB\n");
+    const { call, memory } = createProof([
+      { name: "FIRST.NU", bytes: Buffer.from("A\n") },
+      { name: "EMPTY.NU", bytes: new Uint8Array() },
+      { name: "LAST.NU", bytes: Buffer.from("B\n") },
+    ]);
+    expect(call("CpmSourceProviderBegin")).toMatchObject({ a: 0, carry: 0 });
+    const chunks: Uint8Array[] = [];
+    for (;;) {
+      const event = call("CpmSourceProviderNext");
+      expect(event.c).toBe(0);
+      if (event.a === 1) {
+        expect(event).toMatchObject({ de: 0, carry: 0 });
+        break;
+      }
+      expect(event).toMatchObject({ a: 0, carry: 0 });
+      chunks.push(memory.slice(event.hl, event.hl + event.de));
+    }
+    expect(Buffer.concat(chunks)).toEqual(expected);
+  });
+
+  it("maps a retained global offset back to its owning CP/M file", () => {
+    const second = Buffer.from("ABC\n");
+    const { call, memory } = createProof([
+      { name: "FIRST.NU", bytes: Buffer.from("X") },
+      { name: "SECOND.NU", bytes: second },
+    ]);
+    expect(call("CpmSourceProviderBegin")).toMatchObject({ carry: 0 });
+    expect(call("CpmSourceProviderNext")).toMatchObject({ a: 0, de: 1, carry: 0 });
+    expect(call("CpmSourceProviderNext")).toMatchObject({ a: 0, de: 1, carry: 0 });
+    const secondEvent = call("CpmSourceProviderNext");
+    expect(secondEvent).toMatchObject({ a: 0, c: 0, de: 4, carry: 0 });
+    const retained = call("CpmSourceProviderRetainName", (active) => {
+      active.cpu.h = secondEvent.hl >>> 8;
+      active.cpu.l = secondEvent.hl & 0xff;
+      active.cpu.b = 3;
+      active.cpu.c = 0;
+      active.cpu.d = 0;
+      active.cpu.e = 2;
+    });
+    expect(retained).toMatchObject({ hl: 1, carry: 0 });
+    const materialized = call("CpmSourceProviderMaterializeName", (active) => {
+      active.cpu.h = 0;
+      active.cpu.l = 1;
+    });
+    expect(materialized).toMatchObject({ b: 3, carry: 0 });
+    expect(memory.slice(materialized.hl, materialized.hl + 3)).toEqual(
+      Uint8Array.from(Buffer.from("ABC")),
+    );
+  });
+
   it("retains, compares, materializes, and reuses a cross-record name", () => {
     const source = new Uint8Array(256);
     source.set(Buffer.from("ABC"), 127);
     source.set(Buffer.from("XYZ"), 140);
-    const { call, memory } = createProof([{ name: "NAME.NU", bytes: source }]);
-    expect(call("CpmSourceProviderBegin")).toMatchObject({ a: 0, carry: 0 });
+    const { begin, call, memory } = createProof([{ name: "NAME.NU", bytes: source }]);
+    begin();
     const retained = call("CpmSourceProviderRetainName", (active) => {
       active.cpu.h = 0x75;
       active.cpu.l = 0;
       active.cpu.b = 3;
-      active.cpu.c = 1;
+      active.cpu.c = 0;
       active.cpu.d = 0;
       active.cpu.e = 127;
     });
-    expect(retained).toMatchObject({ hl: 1, b: 3, c: 1, de: 127, carry: 0 });
+    expect(retained).toMatchObject({ hl: 1, b: 3, c: 0, de: 127, carry: 0 });
 
     memory.set(Buffer.from("ABC"), 0x7400);
     expect(
@@ -338,7 +386,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 140;
       }),
@@ -359,7 +407,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
         active.cpu.h = materialized.hl >>> 8;
         active.cpu.l = materialized.hl & 0xff;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 127;
       }),
@@ -368,24 +416,24 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
   });
 
   it.each([
-    ["another source position", 2, 0],
-    ["past the parser's source end", 1, 0xffff],
+    ["another global source position", 0, 257],
+    ["past the parser's source end", 0, 0xffff],
   ])(
     "reuses unchanged materialized name identity at %s",
     (_name, part, offset) => {
       const source = new Uint8Array(256);
       source.set(Buffer.from("ABC"), 127);
-      const { call, memory } = createProof([
+      const { begin, call, memory } = createProof([
         { name: "FIRST.NU", bytes: source },
         { name: "SECOND.NU", bytes: Buffer.from("XYZ") },
       ]);
-      call("CpmSourceProviderBegin");
+      begin();
       memory.set(Buffer.from("ABC"), 0x7500);
       const first = call("CpmSourceProviderRetainName", (active) => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 127;
       });
@@ -442,16 +490,16 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
       const source = new Uint8Array(256);
       source.set(Buffer.from("ABC"), 127);
       source.set(Buffer.from("XYZ"), 140);
-      const { call, memory } = createProof([
+      const { begin, call, memory } = createProof([
         { name: "NAME.NU", bytes: source },
       ]);
-      call("CpmSourceProviderBegin");
+      begin();
       memory.set(Buffer.from("ABC"), 0x7500);
       call("CpmSourceProviderRetainName", (active) => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 127;
       });
@@ -467,7 +515,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
         active.cpu.h = materialized.hl >>> 8;
         active.cpu.l = materialized.hl & 0xff;
         active.cpu.b = spelling.length;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = offset >>> 8;
         active.cpu.e = offset & 0xff;
       });
@@ -491,16 +539,16 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
     "does not bypass fresh-source bounds after materialization with %s",
     (_name, spelling, length) => {
       const source = Buffer.from("ABC");
-      const { call, memory } = createProof([
+      const { begin, call, memory } = createProof([
         { name: "NAME.NU", bytes: source },
       ]);
-      call("CpmSourceProviderBegin");
+      begin();
       memory.set(source, 0x7500);
       call("CpmSourceProviderRetainName", (active) => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 0;
       });
@@ -521,7 +569,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
           active.cpu.h = materialized.hl >>> 8;
           active.cpu.l = materialized.hl & 0xff;
           active.cpu.b = length;
-          active.cpu.c = 1;
+          active.cpu.c = 0;
           active.cpu.d = 0xff;
           active.cpu.e = 0xff;
         }),
@@ -538,16 +586,16 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
 
   it("preserves retained identities after a comparison read failure and retries successfully", () => {
     const source = Buffer.from("ABC");
-    const { bdos, call, memory } = createProof([
+    const { bdos, begin, call, memory } = createProof([
       { name: "NAME.NU", bytes: source },
     ]);
-    call("CpmSourceProviderBegin");
+    begin();
     memory.set(source, 0x7500);
     call("CpmSourceProviderRetainName", (active) => {
       active.cpu.h = 0x75;
       active.cpu.l = 0;
       active.cpu.b = 3;
-      active.cpu.c = 1;
+      active.cpu.c = 0;
       active.cpu.d = 0;
       active.cpu.e = 0;
     });
@@ -566,7 +614,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
         active.cpu.h = materialized.hl >>> 8;
         active.cpu.l = materialized.hl & 0xff;
         active.cpu.b = 3;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0xff;
         active.cpu.e = 0xff;
         active.cpu.ix = 0x1234;
@@ -576,7 +624,7 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
       a: 6,
       carry: 1,
       b: 3,
-      c: 1,
+      c: 0,
       de: 0xffff,
       ix: 0x1234,
       iy: 0x5678,
@@ -598,14 +646,14 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
       { length: 300 },
       (_, index) => (index * 29) & 0xff,
     );
-    const { call, memory } = createProof([{ name: "LONG.NU", bytes: source }]);
-    expect(call("CpmSourceProviderBegin")).toMatchObject({ carry: 0 });
+    const { begin, call, memory } = createProof([{ name: "LONG.NU", bytes: source }]);
+    begin();
     expect(
       call("CpmSourceProviderRetainName", (active) => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 255;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 1;
       }),
@@ -622,15 +670,15 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
 
   it("enforces retained-handle and exact source-position capacities", () => {
     const source = Uint8Array.of(0x41);
-    const { call } = createProof([{ name: "CAP.NU", bytes: source }]);
-    expect(call("CpmSourceProviderBegin")).toMatchObject({ carry: 0 });
+    const { begin, call } = createProof([{ name: "CAP.NU", bytes: source }]);
+    begin();
     for (let handle = 1; handle <= 255; handle += 1) {
       expect(
         call("CpmSourceProviderRetainName", (active) => {
           active.cpu.h = 0x75;
           active.cpu.l = 0;
           active.cpu.b = 1;
-          active.cpu.c = 1;
+          active.cpu.c = 0;
           active.cpu.d = 0;
           active.cpu.e = 0;
         }),
@@ -641,22 +689,22 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
         active.cpu.h = 0x75;
         active.cpu.l = 0;
         active.cpu.b = 1;
-        active.cpu.c = 1;
+        active.cpu.c = 0;
         active.cpu.d = 0;
         active.cpu.e = 0;
       }),
     ).toMatchObject({ a: 4, carry: 1 });
     for (const setup of [
-      { length: 0, part: 1, offset: 0 },
-      { length: 1, part: 0, offset: 0 },
-      { length: 1, part: 1, offset: 1 },
+      { length: 0, bank: 0, offset: 0 },
+      { length: 1, bank: 1, offset: 0 },
+      { length: 1, bank: 0, offset: 1 },
     ]) {
       expect(
         call("CpmSourceProviderRetainName", (active) => {
           active.cpu.h = 0x75;
           active.cpu.l = 0;
           active.cpu.b = setup.length;
-          active.cpu.c = setup.part;
+          active.cpu.c = setup.bank;
           active.cpu.d = setup.offset >>> 8;
           active.cpu.e = setup.offset & 0xff;
         }),
@@ -698,13 +746,13 @@ describe("native Nucleus CP/M source and retained-name provider", () => {
   it("reports exact code and simultaneous workspace accounts", () => {
     expect(
       symbols.CpmSourceProviderCodeEnd! - symbols.CpmSourceProviderCodeStart!,
-    ).toBe(712);
+    ).toBe(807);
     expect(symbols.CpmBdosCallCodeEnd! - symbols.CpmBdosCallCodeStart!).toBe(
       25,
     );
     expect(
       symbols.CpmSourceWorkspaceEnd! - symbols.CpmSourceWorkspaceBase!,
-    ).toBe(1_476);
+    ).toBe(1_479);
     expect(symbols.CpmSourceWorkspaceEnd).toBeLessThanOrEqual(
       symbols.CpmHostWorkspaceLimit!,
     );

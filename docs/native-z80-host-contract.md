@@ -244,20 +244,12 @@ host implementation detail, not a fifteenth callable entry.
 
 ### 4.1 Source events
 
-The source provider presents the ordered events defined by the language
-specification:
-
-```text
-begin unit
-  begin part, raw byte chunks, end part
-  ...
-end unit
-```
-
-Each part has a stable nonzero byte identity. Raw bytes are not decoded,
-normalized, or rewritten. The compiler retains part-relative byte offset,
-1-based line, and 1-based byte column. The provider reports the same zero-width
-part-boundary newline condition as the resident adapter.
+The native source provider presents one loader-prepared byte stream. File
+boundaries and file identities are not compiler events. The loader inserts a
+single LF after an input that does not already end in LF, retains the mapping
+to the original files, and divides the stream into chunks that never cross a
+target-bank placement boundary. The compiler retains one global zero-based
+byte offset, 1-based line, and 1-based byte column.
 
 The compiler may request the next byte or a refill. Source requests move only
 forwards. If a sequential medium cannot meet token pinning, the host spools
@@ -265,12 +257,10 @@ that part before compilation.
 
 The Z80 binding returns one event per `HostSourceNextChunk` call:
 
-| `A` | Event      | Other result                                        |
-| --: | ---------- | --------------------------------------------------- |
-|   0 | bytes      | `C = part id`, `HL = first byte`, `DE = byte count` |
-|   1 | begin part | `C = stable part id`                                |
-|   2 | end part   | `C = stable part id`                                |
-|   3 | end unit   | no other result                                     |
+| `A` | Event | Other result                                             |
+| --: | ----- | -------------------------------------------------------- |
+|   0 | bytes | `C = target bank`, `HL = first byte`, `DE = byte count` |
+|   1 | EOF   | no other result                                          |
 
 The call returns carry clear for an event and carry set with a nonzero host
 status for failure. A bytes event has a nonzero `DE` count. Its memory remains
@@ -316,7 +306,9 @@ The provider supplies three operations:
 
 `retainCurrentName` returns one complete handle or fails without creating a
 visible entry. Handles are unique within a generation and are not hashes. The
-provider records the source part, offset, and length for D8 and diagnostics.
+provider records the global source offset and length; the host maps them to an
+original file only when D8, diagnostics, or file-backed materialization needs
+that identity.
 
 `compareCurrentName` checks length and exact bytes. It returns carry clear;
 equality is reported through zero. An unknown or stale handle returns
@@ -341,7 +333,7 @@ The reference register binding is:
 
 | Entry                    | Inputs                                               | Success result           | Clobbers      |
 | ------------------------ | ---------------------------------------------------- | ------------------------ | ------------- |
-| `HostRetainCurrentName`  | `HL = bytes, B = length, C = part, DE = part offset` | `HL = handle`            | `AF,HL`       |
+| `HostRetainCurrentName`  | `HL = bytes, B = length, C = bank, DE = global offset` | `HL = handle`          | `AF,HL`       |
 | `HostCompareCurrentName` | `HL = handle, IX = bytes, B = length`                | `Z = 1` iff equal        | `AF,BC,DE,HL` |
 | `HostMaterializeName`    | `HL = handle`                                        | `HL = bytes, B = length` | `AF,B,HL`     |
 
@@ -369,10 +361,10 @@ compiler to infer whether a word is a pointer or handle from its value.
 
 ### 4.5 Source-position capacity
 
-The first Z80 compiler stores part-relative offset, line, and byte column as
-unsigned 16-bit counters. Their published maxima are therefore:
+The native Z80 compiler stores global offset, line, and byte column as unsigned
+16-bit counters. Their published maxima are therefore:
 
-- source-part raw length: 65,535 bytes;
+- prepared source-bundle length: 65,535 bytes;
 - zero-based byte offset: 65,535;
 - one-based line: 65,535; and
 - one-based byte column: 65,535.
@@ -380,15 +372,15 @@ unsigned 16-bit counters. Their published maxima are therefore:
 Position changes are mathematical and atomic. Consuming an ordinary byte
 increments offset and column; LF increments offset and line and resets column
 to one; CRLF increments offset by two and line by one and resets column to one.
-A zero-width boundary newline increments line and resets column without
-changing offset. If the complete update would exceed any maximum, the compiler
-reports `DiagnosticSourcePositionCapacity = 101` at the last representable
-position. It never wraps, saturates, truncates, or turns the condition into a
-filesystem failure. Position counters reset for each source part.
+An inserted boundary LF is an ordinary byte in this stream. If the complete
+update would exceed any maximum, the compiler reports
+`DiagnosticSourcePositionCapacity = 101` at the last representable position.
+It never wraps, saturates, truncates, or turns the condition into a filesystem
+failure. Position counters do not reset at original-file boundaries.
 
 Proofs admit every counter at 65,535 when no further update is required and
-reject the first byte, physical newline, CRLF, or synthesized boundary newline
-that would exceed it. Chunk boundaries do not change these results.
+reject the first byte, LF, or CRLF that would exceed it. Chunk and original-file
+boundaries do not change these results.
 
 ## 5. Compiler target-output ABI
 

@@ -17,7 +17,23 @@ type Baseline = {
 const readBaseline = <T>(name: string): T => JSON.parse(readFileSync(
   new URL(`./fixtures/native-tokenizer/${name}-baseline.json`, import.meta.url), "utf8",
 )) as T;
-const revision = "a023f7ed237dc7dd9d9e530b553876e53d65f8c1";
+const historicalRevision = "a023f7ed237dc7dd9d9e530b553876e53d65f8c1";
+const currentStreaming = {
+  start: 0, end: 1615,
+  sha256: "abc1cbd61593603ba37ef1a3a0fb9199785a8dd89a7208bcb2ec7f875e9398db",
+  symbolHash: "dc0526709842d00606a0f28f63c6f6df5f2a67f7ee11fadede82ff3e3fc5792d",
+  addressHash: "f80b445b4f7718399ae0845002f559f2e1cf5aa71730c483f5935e2f78d6373d",
+};
+const currentStateProfiles = {
+  "loop-n1-s0-t0": { symbols: 661,
+    symbolHash: "7f9425cf5bb533e4e5f02bcdc36465b56b4dbcec56db46988f90cd2ecb513cd9" },
+  "loop-n1-s0-t1": { symbols: 780,
+    symbolHash: "c1ecf55c8dad3e5fddc64409c783cddbe68a412ccc0016ca4bfc5c2f1f0b1753" },
+  "loop-n1-s1-t0": { symbols: 685,
+    symbolHash: "6ef064aad79eb4f2afd143afb2fe692660e59c1192cc230894d27381e50a14db" },
+  "loop-n1-s1-t1": { symbols: 804,
+    symbolHash: "983845479a670ac927572f1f6728d083720fead445d690384b35bc50108a6088" },
+} as const;
 const trace = readBaseline<Baseline>("trace");
 const host = readBaseline<Baseline>("host");
 const state = readBaseline<{
@@ -29,15 +45,10 @@ const state = readBaseline<{
 const z80 = readBaseline<Baseline & { hex: string }>("z80-state");
 const addresses = (ranges: readonly { start: number; end: number }[]) =>
   ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
-
-// This one scratch-baseline local was unqualified by the temporary old adapter
-// override, which had no matching census entry. The real pre-migration compiler
-// dictionary already used the qualified source label; preserve that public key.
-function qualifyHostLocal(dict: Record<string, number>): Record<string, number> {
-  const { _sourceInitializeNativeState: local, ...rest } = dict;
-  if (local === undefined) throw new Error("missing frozen host local");
-  return { ...rest, "SourceInitializeParts._sourceInitializeNativeState": local };
-}
+const dictionaryHash = (dictionary: Record<string, number>) => createHash("sha256")
+  .update(JSON.stringify(Object.entries(dictionary).sort(([left], [right]) =>
+    left.localeCompare(right))))
+  .digest("hex");
 
 describe("fresh native tokenizer/state source preservation", () => {
   let resident: Image;
@@ -50,21 +61,33 @@ describe("fresh native tokenizer/state source preservation", () => {
   it.each(["resident", "streaming"] as const)("preserves exact %s bytes, sparse writes and every public symbol", variant => {
     const actual = variant === "resident" ? resident : streaming;
     const baseline = variant === "resident" ? trace : host;
-    expect(baseline.revision).toBe(revision);
+    expect(baseline.revision).toBe(historicalRevision);
     const parsed = parseIntelHex(actual.hex);
-    expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(baseline.segments));
-    for (const segment of baseline.segments) {
-      const bytes = parsed.memory.slice(segment.start, segment.end);
-      expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
-      expect(createHash("sha256").update(bytes).digest("hex")).toBe(segment.sha256);
+    if (variant === "resident") {
+      expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(baseline.segments));
+      for (const segment of baseline.segments) {
+        const bytes = parsed.memory.slice(segment.start, segment.end);
+        expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
+        expect(createHash("sha256").update(bytes).digest("hex")).toBe(segment.sha256);
+      }
+      expect(actual.symbols).toEqual(baseline.symbols);
+      expect(actual.addresses).toEqual(baseline.addresses);
+      expect(actual.generation.highWater).toBe(baseline.highWater);
+      expect(actual.generation.finalCursor).toBe(baseline.finalCursor);
+    } else {
+      expect(addresses(parsed.writeRanges ?? [])).toEqual(
+        Array.from({ length: currentStreaming.end }, (_, index) => index),
+      );
+      const bytes = parsed.memory.slice(currentStreaming.start, currentStreaming.end);
+      expect(createHash("sha256").update(bytes).digest("hex"))
+        .toBe(currentStreaming.sha256);
+      expect(dictionaryHash(actual.symbols)).toBe(currentStreaming.symbolHash);
+      expect(dictionaryHash(actual.addresses)).toBe(currentStreaming.addressHash);
+      expect(actual.generation.highWater).toBe(currentStreaming.end);
+      expect(actual.generation.finalCursor).toBe(currentStreaming.end);
     }
-    const normalize = variant === "resident" ? (dict: Record<string, number>) => dict : qualifyHostLocal;
-    expect(actual.symbols).toEqual(normalize(baseline.symbols));
-    expect(actual.addresses).toEqual(normalize(baseline.addresses));
-    expect(actual.generation.highWater).toBe(baseline.highWater);
-    expect(actual.generation.finalCursor).toBe(baseline.finalCursor);
-    expect(Object.keys(actual.symbols)).toHaveLength(variant === "resident" ? 777 : 947);
-    expect(Object.keys(actual.addresses)).toHaveLength(variant === "resident" ? 111 : 129);
+    expect(Object.keys(actual.symbols)).toHaveLength(variant === "resident" ? 777 : 938);
+    expect(Object.keys(actual.addresses)).toHaveLength(variant === "resident" ? 111 : 125);
   });
 
   it("preserves private forward keyword displacements in generation, not public exports", () => {
@@ -117,22 +140,31 @@ describe("fresh native tokenizer/state source preservation", () => {
     });
   });
 
-  it.each(Object.entries(state.profiles))("preserves all canonical state values for %s", async (_name, baseline) => {
+  it.each(Object.entries(state.profiles))("preserves all canonical state values for %s", async (name, baseline) => {
     const actual = await assembleNativeCompilerStateProfile(baseline.configuration);
-    expect(state.revision).toBe(revision);
+    expect(state.revision).toBe(historicalRevision);
     // Selection is a proof-only preprocessing flag, not a compiler ABI field.
     const { HistoricalCompilerState, ...symbols } = actual.symbols;
     expect(HistoricalCompilerState).toBe(Number(baseline.configuration.legacy ?? false));
-    expect(symbols).toEqual(baseline.symbols);
-    expect(actual.addresses).toEqual(baseline.addresses);
-    expect(actual.hex).toBe(baseline.hex);
+    if (baseline.configuration.native === 1) {
+      const expected = currentStateProfiles[name as keyof typeof currentStateProfiles];
+      expect(expected).toBeDefined();
+      expect(Object.keys(symbols)).toHaveLength(expected.symbols);
+      expect(dictionaryHash(symbols)).toBe(expected.symbolHash);
+      expect(actual.addresses).toEqual({});
+      expect(actual.hex).toBe(":00000001FF\n");
+    } else {
+      expect(symbols).toEqual(baseline.symbols);
+      expect(actual.addresses).toEqual(baseline.addresses);
+      expect(actual.hex).toBe(baseline.hex);
+    }
     expect(actual.generation.highWater).toBe(0);
     expect(actual.generation.finalCursor).toBe(0);
   });
 
   it("preserves the separate loop Z80 emission state from the canonical map", async () => {
     const actual = await assembleNativeLoopZ80State();
-    expect(z80.revision).toBe(revision);
+    expect(z80.revision).toBe(historicalRevision);
     expect(actual.symbols).toEqual({ ...z80.symbols, TargetStreamingOutput: 0 });
     expect(actual.addresses).toEqual(z80.addresses);
     expect(actual.hex).toBe(z80.hex);

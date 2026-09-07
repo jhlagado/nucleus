@@ -12,7 +12,8 @@ CSRETCAP  EQU 255
 CSRETSZ   EQU 4
 CSPARTPH  EQU 0
 CSBYTEPH  EQU 1
-CSDONEPH  EQU 2
+CSNLPH   EQU 2
+CSDONEPH  EQU 3
 
 CSDESCS   EQU CSWKBASE
 CSDESCEN  EQU CSDESCS+SRCPARTS*CSDESCSZ
@@ -23,7 +24,9 @@ CSNXTPRT  EQU CSPARTN+1
 CSPHASE   EQU CSNXTPRT+1
 CSACTPRT  EQU CSPHASE+1
 CSLEFT    EQU CSACTPRT+1
-CSRETN    EQU CSLEFT+2
+CSLAST    EQU CSLEFT+2
+CSBASE    EQU CSLAST+1
+CSRETN    EQU CSBASE+2
 CSMATID   EQU CSRETN+1
 CSSVLEN   EQU CSMATID+1
 CSSVPART  EQU CSSVLEN+1
@@ -67,7 +70,8 @@ CSEND:
             XOR  A
             RET
 
-; Existing compiler event ABI: A=event, C=one-based part, HL=bytes, DE=count.
+; Compiler event ABI: A=0 bytes or A=1 EOF. The sole CP/M source is in bank
+; zero; the command adapter has already established its exact logical length.
 ; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 CSNEXT:
             LD   A,(CSPHASE)
@@ -75,6 +79,8 @@ CSNEXT:
             JR   Z,CSPARTEV
             DEC  A
             JP   Z,CSBYTES
+            DEC  A
+            JP   Z,CSNXTEV
             JP   CSINVAL
 CSPARTEV:
             LD   A,(CSNXTPRT)
@@ -82,6 +88,7 @@ CSPARTEV:
             LD   A,(CSPARTN)
             CP   B
             JR   Z,CSUNITEV
+            JP   C,CSINVAL
             LD   A,B
             INC  A
             LD   (CSNXTPRT),A
@@ -105,15 +112,14 @@ CSPARTEV:
             JP   Z,CSIOERR
             LD   A,CSBYTEPH
             LD   (CSPHASE),A
-            LD   A,(CSACTPRT)
-            LD   C,A
-            LD   A,1
-            JP   CSEMPTY
+            XOR  A
+            LD   (CSLAST),A
+            JP   CSBYTES
 CSUNITEV:
             LD   A,CSDONEPH
             LD   (CSPHASE),A
             LD   C,0
-            LD   A,3
+            LD   A,1
             JP   CSEMPTY
 
 CSBYTES:
@@ -143,17 +149,63 @@ CSSHORT:
             LD   (CSLEFT),HL
 CSOUTPUT:
             LD   HL,SRCCHUNK
-            LD   A,(CSACTPRT)
-            LD   C,A
+            PUSH HL
+            ADD  HL,DE
+            DEC  HL
+            LD   A,(HL)
+            LD   (CSLAST),A
+            POP  HL
+            LD   C,0
             XOR  A
             RET
 CSENDEV:
+            CALL CSADVBAS
+            RET  C
+            LD   A,(CSLAST)
+            CP   10
+            JR   Z,CSNXTEV
+            LD   A,CSNLPH
+            LD   (CSPHASE),A
+            LD   HL,CSNEWLIN
+            LD   DE,1
+            LD   C,0
+            XOR  A
+            RET
+
+CSNXTEV:
             XOR  A
             LD   (CSPHASE),A
+            JP   CSNEXT
+
+CSNEWLIN:
+            DB  10
+
+; Advance the global base to the next descriptor, including a missing final
+; newline supplied by this provider.
+; Contract: out A,carry,zero clobbers sign,parity,halfCarry,B,DE,HL
+CSADVBAS:
             LD   A,(CSACTPRT)
-            LD   C,A
-            LD   A,2
-            JP   CSEMPTY
+            CALL CSDESC
+            RET  C
+            LD   DE,12
+            ADD  HL,DE
+            LD   E,(HL)
+            INC  HL
+            LD   D,(HL)
+            LD   HL,(CSBASE)
+            ADD  HL,DE
+            JP   C,CSINVAL
+            LD   A,(CSLAST)
+            CP   10
+            JR   Z,CSADVEND
+            INC  HL
+            LD   A,H
+            OR   L
+            JP   Z,CSINVAL
+CSADVEND:
+            LD   (CSBASE),HL
+            OR   A
+            RET
 
 ; Contract: in A,C out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry
 CSEMPTY:
@@ -163,7 +215,7 @@ CSEMPTY:
             OR   A
             RET
 
-; Compiler retain ABI: HL=bytes, B=length, C=part, DE=part offset. B/C/DE are
+; Compiler retain ABI: HL=bytes, B=length, C=bank, DE=global offset. B/C/DE are
 ; caller-live; the returned nonzero HL is a one-byte handle widened to a word.
 ; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 CSRETAIN:
@@ -202,7 +254,8 @@ CSFRESH:
             LD   A,B
             LD   (CSSVLEN),A
             LD   A,C
-            LD   (CSSVPART),A
+            OR   A
+            JP   NZ,CSINVAL
             LD   (CSSVOFF),DE
             CALL CSCHKPOS
             RET  C
@@ -452,12 +505,21 @@ CSCOPYOK:
 ; RetainName against its preflighted descriptor.
 ; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 CSCHKPOS:
+            LD   A,(CSACTPRT)
+            OR   A
+            JP   Z,CSINVAL
+            LD   (CSSVPART),A
             LD   A,(CSSVLEN)
             OR   A
             JP   Z,CSINVAL
+            LD   HL,(CSSVOFF)
+            LD   DE,(CSBASE)
+            OR   A
+            SBC  HL,DE
+            JP   C,CSINVAL
+            LD   (CSSVOFF),HL
             LD   E,A
             LD   D,0
-            LD   HL,(CSSVOFF)
             ADD  HL,DE
             JP   C,CSINVAL
             LD   (CSSVEND),HL

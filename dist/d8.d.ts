@@ -113,7 +113,7 @@ export interface NucleusRetainedName {
 export type NucleusRetainedNameResolver = (handle: number, length: number) => NucleusRetainedName | undefined;
 export declare class NucleusDebugCollector {
     #private;
-    constructor(memory: Uint8Array, parts: readonly NucleusLoadedSourcePart[], symbols: NucleusDebugTraceSymbols, resolveRetainedName?: NucleusRetainedNameResolver);
+    constructor(memory: Uint8Array, parts: readonly NucleusLoadedSourcePart[], symbols: NucleusDebugTraceSymbols, resolveRetainedName?: NucleusRetainedNameResolver, globalSource?: Uint8Array);
     collect(port: number, cpu: CompilerCpu): void;
     finish(parsed: ParsedNobj, begin: NobjBegin, expectedImages: readonly NobjAdapterImageByte[]): NucleusDebugMapping;
     /** Validate and resolve a streaming trace before its NOBJ generation commits. */

@@ -21,7 +21,9 @@ SPSVPART    EQU $5A26
 SPSVOFF     EQU $5A27
 SPNAMPOS    EQU $5A29
 SPNAMHDR    EQU $5A2B
-SPWKEND     EQU $5A2F
+SPBANK      EQU $5A2F
+SPLAST      EQU $5A30
+SPWKEND     EQU $5A31
 
 SPPLANBF    EQU $5A40
 SPPLANLM    EQU $5B40
@@ -36,6 +38,10 @@ SPCMPLIM    EQU $5E00
 SPPHPART    EQU 0
 SPPHBYTE    EQU 1
 SPPHDONE    EQU 2
+SPPHNEXT    EQU 3
+
+SPNLBYTE:
+            DB  10
 
 ; The native resolver publishes this fixed tentative-plan name before launch.
 ; A platform binding maps the logical name into its own filesystem.
@@ -270,8 +276,7 @@ SPNXTPRT:
             RET  C
             CALL SPDECSP
             RET  C
-            ; Bank ordinals are target metadata. The target descriptor checks
-            ; them independently; the source streamer only validates u8 syntax.
+            LD   (SPBANK),A
             CALL SPDECSP
             RET  C
             OR   A
@@ -305,11 +310,9 @@ SPPATHLP:
             LD   (SPPARTID),A
             LD   A,SPPHBYTE
             LD   (SPPHASE),A
-            LD   A,(SPPARTID)
-            LD   C,A
-            LD   A,1
-            OR   A
-            RET
+            XOR  A
+            LD   (SPLAST),A
+            JP   SPBYTES
 
 ; Validate END, exact object EOF, and release the plan handle.
 ; Contract: out A,BC,DE,HL,carry,zero clobbers sign,parity,halfCarry
@@ -342,7 +345,7 @@ SPFINPLN:
             LD   (SPPLANH+1),A
             LD   A,SPPHDONE
             LD   (SPPHASE),A
-            LD   A,3
+            LD   A,1
             OR   A
             RET
 
@@ -422,7 +425,7 @@ SPCHKOK:
             JP   NC,SPINVAL
             JP   SPRDNHDR
 
-; Compiler retained-name ABI: HL=bytes, B=length, C=part, DE=part offset.
+; Compiler retained-name ABI: HL=bytes, B=length, C=bank, DE=global offset.
 ; Contract: in HL,B,C,DE out A,HL,carry,zero clobbers sign,parity,halfCarry
 SPRETAIN:
             PUSH BC
@@ -442,9 +445,6 @@ SPRETBOD:
             LD   A,B
             OR   A
             JP   Z,SPINVAL
-            LD   A,(SPPARTID)
-            CP   C
-            JP   NZ,SPINVAL
 
             ; A materialized spelling immediately retained again denotes the
             ; same logical name, not a second record.
@@ -610,7 +610,8 @@ SPMATBOD:
             XOR  A
             RET
 
-; Existing compiler source-provider ABI: A=event, C=part, HL=bytes, DE=count.
+; Compiler source-provider ABI: A=0 bytes or A=1 EOF. Byte events carry the
+; source bank in C, the stable chunk in HL, and its nonzero count in DE.
 ; Contract: out A,C,DE,HL,carry,zero clobbers sign,parity,halfCarry,B
 SPNEXT:
             XOR  A
@@ -621,6 +622,11 @@ SPNEXT:
             JR   Z,SPBYTES
             CP   SPPHDONE
             JP   Z,SPINVAL
+            CP   SPPHNEXT
+            JR   NZ,SPNEXREC
+            XOR  A
+            LD   (SPPHASE),A
+SPNEXREC:
             LD   A,(SPPARTID)
             LD   HL,SPPARTN
             CP   (HL)
@@ -638,7 +644,13 @@ SPBYTES:
             LD   D,B
             LD   E,C
             LD   HL,SRCCHUNK
-            LD   A,(SPPARTID)
+            PUSH HL
+            ADD  HL,DE
+            DEC  HL
+            LD   A,(HL)
+            LD   (SPLAST),A
+            POP  HL
+            LD   A,(SPBANK)
             LD   C,A
             XOR  A
             RET
@@ -651,8 +663,14 @@ SPENDPRT:
             LD   (SPSRCH),A
             LD   (SPSRCH+1),A
             LD   (SPPHASE),A
-            LD   A,(SPPARTID)
+            LD   A,(SPLAST)
+            CP   10
+            JP   Z,SPNEXT
+            LD   A,SPPHNEXT
+            LD   (SPPHASE),A
+            LD   HL,SPNLBYTE
+            LD   DE,1
+            LD   A,(SPBANK)
             LD   C,A
-            LD   A,2
-            OR   A
+            XOR  A
             RET

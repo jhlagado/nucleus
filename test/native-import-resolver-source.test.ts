@@ -1,30 +1,27 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 import { beforeAll, describe, expect, it } from "vitest";
 import { assembleNativeImportResolver } from "../scripts/assemble-native-import-resolver.mjs";
 import { nativeImportResolverHex, nativeImportResolverSymbols } from "../src/generated-native-import-resolver.js";
 
-// Captured from the checked-in image at 4972e3a, with address-only exports
-// taken from fresh ATOM assembly after exact byte/coverage/symbol comparison.
-const baseline = JSON.parse(readFileSync(new URL(
-  "./fixtures/native-import-resolver-baseline.json", import.meta.url,
-), "utf8")) as {
-  revision: string;
-  hex: string;
-  symbols: Record<string, number>;
-  addresses: Record<string, number>;
-  highWater: number;
-  finalCursor: number;
-  segments: { start: number; end: number; hex: string; sha256: string }[];
-};
 let fresh: Awaited<ReturnType<typeof assembleNativeImportResolver>>;
 beforeAll(async () => { fresh = await assembleNativeImportResolver(); });
 
-const writtenAddresses = (ranges: readonly { start: number; end: number }[]) =>
-  ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
+const sha256 = (value: Uint8Array | string): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const exactImage = {
+  start: 0x8000,
+  end: 0x8c0d,
+  bytes: 3_085,
+  byteSha256: "85866b1eb0adbd65206979ced75c0fe81432d6daecb1b9aaba4729de09108dac",
+  symbols: 317,
+  symbolSha256: "43d57e4d14df4b9e2350fb1899d2be2553b81c85a29c8447916158c3a80918aa",
+  addresses: 155,
+  addressSha256: "5d4eeb0bf02c4e7a741f9e74623d3f521ae8efabc61b458825e6c1ce367b7b4c",
+} as const;
 
 describe("standalone native import resolver source preservation", () => {
   it("builds the production resolver without loading the legacy adapter", () => {
@@ -62,38 +59,33 @@ describe("standalone native import resolver source preservation", () => {
     ], { encoding: "utf8", timeout: 30_000, maxBuffer: 1024 * 1024 })) as {
       hex: string; symbols: Record<string, number>;
     };
-    expect(produced).toEqual({ hex: baseline.hex, symbols: baseline.symbols });
     expect(produced).toEqual({ hex: nativeImportResolverHex, symbols: nativeImportResolverSymbols });
     // The generator serializes insertion order. Value equality alone missed
     // the stale artifact when native ATOM changed the dictionary ordering.
     expect(JSON.stringify(produced.symbols)).toBe(JSON.stringify(nativeImportResolverSymbols));
   }, 35_000);
 
-  it.each(["fresh native source", "bundled image"])("preserves the fixed bytes and public symbols: %s", variant => {
-    expect(baseline.revision).toBe("4972e3ae51f0166d7322a96cf508ec6fff4e0964");
+  it.each(["fresh native source", "bundled image"])("preserves the exact current bytes and public symbols: %s", variant => {
     const actual = variant === "bundled image"
       ? { hex: nativeImportResolverHex, symbols: nativeImportResolverSymbols }
       : fresh;
     const parsed = parseIntelHex(actual.hex);
-    expect(writtenAddresses(parsed.writeRanges ?? [])).toEqual(writtenAddresses(baseline.segments));
-    expect(baseline.segments.map(({ start, end }) => ({ start, end }))).toEqual([
-      { start: 0x8000, end: 0x8bf0 },
-    ]);
-    for (const segment of baseline.segments) {
-      const bytes = parsed.memory.slice(segment.start, segment.end);
-      expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
-      expect(createHash("sha256").update(bytes).digest("hex")).toBe(segment.sha256);
-    }
-    expect(Object.keys(actual.symbols)).toHaveLength(312);
-    expect(actual.symbols).toEqual(baseline.symbols);
+    const ranges = parsed.writeRanges ?? [];
+    expect(ranges[0]?.start).toBe(exactImage.start);
+    expect(ranges.at(-1)?.end).toBe(exactImage.end);
+    expect(ranges.every((range, index) => index === 0 || ranges[index - 1]!.end === range.start)).toBe(true);
+    const bytes = parsed.memory.slice(exactImage.start, exactImage.end);
+    expect(bytes).toHaveLength(exactImage.bytes);
+    expect(sha256(bytes)).toBe(exactImage.byteSha256);
+    expect(Object.keys(actual.symbols)).toHaveLength(exactImage.symbols);
+    expect(sha256(JSON.stringify(actual.symbols))).toBe(exactImage.symbolSha256);
   });
 
   it("preserves all address labels and sends native source unchanged to ATOM", () => {
-    expect(Object.keys(fresh.addresses)).toHaveLength(153);
-    expect(fresh.addresses).toEqual(baseline.addresses);
-    expect(fresh.generation.highWater).toBe(baseline.highWater);
-    expect(fresh.generation.finalCursor).toBe(baseline.finalCursor);
-    expect(fresh.generation.highWater).toBe(0x8bf0);
+    expect(Object.keys(fresh.addresses)).toHaveLength(exactImage.addresses);
+    expect(sha256(JSON.stringify(fresh.addresses))).toBe(exactImage.addressSha256);
+    expect(fresh.generation.highWater).toBe(exactImage.end);
+    expect(fresh.generation.finalCursor).toBe(exactImage.end);
     for (const part of fresh.project.parts) {
       const original = new TextDecoder().decode(part.originalBytes);
       expect(new TextDecoder().decode(part.compilerBytes)).toBe(

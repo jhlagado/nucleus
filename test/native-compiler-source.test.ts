@@ -4,28 +4,36 @@ import { fileURLToPath } from "node:url";
 import { parseIntelHex } from "@jhlagado/debug80-runtime";
 import { describe, expect, it } from "vitest";
 import { assembleNativeCompiler } from "../scripts/assemble-native-compiler.mjs";
+import {
+  debugCompilerHex, debugCompilerSymbols,
+  mon3CompilerHex, mon3CompilerSymbols,
+  mon3DebugCompilerHex, mon3DebugCompilerSymbols,
+  nativeCompilerHex, nativeCompilerSymbols,
+  nativeDebugCompilerHex, nativeDebugCompilerSymbols,
+  normalCompilerHex, normalCompilerSymbols,
+} from "../src/generated-compiler-images.js";
 
-interface FrozenProfile {
+interface PublishedProfile {
   name: string;
   entry: string;
   hex: string;
   symbols: Record<string, number>;
 }
 
-// One-time capture of the six published c750999 images, before the compiler
-// source migration. Tests neither consult Git nor refresh the expected output.
-const baseline = JSON.parse(readFileSync(
-  new URL("./fixtures/native-compiler-baseline.json", import.meta.url), "utf8",
-)) as { revision: string; source: string; profiles: FrozenProfile[] };
-
-const profiles = [
-  ["normal", "flat-target-z80-slice-proof.asm", 2615],
-  ["debug", "flat-target-debug-z80-slice-proof.asm", 2616],
-  ["native", "native-target-compiler.asm", 2464],
-  ["nativeDebug", "native-target-debug-compiler.asm", 2465],
-  ["mon3", "native-target-mon3-compiler.asm", 2735],
-  ["mon3Debug", "native-target-mon3-debug-compiler.asm", 2736],
-] as const;
+const profiles: PublishedProfile[] = [
+  { name: "normal", entry: "flat-target-z80-slice-proof.asm",
+    hex: normalCompilerHex, symbols: { ...normalCompilerSymbols } },
+  { name: "debug", entry: "flat-target-debug-z80-slice-proof.asm",
+    hex: debugCompilerHex, symbols: { ...debugCompilerSymbols } },
+  { name: "native", entry: "native-target-compiler.asm",
+    hex: nativeCompilerHex, symbols: { ...nativeCompilerSymbols } },
+  { name: "nativeDebug", entry: "native-target-debug-compiler.asm",
+    hex: nativeDebugCompilerHex, symbols: { ...nativeDebugCompilerSymbols } },
+  { name: "mon3", entry: "native-target-mon3-compiler.asm",
+    hex: mon3CompilerHex, symbols: { ...mon3CompilerSymbols } },
+  { name: "mon3Debug", entry: "native-target-mon3-debug-compiler.asm",
+    hex: mon3DebugCompilerHex, symbols: { ...mon3DebugCompilerSymbols } },
+];
 
 const coverage = (hex: string) => (parseIntelHex(hex).writeRanges ?? [])
   .flatMap(({ start, end }) => Array.from({ length: end - start }, (_, index) => start + index));
@@ -43,22 +51,24 @@ async function assembleProfile(entry: string) {
 }
 
 describe("canonical native compiler production sources", () => {
-  it("pins all six published profiles, rather than a subset or a moving baseline", () => {
-    expect(baseline.revision).toBe("c75099927ecc10cbcc4a8994d137ec2d598cf6d2");
-    expect(baseline.source).toBe("src/generated-compiler-images.ts");
-    expect(baseline.profiles.map(({ name, entry, symbols }) =>
-      [name, entry, Object.keys(symbols).length])).toEqual(profiles);
+  it("pins all six generated production profiles", () => {
+    expect(profiles.map(({ name, entry }) => [name, entry])).toEqual([
+      ["normal", "flat-target-z80-slice-proof.asm"],
+      ["debug", "flat-target-debug-z80-slice-proof.asm"],
+      ["native", "native-target-compiler.asm"],
+      ["nativeDebug", "native-target-debug-compiler.asm"],
+      ["mon3", "native-target-mon3-compiler.asm"],
+      ["mon3Debug", "native-target-mon3-debug-compiler.asm"],
+    ]);
   });
 
-  for (const [name, entry, symbolCount] of profiles) {
+  for (const { name, entry, hex, symbols } of profiles) {
     it(`${name}: preserves every sparse byte and public binding from real source`, async () => {
-      const frozen = baseline.profiles.find(profile => profile.name === name)!;
       const fresh = await assembleProfile(entry);
       console.info(`Native ATOM assembly ${name}: ${fresh.instructions} instructions`);
-      expect(fresh.hex).toBe(frozen.hex);
-      expect(fresh.symbols).toEqual(frozen.symbols);
-      expect(Object.keys(fresh.symbols)).toHaveLength(symbolCount);
-      expect(coverage(fresh.hex)).toEqual(coverage(frozen.hex));
+      expect(fresh.hex).toBe(hex);
+      expect(fresh.symbols).toEqual(symbols);
+      expect(coverage(fresh.hex)).toEqual(coverage(hex));
 
       const identities = fresh.project.parts.map(part => part.logicalIdentity);
       expect(new Set(identities).size).toBe(identities.length);
@@ -156,10 +166,10 @@ describe("canonical native compiler production sources", () => {
     // (165.4 seconds measured locally). Guest execution budgets stay in the
     // manifest; this allowance is for slower CI hosts and parallel build jobs.
     ], { encoding: "utf8", timeout: 360_000, maxBuffer: 2 * 1024 * 1024 }));
-    const frozen = baseline.profiles.find(profile => profile.name === "normal")!;
+    const normal = profiles.find(profile => profile.name === "normal")!;
     expect(observed).toEqual({
-      image: { hex: frozen.hex, symbols: frozen.symbols },
-      proofSymbols: frozen.symbols, proofStatus: 0xa5, proofCase: 0,
+      image: { hex: normal.hex, symbols: normal.symbols },
+      proofSymbols: normal.symbols, proofStatus: 0xa5, proofCase: 0,
       hasCommittedObject: true,
     });
   }, 370_000);

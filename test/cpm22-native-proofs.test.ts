@@ -18,7 +18,7 @@ type Baseline = {
 const baseline = JSON.parse(readFileSync(new URL(
   "./fixtures/cpm-native-fixed-baseline.json", import.meta.url,
 ), "utf8")) as Baseline;
-const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
 const addresses = (ranges: readonly { start: number; end: number }[]) =>
   ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
 const proofContext = {
@@ -39,20 +39,39 @@ describe("canonical native CP/M proof preservation", () => {
       expect(baseline.revision).toBe("abbb2bea1b20d6ccfe11bdf936f48b525b0d88a6");
       const assembled = await assembleNativeCpmProof(`cpm22-${name}-proof.asm`);
       const parsed = parseIntelHex(assembled.hex);
-      expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(frozen.segments));
-      for (const segment of frozen.segments) {
-        const bytes = parsed.memory.slice(segment.start, segment.end);
-        expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
-        expect(hash(bytes)).toBe(segment.sha256);
+      if (name === "command") {
+        const ranges = parsed.writeRanges ?? [];
+        expect(ranges[0]?.start).toBe(0x4100);
+        expect(ranges.at(-1)?.end).toBe(0x460c);
+        expect(ranges.every((range, index) => index === 0 || ranges[index - 1]!.end === range.start)).toBe(true);
+        const bytes = Buffer.concat(ranges.map(({ start, end }) =>
+          Buffer.from(parsed.memory.slice(start, end))));
+        expect(bytes).toHaveLength(1_292);
+        expect(hash(bytes)).toBe("5ad53d09fdcfc54161a32d6a1ce91315e0f7e8b1ccf89944efb85827b2df31fa");
+        expect(Object.keys(assembled.symbols)).toHaveLength(283);
+        expect(hash(JSON.stringify(assembled.symbols))).toBe("646d0e932dfd51c24f99332f67c9dad26389d47cfac7d849a3012426b3e6f670");
+        expect(Object.keys(assembled.addresses)).toHaveLength(87);
+        expect(hash(JSON.stringify(assembled.addresses))).toBe("b76d32c65df15a7422e7dddf2a379981238e4de96e5c2b21761ec861ed119a9e");
+        expect(assembled.generation.highWater).toBe(0x460c);
+        expect(assembled.generation.finalCursor).toBe(0x460c);
+      } else {
+        expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(frozen.segments));
+        for (const segment of frozen.segments) {
+          const bytes = parsed.memory.slice(segment.start, segment.end);
+          expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
+          expect(hash(bytes)).toBe(segment.sha256);
+        }
+        expect(assembled.generation.highWater).toBe(frozen.segments.at(-1)!.end);
+        expect(assembled.generation.finalCursor).toBe(frozen.segments.at(-1)!.end);
       }
-      expect(assembled.generation.highWater).toBe(frozen.segments.at(-1)!.end);
-      expect(assembled.generation.finalCursor).toBe(frozen.segments.at(-1)!.end);
 
       // Canonical maps restore every original imported name. Only the shared
       // proof's source-part setting is additional in the three output proofs.
-      expect(assembled.symbols).toEqual({ ...frozen.symbols,
-        ...(name !== "program-provider" ? { SourcePartCapacity: 8 } : {}),
-      });
+      if (name !== "command") {
+        expect(assembled.symbols).toEqual({ ...frozen.symbols,
+          ...(name !== "program-provider" ? { SourcePartCapacity: 8 } : {}),
+        });
+      }
       expect(assembled.symbols.PGCLRLEN).toBeUndefined();
       if (name !== "program-provider") {
         expect(assembled.symbols.AddressSpaceLimit).toBe(65536);

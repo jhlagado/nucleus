@@ -67,6 +67,15 @@ import {
   NucleusSystemStatus,
 } from "./object-services.js";
 import { runNativeImportResolver } from "./native-import-resolver.js";
+import {
+  parseNucleusSourcePlan,
+  serializeNucleusSourcePlan,
+} from "./source-plan.js";
+import {
+  mapNucleusSourceBundleOffset,
+  prepareNucleusSourceBundle,
+  type NucleusSourceBundle,
+} from "./source-bundle.js";
 
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
@@ -189,8 +198,7 @@ export interface NucleusCompileFailure extends CompileMetrics {
 }
 
 export type NucleusCompileResult =
-  | NucleusCompileSuccess
-  | NucleusCompileFailure;
+  NucleusCompileSuccess | NucleusCompileFailure;
 
 export interface NucleusStreamingCompileSuccess extends CompileMetrics {
   readonly success: true;
@@ -199,8 +207,7 @@ export interface NucleusStreamingCompileSuccess extends CompileMetrics {
 }
 
 export type NucleusStreamingCompileResult =
-  | NucleusStreamingCompileSuccess
-  | NucleusCompileFailure;
+  NucleusStreamingCompileSuccess | NucleusCompileFailure;
 
 const hexByte = (value: number): string =>
   (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
@@ -451,6 +458,7 @@ const prepareNativeSource = (
   requestedBanks?: readonly number[],
 ): {
   bytes: Uint8Array[];
+  bundle: NucleusSourceBundle;
   loaded: NucleusLoadedSourcePart[];
   partBanks: number[];
 } => {
@@ -464,14 +472,21 @@ const prepareNativeSource = (
   if (partBanks.length !== bytes.length) {
     throw new RangeError("Nucleus target partBanks must match source parts");
   }
-  const loaded = bytes.map((partBytes, index) => ({
+  const bundle = prepareNucleusSourceBundle(
+    parts.map((part, index) => ({
+      name: part.name,
+      source: bytes[index]!,
+      bank: partBanks[index]!,
+    })),
+  );
+  const loaded = bundle.files.map((file, index) => ({
     id: index + 1,
-    name: parts[index]?.name ?? `part-${index + 1}.nu`,
-    start: 0,
-    end: 0,
-    bytes: partBytes,
+    name: file.name,
+    start: file.start,
+    end: file.end,
+    bytes: bytes[index]!,
   }));
-  return { bytes, loaded, partBanks };
+  return { bytes, bundle, loaded, partBanks };
 };
 
 const createNativeSourceObjects = (
@@ -503,6 +518,22 @@ const createNativeSourceObjects = (
         `native Z80 import resolution failed with status ${resolved.status}`,
       );
     }
+    const planPath = path.join(root, ".nucleus/source-plan.sp1");
+    const plan = parseNucleusSourcePlan(readFileSync(planPath, "ascii"));
+    const banksByName = new Map(
+      parts.map(
+        (part, index) => [part.name, prepared.partBanks[index]!] as const,
+      ),
+    );
+    writeFileSync(
+      planPath,
+      serializeNucleusSourcePlan(
+        plan.map(({ path: sourcePath }) => ({
+          path: sourcePath,
+          bank: banksByName.get(sourcePath) ?? 0,
+        })),
+      ),
+    );
     return { root, services };
   } catch (error) {
     rmSync(root, { recursive: true, force: true });
@@ -896,9 +927,8 @@ const runNucleusCompilerNativeTo = async (
     parts,
     isBankedTarget(target) ? target.partBanks : undefined,
   );
-  let sourcePartIndex = 0;
   let sourceOffset = 0;
-  let sourcePhase: "begin" | "bytes" | "end" | "unit" | "finished" = "begin";
+  let sourceFinished = false;
   const retainedNames = new NativeRetainedNameStore();
   let materializedNameHandle: number | undefined;
   let nativeHostFailure: Error | undefined;
@@ -1078,52 +1108,40 @@ const runNucleusCompilerNativeTo = async (
             symbol(image.symbols, "NativeHostSourceNextChunkPort")
           ) {
             materializedNameHandle = undefined;
-            const part = prepared.bytes[sourcePartIndex];
-            if (sourcePhase === "unit") {
-              cpu.a = 3;
-              sourcePhase = "finished";
-              succeed();
-              return;
+            if (sourceFinished) {
+              throw new Error("native source provider requested EOF twice");
             }
-            if (sourcePhase === "finished") {
-              throw new Error(
-                "native source provider requested end unit twice",
-              );
-            }
-            if (part === undefined) {
-              throw new Error("native source provider advanced past its unit");
-            }
-            cpu.c = sourcePartIndex + 1;
-            if (sourcePhase === "begin") {
+            if (sourceOffset === prepared.bundle.byteLength) {
               cpu.a = 1;
-              sourcePhase = part.length === 0 ? "end" : "bytes";
+              sourceFinished = true;
               succeed();
               return;
             }
-            if (sourcePhase === "end") {
-              cpu.a = 2;
-              sourcePartIndex += 1;
-              sourceOffset = 0;
-              sourcePhase =
-                sourcePartIndex === prepared.bytes.length ? "unit" : "begin";
-              succeed();
-              return;
+            const placement = prepared.bundle.placement.find(
+              (range) =>
+                sourceOffset >= range.start && sourceOffset < range.end,
+            );
+            if (placement === undefined) {
+              throw new Error("native source offset has no bank placement");
             }
             const chunkBase = symbol(image.symbols, "NativeSourceChunkBase");
             const chunkLimit = symbol(image.symbols, "NativeSourceChunkLimit");
             const chunkLength = Math.min(
               chunkLimit - chunkBase,
-              part.length - sourceOffset,
+              placement.end - sourceOffset,
             );
             if (chunkLength <= 0) {
               throw new Error("native source provider produced an empty chunk");
             }
             memory.set(
-              part.subarray(sourceOffset, sourceOffset + chunkLength),
+              prepared.bundle.bytes.subarray(
+                sourceOffset,
+                sourceOffset + chunkLength,
+              ),
               chunkBase,
             );
+            cpu.c = placement.bank;
             sourceOffset += chunkLength;
-            if (sourceOffset === part.length) sourcePhase = "end";
             cpu.a = 0;
             cpu.h = chunkBase >>> 8;
             cpu.l = chunkBase & 0xff;
@@ -1134,8 +1152,7 @@ const runNucleusCompilerNativeTo = async (
             selectedPort === symbol(image.symbols, "NativeHostRetainNamePort")
           ) {
             const length = cpu.b;
-            const partIndex = cpu.c - 1;
-            const source = prepared.bytes[partIndex];
+            const source = prepared.bundle.bytes;
             const materialized =
               materializedNameHandle === undefined
                 ? undefined
@@ -1160,25 +1177,24 @@ const runNucleusCompilerNativeTo = async (
             }
             if (
               length === 0 ||
-              source === undefined ||
               de + length > source.length ||
               hl + length > memory.length ||
               length > nativeRetainedNameByteCapacity
             ) {
               throw new Error(
-                `native retained-name request is invalid (part=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, source=${source?.length ?? -1})`,
+                `native retained-name request is invalid (bank=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, source=${source.length})`,
               );
             }
             for (let index = 0; index < length; index += 1) {
               if (memory[hl + index] !== source[de + index]) {
                 throw new Error(
-                  `native retained name differs from source (part=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, index=${index}, actual=${memory[hl + index]}, expected=${source[de + index]})`,
+                  `native retained name differs from source (bank=${cpu.c}, offset=${de}, length=${length}, pointer=${hl.toString(16)}, index=${index}, actual=${memory[hl + index]}, expected=${source[de + index]})`,
                 );
               }
             }
             const handle = retainedNames.retain({
               bytes: source.slice(de, de + length),
-              part: cpu.c,
+              part: 0,
               offset: de,
             });
             cpu.h = handle >>> 8;
@@ -1430,10 +1446,21 @@ const runNucleusCompilerNativeTo = async (
       debugTraceSymbols(image),
       (handle, length) => {
         const retained = retainedNames.get(handle);
-        return retained === undefined || retained.bytes.length !== length
+        if (retained === undefined || retained.bytes.length !== length) {
+          return undefined;
+        }
+        const mapped = mapNucleusSourceBundleOffset(
+          prepared.bundle,
+          retained.offset,
+        );
+        const part = prepared.loaded.find(
+          (candidate) => candidate.name === mapped.name,
+        );
+        return part === undefined
           ? undefined
-          : retained;
+          : { ...retained, part: part.id, offset: mapped.offset };
       },
+      prepared.bundle.bytes,
     );
   }
   memory[returnSentinel] = 0x76;
@@ -1526,16 +1553,20 @@ const runNucleusCompilerNativeTo = async (
       throw new Error(`native Nucleus host failed with status ${resultCode}`);
     }
     if (outcome === 1) {
-      const part = memory[nativeLaunchResult + 2] ?? 0;
+      const offset = readWord(memory, nativeLaunchResult + 3);
+      const mapped = mapNucleusSourceBundleOffset(prepared.bundle, offset);
+      const part =
+        prepared.loaded.find((candidate) => candidate.name === mapped.name)
+          ?.id ?? 0;
       return {
         success: false,
         diagnostic: {
           code: resultCode,
           sourcePart: part,
-          sourceName: parts[part - 1]?.name,
-          offset: readWord(memory, nativeLaunchResult + 3),
-          line: readWord(memory, nativeLaunchResult + 5),
-          column: readWord(memory, nativeLaunchResult + 7),
+          sourceName: mapped.name,
+          offset: mapped.offset,
+          line: mapped.line,
+          column: mapped.column,
         },
         instructions,
         cycles,

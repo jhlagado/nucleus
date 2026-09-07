@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -14,60 +14,54 @@ import {
 
 interface SourceEvent {
   readonly event: number;
-  readonly part: number;
+  readonly bank: number;
   readonly bytes: Uint8Array;
 }
-
-const baseline = JSON.parse(readFileSync(new URL(
-  "./fixtures/native-source-plan-baseline.json", import.meta.url,
-), "utf8")) as {
-  revision: string;
-  symbols: Record<string, number>;
-  addresses: Record<string, number>;
-  highWater: number;
-  finalCursor: number;
-  segments: { start: number; end: number; hex: string; sha256: string }[];
-};
 
 describe("the native Z80 SP1 source-plan provider", () => {
   const roots: string[] = [];
   afterEach(() => {
-    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+    for (const root of roots.splice(0))
+      rmSync(root, { recursive: true, force: true });
   });
 
-  it("preserves the original sparse image and every public symbol under native ATOM", async () => {
+  it("assembles the provider from canonical sources with native ATOM", async () => {
     const proof = await assembleNativeSourcePlanProof();
     const parsed = parseIntelHex(proof.hex);
-    expect(baseline.revision).toBe("abbb2bea1b20d6ccfe11bdf936f48b525b0d88a6");
     const addresses = (ranges: readonly { start: number; end: number }[]) =>
-      ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
-    expect(baseline.segments.map(({ start, end }) => ({ start, end }))).toEqual([
+      ranges.flatMap(({ start, end }) =>
+        Array.from({ length: end - start }, (_, i) => start + i),
+      );
+    expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses([
       { start: 0x0010, end: 0x0013 },
       { start: 0x4000, end: 0x4013 },
-      { start: 0x4200, end: 0x4724 },
-    ]);
-    expect(addresses(parsed.writeRanges ?? [])).toEqual(addresses(baseline.segments));
-    for (const segment of baseline.segments) {
-      const bytes = parsed.memory.slice(segment.start, segment.end);
-      expect(Buffer.from(bytes).toString("hex")).toBe(segment.hex);
-      expect(createHash("sha256").update(bytes).digest("hex")).toBe(segment.sha256);
-    }
-    expect(Object.keys(proof.symbols)).toHaveLength(181);
-    expect(proof.symbols).toEqual(baseline.symbols);
-    expect(Object.keys(proof.addresses)).toHaveLength(67);
-    expect(proof.addresses).toEqual(baseline.addresses);
-    expect(proof.generation.highWater).toBe(baseline.highWater);
-    expect(proof.generation.finalCursor).toBe(baseline.finalCursor);
-    expect(proof.generation.highWater).toBe(0x4724);
+      { start: 0x4200, end: 0x4741 },
+    ]));
+    const bytes = Buffer.concat((parsed.writeRanges ?? []).map(({ start, end }) =>
+      Buffer.from(parsed.memory.slice(start, end))));
+    const hash = (value: Uint8Array | string) =>
+      createHash("sha256").update(value).digest("hex");
+    expect(bytes).toHaveLength(1_367);
+    expect(hash(bytes)).toBe("6a4357647ac7f984bff225aa9b1a85fa864f2575eb0d37459d9188fe7dc9d9de");
+    expect(Object.keys(proof.symbols)).toHaveLength(186);
+    expect(hash(JSON.stringify(proof.symbols))).toBe("40bd722967de036b164a25368030a3c3ca464c96002697a3627edb361c990af0");
+    expect(Object.keys(proof.addresses)).toHaveLength(69);
+    expect(hash(JSON.stringify(proof.addresses))).toBe("fee5d3a09f85c46095abd4f3050f8829c1e9b651516268b533ea54c22a742867");
+    expect(proof.symbols.ProofInitialize).toBe(0x4000);
+    expect(proof.symbols.NativeSourceProviderCodeStart).toBe(0x4200);
+    expect(proof.generation.highWater).toBe(0x4741);
+    expect(proof.generation.finalCursor).toBe(0x4741);
     for (const part of proof.project.parts) {
       const original = new TextDecoder().decode(part.originalBytes);
       expect(new TextDecoder().decode(part.compilerBytes)).toBe(
-        original.replace(/^%INCLUDE[^\r\n]*/gm, line => " ".repeat(line.length)),
+        original.replace(/^%INCLUDE[^\r\n]*/gm, (line) =>
+          " ".repeat(line.length),
+        ),
       );
     }
   });
 
-  it("streams ordered named sources through the four-event compiler ABI", async () => {
+  it("streams one ordered source with banked chunks and inserted newlines", async () => {
     const { hex, symbols } = await assembleNativeSourcePlanProof();
 
     const root = mkdtempSync(path.join(tmpdir(), "nucleus-source-provider-"));
@@ -75,7 +69,7 @@ describe("the native Z80 SP1 source-plan provider", () => {
     mkdirSync(path.join(root, ".nucleus"));
     writeFileSync(
       path.join(root, ".nucleus", "source-plan.sp1"),
-      "SP1 2\nP 0 6 lib.nu\nP 0 7 main.nu\nEND\n",
+      "SP1 2\nP 1 6 lib.nu\nP 2 7 main.nu\nEND\n",
     );
     writeFileSync(path.join(root, "lib.nu"), "AB");
     writeFileSync(path.join(root, "main.nu"), "CDE");
@@ -100,8 +94,7 @@ describe("the native Z80 SP1 source-plan provider", () => {
             `${runtime.hardware.memory[request + 2]}:${status}:${runtime.hardware.memory[request + 14] | (runtime.hardware.memory[request + 15]! << 8)}`,
           );
           runtime.cpu.a = status;
-          runtime.cpu.flags.C =
-            status === NucleusSystemStatus.success ? 0 : 1;
+          runtime.cpu.flags.C = status === NucleusSystemStatus.success ? 0 : 1;
         },
       },
     );
@@ -109,8 +102,7 @@ describe("the native Z80 SP1 source-plan provider", () => {
     const run = (entry: number): void => {
       const stack = 0x7f00;
       runtime.hardware.memory[stack] = symbols.ProofReturnSentinel & 0xff;
-      runtime.hardware.memory[stack + 1] =
-        symbols.ProofReturnSentinel >>> 8;
+      runtime.hardware.memory[stack + 1] = symbols.ProofReturnSentinel >>> 8;
       runtime.cpu.sp = stack;
       runtime.cpu.pc = entry;
       runtime.cpu.halted = false;
@@ -133,14 +125,14 @@ describe("the native Z80 SP1 source-plan provider", () => {
       const pointer = (runtime.cpu.h << 8) | runtime.cpu.l;
       return {
         event,
-        part: runtime.cpu.c,
+        bank: runtime.cpu.c,
         bytes:
           event === 0
             ? runtime.hardware.memory.slice(pointer, pointer + count)
             : new Uint8Array(),
       };
     };
-    const events: SourceEvent[] = [next(), next()];
+    const events: SourceEvent[] = [next()];
 
     const tokenPointer = symbols.NativeSourceChunkBase;
     runtime.cpu.h = tokenPointer >>> 8;
@@ -206,21 +198,19 @@ describe("the native Z80 SP1 source-plan provider", () => {
           8),
     ).toBe(6);
 
-    for (let ordinal = 0; ordinal < 5; ordinal += 1) events.push(next());
+    for (let ordinal = 0; ordinal < 4; ordinal += 1) events.push(next());
     expect(
-      events.map(({ event, part, bytes }) => [
+      events.map(({ event, bank, bytes }) => [
         event,
-        event === 3 ? null : part,
+        event === 1 ? null : bank,
         Buffer.from(bytes).toString("ascii"),
       ]),
     ).toEqual([
-      [1, 1, ""],
       [0, 1, "AB"],
-      [2, 1, ""],
-      [1, 2, ""],
+      [0, 1, "\n"],
       [0, 2, "CDE"],
-      [2, 2, ""],
-      [3, null, ""],
+      [0, 2, "\n"],
+      [1, null, ""],
     ]);
     run(symbols.ProofFinish);
     expect(services.openHandleCount).toBe(0);

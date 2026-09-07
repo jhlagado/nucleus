@@ -78,10 +78,6 @@ F7FLGS    EQU 7
 
 S7WKEND   EQU F7LIM
 
-; The multipart adapter retains one packed byte. Bit 7 records a pending
-; boundary newline, bit 6 records a consumed streaming end-part event, bits
-; 3..5 retain the current manifest ordinal, and bits 0..2 retain the number of
-; later parts. SourcePartCapacity=8 makes every field exact.
 %IF NativeStreamingSource
 ; Zero means no token needs pinning, one means an active token remains wholly
 ; in the current chunk, and a value at NativeSourceTokenBase or above is the
@@ -89,10 +85,12 @@ S7WKEND   EQU F7LIM
 ; chunk after pinning begins.
 SSPINSEG  EQU S7WKEND ; word
 SSPINCUR  EQU SSPINSEG+2 ; word
-SSPROVID  EQU SSPINCUR+2
-SSPREM    EQU SSPROVID+1
+SSPROVID  EQU SSPINCUR+2 ; current source bank
+SSPREM    EQU SSPROVID+1 ; nonzero after the one EOF event
 SSHOST    EQU SSPREM+1
 %ELSE
+; The resident multipart adapter retains one packed byte. Bit 7 records a
+; pending boundary newline and bits 0..2 retain the number of later parts.
 ; The resident compatibility adapter retains the next external descriptor.
 SSPDCUR   EQU S7WKEND
 SSPREM    EQU SSPDCUR+2
@@ -104,11 +102,16 @@ SSMEND    EQU SSPREM+1
 %ENDIF
 SSPDSZ    EQU 5
 SRCPARTS  EQU 8
+%IF NativeStreamingSource
+%ELSE
 SSPREMM   EQU $07
 SSPORDSH  EQU 3
 SSPORDST  EQU 8
 SSPORDMS  EQU $38
 SSPNL     EQU $80
+%ENDIF
+; Retained as a published historical proof binding while the resident multipart
+; comparison adapter remains in the tree.
 SSPEND    EQU $40
 
 ; Emission begins only after parsing has published the semantic transcript, so

@@ -31,6 +31,12 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
     memory[pointer + 1] = value >>> 8;
   };
 
+  const allowSourceBank = (memory: Uint8Array, bank = 1): void => {
+    const descriptor = 0x9c00;
+    writeWord(memory, address("TargetDescriptorPointer"), descriptor);
+    memory[descriptor + address("TargetDescriptorBankCount")] = bank + 1;
+  };
+
   const runEntry = (
     memory: Uint8Array,
     entry: string,
@@ -137,6 +143,7 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
     memory[tokenBase - 1] = 0x5a;
     memory[chunkLimit] = 0xa5;
     memory[chunk] = 10;
+    allowSourceBank(memory);
     let event = 0;
 
     const runtime = runEntry(
@@ -149,20 +156,16 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
         expect(port).toBe(address("NativeHostSourceNextChunkPort"));
         active.cpu.c = 1;
         active.cpu.flags.C = 0;
-        if (event === 0) {
-          active.cpu.a = 1;
-        } else {
-          active.cpu.a = 0;
-          active.cpu.h = chunk >>> 8;
-          active.cpu.l = chunk & 0xff;
-          active.cpu.d = 0;
-          active.cpu.e = 1;
-        }
+        active.cpu.a = 0;
+        active.cpu.h = chunk >>> 8;
+        active.cpu.l = chunk & 0xff;
+        active.cpu.d = 0;
+        active.cpu.e = 1;
         event += 1;
       },
     );
 
-    expect(event).toBe(2);
+    expect(event).toBe(1);
     expect(runtime.hardware.memory[address("SourcePinScratchCursor")]).toBe(0);
     expect(runtime.hardware.memory[address("SourcePinScratchCursor") + 1]).toBe(
       0,
@@ -183,11 +186,39 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
 
     const runtime = runEntry(
       memory,
-      "SourceStreamBeginPart",
+      "SourceInitializeParts",
+      () => undefined,
+      (_port, active) => {
+        active.cpu.a = 2;
+        active.cpu.flags.C = 0;
+      },
+      abortStack + 2,
+    );
+    expect(runtime.hardware.memory[address("SourceHostStatus")]).toBe(4);
+    expect(runtime.hardware.memory[address("DiagnosticCode")]).toBe(0xa5);
+    expect(runtime.cpu.flags.C).toBe(1);
+  });
+
+  it("rejects a source chunk outside the target bank range", () => {
+    const memory = parseIntelHex(nativeCompilerHex).memory.slice();
+    const abortStack = 0x9d00;
+    const sentinel = 0x9f00;
+    const chunk = address("NativeSourceChunkBase");
+    memory[sentinel] = 0x76;
+    writeWord(memory, abortStack, sentinel);
+    writeWord(memory, address("CompilerAbortSp"), abortStack);
+    memory[address("DiagnosticCode")] = 0xa5;
+    allowSourceBank(memory, 0);
+
+    const runtime = runEntry(
+      memory,
+      "SourceInitializeParts",
       () => undefined,
       (_port, active) => {
         active.cpu.a = 0;
         active.cpu.c = 1;
+        active.cpu.h = chunk >>> 8;
+        active.cpu.l = chunk & 0xff;
         active.cpu.d = 0;
         active.cpu.e = 1;
         active.cpu.flags.C = 0;
@@ -216,7 +247,7 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
       (port, active) => {
         expect(port).toBe(address("NativeHostSourceNextChunkPort"));
         calls += 1;
-        active.cpu.a = 2;
+        active.cpu.a = 1;
         active.cpu.c = 1;
         active.cpu.flags.C = 0;
       },
@@ -226,55 +257,49 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
     expect(runtime.hardware.memory[address("SourceProviderPartId")]).toBe(1);
   });
 
-  it("consumes end-unit exactly once regardless of incoming zero", () => {
+  it("consumes EOF exactly once regardless of incoming zero", () => {
     let memory = parseIntelHex(nativeCompilerHex).memory.slice();
-    memory[address("SourceProviderPartId")] = 1;
     let calls = 0;
     memory = runEntry(
       memory,
-      "SourceStreamFinishUnit",
+      "SourceInitializeParts",
       (active) => {
         active.cpu.flags.Z = 1;
       },
       (port, active) => {
         expect(port).toBe(address("NativeHostSourceNextChunkPort"));
         calls += 1;
-        active.cpu.a = 3;
+        active.cpu.a = 1;
         active.cpu.flags.C = 0;
       },
     ).hardware.memory;
     expect(calls).toBe(1);
-    expect(memory[address("SourceProviderPartId")]).toBe(0);
+    expect(memory[address("SourcePartsRemaining")]).toBe(1);
 
     runEntry(
       memory,
-      "SourceStreamFinishUnit",
+      "SourcePeek",
       (active) => {
         active.cpu.flags.Z = 0;
       },
       () => {
-        throw new Error("consumed end-unit must not be requested again");
+        throw new Error("consumed EOF must not be requested again");
       },
     );
     expect(calls).toBe(1);
   });
 
-  it.each([1, 3, 7])("tokenizes overwritten %i-byte windows with exact multipart positions", chunkSize => {
+  it.each([1, 3, 7])("tokenizes overwritten %i-byte windows with exact global positions", chunkSize => {
     let memory = parseIntelHex(nativeCompilerHex).memory.slice();
     const chunkBase = address("NativeSourceChunkBase");
     const chunkLimit = address("NativeSourceChunkLimit");
     const tokenBase = address("NativeSourceTokenBase");
-    const parts = ["Player <= $f\r\n//x", "until"];
-    const events: { kind: number; part: number; text?: string }[] = [];
-    parts.forEach((source, index) => {
-      const part = index + 1;
-      events.push({ kind: 1, part });
-      for (let offset = 0; offset < source.length; offset += chunkSize) {
-        events.push({ kind: 0, part, text: source.slice(offset, offset + chunkSize) });
-      }
-      events.push({ kind: 2, part });
-    });
-    events.push({ kind: 3, part: 0 });
+    const source = "Player <= $f\r\n//x\nuntil\n";
+    const events: { kind: number; bank: number; text?: string }[] = [];
+    for (let offset = 0; offset < source.length; offset += chunkSize) {
+      events.push({ kind: 0, bank: 1, text: source.slice(offset, offset + chunkSize) });
+    }
+    events.push({ kind: 1, bank: 1 });
     let eventIndex = 0;
     const provide = (port: number, active: ReturnType<typeof createZ80Runtime>) => {
       expect(port).toBe(address("NativeHostSourceNextChunkPort"));
@@ -284,7 +309,7 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
       // end-part. A stale-pointer tokenizer cannot pass the NAME assertion.
       active.hardware.memory.fill(0xcc, chunkBase, chunkLimit);
       active.cpu.a = event.kind;
-      active.cpu.c = event.part;
+      active.cpu.c = event.bank;
       active.cpu.flags.C = 0;
       if (event.text !== undefined) {
         active.hardware.memory.set(Buffer.from(event.text, "ascii"), chunkBase);
@@ -296,28 +321,28 @@ describe.each(["bundled compiler", "fresh native tokenizer"] as const)("%s sourc
     };
     memory[tokenBase - 1] = 0x5a;
     memory[chunkLimit] = 0xa5;
+    allowSourceBank(memory);
     writeWord(memory, address("CompilerAbortSp"), 0x9d00);
     writeWord(memory, 0x9d00, 0x9f00);
     memory = runEntry(memory, "SourceInitializeParts", active => {
-      active.cpu.a = parts.length;
+      active.cpu.a = 0;
     }, provide).hardware.memory;
     const readWord = (name: string) =>
       memory[address(name)]! | (memory[address(name) + 1]! << 8);
     const expected = [
-      ["TokenName", 1, 0, 1, 1],
-      ["TokenLessEqual", 1, 7, 1, 8],
-      ["TokenNumber", 1, 10, 1, 11],
-      ["TokenNewline", 1, 12, 1, 13],
-      ["TokenUntil", 2, 0, 1, 1],
-      ["TokenNewline", 2, 5, 1, 6],
-      ["TokenEof", 2, 5, 1, 6],
+      ["TokenName", 0, 1, 1],
+      ["TokenLessEqual", 7, 1, 8],
+      ["TokenNumber", 10, 1, 11],
+      ["TokenNewline", 12, 1, 13],
+      ["TokenUntil", 18, 3, 1],
+      ["TokenNewline", 23, 3, 6],
+      ["TokenEof", 24, 4, 1],
     ] as const;
-    for (const [kind, part, offset, line, column] of expected) {
+    for (const [kind, offset, line, column] of expected) {
       const result = runEntry(memory, "TokenizerNext", () => undefined, provide);
       memory = result.hardware.memory;
       expect(result.cpu.flags.C).toBe(0);
       expect(result.cpu.a).toBe(address(kind));
-      expect(memory[address("SourcePartId")]).toBe(part);
       expect([readWord("TokenStartOffset"), readWord("TokenStartLine"), readWord("TokenStartColumn")])
         .toEqual([offset, line, column]);
       if (kind === "TokenName") {

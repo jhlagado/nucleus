@@ -168,9 +168,12 @@ FTRBRLLP:
 FTVACPER:
             JP   ZTCFGERR
 
-; Return the bank mapped to the current manifest source-part ordinal.
-; Contract: out A,carry,zero,sign,parity,halfCarry clobbers D,DE,HL,IX
+; Return the bank attached to the current source chunk.
+; Contract: out A,carry,zero,sign,parity,halfCarry
 FTCUSRBK:
+%IF NativeStreamingSource
+            LD   A,(SSPROVID)
+%ELSE
             LD   A,(SSPREM)
             AND  SSPORDMS
             RRCA
@@ -183,6 +186,7 @@ FTCUSRBK:
             LD   H,(IX+TDPBPTR+1)
             ADD  HL,DE
             LD   A,(HL)
+%ENDIF
             OR   A
             RET
 

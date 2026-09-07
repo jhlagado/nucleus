@@ -3,12 +3,10 @@
 ; the 16 KiB compiler core. The compiler and host are linked against the same
 ; source-state ABI.
 
-; Contract: in A out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
+; Initialize one logical source stream. A and HL are retained only for the
+; transitional launch ABI and have no source-part meaning.
+; Contract: in A,HL out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
 SAPARTS:
-            DEC  A
-            CP   SRCPARTS
-            JP   NC,SAPRTERR
-            LD   B,A
             XOR  A
             LD   HL,SSPINSEG
             LD   C,SSHOST-SSPINSEG+1
@@ -17,9 +15,12 @@ SHINITLP:
             INC  HL
             DEC  C
             JP   NZ,SHINITLP
-            LD   A,B
-            LD   (SSPREM),A
-            JP   SHPART
+            INC  A
+            LD   HL,0
+            LD   D,H
+            LD   E,L
+            CALL SAINIT
+            JP   SHREFILL
 
 ; Contract: noreturn
 SHBAD:
@@ -130,22 +131,6 @@ SHPIN:
             LD   (SSPINCUR),HL
             RET
 
-; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SHPART:
-            CALL SHNEXT
-            CP   1
-            JP   NZ,SHBAD
-            LD   A,(SSPROVID)
-            OR   A
-            JP   Z,SHBAD
-            LD   HL,0
-            LD   D,H
-            LD   E,L
-            CALL SAINIT
-            CALL SHREFILL
-            OR   A
-            RET
-
 ; Append the current live-chunk portion of an active token before a refill can
 ; invalidate it. Zero means no active token; one means no refill has occurred.
 ; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
@@ -216,10 +201,14 @@ SHBYTEVT:
             JP   Z,SHBAD
             PUSH BC
             LD   A,(SSPROVID)
-            LD   C,A
-            LD   A,(SSPARTID)
-            CP   C
-            JP   NZ,SHBAD
+            PUSH HL
+            LD   HL,(TDPTR)
+            LD   C,TDBNKCNT
+            LD   B,0
+            ADD  HL,BC
+            CP   (HL)
+            JP   NC,SHBAD
+            POP  HL
             CALL SHBYTES
             POP  BC
             RET
@@ -235,19 +224,15 @@ SHREFILL:
 SHREFEVT:
             OR   A
             JP   Z,SHBYTEVT
-            CP   2
+            DEC  A
             JP   NZ,SHBAD
-            LD   A,(SSPROVID)
-            LD   HL,SSPARTID
-            CP   (HL)
-            JP   NZ,SHBAD
-            ; PinBeforeRefill already copied through SourceCursor. An end event
+            ; PinBeforeRefill already copied through SourceCursor. The EOF event
             ; supplies no replacement chunk, so make the remaining segment
             ; explicitly empty for SourcePinFinishToken.
             LD   HL,(SSCUR)
             LD   (SSPINSEG),HL
-            LD   HL,SSPREM
-            SET  6,(HL)
+            INC  A
+            LD   (SSPREM),A
             SCF
             RET
 
@@ -270,16 +255,4 @@ SHBYTES:
 SHUNPCHK:
             LD   (TNLEXPTR),HL
             OR   A
-            RET
-
-; Contract: out A,carry,zero clobbers sign,parity,halfCarry,BC,DE,HL
-SHEND:
-            LD   A,(SSPROVID)
-            OR   A
-            RET  Z
-            CALL SHNEXT
-            CP   3
-            JP   NZ,SHBAD
-            XOR  A
-            LD   (SSPROVID),A
             RET

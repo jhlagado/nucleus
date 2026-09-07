@@ -110,7 +110,7 @@ the execution, storage, target-control, and development groups.
 
 |   `C` | Operation                                                |
 | ----: | -------------------------------------------------------- |
-| `$70` | next source event or byte chunk                          |
+| `$70` | next source byte chunk or EOF                            |
 | `$71` | retain current name                                      |
 | `$72` | compare retained name                                    |
 | `$73` | materialize retained name                                |
@@ -129,12 +129,12 @@ the execution, storage, target-control, and development groups.
 
 Each wrapper adapts this selector convention to the register, flag, stack, and
 failure contract of the stable compiler-host vector. The exact RST contracts
-are checked by AZM from
-`asm/vertical-slice/mon3-host-services.asmi`. A monitor implementation must
-match those contracts; it must not merely dispatch to a routine with a similar
+are documented in `asm/vertical-slice/mon3-host-services.asmi` and exercised by
+the ATOM-built host and runtime proofs. A monitor implementation must match
+those contracts; it must not merely dispatch to a routine with a similar
 purpose.
 
-Several stable vector entries already use `C` for a source-part or target-bank
+Several stable vector entries already use `C` for a source-bank or target-bank
 value. The RST dispatcher needs `C` for its selector, so the gateway saves the
 original `BC` in its two-byte request mailbox before those calls. The selected
 service reads that saved value. This mailbox is part of the measured 24-byte

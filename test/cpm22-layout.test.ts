@@ -7,10 +7,10 @@ describe("native Nucleus CP/M 2.2 TPA layout", () => {
       "cpm22-native-compiler.asm",
     );
 
-    expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_314);
-    expect(symbols.CompilerCoreEnd).toBe(0x40bd);
+    expect(symbols.CompilerCoreEnd - symbols.CompilerCodeStart).toBe(16_255);
+    expect(symbols.CompilerCoreEnd).toBe(0x4082);
     expect(symbols.CpmCompilerHostVectorStart).toBe(0x4100);
-    expect(symbols.CpmCompilerHostVectorStart - symbols.CompilerCoreEnd).toBe(67);
+    expect(symbols.CpmCompilerHostVectorStart - symbols.CompilerCoreEnd).toBe(126);
     expect(symbols.CpmCompilerHostVectorEnd - symbols.CpmCompilerHostVectorStart).toBe(50);
     expect(symbols.CpmCompilerResidentEnd).toBeLessThanOrEqual(
       symbols.CpmHostResidentLimit,

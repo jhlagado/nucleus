@@ -103,7 +103,7 @@ TKRETAIN:
             LD   HL,(TNLEXPTR)
             LD   A,(TNLEN)
             LD   B,A
-            LD   A,(SSPARTID)
+            LD   A,(SSPROVID)
             LD   C,A
             LD   DE,(TNSTOFF)
             CALL SHRETAIN
@@ -433,6 +433,13 @@ TKEOF:
             LD   A,H                     ; SourceDelimiterDepth
             OR   A
             JR   NZ,TKLINERR
+%IF NativeStreamingSource
+            LD   A,L
+            OR   A
+            JR   NZ,TKNEWLN
+            XOR  A
+            RET
+%ELSE
 %IF AggregateCallSlices
             LD   A,(SSPREM)
             ADD  A,A
@@ -460,23 +467,13 @@ TKPART:
             RES  7,(HL)
             DEC  (HL)
 %ENDIF
-%IF NativeStreamingSource
-            CALL SHPART
-%ELSE
             LD   HL,(SSPDCUR)
             CALL SALDPART
-%ENDIF
             JR   TKNEXTLP
 TKALLEOF:
 %ENDIF
             LD   A,L
             OR   A
-%IF NativeStreamingSource
-            JR   NZ,TKNEWLN
-            CALL SHEND
-            XOR  A
-            RET
-%ELSE
             RET  Z
 %ENDIF
 TKNEWLN:

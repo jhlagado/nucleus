@@ -15,8 +15,25 @@ type Profile = {
 const load = (name: string) => JSON.parse(readFileSync(
   new URL(`./fixtures/native-host-bindings/${name}.json`, import.meta.url), "utf8",
 )) as { revision: string; profiles: Record<string, Profile> };
-const baseline = load("baseline"), cpmBaseline = load("cpm-baseline");
-const revision = "5764b04";
+const cpmBaseline = load("cpm-baseline");
+const currentHostProfiles = {
+  node: { start: 45056, end: 45915,
+    sha256: "2c983e59baceeaffc08d0b253e524611008775e57d993e51fe1c589f9d75669f",
+    symbolHash: "e790ebf1c3e8dede15a04b6acec0d21085da017eb337012f24306a5c8815b55c",
+    addressHash: "c10030a6f4e23c13f59f75af5aa1f698e781065fe5b55b39efa64dc6600238cb" },
+  "node-debug": { start: 45056, end: 45917,
+    sha256: "bb22481f2a12fa70af6b56bdf3995ed50415343f3d9ea5fb2973d4eddf85b73b",
+    symbolHash: "4c255c903f064ce63f5167b08c831651d20487c35f1a300f63c9b8615848e4f3",
+    addressHash: "1448b422689b0aa23c2ed1f975ab1118391164daa3b73f1ac5f28c2efd93e271" },
+  mon3: { start: 16384, end: 17311,
+    sha256: "da445739f4ae3cb2d33314a8a46900cc4d13702409d453011451c3da84e621aa",
+    symbolHash: "4dfecb6ca6113ec0dc640af8eb2addf0485b22ba4da08ffb0866d8a689fa4af8",
+    addressHash: "14256b4b15ceb2d40d055ca8ce993ad07532ffc3c041fea7ce8f56ed21de26b4" },
+  "mon3-debug": { start: 16384, end: 17313,
+    sha256: "8f2da1d3b41361eb31b8ee0b2cd440fce41b0831960c066609ac15595d25cc0d",
+    symbolHash: "142ee4ca08a30871592ca26146990bf587cf319d6ba5f854ef273a8a116bd97d",
+    addressHash: "f9cbb5fd0538dce372f3aed04f661a002c4aae48891951d7a268aa6acb0bc756" },
+} as const;
 const cases = [
   { name: "node", mon3: 0, debug: 0, symbols: shipped.nativeCompilerSymbols },
   { name: "node-debug", mon3: 0, debug: 1, symbols: shipped.nativeDebugCompilerSymbols },
@@ -25,6 +42,10 @@ const cases = [
 ] as const;
 const points = (ranges: readonly { start: number; end: number }[]) =>
   ranges.flatMap(({ start, end }) => Array.from({ length: end - start }, (_, i) => start + i));
+const dictionaryHash = (dictionary: Record<string, number>) => createHash("sha256")
+  .update(JSON.stringify(Object.entries(dictionary).sort(([left], [right]) =>
+    left.localeCompare(right))))
+  .digest("hex");
 function equivalent(actual: Image, expected: Profile) {
   const parsed = parseIntelHex(actual.hex);
   expect(points(parsed.writeRanges ?? [])).toEqual(points([expected]));
@@ -68,24 +89,31 @@ describe("native host bindings from canonical source", () => {
     for (const config of cases) images.set(config.name, await assembleNativeHostBindings(config));
   }, 30_000);
 
-  it("pins both transports and both debug profiles to the frozen revision", () => {
-    expect(baseline.revision.startsWith(revision)).toBe(true);
-    expect(Object.keys(baseline.profiles)).toEqual(cases.map(c => c.name));
+  it("pins both transports and both debug profiles to the single-source ABI", () => {
+    expect(Object.keys(currentHostProfiles)).toEqual(cases.map(c => c.name));
   });
 
   it.each(cases)("preserves exact $name host bytes, all exports and five compiler links", config => {
-    const actual = images.get(config.name)!, expected = baseline.profiles[config.name]!;
-    equivalent(actual, expected);
-    expect(expected.end - expected.start).toBe(config.mon3 ? 981 + 2 * config.debug : 913 + 2 * config.debug);
-    expect(Object.keys(actual.symbols)).toHaveLength(config.mon3 ? 944 : 934);
-    for (const [name, address] of Object.entries(expected.bindings)) {
-      expect(actual.symbols[name], name).toBe(address);
-      expect(config.symbols[name], `${name}: test-only link drifted from the real compiler`).toBe(address);
-    }
-    expect(Object.keys(expected.bindings).sort()).toEqual([
+    const actual = images.get(config.name)!;
+    const expected = currentHostProfiles[config.name];
+    const parsed = parseIntelHex(actual.hex);
+    expect(points(parsed.writeRanges ?? [])).toEqual(points([expected]));
+    const bytes = parsed.memory.slice(expected.start, expected.end);
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(expected.sha256);
+    expect(dictionaryHash(actual.symbols)).toBe(expected.symbolHash);
+    expect(dictionaryHash(actual.addresses)).toBe(expected.addressHash);
+    expect(actual.generation.highWater).toBe(expected.end);
+    expect(actual.generation.finalCursor).toBe(expected.end);
+    expect(expected.end - expected.start).toBe(config.mon3 ? 927 + 2 * config.debug : 859 + 2 * config.debug);
+    expect(Object.keys(actual.symbols)).toHaveLength(config.mon3 ? 937 : 927);
+    for (const name of [
       "CompileTargetAggregateCallParts", "CompilerCopyPosition", "SetDiagInline",
       "SourceInitialize", "SourcePartCapacityFailure",
-    ]);
+    ]) {
+      const address = actual.symbols[name];
+      expect(address, name).toBeTypeOf("number");
+      expect(config.symbols[name], `${name}: test-only link drifted from the real compiler`).toBe(address);
+    }
     expect(actual.symbols.NativeHostWorkspaceEnd! - actual.symbols.NativeHostWorkspaceBase!)
       .toBe(config.mon3 ? 24 : 22);
   });
@@ -162,7 +190,7 @@ describe("native host bindings from canonical source", () => {
 describe("native CP/M compiler host vector", () => {
   it.each([0x100, 0x8013])("preserves all 104 bytes and exports at origin %i", async origin => {
     const actual = await assembleNativeCpmHostVector({ origin });
-    expect(cpmBaseline.revision.startsWith(revision)).toBe(true);
+    expect(cpmBaseline.revision.startsWith("5764b04")).toBe(true);
     equivalent(actual, cpmBaseline.profiles[origin]!);
     expect(Object.keys(actual.symbols)).toHaveLength(34);
     const s = actual.symbols;

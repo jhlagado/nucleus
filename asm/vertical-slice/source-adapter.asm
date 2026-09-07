@@ -3,8 +3,8 @@
 
 %IF AggregateCallSlices
 %IF NativeStreamingSource
-; The native Z80 host supplies SourceInitializeParts and the bounded refill,
-; token-pinning, part-transition, and end-unit entries outside compiler core.
+; The native Z80 host supplies one logical stream, bounded refills, bank
+; placement, and token pinning outside compiler core.
 
 %ELSE
 ; A is a bounded part count and HL points to five-byte descriptors containing
@@ -105,11 +105,8 @@ SAPEEK:
 %IF NativeStreamingSource
             ADD  HL,DE
             JR   NZ,SAPEKBYT
-            ; A completed unit still retains SourcePartEnded. Beginning the
-            ; next part clears it before installing that part's first chunk,
-            ; so this one state bit distinguishes refill from logical EOF.
             LD   A,(SSPREM)
-            AND  SSPEND
+            OR   A
             JR   NZ,SASTREND
             PUSH BC
             CALL SHREFILL

@@ -81,14 +81,14 @@ describe("the MON3-compatible native compiler host", () => {
   it("keeps the normal and debug compiler images inside the 16 KiB bank", () => {
     expect(mon3CompilerSymbols.CompilerCoreBase).toBe(0x8000);
     expect(mon3CompilerSymbols.CompilerCoreEnd).toBeLessThanOrEqual(0xc000);
-    expect(mon3CompilerSymbols.CompilerCoreEnd).toBe(0xbfba);
+    expect(mon3CompilerSymbols.CompilerCoreEnd).toBe(0xbf7f);
     expect(mon3DebugCompilerSymbols.CompilerCoreBase).toBe(0x8000);
     expect(mon3DebugCompilerSymbols.CompilerCoreEnd).toBeLessThanOrEqual(
       0xc000,
     );
-    expect(mon3DebugCompilerSymbols.CompilerCoreEnd).toBe(0xbffc);
+    expect(mon3DebugCompilerSymbols.CompilerCoreEnd).toBe(0xbfc1);
     expect(mon3CompilerSymbols.HostVectorBase).toBe(0x4000);
-    expect(mon3CompilerSymbols.HostVectorEnd).toBe(0x43d5);
+    expect(mon3CompilerSymbols.HostVectorEnd).toBe(0x439f);
     expect(mon3CompilerSymbols.NativeHostWorkspaceEnd).toBe(
       mon3CompilerSymbols.NativeHostWorkspaceBase + 24,
     );

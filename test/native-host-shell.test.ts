@@ -99,19 +99,19 @@ const runInvalidLaunch = (
 };
 
 describe("native Z80 compiler-host launch shell", () => {
-  it("keeps the compiler core unchanged and accounts for host code separately", () => {
+  it("accounts for the compiler core and host code separately", () => {
     expect(
       nativeCompilerSymbols.CompilerCoreEnd -
         nativeCompilerSymbols.CompilerCodeStart,
-    ).toBe(16_314);
+    ).toBe(16_255);
     expect(
       nativeCompilerSymbols.HostVectorEnd -
         nativeCompilerSymbols.HostVectorBase,
-    ).toBe(913);
+    ).toBe(859);
     expect(
       nativeDebugCompilerSymbols.HostVectorEnd -
         nativeDebugCompilerSymbols.HostVectorBase,
-    ).toBe(915);
+    ).toBe(861);
     expect(
       nativeCompilerSymbols.NativeHostWorkspaceEnd -
         nativeCompilerSymbols.NativeHostWorkspaceBase,

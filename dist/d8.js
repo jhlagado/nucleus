@@ -81,6 +81,7 @@ export class NucleusDebugCollector {
     #parts;
     #symbols;
     #resolveRetainedName;
+    #globalSource;
     #marks = [];
     #declarations = [];
     #contexts = [];
@@ -94,11 +95,12 @@ export class NucleusDebugCollector {
     #generationStarted = false;
     #semanticEndCount = 0;
     #semanticEndKey;
-    constructor(memory, parts, symbols, resolveRetainedName) {
+    constructor(memory, parts, symbols, resolveRetainedName, globalSource) {
         this.#memory = memory;
         this.#parts = parts;
         this.#symbols = symbols;
         this.#resolveRetainedName = resolveRetainedName;
+        this.#globalSource = globalSource;
     }
     collect(port, cpu) {
         switch (port & 0xff) {
@@ -196,6 +198,29 @@ export class NucleusDebugCollector {
         return this.#parts.find((part) => part.id === id);
     }
     #locationFromState() {
+        if (this.#globalSource !== undefined) {
+            const offset = readWord(this.#memory, this.#symbols.tokenStartOffset);
+            const part = this.#parts.find((candidate, index) => {
+                const next = this.#parts[index + 1];
+                return (offset >= candidate.start &&
+                    (next === undefined
+                        ? offset <= this.#globalSource.length
+                        : offset < next.start));
+            });
+            if (part === undefined) {
+                this.#errors.push(`source mark offset ${offset} has no source file`);
+                return undefined;
+            }
+            const localOffset = Math.min(offset, part.end) - part.start;
+            const globalPosition = positionAtOffset({ ...part, id: 0, bytes: this.#globalSource }, offset);
+            const line = readWord(this.#memory, this.#symbols.tokenStartLine);
+            const column = readWord(this.#memory, this.#symbols.tokenStartColumn);
+            if (line !== globalPosition.line || column !== globalPosition.column) {
+                this.#errors.push(`global source position ${line}:${column} disagrees with byte offset ${offset} (${globalPosition.line}:${globalPosition.column})`);
+            }
+            const local = positionAtOffset(part, localOffset);
+            return { part, offset: localOffset, ...local };
+        }
         const id = this.#memory[this.#symbols.sourcePartId] ?? 0;
         const part = this.#partById(id);
         if (part === undefined) {

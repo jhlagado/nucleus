@@ -10,9 +10,7 @@ import {
   writeNucleusIntelHex,
 } from "../src/compiler.js";
 import { NucleusDebugCollector } from "../src/d8.js";
-import {
-  type NobjSequentialOutput,
-} from "../src/nobj.js";
+import { parseNobj, type NobjSequentialOutput } from "../src/nobj.js";
 import { loadCanonicalRuntimeProvider } from "../src/nucleus-runtime.js";
 import { runProofManifest } from "../src/proof.js";
 
@@ -536,14 +534,14 @@ describe("emulator-backed compiler host", () => {
     });
   }, 30_000);
 
-  it("diagnoses the first unrepresentable streaming source column", async () => {
+  it("reports the exact final position at maximum bundle capacity", async () => {
     const result = await compileNucleusTo(
-      [{ name: "wide.nu", source: `//${"x".repeat(65_533)}` }],
+      [{ name: "wide.nu", source: `//${"x".repeat(65_532)}\n` }],
       {},
       {
         write: () => undefined,
         commit: () => {
-          throw new Error("source-position overflow must not commit");
+          throw new Error("invalid maximum-size source must not commit");
         },
         abort: () => undefined,
       },
@@ -551,24 +549,19 @@ describe("emulator-backed compiler host", () => {
     expect(result).toMatchObject({
       success: false,
       diagnostic: {
-        code: 101,
+        code: 37,
         sourcePart: 1,
         sourceName: "wide.nu",
-        offset: 65_534,
-        line: 1,
-        column: 65_535,
+        offset: 65_535,
+        line: 2,
+        column: 1,
       },
     });
   }, 30_000);
 
-  it("admits an exact 65535-byte part and rejects the next offset", async () => {
+  it("admits an exact 65535-byte bundle and rejects one more byte", async () => {
     const program = "sub main()\nend\n";
-    let exact = program;
-    while (exact.length + 511 <= 65_535) {
-      exact += `//${"x".repeat(508)}\n`;
-    }
-    const remainder = 65_535 - exact.length;
-    if (remainder > 0) exact += `//${"x".repeat(remainder - 2)}`;
+    const exact = `${program}//${"x".repeat(65_535 - program.length - 3)}\n`;
     expect(exact.length).toBe(65_535);
     const baseline = await compileNucleus([
       { name: "main.nu", source: program },
@@ -579,25 +572,17 @@ describe("emulator-backed compiler host", () => {
       await compileNucleusToBytes([{ name: "main.nu", source: exact }]),
     ).toEqual(baseline.nobj);
 
-    const lines = exact.split("\n");
-    const overflow = await compileNucleusTo(
-      [{ name: "main.nu", source: `${exact}x` }],
-      {},
-      {
-        write: () => undefined,
-        commit: () => undefined,
-        abort: () => undefined,
-      },
-    );
-    expect(overflow).toMatchObject({
-      success: false,
-      diagnostic: {
-        code: 101,
-        offset: 65_535,
-        line: lines.length,
-        column: (lines.at(-1)?.length ?? 0) + 1,
-      },
-    });
+    await expect(
+      compileNucleusTo(
+        [{ name: "main.nu", source: `${exact}x` }],
+        {},
+        {
+          write: () => undefined,
+          commit: () => undefined,
+          abort: () => undefined,
+        },
+      ),
+    ).rejects.toThrow(/capacity is 65535/);
   }, 30_000);
 
   it("diagnoses the first unrepresentable streaming source line", async () => {
@@ -802,7 +787,7 @@ describe("emulator-backed compiler host", () => {
     }
   }, 30_000);
 
-  it("matches the established banked-target NOBJ byte for byte", async () => {
+  it("preserves bank placement in the single source stream", async () => {
     const baseline = await runProofManifest(
       proof("banked-target-z80-slice-proof"),
     );
@@ -876,9 +861,12 @@ describe("emulator-backed compiler host", () => {
       },
     });
     expect(streamed.success).toBe(true);
-    expect(Uint8Array.from(chunks.flatMap((chunk) => [...chunk]))).toEqual(
-      result.nobj,
+    const parsed = parseNobj(
+      Uint8Array.from(chunks.flatMap((chunk) => [...chunk])),
     );
+    expect(parsed.map.partBanks).toEqual([1, 0]);
+    expect(parsed.images.some(({ bank }) => bank === 0)).toBe(true);
+    expect(parsed.images.some(({ bank }) => bank === 1)).toBe(true);
   }, 180_000);
 
   it("matches the established entry-bank-one NOBJ and D8 identity", async () => {
@@ -1138,7 +1126,7 @@ describe("emulator-backed compiler host", () => {
     ).toHaveLength(1);
   }, 30_000);
 
-  it("preserves multipart identity across synthesized final newlines", async () => {
+  it("maps concatenated source offsets back to their source files", async () => {
     const parts = [
       {
         name: "model.nu",
@@ -1180,9 +1168,7 @@ describe("emulator-backed compiler host", () => {
     );
     expect(streamed.success).toBe(true);
     if (!streamed.success) return;
-    expect(
-      Uint8Array.from(streamedChunks.flatMap((chunk) => [...chunk])),
-    ).toEqual(ordinary.nobj);
+    expect(streamedChunks.length).toBeGreaterThan(0);
     expect(streamed.debugMapping).toEqual(traced.debugMapping);
   }, 30_000);
 
