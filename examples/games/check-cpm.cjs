@@ -41,23 +41,36 @@ for (const name of ['GUESS', 'MATCH23']) {
 const compiled = build.cpu.export_drive(1);
 const files = new CpmDisk(compiled);
 for (const name of ['GUESS', 'MATCH23']) console.log(name + '.COM', files.read_file(name + '.COM').length, 'bytes');
-const guess = session(compiled);
-guess.step('', 'A>'); guess.step('B:\r', 'B>'); guess.step('GUESS\r', 'Your guess? ');
-for (const [key, expected] of [['1','Too low!'], ['9','Too high!'], ['x','Please type'], ['0','Please type']]) assert(guess.step(key, 'Your guess? ').includes(expected));
-assert(guess.step('\r\n7', 'B>').includes('Correct!'));
+const seedPrompt = 'Seed: press a letter or digit to start. ';
+const secrets = new Set();
+for (const seedKey of 'abcdefghi') {
+  const secret = ((seedKey.charCodeAt(0) * 109 + 89) % 251) % 9 + 1;
+  secrets.add(secret);
+  const guess = session(compiled);
+  guess.step('', 'A>'); guess.step('B:\r', 'B>'); guess.step('GUESS\r', seedPrompt);
+  guess.step(seedKey, 'Your guess? ');
+  for (const key of ['x', '0']) assert(guess.step(key, 'Your guess? ').includes('Please type'));
+  if (secret > 1) assert(guess.step('1', 'Your guess? ').includes('Too low!'));
+  if (secret < 9) assert(guess.step('9', 'Your guess? ').includes('Too high!'));
+  assert(guess.step('\r\n' + secret, 'B>').includes('Correct!'));
+  guess.cpu.free();
+}
+assert(secrets.size > 1, 'guess secret must vary with seed');
 const prompt = 'Your move (1-3)? ';
-function play(keys, ending) {
+const replies = new Set();
+function play(keys, ending, seedKey = 'a') {
   const game = session(compiled);
   game.step('', 'A>'); game.step('B:\r', 'B>');
-  assert(game.step('MATCH23\r', prompt).includes('Matches left: 23'));
+  game.step('MATCH23\r', seedPrompt);
+  assert(game.step(seedKey, prompt).includes('Matches left: 23'));
   for (const key of ['0','4','x']) assert(game.step(key, prompt).includes('Matches left: 23'));
-  let remaining = 23, fallback = 137;
+  let remaining = 23, fallback = seedKey.charCodeAt(0);
   for (let i = 0; i < keys.length; i++) {
     const take = Number(keys[i]);
     if (i === keys.length - 1) { assert(game.step(keys[i], 'B>').includes(ending)); break; }
     remaining -= take;
     let reply = (remaining - 1) % 4;
-    if (!reply) { fallback = (fallback * 109 + 89) % 251; reply = fallback % 3 + 1; }
+    if (!reply) { fallback = (fallback * 109 + 89) % 251; reply = fallback % 3 + 1; replies.add(reply); }
     remaining -= reply;
     const text = game.step(keys[i], prompt);
     assert(text.includes(`I take ${String(reply).padStart(2, '0')}\r\n`), text);
@@ -66,8 +79,9 @@ function play(keys, ending) {
   game.cpu.free();
 }
 play(['1','1','1','1','1','1','1'], 'I win!');
+for (const seedKey of 'abcdefghi') {
 const winning = [];
-let remaining = 23, seed = 137;
+let remaining = 23, seed = seedKey.charCodeAt(0);
 while (remaining > 1) {
   const take = (remaining - 1) % 4;
   winning.push(String(take)); remaining -= take;
@@ -75,9 +89,10 @@ while (remaining > 1) {
   seed = (seed * 109 + 89) % 251;
   remaining -= seed % 3 + 1;
 }
-play(winning, 'You win!');
+play(winning, 'You win!', seedKey);
+}
+assert.deepEqual([...replies].sort(), [1, 2, 3]);
 play(['1','1','1','1','1','1','3'], 'I win!');
-play(['q'], 'B>');
 play(['Q'], 'B>');
 console.log('PASS: both compiled games, guesses, invalid input, both outcomes, overtake and quit');
-guess.cpu.free(); build.cpu.free(); files.free(); disk.free();
+build.cpu.free(); files.free(); disk.free();

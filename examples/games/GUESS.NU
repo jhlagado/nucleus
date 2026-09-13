@@ -4,6 +4,7 @@ const TooLow as string[16] = "\r\nToo low!\r\n"
 const TooHigh as string[16] = "\r\nToo high!\r\n"
 const Correct as string[32] = "\r\nCorrect! You found it.\r\n"
 const Invalid as string[32] = "\r\nPlease type a digit, 1 to 9.\r\n"
+const Seed as string[48] = "\r\nSeed: press a letter or digit to start. "
 
 sub output(text as string[]) fails
   var index as u8
@@ -16,8 +17,12 @@ sub main() fails
   var key as u8
   var guess as u8
   var secret as u8
-  secret = 7
+  var random as u16
   output(Intro) else fail
+  output(Seed) else fail
+  random = readInputByte() else fail
+  random = (random * 109 + 89) mod 251
+  secret = u8(random mod 9) + 1
   while true
     output(Prompt) else fail
     key = readInputByte() else fail

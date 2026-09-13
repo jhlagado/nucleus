@@ -1,4 +1,4 @@
-const Title as string[96] = "\r\n23 MATCHES\r\nTake 1, 2 or 3. Whoever takes the last match loses.\r\nYou go first. Q quits.\r\n"
+const Title as string[144] = "\r\n23 MATCHES\r\nTake 1, 2 or 3. Whoever takes the last match loses.\r\nYou go first. Q quits.\r\nSeed: press a letter or digit to start. "
 const Left as string[24] = "\r\nMatches left: "
 const Prompt as string[24] = "\r\nYour move (1-3)? "
 const Invalid as string[32] = "\r\nPlease type 1, 2, 3 or Q.\r\n"
@@ -23,9 +23,9 @@ sub main() fails
   var key as u8
   var take as u8
   var random as u16
-  random = 137
   matches = 23
   output(Title) else fail
+  random = readInputByte() else fail
   while true
     output(Left) else fail
     number(matches) else fail
@@ -34,7 +34,7 @@ sub main() fails
     while key = 13 or key = 10
       key = readInputByte() else fail
     end
-    if key = 'Q' or key = 'q'
+    if key = 'Q'
       exit
     end
     if key < '1' or key > '3'
