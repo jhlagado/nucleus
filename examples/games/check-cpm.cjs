@@ -51,22 +51,31 @@ function play(keys, ending) {
   game.step('', 'A>'); game.step('B:\r', 'B>');
   assert(game.step('MATCH23\r', prompt).includes('Matches left: 23'));
   for (const key of ['0','4','x']) assert(game.step(key, prompt).includes('Matches left: 23'));
-  let remaining = 23, fallback = 1;
+  let remaining = 23, fallback = 137;
   for (let i = 0; i < keys.length; i++) {
     const take = Number(keys[i]);
     if (i === keys.length - 1) { assert(game.step(keys[i], 'B>').includes(ending)); break; }
     remaining -= take;
     let reply = (remaining - 1) % 4;
-    if (!reply) reply = 1;
+    if (!reply) { fallback = (fallback * 109 + 89) % 251; reply = fallback % 3 + 1; }
     remaining -= reply;
     const text = game.step(keys[i], prompt);
-    assert(text.includes(`I take ${reply}\r\n`), text);
-    assert(text.includes(`Matches left: ${remaining}\r\n`), text);
+    assert(text.includes(`I take ${String(reply).padStart(2, '0')}\r\n`), text);
+    assert(text.includes(`Matches left: ${String(remaining).padStart(2, '0')}\r\n`), text);
   }
   game.cpu.free();
 }
 play(['1','1','1','1','1','1','1'], 'I win!');
-play(['2','3','3','3','3','3'], 'You win!');
+const winning = [];
+let remaining = 23, seed = 137;
+while (remaining > 1) {
+  const take = (remaining - 1) % 4;
+  winning.push(String(take)); remaining -= take;
+  if (remaining === 1) break;
+  seed = (seed * 109 + 89) % 251;
+  remaining -= seed % 3 + 1;
+}
+play(winning, 'You win!');
 play(['1','1','1','1','1','1','3'], 'I win!');
 play(['q'], 'B>');
 play(['Q'], 'B>');
