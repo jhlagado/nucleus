@@ -91,6 +91,13 @@ The current authorities are:
 - [Nucleus 0.1 Implementation Plan](docs/implementation-plan.md)
 - [Nucleus reviewer's charter](docs/reviewers-charter.md)
 
+## Assembly commentary
+
+The [assembly commentary policy](docs/assembly-style.md) calls for an English
+narrative alongside assembly instructions, including register roles, compact
+symbol meanings and flag dependencies. High-level code remains lightly
+commented. Existing assembly comments will be updated separately.
+
 ## Method
 
 Bottom up. Every claim about Z80 bytes or timing is produced by AZM and the
