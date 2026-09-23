@@ -1,6 +1,5 @@
-import type { createZ80Runtime } from "@jhlagado/debug80-runtime";
-
 import type { NucleusSourcePart } from "./compiler.js";
+import type { NucleusExecutionCpu } from "./execution-adapter.js";
 import {
   assertNucleusSemanticOperationKeys,
   nucleusD8SourceName,
@@ -8,7 +7,7 @@ import {
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
 import type { NobjAdapterImageByte } from "./proof.js";
 
-type CompilerCpu = ReturnType<typeof createZ80Runtime>["cpu"];
+type CompilerCpu = NucleusExecutionCpu;
 
 export const nucleusDebugPorts = {
   source: 0xd8,

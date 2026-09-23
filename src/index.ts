@@ -2,6 +2,7 @@ export * from "./compiler.js";
 export * from "./configuration.js";
 export * from "./d8.js";
 export * from "./diagnostics.js";
+export * from "./execution-adapter.js";
 export * from "./host.js";
 export * from "./nobj.js";
 export * from "./project.js";

@@ -8,6 +8,7 @@ import {
   defaultNucleusServices,
   writeNucleusIntelHex,
 } from "../src/compiler.js";
+import { createDebug80ExecutionAdapter } from "../src/execution-adapter.js";
 import { runProofManifest } from "../src/proof.js";
 
 const proof = (name: string): string =>
@@ -23,6 +24,30 @@ const expectValidIntelHexChecksums = (hex: string): void => {
 };
 
 describe("emulator-backed compiler host", () => {
+  it("accepts an explicit execution adapter without changing compiler output", async () => {
+    const reference = createDebug80ExecutionAdapter();
+    let parseCount = 0;
+    let createCount = 0;
+    const adapter = {
+      parseImage(hexText: string) {
+        parseCount += 1;
+        return reference.parseImage(hexText);
+      },
+      create(options: Parameters<typeof reference.create>[0]) {
+        createCount += 1;
+        return reference.create(options);
+      },
+    };
+    const result = await compileNucleus(
+      [{ name: "main.nu", source: "sub main()\nend\n" }],
+      {},
+      { executionAdapter: adapter },
+    );
+    expect(result.success).toBe(true);
+    expect(parseCount).toBeGreaterThan(0);
+    expect(createCount).toBe(1);
+  }, 30_000);
+
   it("distinguishes every keyword from a longer identifier", async () => {
     const keywords = [
       "var",

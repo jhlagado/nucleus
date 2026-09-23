@@ -25,6 +25,10 @@ The Node interface runs the same Z80 compiler used on a small machine. It
 loads source parts into an emulated compiler address space, executes the public
 target entry, then validates and materializes the committed NOBJ stream.
 
+The host accepts an explicit [execution adapter](docs/host-execution-adapter.md).
+Debug80 remains the development/reference implementation while Triptych native
+and WASM adapters are qualified.
+
 ```ts
 import { compileNucleus } from "@jhlagado/nucleus";
 

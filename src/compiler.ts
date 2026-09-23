@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
-
 import {
   debugCompilerHex,
   debugCompilerSymbols,
@@ -30,6 +28,11 @@ import {
   type NucleusDebugTraceSymbols,
   type NucleusLoadedSourcePart,
 } from "./d8.js";
+import {
+  createDebug80ExecutionAdapter,
+  type NucleusExecutionAdapter,
+  type NucleusExecutionImage,
+} from "./execution-adapter.js";
 
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
@@ -93,6 +96,7 @@ export type NucleusTarget = NucleusFlatTarget | NucleusBankedTarget;
 export interface NucleusCompileOptions {
   readonly debugMap?: boolean;
   readonly compilerIoWrite?: (port: number, value: number) => void;
+  readonly executionAdapter?: NucleusExecutionAdapter;
 }
 
 export interface NucleusDiagnostic {
@@ -165,11 +169,14 @@ export const writeNucleusIntelHex = (result: NucleusCompileSuccess): string => {
 };
 
 interface CompilerImage {
-  readonly program: ReturnType<typeof parseIntelHex>;
+  readonly program: NucleusExecutionImage;
   readonly symbols: Readonly<Record<string, number>>;
 }
 
-const compilerImages = new Map<boolean, Promise<CompilerImage>>();
+const compilerImages = new WeakMap<
+  NucleusExecutionAdapter,
+  Map<boolean, Promise<CompilerImage>>
+>();
 
 const symbol = (
   symbols: Readonly<Record<string, number>>,
@@ -184,15 +191,21 @@ const symbol = (
 
 const loadCompilerImage = async (
   debugHooks: boolean,
+  executionAdapter: NucleusExecutionAdapter,
 ): Promise<CompilerImage> => {
-  let pending = compilerImages.get(debugHooks);
+  let images = compilerImages.get(executionAdapter);
+  if (images === undefined) {
+    images = new Map();
+    compilerImages.set(executionAdapter, images);
+  }
+  let pending = images.get(debugHooks);
   if (pending === undefined) {
     pending = (async () => {
       const hex = debugHooks ? debugCompilerHex : normalCompilerHex;
       const symbols = debugHooks ? debugCompilerSymbols : normalCompilerSymbols;
-      return { program: parseIntelHex(hex), symbols };
+      return { program: executionAdapter.parseImage(hex), symbols };
     })();
-    compilerImages.set(debugHooks, pending);
+    images.set(debugHooks, pending);
   }
   return pending;
 };
@@ -223,9 +236,10 @@ export const nucleusCompilerInfo = async (): Promise<{
     readonly maxBanks: 4;
   };
 }> => {
+  const executionAdapter = createDebug80ExecutionAdapter();
   const [normal, debug] = await Promise.all([
-    loadCompilerImage(false),
-    loadCompilerImage(true),
+    loadCompilerImage(false, executionAdapter),
+    loadCompilerImage(true, executionAdapter),
   ]);
   return {
     hostApiVersion: 1,
@@ -502,23 +516,24 @@ export const compileNucleus = async (
   target: NucleusTarget = {},
   options: NucleusCompileOptions = {},
 ): Promise<NucleusCompileResult> => {
+  const executionAdapter =
+    options.executionAdapter ?? createDebug80ExecutionAdapter();
   const debugHooks = options.debugMap === true;
-  const image = await loadCompilerImage(debugHooks);
+  const image = await loadCompilerImage(debugHooks, executionAdapter);
   let debugCollectionActive = debugHooks;
   let collector: NucleusDebugCollector | undefined;
-  const runtime = createZ80Runtime(
-    { ...image.program, memory: image.program.memory.slice() },
-    symbol(image.symbols, "CompileTargetAggregateCallParts"),
-    {
-      write: (port, value) => {
-        if (debugCollectionActive && isNucleusDebugPort(port & 0xff)) {
-          collector?.collect(port & 0xff, runtime.cpu);
-          return;
-        }
-        options.compilerIoWrite?.(port, value);
-      },
+  let runtime: ReturnType<NucleusExecutionAdapter["create"]>;
+  runtime = executionAdapter.create({
+    image: image.program,
+    entry: symbol(image.symbols, "CompileTargetAggregateCallParts"),
+    write: (port, value) => {
+      if (debugCollectionActive && isNucleusDebugPort(port & 0xff)) {
+        collector?.collect(port & 0xff, runtime.cpu);
+        return;
+      }
+      options.compilerIoWrite?.(port, value);
     },
-  );
+  });
   const memory = runtime.hardware.memory;
   const sourceBase = symbol(image.symbols, "SourceBase");
   const sourceLimit = symbol(image.symbols, "SourceLimit");
