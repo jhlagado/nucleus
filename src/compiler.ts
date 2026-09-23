@@ -177,6 +177,7 @@ const compilerImages = new WeakMap<
   NucleusExecutionAdapter,
   Map<boolean, Promise<CompilerImage>>
 >();
+const defaultExecutionAdapter = createDebug80ExecutionAdapter();
 
 const symbol = (
   symbols: Readonly<Record<string, number>>,
@@ -236,10 +237,9 @@ export const nucleusCompilerInfo = async (): Promise<{
     readonly maxBanks: 4;
   };
 }> => {
-  const executionAdapter = createDebug80ExecutionAdapter();
   const [normal, debug] = await Promise.all([
-    loadCompilerImage(false, executionAdapter),
-    loadCompilerImage(true, executionAdapter),
+    loadCompilerImage(false, defaultExecutionAdapter),
+    loadCompilerImage(true, defaultExecutionAdapter),
   ]);
   return {
     hostApiVersion: 1,
@@ -516,8 +516,7 @@ export const compileNucleus = async (
   target: NucleusTarget = {},
   options: NucleusCompileOptions = {},
 ): Promise<NucleusCompileResult> => {
-  const executionAdapter =
-    options.executionAdapter ?? createDebug80ExecutionAdapter();
+  const executionAdapter = options.executionAdapter ?? defaultExecutionAdapter;
   const debugHooks = options.debugMap === true;
   const image = await loadCompilerImage(debugHooks, executionAdapter);
   let debugCollectionActive = debugHooks;
