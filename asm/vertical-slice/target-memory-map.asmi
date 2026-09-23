@@ -25,6 +25,15 @@ ReleasedGeneratedStagingBase  .equ $5800
 .endif
 ReleasedGeneratedStagingLimit .equ $6800
 
+; The direct-slice state files retain the historical Generated* names for
+; their size and extent checks. Keep those names as explicit aliases to the
+; released staging range so the ATOM source boundary is closed without
+; resurrecting a generated-image region in the active compiler layout.
+GeneratedBase       .equ ReleasedGeneratedStagingBase
+GeneratedLimit      .equ ReleasedGeneratedStagingLimit
+GeneratedCodeBase   .equ GeneratedBase
+GeneratedCodeLimit  .equ GeneratedLimit
+
 TargetRuntimeBase   .equ $6800
 TargetRuntimeLimit  .equ $7800
 

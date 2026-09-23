@@ -32,6 +32,7 @@
     "README.md"
   ],
   "scripts": {
+    "test:atom-source": "node --test scripts/atom-source.test.mjs",
     "check:azm-toolchain": "node scripts/check-azm-toolchain.mjs",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "verify:triptych-wasm": "node scripts/verify-triptych-wasm.mjs",
@@ -42,7 +43,7 @@
     "test": "vitest run --dir test",
     "measure": "vitest run test/proof-harness.test.ts --reporter=verbose",
     "proof": "vitest run test/proof-harness.test.ts --reporter=verbose",
-    "prepublishOnly": "npm run check:compiler-images && npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run test:atom-source && npm run check:compiler-images && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {},
   "peerDependencies": {
@@ -56,6 +57,7 @@
   "devDependencies": {
     "@jhlagado/azm": "^0.3.9",
     "@types/node": "^20.10.0",
+    "atom-z80": "git+https://github.com/jhlagado/atom.git#802b5c2d320bec777f427755ff2d7338e3b80a05",
     "typescript": "5.3.3",
     "vitest": "^4.1.7"
   },
