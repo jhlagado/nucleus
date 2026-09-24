@@ -14,7 +14,8 @@ identified standalone Nucleus revisions.
 
 ## Implemented host path
 
-The Node compiler executes the Z80 compiler through Debug80 Runtime. It uses
+The Node compiler executes the Z80 compiler through the portable Z80 runtime.
+It uses
 the same ordered multipart source ABI and target descriptor as a native
 invocation and accepts only a terminally committed NOBJ generation. Host API 1
 classifies configuration, source, and execution failures. Exact compiler
@@ -53,10 +54,9 @@ reproducible image gate assembles both layouts from checked AZM source and
 rejects stale embedded bytes or symbol maps. Node and Debug80 execute those
 Z80 images directly.
 
-`@jhlagado/debug80-runtime` is an operationally required peer. During local
-development it is supplied by the linked Debug80 package; the optional npm
-peer metadata only prevents isolated Git preparation from requesting an
-unpublished registry package.
+`@jhlagado/z80-runtime` is the optional host peer for the generic CPU harness.
+Debug80's CP/M and debugger-specific adapters remain a separate compatibility
+path and are not part of the Nucleus compiler contract.
 
 ## Implemented Debug80 components
 
