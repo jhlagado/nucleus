@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { compile } from "@jhlagado/azm/compile";
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 
 import {
   materializeNobj,
@@ -19,6 +18,10 @@ import {
   defaultRuntimeLinkContext,
   loadCanonicalRuntimeProvider,
 } from "./nucleus-runtime.js";
+import {
+  createDebug80ExecutionAdapter,
+  type NucleusExecutionAdapter,
+} from "./execution-adapter.js";
 
 interface MemoryRegionManifest {
   readonly name: string;
@@ -161,8 +164,18 @@ export class ProofFailure extends Error {
   }
 }
 
+export interface ProofExecutionOptions {
+  /**
+   * Execution substrate used by the proof. The default remains the Debug80
+   * differential oracle; Triptych native/WASM callers can supply a qualified
+   * replacement without changing the manifest or assembler input.
+   */
+  readonly executionAdapter?: NucleusExecutionAdapter;
+}
+
 export async function runProofManifest(
   manifestFile: string,
+  options: ProofExecutionOptions = {},
 ): Promise<ProofOutcome> {
   const manifestPath = path.resolve(manifestFile);
   const manifestDirectory = path.dirname(manifestPath);
@@ -277,11 +290,13 @@ export async function runProofManifest(
     return { name: extent.name, bytes };
   });
 
-  const runtime = createZ80Runtime(
-    parseIntelHex(hex.text),
-    symbolValue(manifest.execution.entry),
-  );
-  const memory = (runtime.hardware as unknown as { memory: Uint8Array }).memory;
+  const executionAdapter =
+    options.executionAdapter ?? createDebug80ExecutionAdapter();
+  const runtime = executionAdapter.create({
+    image: executionAdapter.parseImage(hex.text),
+    entry: symbolValue(manifest.execution.entry),
+  });
+  const memory = runtime.hardware.memory;
   for (const write of manifest.writes ?? []) {
     const bytes =
       write.bytes ??
@@ -310,7 +325,7 @@ export async function runProofManifest(
     cycles <= manifest.execution.maxCycles &&
     !runtime.isHalted()
   ) {
-    recentProgramCounters.push(runtime.getPC());
+    recentProgramCounters.push(runtime.cpu.pc);
     if (recentProgramCounters.length > 16) recentProgramCounters.shift();
     const step = runtime.step();
     cycles += step.cycles ?? 0;
@@ -348,7 +363,7 @@ export async function runProofManifest(
       [
         `${manifest.name}: proof failed`,
         ...failures.map((failure) => `  ${failure}`),
-        `  PC=${hexWord(runtime.getPC())} SP=${hexWord(runtime.cpu.sp)}`,
+        `  PC=${hexWord(runtime.cpu.pc)} SP=${hexWord(runtime.cpu.sp)}`,
         `  recent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`,
       ].join("\n"),
     );
@@ -362,6 +377,7 @@ export async function runProofManifest(
           manifest.nobj,
           memory,
           symbolValue,
+          executionAdapter,
         );
 
   return {
@@ -382,6 +398,7 @@ const runNobjManifest = async (
   manifest: NobjProofManifest,
   producerMemory: Uint8Array,
   symbol: (name: string) => number,
+  executionAdapter: NucleusExecutionAdapter,
 ): Promise<NobjExecutionOutcome> => {
   const start = symbol(manifest.adapter.at);
   const lengthAddress = symbol(manifest.adapter.lengthAt);
@@ -420,6 +437,7 @@ const runNobjManifest = async (
   return executeCommittedNobj(serialized, manifest.execution, {
     observations: manifest.observations,
     bankSwitch: manifest.bankSwitch,
+    executionAdapter,
   });
 };
 
@@ -556,6 +574,7 @@ export const executeCommittedNobj = (
   options: {
     readonly observations?: readonly NobjObservation[];
     readonly bankSwitch?: NobjProofManifest["bankSwitch"];
+    readonly executionAdapter?: NucleusExecutionAdapter;
   } = {},
 ): NobjExecutionOutcome => {
   const parsed = parseNobjForExecution(serialized);
@@ -576,35 +595,25 @@ export const executeCommittedNobj = (
     startAddress: parsed.map.entryAddress,
   };
   const switchConfig = options.bankSwitch;
-  const runtime = createZ80Runtime(
-    program,
-    parsed.map.entryAddress,
-    {
-      write: (port, value) => {
-        if (switchConfig !== undefined && (port & 0xff) === switchConfig.port) {
-          if (value >= parsed.begin.bankCount) {
-            throw new ProofFailure(`bank selector ${value} is out of range`);
-          }
-          selectedBank = value;
-          const selectedImage = materialized.banks[selectedBank];
-          if (selectedImage === undefined) {
-            throw new ProofFailure(`bank image ${selectedBank} is unavailable`);
-          }
-          runtime.hardware.memory.set(selectedImage, parsed.begin.imageBase);
+  const executionAdapter =
+    options.executionAdapter ?? createDebug80ExecutionAdapter();
+  const runtime = executionAdapter.create({
+    image: program,
+    entry: parsed.map.entryAddress,
+    write: (port, value) => {
+      if (switchConfig !== undefined && (port & 0xff) === switchConfig.port) {
+        if (value >= parsed.begin.bankCount) {
+          throw new ProofFailure(`bank selector ${value} is out of range`);
         }
-      },
+        selectedBank = value;
+        const selectedImage = materialized.banks[selectedBank];
+        if (selectedImage === undefined) {
+          throw new ProofFailure(`bank image ${selectedBank} is unavailable`);
+        }
+        runtime.hardware.memory.set(selectedImage, parsed.begin.imageBase);
+      }
     },
-    parsed.begin.banked && switchConfig !== undefined
-      ? {
-          romRanges: [
-            {
-              start: switchConfig.windowBase,
-              end: switchConfig.windowBase + switchConfig.windowCapacity - 1,
-            },
-          ],
-        }
-      : undefined,
-  );
+  });
   if (execution.initialSp !== undefined) {
     if (
       !Number.isInteger(execution.initialSp) ||
@@ -637,7 +646,7 @@ export const executeCommittedNobj = (
     cycles <= execution.maxCycles &&
     !runtime.isHalted()
   ) {
-    recentProgramCounters.push(runtime.getPC());
+    recentProgramCounters.push(runtime.cpu.pc);
     if (recentProgramCounters.length > 16) recentProgramCounters.shift();
     const step = runtime.step();
     instructions += 1;
@@ -686,7 +695,7 @@ export const executeCommittedNobj = (
   }
   if (failures.length > 0) {
     throw new ProofFailure(
-      `NOBJ execution failed\n${failures.join("\n")}\nPC=${hexWord(runtime.getPC())} bank=${selectedBank}\nrecent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`,
+      `NOBJ execution failed\n${failures.join("\n")}\nPC=${hexWord(runtime.cpu.pc)} bank=${selectedBank}\nrecent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`,
     );
   }
   return {

@@ -36,6 +36,7 @@
     "check:azm-toolchain": "node scripts/check-azm-toolchain.mjs",
     "generate:compiler-images": "node scripts/generate-compiler-images.mjs",
     "verify:triptych-wasm": "node scripts/verify-triptych-wasm.mjs",
+    "verify:triptych-wasm-proof": "node scripts/verify-triptych-wasm-proof.mjs",
     "check:compiler-images": "node scripts/generate-compiler-images.mjs --check",
     "prebuild": "npm run generate:compiler-images",
     "build": "tsc -p tsconfig.build.json",
