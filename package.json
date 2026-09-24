@@ -48,10 +48,10 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@jhlagado/debug80-runtime": "^0.1.0"
+    "@jhlagado/z80-runtime": "^0.1.0"
   },
   "peerDependenciesMeta": {
-    "@jhlagado/debug80-runtime": {
+    "@jhlagado/z80-runtime": {
       "optional": true
     }
   },

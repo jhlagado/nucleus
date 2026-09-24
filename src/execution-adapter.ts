@@ -54,7 +54,7 @@ export interface NucleusExecutionAdapter {
   create(options: NucleusExecutionCreateOptions): NucleusExecutionRuntime;
 }
 
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+import { createZ80Runtime, parseIntelHex } from "@jhlagado/z80-runtime";
 
 /** The current reference adapter; production Triptych adapters replace this. */
 export const createDebug80ExecutionAdapter = (): NucleusExecutionAdapter => {

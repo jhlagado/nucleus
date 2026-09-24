@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createZ80Runtime } from "@jhlagado/debug80-runtime";
+import { createZ80Runtime } from "@jhlagado/z80-runtime";
 
 import {
   crc16CcittFalse,

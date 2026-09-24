@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compile } from "@jhlagado/azm/compile";
-import { parseIntelHex } from "@jhlagado/debug80-runtime";
+import { parseIntelHex } from "@jhlagado/z80-runtime";
 
 import type {
   RuntimeImage,

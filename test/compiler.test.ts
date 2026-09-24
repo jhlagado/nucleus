@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
+import { createZ80Runtime, parseIntelHex } from "@jhlagado/z80-runtime";
 import { describe, expect, it } from "vitest";
 
 import {

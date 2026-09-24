@@ -3,7 +3,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { normalizeLine, scheduleEquates, prepareAtomSource, sparseIntelHex, assembleAtomSource } from "./atom-source.mjs";
 import { assembleResolvedAtomProject } from "atom-z80";
-import { parseIntelHex } from "@jhlagado/debug80-runtime";
+import { parseIntelHex } from "@jhlagado/z80-runtime";
 import { sameGeneratedImages } from "./image-comparison.mjs";
 
 const schedule = (...lines) => scheduleEquates(lines.map((text, i) => ({text, file: "fixture.asm", line: i + 1})));

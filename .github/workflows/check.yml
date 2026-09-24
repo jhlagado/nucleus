@@ -14,6 +14,11 @@ jobs:
           repository: jhlagado/debug80
           ref: 3f2adb669bb9e7888305c623f8c843054c3dd111
           path: .debug80
+      - uses: actions/checkout@v4
+        with:
+          repository: jhlagado/z80-runtime
+          ref: e4ee190
+          path: .z80-runtime
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -23,16 +28,18 @@ jobs:
         working-directory: .debug80
       - run: npm run build -w @jhlagado/azm
         working-directory: .debug80
-      - run: npm run build -w @jhlagado/debug80-runtime
-        working-directory: .debug80
+      - run: npm ci
+        working-directory: .z80-runtime
+      - run: npm run build
+        working-directory: .z80-runtime
       - name: Link the unpublished AZM toolchain
         run: npm link --no-save ./.debug80/packages/azm
-      - name: Install the unpublished runtime peer
+      - name: Install the unpublished Z80 runtime peer
         run: |
-          mkdir -p node_modules/@jhlagado/debug80-runtime
-          cp .debug80/packages/debug80-runtime/package.json node_modules/@jhlagado/debug80-runtime/
-          cp .debug80/packages/debug80-runtime/LICENSE node_modules/@jhlagado/debug80-runtime/
-          cp -R .debug80/packages/debug80-runtime/dist node_modules/@jhlagado/debug80-runtime/
+          mkdir -p node_modules/@jhlagado/z80-runtime
+          cp .z80-runtime/package.json node_modules/@jhlagado/z80-runtime/
+          cp .z80-runtime/LICENSE node_modules/@jhlagado/z80-runtime/
+          cp -R .z80-runtime/dist node_modules/@jhlagado/z80-runtime/
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
