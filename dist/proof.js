@@ -1,16 +1,16 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { compile } from "@jhlagado/azm/compile";
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { materializeNobj, NobjGenerationSink, NobjGenerationStore, } from "./nobj.js";
 import { defaultRuntimeLinkContext, loadCanonicalRuntimeProvider, } from "./nucleus-runtime.js";
+import { createDebug80ExecutionAdapter, } from "./execution-adapter.js";
 export class ProofFailure extends Error {
     constructor(message) {
         super(message);
         this.name = "ProofFailure";
     }
 }
-export async function runProofManifest(manifestFile) {
+export async function runProofManifest(manifestFile, options = {}) {
     const manifestPath = path.resolve(manifestFile);
     const manifestDirectory = path.dirname(manifestPath);
     const manifest = readJson(manifestPath);
@@ -86,7 +86,11 @@ export async function runProofManifest(manifestFile) {
         }
         return { name: extent.name, bytes };
     });
-    const runtime = createZ80Runtime(parseIntelHex(hex.text), symbolValue(manifest.execution.entry));
+    const executionAdapter = options.executionAdapter ?? createDebug80ExecutionAdapter();
+    const runtime = executionAdapter.create({
+        image: executionAdapter.parseImage(hex.text),
+        entry: symbolValue(manifest.execution.entry),
+    });
     const memory = runtime.hardware.memory;
     for (const write of manifest.writes ?? []) {
         const bytes = write.bytes ??
@@ -108,7 +112,7 @@ export async function runProofManifest(manifestFile) {
     while (instructions < manifest.execution.maxInstructions &&
         cycles <= manifest.execution.maxCycles &&
         !runtime.isHalted()) {
-        recentProgramCounters.push(runtime.getPC());
+        recentProgramCounters.push(runtime.cpu.pc);
         if (recentProgramCounters.length > 16)
             recentProgramCounters.shift();
         const step = runtime.step();
@@ -138,13 +142,13 @@ export async function runProofManifest(manifestFile) {
         throw new ProofFailure([
             `${manifest.name}: proof failed`,
             ...failures.map((failure) => `  ${failure}`),
-            `  PC=${hexWord(runtime.getPC())} SP=${hexWord(runtime.cpu.sp)}`,
+            `  PC=${hexWord(runtime.cpu.pc)} SP=${hexWord(runtime.cpu.sp)}`,
             `  recent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`,
         ].join("\n"));
     }
     const nobj = manifest.nobj === undefined
         ? undefined
-        : await runNobjManifest(manifest.name, manifest.nobj, memory, symbolValue);
+        : await runNobjManifest(manifest.name, manifest.nobj, memory, symbolValue, executionAdapter);
     return {
         name: manifest.name,
         instructions,
@@ -157,7 +161,7 @@ export async function runProofManifest(manifestFile) {
         ...(nobj === undefined ? {} : { nobj }),
     };
 }
-const runNobjManifest = async (name, manifest, producerMemory, symbol) => {
+const runNobjManifest = async (name, manifest, producerMemory, symbol, executionAdapter) => {
     const start = symbol(manifest.adapter.at);
     const lengthAddress = symbol(manifest.adapter.lengthAt);
     const length = (producerMemory[lengthAddress] ?? 0) |
@@ -193,6 +197,7 @@ const runNobjManifest = async (name, manifest, producerMemory, symbol) => {
     return executeCommittedNobj(serialized, manifest.execution, {
         observations: manifest.observations,
         bankSwitch: manifest.bankSwitch,
+        executionAdapter,
     });
 };
 export const commitNobjAdapterGeneration = async ({ name, producerMemory, start, length, maxBytes, begin, map, runtimeLinkContext = defaultRuntimeLinkContext, store = new NobjGenerationStore(), onImageByte, }) => {
@@ -308,7 +313,10 @@ export const executeCommittedNobj = (serialized, execution, options = {}) => {
         startAddress: parsed.map.entryAddress,
     };
     const switchConfig = options.bankSwitch;
-    const runtime = createZ80Runtime(program, parsed.map.entryAddress, {
+    const executionAdapter = options.executionAdapter ?? createDebug80ExecutionAdapter();
+    const runtime = executionAdapter.create({
+        image: program,
+        entry: parsed.map.entryAddress,
         write: (port, value) => {
             if (switchConfig !== undefined && (port & 0xff) === switchConfig.port) {
                 if (value >= parsed.begin.bankCount) {
@@ -322,16 +330,7 @@ export const executeCommittedNobj = (serialized, execution, options = {}) => {
                 runtime.hardware.memory.set(selectedImage, parsed.begin.imageBase);
             }
         },
-    }, parsed.begin.banked && switchConfig !== undefined
-        ? {
-            romRanges: [
-                {
-                    start: switchConfig.windowBase,
-                    end: switchConfig.windowBase + switchConfig.windowCapacity - 1,
-                },
-            ],
-        }
-        : undefined);
+    });
     if (execution.initialSp !== undefined) {
         if (!Number.isInteger(execution.initialSp) ||
             execution.initialSp < 0 ||
@@ -357,7 +356,7 @@ export const executeCommittedNobj = (serialized, execution, options = {}) => {
     while (instructions < execution.maxInstructions &&
         cycles <= execution.maxCycles &&
         !runtime.isHalted()) {
-        recentProgramCounters.push(runtime.getPC());
+        recentProgramCounters.push(runtime.cpu.pc);
         if (recentProgramCounters.length > 16)
             recentProgramCounters.shift();
         const step = runtime.step();
@@ -397,7 +396,7 @@ export const executeCommittedNobj = (serialized, execution, options = {}) => {
         }
     }
     if (failures.length > 0) {
-        throw new ProofFailure(`NOBJ execution failed\n${failures.join("\n")}\nPC=${hexWord(runtime.getPC())} bank=${selectedBank}\nrecent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`);
+        throw new ProofFailure(`NOBJ execution failed\n${failures.join("\n")}\nPC=${hexWord(runtime.cpu.pc)} bank=${selectedBank}\nrecent PCs: ${recentProgramCounters.map(hexWord).join(" ")}`);
     }
     return {
         serialized: serialized.slice(),

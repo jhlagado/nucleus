@@ -1,5 +1,6 @@
 import { type MaterializedNobj, type RuntimeServiceAddresses } from "./nobj.js";
 import { type NucleusDebugMapping } from "./d8.js";
+import { type NucleusExecutionAdapter } from "./execution-adapter.js";
 export declare const nucleusCompilerCapacities: {
     readonly sourceParts: 8;
     readonly sourceWindowBytes: number;
@@ -31,6 +32,7 @@ export type NucleusTarget = NucleusFlatTarget | NucleusBankedTarget;
 export interface NucleusCompileOptions {
     readonly debugMap?: boolean;
     readonly compilerIoWrite?: (port: number, value: number) => void;
+    readonly executionAdapter?: NucleusExecutionAdapter;
 }
 export interface NucleusDiagnostic {
     readonly code: number;

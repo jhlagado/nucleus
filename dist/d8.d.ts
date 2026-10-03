@@ -1,8 +1,8 @@
-import type { createZ80Runtime } from "@jhlagado/debug80-runtime";
 import type { NucleusSourcePart } from "./compiler.js";
+import type { NucleusExecutionCpu } from "./execution-adapter.js";
 import type { NobjBegin, ParsedNobj } from "./nobj.js";
 import type { NobjAdapterImageByte } from "./proof.js";
-type CompilerCpu = ReturnType<typeof createZ80Runtime>["cpu"];
+type CompilerCpu = NucleusExecutionCpu;
 export declare const nucleusDebugPorts: {
     readonly source: 216;
     readonly declaration: 217;

@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { createZ80Runtime, parseIntelHex } from "@jhlagado/debug80-runtime";
 import { debugCompilerHex, debugCompilerSymbols, normalCompilerHex, normalCompilerSymbols, } from "./generated-compiler-images.js";
 import { materializeNobj, parseNobj, } from "./nobj.js";
 import { commitNobjAdapterGeneration, } from "./proof.js";
 import { isNucleusDebugPort, NucleusDebugCollector, sourcePartBytes, } from "./d8.js";
+import { createDebug80ExecutionAdapter, } from "./execution-adapter.js";
 const SOURCE_BASE = normalCompilerSymbols.SourceBase ?? 0x5000;
 const SOURCE_LIMIT = normalCompilerSymbols.SourceLimit ?? 0x5800;
 const TARGET_DESCRIPTOR = 0x9e00;
@@ -63,7 +63,8 @@ export const writeNucleusIntelHex = (result) => {
     lines.push(intelHexRecord(0, 1, new Uint8Array()));
     return `${lines.join("\n")}\n`;
 };
-const compilerImages = new Map();
+const compilerImages = new WeakMap();
+const defaultExecutionAdapter = createDebug80ExecutionAdapter();
 const symbol = (symbols, name) => {
     const wanted = name.toLowerCase();
     for (const [candidate, value] of Object.entries(symbols)) {
@@ -72,15 +73,20 @@ const symbol = (symbols, name) => {
     }
     throw new Error(`Nucleus compiler image is missing symbol ${name}`);
 };
-const loadCompilerImage = async (debugHooks) => {
-    let pending = compilerImages.get(debugHooks);
+const loadCompilerImage = async (debugHooks, executionAdapter) => {
+    let images = compilerImages.get(executionAdapter);
+    if (images === undefined) {
+        images = new Map();
+        compilerImages.set(executionAdapter, images);
+    }
+    let pending = images.get(debugHooks);
     if (pending === undefined) {
         pending = (async () => {
             const hex = debugHooks ? debugCompilerHex : normalCompilerHex;
             const symbols = debugHooks ? debugCompilerSymbols : normalCompilerSymbols;
-            return { program: parseIntelHex(hex), symbols };
+            return { program: executionAdapter.parseImage(hex), symbols };
         })();
-        compilerImages.set(debugHooks, pending);
+        images.set(debugHooks, pending);
     }
     return pending;
 };
@@ -92,8 +98,8 @@ const compilerImageFingerprint = (image) => {
 };
 export const nucleusCompilerInfo = async () => {
     const [normal, debug] = await Promise.all([
-        loadCompilerImage(false),
-        loadCompilerImage(true),
+        loadCompilerImage(false, defaultExecutionAdapter),
+        loadCompilerImage(true, defaultExecutionAdapter),
     ]);
     return {
         hostApiVersion: 1,
@@ -308,11 +314,15 @@ const capturedBankedMap = (memory, symbols, begin, target, partBanks) => {
     };
 };
 export const compileNucleus = async (parts, target = {}, options = {}) => {
+    const executionAdapter = options.executionAdapter ?? defaultExecutionAdapter;
     const debugHooks = options.debugMap === true;
-    const image = await loadCompilerImage(debugHooks);
+    const image = await loadCompilerImage(debugHooks, executionAdapter);
     let debugCollectionActive = debugHooks;
     let collector;
-    const runtime = createZ80Runtime({ ...image.program, memory: image.program.memory.slice() }, symbol(image.symbols, "CompileTargetAggregateCallParts"), {
+    let runtime;
+    runtime = executionAdapter.create({
+        image: image.program,
+        entry: symbol(image.symbols, "CompileTargetAggregateCallParts"),
         write: (port, value) => {
             if (debugCollectionActive && isNucleusDebugPort(port & 0xff)) {
                 collector?.collect(port & 0xff, runtime.cpu);

@@ -1,4 +1,5 @@
 import { NobjGenerationStore, type MaterializedNobj, type NobjBegin, type NobjMap, type ParsedNobj, type RuntimeLinkContext } from "./nobj.js";
+import { type NucleusExecutionAdapter } from "./execution-adapter.js";
 interface NobjProofManifest {
     readonly adapter: {
         readonly at: string;
@@ -84,7 +85,15 @@ export interface NobjExecutionOutcome {
 export declare class ProofFailure extends Error {
     constructor(message: string);
 }
-export declare function runProofManifest(manifestFile: string): Promise<ProofOutcome>;
+export interface ProofExecutionOptions {
+    /**
+     * Execution substrate used by the proof. The default remains the Debug80
+     * differential oracle; Triptych native/WASM callers can supply a qualified
+     * replacement without changing the manifest or assembler input.
+     */
+    readonly executionAdapter?: NucleusExecutionAdapter;
+}
+export declare function runProofManifest(manifestFile: string, options?: ProofExecutionOptions): Promise<ProofOutcome>;
 export declare const commitNobjAdapterGeneration: ({ name, producerMemory, start, length, maxBytes, begin, map, runtimeLinkContext, store, onImageByte, }: NobjAdapterGeneration) => Promise<Uint8Array>;
 export declare const executeCommittedNobj: (serialized: Uint8Array, execution: {
     readonly maxInstructions: number;
@@ -99,5 +108,6 @@ export declare const executeCommittedNobj: (serialized: Uint8Array, execution: {
 }, options?: {
     readonly observations?: readonly NobjObservation[];
     readonly bankSwitch?: NobjProofManifest["bankSwitch"];
+    readonly executionAdapter?: NucleusExecutionAdapter;
 }) => NobjExecutionOutcome;
 export {};
